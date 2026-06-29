@@ -1,6 +1,8 @@
 package br.com.toppower.erp_toppower.common.exception;
 
 import br.com.toppower.erp_toppower.auth.exception.InvalidCredentialsException;
+import br.com.toppower.erp_toppower.product.exception.DuplicateProductCodeException;
+import br.com.toppower.erp_toppower.product.exception.ProductNotFoundException;
 import br.com.toppower.erp_toppower.user.exception.EmailAlreadyExistsException;
 import br.com.toppower.erp_toppower.user.exception.IncorrectPasswordException;
 import br.com.toppower.erp_toppower.user.exception.UserNotFoundException;
@@ -21,32 +23,42 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(EmailAlreadyExistsException.class)
     public ResponseEntity<ApiError> handleEmailAlreadyExists(EmailAlreadyExistsException ex) {
-        ApiError error = new ApiError(HttpStatus.CONFLICT.value(), ex.getMessage(), Instant.now());
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+        return build(HttpStatus.CONFLICT, ex.getMessage());
     }
 
     @ExceptionHandler(InvalidCredentialsException.class)
     public ResponseEntity<ApiError> handleInvalidCredentials(InvalidCredentialsException ex) {
-        ApiError error = new ApiError(HttpStatus.UNAUTHORIZED.value(), ex.getMessage(), Instant.now());
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+        return build(HttpStatus.UNAUTHORIZED, ex.getMessage());
     }
 
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ApiError> handleAuthentication(AuthenticationException ex) {
-        ApiError error = new ApiError(HttpStatus.UNAUTHORIZED.value(), ex.getMessage(), Instant.now());
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+        return build(HttpStatus.UNAUTHORIZED, ex.getMessage());
     }
 
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<ApiError> handleUserNotFound(UserNotFoundException ex) {
-        ApiError error = new ApiError(HttpStatus.NOT_FOUND.value(), ex.getMessage(), Instant.now());
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
     @ExceptionHandler(IncorrectPasswordException.class)
     public ResponseEntity<ApiError> handleIncorrectPassword(IncorrectPasswordException ex) {
-        ApiError error = new ApiError(HttpStatus.BAD_REQUEST.value(), ex.getMessage(), Instant.now());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(ProductNotFoundException.class)
+    public ResponseEntity<ApiError> handleProductNotFound(ProductNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(DuplicateProductCodeException.class)
+    public ResponseEntity<ApiError> handleDuplicateProductCode(DuplicateProductCodeException ex) {
+        return build(HttpStatus.CONFLICT, ex.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -57,11 +69,16 @@ public class GlobalExceptionHandler {
         }
         ApiError error = new ApiError(
                 HttpStatus.BAD_REQUEST.value(),
-                "Erro de validação",
+                "Erro de validacao",
                 Instant.now(),
                 fieldErrors
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    private static ResponseEntity<ApiError> build(HttpStatus status, String message) {
+        ApiError error = new ApiError(status.value(), message, Instant.now());
+        return ResponseEntity.status(status).body(error);
     }
 
     public record ApiError(
