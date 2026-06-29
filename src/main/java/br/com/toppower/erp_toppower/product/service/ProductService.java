@@ -1,5 +1,6 @@
 package br.com.toppower.erp_toppower.product.service;
 
+import br.com.toppower.erp_toppower.common.dto.PagedResponse;
 import br.com.toppower.erp_toppower.product.dto.ProductCreateRequest;
 import br.com.toppower.erp_toppower.product.dto.ProductResponse;
 import br.com.toppower.erp_toppower.product.dto.ProductUpdateRequest;
@@ -9,10 +10,11 @@ import br.com.toppower.erp_toppower.product.exception.DuplicateProductCodeExcept
 import br.com.toppower.erp_toppower.product.exception.ProductNotFoundException;
 import br.com.toppower.erp_toppower.product.mapper.ProductMapper;
 import br.com.toppower.erp_toppower.product.repository.ProductRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -36,11 +38,17 @@ public class ProductService {
         return ProductMapper.toResponse(saved);
     }
 
+    /**
+     * Lista paginada de produtos. Se {@code status} for nulo, retorna todos os produtos
+     * (ativos e inativos); caso contrario filtra pelo status informado.
+     */
     @Transactional(readOnly = true)
-    public List<ProductResponse> getAll() {
-        return productRepository.findAll().stream()
-                .map(ProductMapper::toResponse)
-                .toList();
+    public PagedResponse<ProductResponse> getAll(ProductStatus status, Pageable pageable) {
+        Page<Product> page = (status == null)
+                ? productRepository.findAll(pageable)
+                : productRepository.findByStatus(status, pageable);
+        Page<ProductResponse> mapped = page.map(ProductMapper::toResponse);
+        return PagedResponse.from(mapped);
     }
 
     @Transactional(readOnly = true)
@@ -84,7 +92,7 @@ public class ProductService {
      * Pensado para alimentar o campo de busca de uma loja virtual.
      */
     @Transactional(readOnly = true)
-    public List<ProductResponse> search(String query) {
+    public PagedResponse<ProductResponse> search(String query, Pageable pageable) {
         if (query == null || query.isBlank()) {
             throw new IllegalArgumentException("O termo de busca eh obrigatorio");
         }
@@ -93,8 +101,9 @@ public class ProductService {
             throw new IllegalArgumentException(
                     "O termo de busca deve ter ao menos " + MIN_SEARCH_QUERY_LENGTH + " caracteres");
         }
-        return productRepository.searchByQuery(ProductStatus.ATIVO, trimmed).stream()
-                .map(ProductMapper::toResponse)
-                .toList();
+        Page<ProductResponse> mapped = productRepository
+                .searchByQuery(ProductStatus.ATIVO, trimmed, pageable)
+                .map(ProductMapper::toResponse);
+        return PagedResponse.from(mapped);
     }
 }

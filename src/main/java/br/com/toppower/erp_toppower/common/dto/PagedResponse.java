@@ -1,0 +1,43 @@
+package br.com.toppower.erp_toppower.common.dto;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import org.springframework.data.domain.Page;
+
+import java.util.List;
+
+@Schema(name = "PagedResponse", description = "Resposta paginada generica.")
+public record PagedResponse<T>(
+
+        @Schema(description = "Lista de elementos da pagina atual.")
+        List<T> content,
+
+        @Schema(description = "Numero da pagina atual (0-indexed).", example = "0")
+        int page,
+
+        @Schema(description = "Tamanho da pagina solicitada.", example = "20")
+        int size,
+
+        @Schema(description = "Total de elementos em todas as paginas.", example = "125")
+        long totalElements,
+
+        @Schema(description = "Total de paginas disponiveis.", example = "7")
+        int totalPages,
+
+        @Schema(description = "Indica se esta eh a primeira pagina.", example = "true")
+        boolean first,
+
+        @Schema(description = "Indica se esta eh a ultima pagina.", example = "false")
+        boolean last
+) {
+    public static <T> PagedResponse<T> from(Page<T> page) {
+        return new PagedResponse<>(
+                page.getContent(),
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages(),
+                page.isFirst(),
+                page.isLast()
+        );
+    }
+}

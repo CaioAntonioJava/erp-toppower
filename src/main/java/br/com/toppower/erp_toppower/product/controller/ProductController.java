@@ -1,10 +1,13 @@
 package br.com.toppower.erp_toppower.product.controller;
 
+import br.com.toppower.erp_toppower.common.dto.PagedResponse;
 import br.com.toppower.erp_toppower.product.dto.ProductCreateRequest;
 import br.com.toppower.erp_toppower.product.dto.ProductResponse;
 import br.com.toppower.erp_toppower.product.dto.ProductUpdateRequest;
+import br.com.toppower.erp_toppower.product.enums.ProductStatus;
 import br.com.toppower.erp_toppower.product.service.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -13,13 +16,15 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -58,21 +63,30 @@ public class ProductController {
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(
-            summary = "Listar produtos",
-            description = "Retorna todos os produtos cadastrados (ativos e inativos). "
+            summary = "Listar produtos (paginado)",
+            description = "Retorna produtos paginados. Use o parametro 'status' (ATIVO ou INATIVO) "
+                    + "para filtrar; se omitido, retorna todos. Ordenacao padrao por nome. "
                     + "Acesso para usuarios autenticados (ADMIN, MANAGER, EMPLOYEE)."
     )
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER','EMPLOYEE')")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Lista de produtos retornada com sucesso.",
+            @ApiResponse(responseCode = "200", description = "Pagina de produtos retornada com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = ProductResponse.class))),
+                            schema = @Schema(implementation = PagedResponse.class))),
             @ApiResponse(responseCode = "401", description = "Token ausente, invalido ou expirado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<List<ProductResponse>> getAll() {
-        return ResponseEntity.ok(productService.getAll());
+    public ResponseEntity<PagedResponse<ProductResponse>> getAll(
+            @Parameter(description = "Filtro opcional por status (ATIVO ou INATIVO). Se omitido, retorna ambos.",
+                    example = "ATIVO", schema = @Schema(allowableValues = {"ATIVO", "INATIVO"}))
+            @RequestParam(value = "status", required = false) ProductStatus status,
+
+            @Parameter(description = "Paginacao. Ex.: ?page=0&size=20&sort=name,asc",
+                    example = "0")
+            @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC)
+            Pageable pageable) {
+        return ResponseEntity.ok(productService.getAll(status, pageable));
     }
 
     @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -81,7 +95,7 @@ public class ProductController {
             description = "Retorna um produto pelo seu UUID. Acesso para usuarios autenticados."
     )
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','EMPLOYEE')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Produto encontrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -116,58 +130,17 @@ public class ProductController {
             @ApiResponse(responseCode = "404", description = "Produto nao encontrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "409", description = "Ja existe um produto com o codigo informado.",
+     
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<ProductResponse> update(@PathVariable UUID id,
-                                                  @Valid @RequestBody ProductUpdateRequest request) {
-        return ResponseEntity.ok(productService.update(id, request));
-    }
+    public ResponseEntity<PagedResponse<ProductResponse>> search(
+            @Parameter(description = "Termo de busca (minimo 2 caracteres). Match contra nome e codigo do produto.",
+                    example = "cabo flexivel", required = true)
+            @RequestParam("query") String query,
 
-    @DeleteMapping("/{id}")
-    @Operation(
-            summary = "Inativar produto (soft delete)",
-            description = "Define o status do produto como INATIVO (soft delete), preservando "
-                    + "o historico. Acesso restrito a administradores (ROLE_ADMIN)."
-    )
-    @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasRole('ADMIN')")
-    @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Produto inativado com sucesso."),
-            @ApiResponse(responseCode = "401", description = "Token ausente, invalido ou expirado.",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "403", description = "Usuario nao possui ROLE_ADMIN.",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "404", description = "Produto nao encontrado.",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
-    })
-    public ResponseEntity<Void> inactivate(@PathVariable UUID id) {
-        productService.softDelete(id);
-        return ResponseEntity.noContent().build();
-    }
-    @GetMapping("/search")
-    @Operation(
-            summary = "Buscar produtos (ativos)",
-            description = "Busca case-insensitive por substring em nome OU codigo. "
-                    + "Retorna apenas produtos com status ATIVO, ordenados por nome. "
-                    + "Acesso para usuarios autenticados (ADMIN, MANAGER, EMPLOYEE)."
-    )
-    @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','EMPLOYEE')")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Lista de produtos encontrados (vazia se nao houver resultados).",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = ProductResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Termo de busca invalido (vazio ou com menos de 2 caracteres).",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "401", description = "Token ausente, invalido ou expirado.",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
-    })
-    public ResponseEntity<List<ProductResponse>> search(
-            @io.swagger.v3.oas.annotations.Parameter(
-                    description = "Termo de busca (minimo 2 caracteres). Match contra nome e código do produto.",
-                    example = "cabo flexivel",
-                    required = true)
-            @RequestParam("query") String query) {
-        return ResponseEntity.ok(productService.search(query));
+            @Parameter(description = "Paginacao. Ex.: ?page=0&size=20&sort=name,asc")
+            @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC)
+            Pageable pageable) {
+        return ResponseEntity.ok(productService.search(query, pageable));
     }
 }
