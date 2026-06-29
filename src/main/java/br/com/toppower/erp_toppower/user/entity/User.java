@@ -1,28 +1,28 @@
 package br.com.toppower.erp_toppower.user.entity;
 
+import br.com.toppower.erp_toppower.common.entity.BaseEntity;
 import br.com.toppower.erp_toppower.enums.Role;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.io.Serial;
 import java.io.Serializable;
-import java.util.UUID;
 
 @Entity
 @Table(name = "users")
 @Getter
 @Setter
 @NoArgsConstructor
-public class User implements Serializable {
+public class User extends BaseEntity implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID uuid;
 
     @Column(name = "email", unique = true, nullable = false, length = 100)
     private String email;
@@ -32,5 +32,5 @@ public class User implements Serializable {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false, length = 25)
-    private Role role= Role.ROLE_EMPLOYEE;
+    private Role role = Role.ROLE_EMPLOYEE;
 }
