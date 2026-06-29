@@ -5,9 +5,12 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.jspecify.annotations.NonNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -16,6 +19,8 @@ import java.io.IOException;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
@@ -41,10 +46,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String token = header.substring(BEARER_PREFIX.length());
 
+        // O token pode estar assinado correctamente mas o usuario ter sido removido
+        // do banco (ou nunca ter existido). Nesse caso, tratar como ausencia de
+        // autenticacao e deixar os matchers de rotas decidirem se o endpoint
+        // eh publico ou exige auth.
         jwtService.extractEmail(token).ifPresent(email -> {
-            if (SecurityContextHolder.getContext().getAuthentication() == null) {
+            if (SecurityContextHolder.getContext().getAuthentication() != null) {
+                return;
+            }
+            try {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(email);
                 setAuthentication(request, userDetails);
+            } catch (UsernameNotFoundException ex) {
+                log.debug("JWT aponta para um usuario inexistente: '{}'. Ignorando token.", email);
+                SecurityContextHolder.clearContext();
             }
         });
 
