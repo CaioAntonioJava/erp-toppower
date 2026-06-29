@@ -24,13 +24,13 @@ public class OpenApiConfig {
     public OpenAPI erpToppowerOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("ERP TopPower API")
+                        .title("ERP TOPPOWER API")
                         .version("v1")
-                        .description("API REST do sistema ERP TopPower para " +
+                        .description("API REST do sistema ERP TOPPOWER para " +
                                 "gestão de usuários, autenticação JWT e outros módulos empresariais.")
                         .contact(new Contact()
-                                .name("ERP TopPower")
-                                .email("dev@toppower.com.br"))
+                                .name("CAIO HENRIQUE ANTONIO")
+                                .email("caio@toppowermateriais.com.br"))
                         .license(new License()
                                 .name("Proprietary")
                                 .url("https://toppower.com.br")))

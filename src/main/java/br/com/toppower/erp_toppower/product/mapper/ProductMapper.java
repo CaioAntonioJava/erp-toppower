@@ -11,7 +11,7 @@ public final class ProductMapper {
     }
 
     /**
-     * Cria uma nova entidade a partir do request de criacao.
+     * Cria uma nova entidade a partir do request de criação.
      * Observacao: o {@code status} pode ser {@code null}; o {@code @PrePersist}
      * da entidade cuida de aplicar o default {@code ATIVO}.
      */
@@ -43,8 +43,8 @@ public final class ProductMapper {
     }
 
     /**
-     * Aplica uma atualizacao parcial (PATCH) na entidade carregada.
-     * Apenas campos nao-nulos do request sobrescrevem o estado atual.
+     * Aplica uma atualização parcial (PATCH) na entidade carregada.
+     * Apenas campos não-nulos do request sobrescrevem o estado atual.
      */
     public static void applyUpdate(Product product, ProductUpdateRequest request) {
         if (request.name() != null) {

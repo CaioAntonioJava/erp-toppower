@@ -11,14 +11,14 @@ import java.util.UUID;
 @Schema(name = "ProductResponse", description = "Representacao publica de um produto retornado pela API.")
 public record ProductResponse(
 
-        @Schema(description = "Identificador unico (UUID) do produto.",
+        @Schema(description = "Identificador único (UUID) do produto.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         UUID uuid,
 
         @Schema(description = "Nome do produto.", requiredMode = Schema.RequiredMode.REQUIRED)
         String name,
 
-        @Schema(description = "Codigo unico (SKU) do produto.", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "Código único (SKU) do produto.", requiredMode = Schema.RequiredMode.REQUIRED)
         String code,
 
         @Schema(description = "Unidade de medida.",
@@ -31,22 +31,22 @@ public record ProductResponse(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         ProductStatus status,
 
-        @Schema(description = "Preco unitario de venda.", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "Preço unitário de venda.", requiredMode = Schema.RequiredMode.REQUIRED)
         BigDecimal price,
 
         @Schema(description = "Quantidade em estoque.", requiredMode = Schema.RequiredMode.REQUIRED)
         BigDecimal stockQuantity,
 
-        @Schema(description = "Data de criacao.", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "Data de criação.", requiredMode = Schema.RequiredMode.REQUIRED)
         Instant createdAt,
 
-        @Schema(description = "Data da ultima atualizacao.", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "Data da ultima atualização.", requiredMode = Schema.RequiredMode.REQUIRED)
         Instant updatedAt,
 
-        @Schema(description = "E-mail do usuario que criou o registro.")
+        @Schema(description = "E-mail do usuário que criou o registro.")
         String createdBy,
 
-        @Schema(description = "E-mail do usuario que fez a ultima atualizacao.")
+        @Schema(description = "E-mail do usuário que fez a ultima atualização.")
         String updatedBy
 ) {
 }

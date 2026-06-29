@@ -10,12 +10,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import java.util.Optional;
 
 /**
- * Fornece ao Spring Data JPA o e-mail do usuario atualmente autenticado,
+ * Fornece ao Spring Data JPA o e-mail do usuário atualmente autenticado,
  * para popular os campos {@code @CreatedBy} e {@code @LastModifiedBy} das entidades.
  *
- * Retorna {@link Optional#empty()} quando nao ha usuario autenticado (por exemplo,
- * durante o bootstrap do primeiro usuario administrador antes do login).
- * Isso faz com que os campos de auditoria permaneam nulos, sem quebrar a aplicacao.
+ * Retorna {@link Optional#empty()} quando não ha usuário autenticado (por exemplo,
+ * durante o bootstrap do primeiro usuário administrador antes do login).
+ * Isso faz com que os campos de auditoria permaneam nulos, sem quebrar a aplicação.
  */
 @Configuration
 public class AuditorAwareImpl {

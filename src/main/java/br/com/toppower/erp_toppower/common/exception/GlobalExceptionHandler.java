@@ -69,7 +69,7 @@ public class GlobalExceptionHandler {
         }
         ApiError error = new ApiError(
                 HttpStatus.BAD_REQUEST.value(),
-                "Erro de validacao",
+                "Erro de validação",
                 Instant.now(),
                 fieldErrors
         );

@@ -75,7 +75,7 @@ public class ProductService {
     }
 
     /**
-     * Soft delete: nao remove fisicamente o registro, apenas altera o status para INATIVO.
+     * Soft delete: não remove fisicamente o registro, apenas altera o status para INATIVO.
      * Preserva o historico em pedidos/notas fiscais e a rastreabilidade do registro.
      */
     @Transactional
@@ -94,7 +94,7 @@ public class ProductService {
     @Transactional(readOnly = true)
     public PagedResponse<ProductResponse> search(String query, Pageable pageable) {
         if (query == null || query.isBlank()) {
-            throw new IllegalArgumentException("O termo de busca eh obrigatorio");
+            throw new IllegalArgumentException("O termo de busca é obrigatório");
         }
         String trimmed = query.trim();
         if (trimmed.length() < MIN_SEARCH_QUERY_LENGTH) {

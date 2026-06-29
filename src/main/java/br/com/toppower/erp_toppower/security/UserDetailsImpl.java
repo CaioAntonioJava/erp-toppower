@@ -31,7 +31,7 @@ public record UserDetailsImpl(UUID uuid, String email, String password, String r
 
     @Override
     public String getUsername() {
-        // O Spring Security usa o username como identificador principal da autenticacao;
+        // O Spring Security usa o username como identificador principal da autenticação;
         // neste projeto o login e feito por e-mail.
         return email;
     }

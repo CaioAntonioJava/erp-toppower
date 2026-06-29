@@ -29,25 +29,25 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
-@Tag(name = "Usuarios", description = "Endpoints de gerenciamento de usuarios do ERP TopPower.")
+@Tag(name = "Usuários", description = "Endpoints de gerenciamento de usuários do ERP TopPower.")
 public class UserController {
 
     private final UserService userService;
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(
-            summary = "Cadastrar novo usuario",
-            description = "Cria um novo usuario no sistema. Endpoint publico (nao exige token JWT) "
-                    + "para permitir o bootstrap do primeiro usuario administrador. O e-mail deve ser unico."
+            summary = "Cadastrar novo usuário",
+            description = "Cria um novo usuário no sistema. Endpoint público (não exige token JWT) "
+                    + "para permitir o bootstrap do primeiro usuário administrador. O e-mail deve ser único."
     )
     @SecurityRequirements
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Usuario criado com sucesso.",
+            @ApiResponse(responseCode = "201", description = "Usuário criado com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = UserResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Erro de validacao nos campos enviados.",
+            @ApiResponse(responseCode = "400", description = "Erro de validação nos campos enviados.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "409", description = "Ja existe um usuario com o e-mail informado.",
+            @ApiResponse(responseCode = "409", description = "Já existe um usuário com o e-mail informado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<UserResponse> create(@Valid @RequestBody UserCreateRequest request) {
@@ -57,18 +57,18 @@ public class UserController {
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(
-            summary = "Listar todos os usuarios",
-            description = "Retorna todos os usuarios cadastrados. Acesso restrito a administradores (ROLE_ADMIN)."
+            summary = "Listar todos os usuários",
+            description = "Retorna todos os usuários cadastrados. Acesso restrito a administradores (ROLE_ADMIN)."
     )
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasRole('ADMIN')")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Lista de usuarios retornada com sucesso.",
+            @ApiResponse(responseCode = "200", description = "Lista de usuários retornada com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = UserResponse.class))),
             @ApiResponse(responseCode = "401", description = "Token ausente, invalido ou expirado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "403", description = "Usuario nao possui ROLE_ADMIN.",
+            @ApiResponse(responseCode = "403", description = "Usuário não possui ROLE_ADMIN.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<List<UserResponse>> getAll() {
@@ -77,20 +77,20 @@ public class UserController {
 
     @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(
-            summary = "Buscar usuario por ID",
-            description = "Retorna os dados de um usuario pelo seu UUID. Acesso restrito a administradores (ROLE_ADMIN)."
+            summary = "Buscar usuário por ID",
+            description = "Retorna os dados de um usuário pelo seu UUID. Acesso restrito a administradores (ROLE_ADMIN)."
     )
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasRole('ADMIN')")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Usuario encontrado.",
+            @ApiResponse(responseCode = "200", description = "Usuário encontrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = UserResponse.class))),
             @ApiResponse(responseCode = "401", description = "Token ausente, invalido ou expirado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "403", description = "Usuario nao possui ROLE_ADMIN.",
+            @ApiResponse(responseCode = "403", description = "Usuário não possui ROLE_ADMIN.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "404", description = "Usuario nao encontrado.",
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<UserResponse> getById(@PathVariable UUID id) {
@@ -100,20 +100,20 @@ public class UserController {
     @PatchMapping(value = "/{id}/password", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(
             summary = "Alterar propria senha",
-            description = "Permite que o usuario autenticado altere sua propria senha, "
+            description = "Permite que o usuário autenticado altere sua propria senha, "
                     + "informando a senha atual e a nova senha. O UUID do token JWT deve corresponder ao ID do path. "
-                    + "A senha atual eh validada antes da atualizacao."
+                    + "A senha atual é validada antes da atualização."
     )
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Senha alterada com sucesso."),
-            @ApiResponse(responseCode = "400", description = "Senha atual incorreta ou erro de validacao.",
+            @ApiResponse(responseCode = "400", description = "Senha atual incorreta ou erro de validação.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "401", description = "Token ausente, invalido ou expirado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "403", description = "Tentativa de alterar senha de outro usuario.",
+            @ApiResponse(responseCode = "403", description = "Tentativa de alterar senha de outro usuário.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "404", description = "Usuario nao encontrado.",
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<Void> changePassword(@AuthenticationPrincipal UserDetailsImpl principal,
@@ -125,21 +125,21 @@ public class UserController {
 
     @PatchMapping(value = "/{id}/reset-password", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(
-            summary = "Redefinir senha de usuario (ADMIN)",
-            description = "Permite que um administrador redefina a senha de qualquer usuario, "
+            summary = "Redefinir senha de usuário (ADMIN)",
+            description = "Permite que um administrador redefina a senha de qualquer usuário, "
                     + "informando a nova senha a ser atribuida. Acesso restrito a administradores (ROLE_ADMIN)."
     )
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasRole('ADMIN')")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Senha redefinida com sucesso."),
-            @ApiResponse(responseCode = "400", description = "Erro de validacao nos campos enviados.",
+            @ApiResponse(responseCode = "400", description = "Erro de validação nos campos enviados.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "401", description = "Token ausente, invalido ou expirado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "403", description = "Usuario nao possui ROLE_ADMIN.",
+            @ApiResponse(responseCode = "403", description = "Usuário não possui ROLE_ADMIN.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "404", description = "Usuario nao encontrado.",
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<Void> resetPassword(@PathVariable UUID id,

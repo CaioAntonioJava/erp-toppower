@@ -6,7 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.UUID;
 
-@Schema(name = "LoginResponse", description = "Resposta do login com o token JWT e dados do usuario autenticado.")
+@Schema(name = "LoginResponse", description = "Resposta do login com o token JWT e dados do usuário autenticado.")
 public record LoginResponse(
 
         @Schema(description = "Token JWT gerado. Enviar no header Authorization como: Bearer <token>.",
@@ -21,20 +21,20 @@ public record LoginResponse(
                 example = "86400", requiredMode = Schema.RequiredMode.REQUIRED)
         long expiresIn,
 
-        @Schema(description = "Dados do usuario autenticado.",
+        @Schema(description = "Dados do usuário autenticado.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         AuthenticatedUser user
 ) {
-    @Schema(name = "AuthenticatedUser", description = "Dados do usuario autenticado retornados pelo login.")
+    @Schema(name = "AuthenticatedUser", description = "Dados do usuário autenticado retornados pelo login.")
     public record AuthenticatedUser(
 
-            @Schema(description = "UUID do usuario.", requiredMode = Schema.RequiredMode.REQUIRED)
+            @Schema(description = "UUID do usuário.", requiredMode = Schema.RequiredMode.REQUIRED)
             UUID uuid,
 
-            @Schema(description = "E-mail do usuario.", requiredMode = Schema.RequiredMode.REQUIRED)
+            @Schema(description = "E-mail do usuário.", requiredMode = Schema.RequiredMode.REQUIRED)
             String email,
 
-            @Schema(description = "Papel do usuario.",
+            @Schema(description = "Papel do usuário.",
                     example = "ROLE_ADMIN",
                     allowableValues = {"ROLE_ADMIN", "ROLE_MANAGER", "ROLE_EMPLOYEE"},
                     requiredMode = Schema.RequiredMode.REQUIRED)

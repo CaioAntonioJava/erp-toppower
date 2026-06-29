@@ -8,13 +8,13 @@ import java.util.List;
 @Schema(name = "PagedResponse", description = "Resposta paginada generica.")
 public record PagedResponse<T>(
 
-        @Schema(description = "Lista de elementos da pagina atual.")
+        @Schema(description = "Lista de elementos da página atual.")
         List<T> content,
 
-        @Schema(description = "Numero da pagina atual (0-indexed).", example = "0")
+        @Schema(description = "Número da página atual (0-indexed).", example = "0")
         int page,
 
-        @Schema(description = "Tamanho da pagina solicitada.", example = "20")
+        @Schema(description = "Tamanho da página solicitada.", example = "20")
         int size,
 
         @Schema(description = "Total de elementos em todas as paginas.", example = "125")
@@ -23,10 +23,10 @@ public record PagedResponse<T>(
         @Schema(description = "Total de paginas disponiveis.", example = "7")
         int totalPages,
 
-        @Schema(description = "Indica se esta eh a primeira pagina.", example = "true")
+        @Schema(description = "Indica se esta é a primeira página.", example = "true")
         boolean first,
 
-        @Schema(description = "Indica se esta eh a ultima pagina.", example = "false")
+        @Schema(description = "Indica se esta é a ultima página.", example = "false")
         boolean last
 ) {
     public static <T> PagedResponse<T> from(Page<T> page) {

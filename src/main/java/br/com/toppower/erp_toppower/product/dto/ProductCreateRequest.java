@@ -17,23 +17,23 @@ public record ProductCreateRequest(
 
         @Schema(description = "Nome do produto.", example = "Cabo Flexivel 2,5mm",
                 requiredMode = Schema.RequiredMode.REQUIRED, maxLength = 150)
-        @NotBlank(message = "Nome  obrigatorio")
-        @Size(max = 150, message = "Nome deve ter no maximo {max} caracteres")
+        @NotBlank(message = "Nome é obrigatório")
+        @Size(max = 150, message = "Nome deve ter no máximo {max} caracteres")
         String name,
 
-        @Schema(description = "Codigo unico do produto (SKU).", example = "CB-FLEX-2.5",
+        @Schema(description = "Código único do produto (SKU).", example = "CB-FLEX-2.5",
                 requiredMode = Schema.RequiredMode.REQUIRED, maxLength = 50)
-        @NotBlank(message = "Codigo eh obrigatorio")
-        @Size(max = 50, message = "Codigo deve ter no maximo {max} caracteres")
+        @NotBlank(message = "Código é obrigatório")
+        @Size(max = 50, message = "Código deve ter no máximo {max} caracteres")
         @Pattern(regexp = "^[A-Za-z0-9._-]+$",
-                message = "Codigo aceita apenas letras, numeros, ponto, underline e hifen")
+                message = "Código aceita apenas letras, números, ponto, underline e hífen")
         String code,
 
-        @Schema(description = "Unidade de medida em que o produto eh comercializado.",
+        @Schema(description = "Unidade de medida em que o produto é comercializado.",
                 example = "METROS",
                 allowableValues = {"UNIDADE", "METROS", "BOBINA"},
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotNull(message = "Unidade de medida eh obrigatoria")
+        @NotNull(message = "Unidade de medida é obrigatória")
         UnitType unitType,
 
         @Schema(description = "Status inicial do produto. Se omitido, assume ATIVO.",
@@ -42,16 +42,16 @@ public record ProductCreateRequest(
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         ProductStatus status,
 
-        @Schema(description = "Preco unitario de venda.",
+        @Schema(description = "Preço unitário de venda.",
                 example = "2.99", requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotNull(message = "Preco eh obrigatorio")
-        @Positive(message = "Preco deve ser maior que zero")
+        @NotNull(message = "Preço é obrigatório")
+        @Positive(message = "Preço deve ser maior que zero")
         BigDecimal price,
 
         @Schema(description = "Quantidade em estoque (permite fracionamento para METROS/BOBINA).",
                 example = "100.0000", requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotNull(message = "Quantidade em estoque eh obrigatoria")
-        @DecimalMin(value = "0.0", message = "Estoque nao pode ser negativo")
+        @NotNull(message = "Quantidade em estoque é obrigatória")
+        @DecimalMin(value = "0.0", message = "Estoque não pode ser negativo")
         BigDecimal stockQuantity
 ) {
 }

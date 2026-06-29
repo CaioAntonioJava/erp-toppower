@@ -11,20 +11,20 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 
 /**
- * Atualizacao parcial do produto (PATCH). Todos os campos sao opcionais:
+ * Atualização parcial do produto (PATCH). Todos os campos são opcionais:
  * envie apenas os campos que deseja alterar.
  */
-@Schema(name = "ProductUpdateRequest", description = "Dados para atualizacao parcial de um produto (PATCH).")
+@Schema(name = "ProductUpdateRequest", description = "Dados para atualização parcial de um produto (PATCH).")
 public record ProductUpdateRequest(
 
         @Schema(description = "Novo nome do produto.", maxLength = 150)
-        @Size(max = 150, message = "Nome deve ter no maximo {max} caracteres")
+        @Size(max = 150, message = "Nome deve ter no máximo {max} caracteres")
         String name,
 
-        @Schema(description = "Novo codigo do produto (SKU).", maxLength = 50)
-        @Size(max = 50, message = "Codigo deve ter no maximo {max} caracteres")
+        @Schema(description = "Novo código do produto (SKU).", maxLength = 50)
+        @Size(max = 50, message = "Código deve ter no máximo {max} caracteres")
         @Pattern(regexp = "^[A-Za-z0-9._-]+$",
-                message = "Codigo aceita apenas letras, numeros, ponto, underline e hifen")
+                message = "Código aceita apenas letras, números, ponto, underline e hífen")
         String code,
 
         @Schema(description = "Nova unidade de medida.",
@@ -35,12 +35,12 @@ public record ProductUpdateRequest(
                 allowableValues = {"ATIVO", "INATIVO"})
         ProductStatus status,
 
-        @Schema(description = "Novo preco unitario.")
-        @Positive(message = "Preco deve ser maior que zero")
+        @Schema(description = "Novo preco unitário.")
+        @Positive(message = "Preço deve ser maior que zero")
         BigDecimal price,
 
         @Schema(description = "Nova quantidade em estoque.")
-        @DecimalMin(value = "0.0", message = "Estoque nao pode ser negativo")
+        @DecimalMin(value = "0.0", message = "Estoque não pode ser negativo")
         BigDecimal stockQuantity
 ) {
 }

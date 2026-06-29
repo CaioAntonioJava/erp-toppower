@@ -46,10 +46,10 @@ public class ProductController {
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Produto criado com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ProductResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Erro de validacao.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "400", description = "Erro de validação.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "401", description = "Token ausente/invalido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "403", description = "Sem ROLE_ADMIN.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "409", description = "Codigo ja cadastrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+            @ApiResponse(responseCode = "409", description = "Código já cadastrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<ProductResponse> create(@Valid @RequestBody ProductCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(productService.create(request));
@@ -80,7 +80,7 @@ public class ProductController {
             @ApiResponse(responseCode = "200", description = "Produto encontrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ProductResponse.class))),
             @ApiResponse(responseCode = "401", description = "Token ausente/invalido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "404", description = "Produto nao encontrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+            @ApiResponse(responseCode = "404", description = "Produto não encontrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<ProductResponse> getById(@PathVariable UUID id) {
         return ResponseEntity.ok(productService.getById(id));
@@ -94,11 +94,11 @@ public class ProductController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Produto atualizado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ProductResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Erro de validacao.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "400", description = "Erro de validação.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "401", description = "Token ausente/invalido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "403", description = "Sem ROLE_ADMIN.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "404", description = "Produto nao encontrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "409", description = "Codigo ja cadastrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+            @ApiResponse(responseCode = "404", description = "Produto não encontrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "409", description = "Código já cadastrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<ProductResponse> update(@PathVariable UUID id, @Valid @RequestBody ProductUpdateRequest request) {
         return ResponseEntity.ok(productService.update(id, request));
@@ -113,7 +113,7 @@ public class ProductController {
             @ApiResponse(responseCode = "204", description = "Produto inativado."),
             @ApiResponse(responseCode = "401", description = "Token ausente/invalido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "403", description = "Sem ROLE_ADMIN.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "404", description = "Produto nao encontrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+            @ApiResponse(responseCode = "404", description = "Produto não encontrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
  
     public ResponseEntity<Void> inactivate(@PathVariable UUID id) {
@@ -123,17 +123,17 @@ public class ProductController {
 
     @GetMapping(value = "/search", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Buscar produtos por termos (paginado)",
-            description = "Busca case-insensitive por substring em nome OU codigo. Apenas ATIVO. Todas as roles.")
+            description = "Busca case-insensitive por substring em nome OU código. Apenas ATIVO. Todas as roles.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER','EMPLOYEE')")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Pagina de produtos.",
+            @ApiResponse(responseCode = "200", description = "Página de produtos.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = PagedResponse.class))),
             @ApiResponse(responseCode = "400", description = "Termo invalido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "401", description = "Token ausente/invalido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<PagedResponse<ProductResponse>> search(
-            @Parameter(description = "Termo de busca (minimo 2 chars).", example = "cabo flexivel", required = true)
+            @Parameter(description = "Termo de busca (mínimo 2 chars).", example = "cabo flexivel", required = true)
             @RequestParam("query") String query,
             @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
         return ResponseEntity.ok(productService.search(query, pageable));

@@ -44,8 +44,8 @@ public class Product extends BaseEntity {
 
     /**
      * Inicializacao do produto antes de persistir.
-     * Garante que o status seja {@link ProductStatus#ATIVO} quando nao for informado.
-     * Nao sobrescreve valores ja definidos pelo chamador.
+     * Garante que o status seja {@link ProductStatus#ATIVO} quando não for informado.
+     * Não sobrescreve valores já definidos pelo chamador.
      */
     @PrePersist
     private void onPrePersist() {
