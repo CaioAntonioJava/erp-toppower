@@ -10,15 +10,24 @@ public final class UserMapper {
     private UserMapper() {
     }
 
+    /**
+     * Cria uma entidade a partir do request de cadastro.
+     * A role e SEMPRE {@link Role#ROLE_MANAGER}; promocoes para ADMIN sao feitas
+     * diretamente no banco (ou via endpoint dedicado a ser implementado).
+     */
     public static User toEntity(UserCreateRequest request, String encodedPassword) {
         User user = new User();
         user.setEmail(request.email());
         user.setPassword(encodedPassword);
-        user.setRole(request.role() == null ? Role.ROLE_EMPLOYEE : request.role());
+        user.setRole(Role.ROLE_MANAGER);
         return user;
     }
 
     public static UserResponse toResponse(User user) {
-        return new UserResponse(user.getUuid(), user.getEmail(), user.getRole());
+        return new UserResponse(
+                user.getUuid(),
+                user.getEmail(),
+                user.getRole()
+        );
     }
 }

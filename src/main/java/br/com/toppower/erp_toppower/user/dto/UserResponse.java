@@ -19,8 +19,8 @@ public record UserResponse(
         String email,
 
         @Schema(description = "Papel do usuário.",
-                example = "ROLE_EMPLOYEE",
-                allowableValues = {"ROLE_ADMIN", "ROLE_MANAGER", "ROLE_EMPLOYEE"},
+                example = "ROLE_MANAGER",
+                allowableValues = {"ROLE_ADMIN", "ROLE_MANAGER"},
                 requiredMode = Schema.RequiredMode.REQUIRED)
         Role role
 ) {

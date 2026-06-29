@@ -59,7 +59,7 @@ public class ProductController {
     @Operation(summary = "Listar produtos (paginado)",
             description = "Lista produtos paginados. Filtro opcional por status. Todas as roles.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','EMPLOYEE')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "OK.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = PagedResponse.class))),
@@ -75,7 +75,7 @@ public class ProductController {
     @GetMapping(value = "/{id:" + UUID_REGEX + "}", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Buscar produto por ID", description = "Retorna um produto pelo UUID.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','EMPLOYEE')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Produto encontrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ProductResponse.class))),
@@ -125,7 +125,7 @@ public class ProductController {
     @Operation(summary = "Buscar produtos por termos (paginado)",
             description = "Busca case-insensitive por substring em nome OU código. Apenas ATIVO. Todas as roles.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','EMPLOYEE')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Página de produtos.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = PagedResponse.class))),

@@ -32,5 +32,5 @@ public class User extends BaseEntity implements Serializable {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false, length = 25)
-    private Role role = Role.ROLE_EMPLOYEE;
+    private Role role = Role.ROLE_MANAGER;
 }

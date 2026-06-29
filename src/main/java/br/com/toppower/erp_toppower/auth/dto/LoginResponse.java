@@ -36,7 +36,7 @@ public record LoginResponse(
 
             @Schema(description = "Papel do usuário.",
                     example = "ROLE_ADMIN",
-                    allowableValues = {"ROLE_ADMIN", "ROLE_MANAGER", "ROLE_EMPLOYEE"},
+                    allowableValues = {"ROLE_ADMIN", "ROLE_MANAGER"},
                     requiredMode = Schema.RequiredMode.REQUIRED)
             Role role
     ) {
