@@ -1,8 +1,10 @@
 package br.com.toppower.erp_toppower.common.exception;
 
+import br.com.toppower.erp_toppower.auth.exception.InvalidCredentialsException;
 import br.com.toppower.erp_toppower.user.exception.EmailAlreadyExistsException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -19,6 +21,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleEmailAlreadyExists(EmailAlreadyExistsException ex) {
         ApiError error = new ApiError(HttpStatus.CONFLICT.value(), ex.getMessage(), Instant.now());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ApiError> handleInvalidCredentials(InvalidCredentialsException ex) {
+        ApiError error = new ApiError(HttpStatus.UNAUTHORIZED.value(), ex.getMessage(), Instant.now());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ApiError> handleAuthentication(AuthenticationException ex) {
+        ApiError error = new ApiError(HttpStatus.UNAUTHORIZED.value(), ex.getMessage(), Instant.now());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
