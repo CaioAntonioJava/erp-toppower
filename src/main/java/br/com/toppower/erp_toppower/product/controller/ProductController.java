@@ -33,114 +33,109 @@ import java.util.UUID;
 @Tag(name = "Produtos", description = "Cadastro e gestao de produtos.")
 public class ProductController {
 
+    private static final String UUID_REGEX =
+            "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
+
     private final ProductService productService;
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    @Operation(
-            summary = "Cadastrar produto",
-            description = "Cria um novo produto. Acesso restrito a administradores (ROLE_ADMIN). "
-                    + "O codigo (SKU) deve ser unico. Status default = ATIVO se omitido."
-    )
+    @Operation(summary = "Cadastrar produto",
+            description = "Cria um novo produto. Apenas ROLE_ADMIN. Status default = ATIVO se omitido.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasRole('ADMIN')")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Produto criado com sucesso.",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = ProductResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Erro de validacao nos campos enviados.",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "401", description = "Token ausente, invalido ou expirado.",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "403", description = "Usuario nao possui ROLE_ADMIN.",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "409", description = "Ja existe um produto com o codigo informado.",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ProductResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Erro de validacao.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "401", description = "Token ausente/invalido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "403", description = "Sem ROLE_ADMIN.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "409", description = "Codigo ja cadastrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<ProductResponse> create(@Valid @RequestBody ProductCreateRequest request) {
-        ProductResponse response = productService.create(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(productService.create(request));
     }
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    @Operation(
-            summary = "Listar produtos (paginado)",
-            description = "Retorna produtos paginados. Use o parametro 'status' (ATIVO ou INATIVO) "
-                    + "para filtrar; se omitido, retorna todos. Ordenacao padrao por nome. "
-                    + "Acesso para usuarios autenticados (ADMIN, MANAGER, EMPLOYEE)."
-    )
+    @Operation(summary = "Listar produtos (paginado)",
+            description = "Lista produtos paginados. Filtro opcional por status. Todas as roles.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER','EMPLOYEE')")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Pagina de produtos retornada com sucesso.",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = PagedResponse.class))),
-            @ApiResponse(responseCode = "401", description = "Token ausente, invalido ou expirado.",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+            @ApiResponse(responseCode = "200", description = "OK.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = PagedResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Token ausente/invalido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<PagedResponse<ProductResponse>> getAll(
-            @Parameter(description = "Filtro opcional por status (ATIVO ou INATIVO). Se omitido, retorna ambos.",
-                    example = "ATIVO", schema = @Schema(allowableValues = {"ATIVO", "INATIVO"}))
+            @Parameter(description = "Filtro opcional: ATIVO ou INATIVO.", example = "ATIVO", schema = @Schema(allowableValues = {"ATIVO", "INATIVO"}))
             @RequestParam(value = "status", required = false) ProductStatus status,
-
-            @Parameter(description = "Paginacao. Ex.: ?page=0&size=20&sort=name,asc",
-                    example = "0")
-            @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC)
-            Pageable pageable) {
+            @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
         return ResponseEntity.ok(productService.getAll(status, pageable));
     }
 
-    @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    @Operation(
-            summary = "Buscar produto por ID",
-            description = "Retorna um produto pelo seu UUID. Acesso para usuarios autenticados."
-    )
+    @GetMapping(value = "/{id:" + UUID_REGEX + "}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Buscar produto por ID", description = "Retorna um produto pelo UUID.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER','EMPLOYEE')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Produto encontrado.",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = ProductResponse.class))),
-            @ApiResponse(responseCode = "401", description = "Token ausente, invalido ou expirado.",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "404", description = "Produto nao encontrado.",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ProductResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Token ausente/invalido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "404", description = "Produto nao encontrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<ProductResponse> getById(@PathVariable UUID id) {
         return ResponseEntity.ok(productService.getById(id));
     }
 
-    @PatchMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
-    @Operation(
-            summary = "Atualizar produto (parcial)",
-            description = "Atualiza apenas os campos enviados no corpo (PATCH parcial). "
-                    + "Acesso restrito a administradores (ROLE_ADMIN). Codigo duplicado -> 409."
-    )
+    @PatchMapping(value = "/{id:" + UUID_REGEX + "}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Atualizar produto (parcial)",
+            description = "Atualiza apenas os campos enviados. Apenas ROLE_ADMIN.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasRole('ADMIN')")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Produto atualizado com sucesso.",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = ProductResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Erro de validacao nos campos enviados.",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "401", description = "Token ausente, invalido ou expirado.",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "403", description = "Usuario nao possui ROLE_ADMIN.",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "404", description = "Produto nao encontrado.",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "409", description = "Ja existe um produto com o codigo informado.",
-     
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+            @ApiResponse(responseCode = "200", description = "Produto atualizado.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ProductResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Erro de validacao.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "401", description = "Token ausente/invalido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "403", description = "Sem ROLE_ADMIN.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "404", description = "Produto nao encontrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "409", description = "Codigo ja cadastrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+    })
+    public ResponseEntity<ProductResponse> update(@PathVariable UUID id, @Valid @RequestBody ProductUpdateRequest request) {
+        return ResponseEntity.ok(productService.update(id, request));
+    }
+
+    @DeleteMapping("/{id:" + UUID_REGEX + "}")
+    @Operation(summary = "Inativar produto (soft delete)",
+            description = "Define status como INATIVO. Apenas ROLE_ADMIN.")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasRole('ADMIN')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Produto inativado."),
+            @ApiResponse(responseCode = "401", description = "Token ausente/invalido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "403", description = "Sem ROLE_ADMIN.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "404", description = "Produto nao encontrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+    })
+ 
+    public ResponseEntity<Void> inactivate(@PathVariable UUID id) {
+        productService.softDelete(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping(value = "/search", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Buscar produtos por termos (paginado)",
+            description = "Busca case-insensitive por substring em nome OU codigo. Apenas ATIVO. Todas as roles.")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','EMPLOYEE')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Pagina de produtos.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = PagedResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Termo invalido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "401", description = "Token ausente/invalido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<PagedResponse<ProductResponse>> search(
-            @Parameter(description = "Termo de busca (minimo 2 caracteres). Match contra nome e codigo do produto.",
-                    example = "cabo flexivel", required = true)
+            @Parameter(description = "Termo de busca (minimo 2 chars).", example = "cabo flexivel", required = true)
             @RequestParam("query") String query,
-
-            @Parameter(description = "Paginacao. Ex.: ?page=0&size=20&sort=name,asc")
-            @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC)
-            Pageable pageable) {
+            @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
         return ResponseEntity.ok(productService.search(query, pageable));
     }
 }
