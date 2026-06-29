@@ -1,0 +1,280 @@
+{
+  "info": {
+    "name": "ERP TopPower API",
+    "description": "Colecao de endpoints da API REST do ERP TopPower. Apos fazer login, o JWT e capturado em {{jwt_token}} e aplicado como Bearer em todos os endpoints protegidos. Documentacao Swagger em /swagger-ui.html.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "erp-toppower-collection-v1"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{jwt_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {"key": "baseUrl", "value": "http://localhost:8081", "type": "string"},
+    {"key": "jwt_token", "value": "", "type": "string"},
+    {"key": "userId", "value": "00000000-0000-0000-0000-000000000000", "type": "string"},
+    {"key": "productId", "value": "00000000-0000-0000-0000-000000000000", "type": "string"}
+  ],
+  "item": [
+    {
+      "name": "01. Autenticacao",
+      "description": "Endpoints publicos e protegidos de autenticacao.",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"caio@toppower.com.br\",\n  \"password\": \"S3nh@Forte!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "description": "Autentica o usuario. Salva o JWT em {{jwt_token}} e userId em {{userId}} automaticamente."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  var json = pm.response.json();",
+                  "  pm.collectionVariables.set(\"jwt_token\", json.accessToken);",
+                  "  pm.collectionVariables.set(\"userId\", json.user.uuid);",
+                  "  console.log(\"Token saved (first 20 chars): \" + json.accessToken.substring(0, 20) + \"...\");",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Me (dados do usuario autenticado)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "me"]
+            },
+            "description": "Endpoint protegido. Retorna os dados do usuario autenticado a partir do JWT."
+          }
+        }
+      ]
+    },
+    {
+      "name": "02. Usuarios",
+      "description": "Cadastro e gestao de usuarios.",
+      "item": [
+        {
+          "name": "Cadastrar usuario",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"caio@toppower.com.br\",\n  \"password\": \"S3nh@Forte!\",\n  \"role\": \"ROLE_ADMIN\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users"]
+            },
+            "description": "Endpoint publico (sem JWT). Usado para bootstrap do primeiro admin."
+          }
+        },
+        {
+          "name": "Listar usuarios",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users"]
+            },
+            "description": "Lista todos os usuarios. Apenas ROLE_ADMIN."
+          }
+        },
+        {
+          "name": "Buscar usuario por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users", "{{userId}}"]
+            },
+            "description": "Busca usuario por UUID. Apenas ROLE_ADMIN. Use {{userId}} salvo pelo Login."
+          }
+        },
+        {
+          "name": "Trocar propria senha",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"S3nh@Forte!\",\n  \"newPassword\": \"N0v@Senh@2026\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/{{userId}}/password",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users", "{{userId}}", "password"]
+            },
+            "description": "Altera a senha do proprio usuario. UUID do path deve corresponder ao token JWT, senao retorna 403."
+          }
+        },
+        {
+          "name": "Resetar senha (ADMIN)",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"newPassword\": \"T3mp@AdminReset!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/{{userId}}/reset-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users", "{{userId}}", "reset-password"]
+            },
+            "description": "Redefine a senha de um usuario sem exigir a senha atual. Apenas ROLE_ADMIN."
+          }
+        }
+      ]
+    },
+    {
+      "name": "03. Produtos",
+      "description": "Cadastro e gestao de produtos.",
+      "item": [
+        {
+          "name": "Cadastrar produto",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Cabo Flexivel 2,5mm\",\n  \"code\": \"CB-FLEX-2.5\",\n  \"unitType\": \"METROS\",\n  \"status\": \"ATIVO\",\n  \"price\": 2.99,\n  \"stockQuantity\": 100\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "products"]
+            },
+            "description": "Cria novo produto. Apenas ROLE_ADMIN. Status default = ATIVO se omitido."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  var json = pm.response.json();",
+                  "  pm.collectionVariables.set(\"productId\", json.uuid);",
+                  "  console.log(\"productId saved: \" + json.uuid);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar produtos (paginado)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products?status=ATIVO&page=0&size=20&sort=name,asc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "products"],
+              "query": [
+                {"key": "status", "value": "ATIVO", "description": "Filtro opcional: ATIVO ou INATIVO", "disabled": false},
+                {"key": "page", "value": "0", "description": "Pagina (0-indexed)", "disabled": false},
+                {"key": "size", "value": "20", "description": "Tamanho da pagina", "disabled": false},
+                {"key": "sort", "value": "name,asc", "description": "Ordenacao: campo,asc|desc", "disabled": false}
+              ]
+            },
+            "description": "Lista produtos paginados. Filtro de status opcional. Todas as roles."
+          }
+        },
+        {
+          "name": "Buscar produto por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "products", "{{productId}}"]
+            },
+            "description": "Busca produto por UUID. Use {{productId}} salvo pelo Cadastrar produto."
+          }
+        },
+        {
+          "name": "Atualizar produto (parcial)",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 3.99,\n  \"stockQuantity\": 250,\n  \"status\": \"ATIVO\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "products", "{{productId}}"]
+            },
+            "description": "Atualiza apenas os campos enviados. Apenas ROLE_ADMIN. Codigo duplicado -> 409."
+          }
+        },
+        {
+          "name": "Inativar produto (soft delete)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "products", "{{productId}}"]
+            },
+            "description": "Define status=INATIVO. Apenas ROLE_ADMIN. Resposta 204 No Content."
+          }
+        },
+        {
+          "name": "Buscar produtos (loja virtual)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products/search?query=cabo&page=0&size=20&sort=name,asc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "products", "search"],
+              "query": [
+                {"key": "query", "value": "cabo", "description": "Termo (min 2 chars). Match name OU code. Apenas ATIVO.", "disabled": false},
+                {"key": "page", "value": "0", "disabled": false},
+                {"key": "size", "value": "20", "disabled": false},
+                {"key": "sort", "value": "name,asc", "disabled": false}
+              ]
+            },
+            "description": "Busca case-insensitive por name OU code, apenas ATIVO. Paginado. Todas as roles."
+          }
+        }
+      ]
+    }
+  ]
+}
