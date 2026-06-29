@@ -2,6 +2,8 @@ package br.com.toppower.erp_toppower.common.exception;
 
 import br.com.toppower.erp_toppower.auth.exception.InvalidCredentialsException;
 import br.com.toppower.erp_toppower.user.exception.EmailAlreadyExistsException;
+import br.com.toppower.erp_toppower.user.exception.IncorrectPasswordException;
+import br.com.toppower.erp_toppower.user.exception.UserNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.AuthenticationException;
@@ -33,6 +35,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleAuthentication(AuthenticationException ex) {
         ApiError error = new ApiError(HttpStatus.UNAUTHORIZED.value(), ex.getMessage(), Instant.now());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+    }
+
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<ApiError> handleUserNotFound(UserNotFoundException ex) {
+        ApiError error = new ApiError(HttpStatus.NOT_FOUND.value(), ex.getMessage(), Instant.now());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
+    @ExceptionHandler(IncorrectPasswordException.class)
+    public ResponseEntity<ApiError> handleIncorrectPassword(IncorrectPasswordException ex) {
+        ApiError error = new ApiError(HttpStatus.BAD_REQUEST.value(), ex.getMessage(), Instant.now());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
