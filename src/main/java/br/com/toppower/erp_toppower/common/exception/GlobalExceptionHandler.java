@@ -1,6 +1,7 @@
 package br.com.toppower.erp_toppower.common.exception;
 
 import br.com.toppower.erp_toppower.auth.exception.InvalidCredentialsException;
+import org.springframework.security.authentication.BadCredentialsException;
 import br.com.toppower.erp_toppower.product.exception.DuplicateProductCodeException;
 import br.com.toppower.erp_toppower.product.exception.ProductNotFoundException;
 import br.com.toppower.erp_toppower.user.exception.EmailAlreadyExistsException;
@@ -26,9 +27,13 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.CONFLICT, ex.getMessage());
     }
 
-    @ExceptionHandler(InvalidCredentialsException.class)
-    public ResponseEntity<ApiError> handleInvalidCredentials(InvalidCredentialsException ex) {
-        return build(HttpStatus.UNAUTHORIZED, ex.getMessage());
+    @ExceptionHandler({InvalidCredentialsException.class, BadCredentialsException.class})
+    public ResponseEntity<ApiError> handleInvalidCredentials(BadCredentialsException ex) {
+        // Mensagem generica para evitar login oracle (nao revela se o email existe ou nao)
+        String message = (ex instanceof InvalidCredentialsException)
+                ? ex.getMessage()
+                : "E-mail e/ou senha inválidos";
+        return build(HttpStatus.UNAUTHORIZED, message);
     }
 
     @ExceptionHandler(AuthenticationException.class)

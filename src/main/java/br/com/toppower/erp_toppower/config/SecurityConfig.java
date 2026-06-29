@@ -48,6 +48,9 @@ public class SecurityConfig {
                                                            PasswordEncoder passwordEncoder) {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder);
+        // Impede username enumeration: converte UsernameNotFoundException em BadCredentialsException
+        // Padrao do Spring Security, aplicado em todos os provedores de autenticacao.
+        provider.setHideUserNotFoundExceptions(true);
         return provider;
     }
 
