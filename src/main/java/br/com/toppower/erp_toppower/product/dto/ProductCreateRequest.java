@@ -17,7 +17,7 @@ public record ProductCreateRequest(
 
         @Schema(description = "Nome do produto.", example = "Cabo Flexivel 2,5mm",
                 requiredMode = Schema.RequiredMode.REQUIRED, maxLength = 150)
-        @NotBlank(message = "Nome eh obrigatorio")
+        @NotBlank(message = "Nome  obrigatorio")
         @Size(max = 150, message = "Nome deve ter no maximo {max} caracteres")
         String name,
 
@@ -31,7 +31,7 @@ public record ProductCreateRequest(
 
         @Schema(description = "Unidade de medida em que o produto eh comercializado.",
                 example = "METROS",
-                allowableValues = {"PECAS", "METROS", "BOBINA"},
+                allowableValues = {"UNIDADE", "METROS", "BOBINA"},
                 requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull(message = "Unidade de medida eh obrigatoria")
         UnitType unitType,
