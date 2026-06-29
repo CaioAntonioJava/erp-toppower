@@ -1,7 +1,7 @@
 package br.com.toppower.erp_toppower.user.entity;
 
 import br.com.toppower.erp_toppower.common.entity.BaseEntity;
-import br.com.toppower.erp_toppower.enums.Role;
+import br.com.toppower.erp_toppower.user.enums.Role;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

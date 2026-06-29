@@ -1,7 +1,7 @@
 package br.com.toppower.erp_toppower.auth.controller;
 
 import br.com.toppower.erp_toppower.auth.dto.LoginResponse.AuthenticatedUser;
-import br.com.toppower.erp_toppower.enums.Role;
+import br.com.toppower.erp_toppower.user.enums.Role;
 import br.com.toppower.erp_toppower.security.UserDetailsImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;

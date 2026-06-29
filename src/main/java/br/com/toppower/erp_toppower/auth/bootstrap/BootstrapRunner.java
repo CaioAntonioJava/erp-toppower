@@ -1,6 +1,6 @@
 package br.com.toppower.erp_toppower.auth.bootstrap;
 
-import br.com.toppower.erp_toppower.enums.Role;
+import br.com.toppower.erp_toppower.user.enums.Role;
 import br.com.toppower.erp_toppower.user.entity.User;
 import br.com.toppower.erp_toppower.user.repository.UserRepository;
 import org.slf4j.Logger;

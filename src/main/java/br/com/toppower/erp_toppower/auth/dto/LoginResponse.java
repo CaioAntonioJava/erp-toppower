@@ -1,6 +1,6 @@
 package br.com.toppower.erp_toppower.auth.dto;
 
-import br.com.toppower.erp_toppower.enums.Role;
+import br.com.toppower.erp_toppower.user.enums.Role;
 import br.com.toppower.erp_toppower.user.dto.UserResponse;
 import io.swagger.v3.oas.annotations.media.Schema;
 

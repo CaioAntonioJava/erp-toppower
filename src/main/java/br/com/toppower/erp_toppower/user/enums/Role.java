@@ -1,4 +1,4 @@
-package br.com.toppower.erp_toppower.enums;
+package br.com.toppower.erp_toppower.user.enums;
 
 public enum Role {
     ROLE_ADMIN,

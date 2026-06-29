@@ -1,6 +1,6 @@
 package br.com.toppower.erp_toppower.user.dto;
 
-import br.com.toppower.erp_toppower.enums.Role;
+import br.com.toppower.erp_toppower.user.enums.Role;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.UUID;

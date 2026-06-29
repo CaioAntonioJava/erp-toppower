@@ -1,6 +1,6 @@
 package br.com.toppower.erp_toppower.user.mapper;
 
-import br.com.toppower.erp_toppower.enums.Role;
+import br.com.toppower.erp_toppower.user.enums.Role;
 import br.com.toppower.erp_toppower.user.dto.UserCreateRequest;
 import br.com.toppower.erp_toppower.user.dto.UserResponse;
 import br.com.toppower.erp_toppower.user.entity.User;
