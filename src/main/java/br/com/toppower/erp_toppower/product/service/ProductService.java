@@ -51,6 +51,25 @@ public class ProductService {
         return PagedResponse.from(mapped);
     }
 
+    /**
+     * Lista paginada apenas de produtos com status {@link ProductStatus#ATIVO}.
+     * Atalho semântico para {@code getAll(ProductStatus.ATIVO, pageable)}.
+     */
+    @Transactional(readOnly = true)
+    public PagedResponse<ProductResponse> findActive(Pageable pageable) {
+        return getAll(ProductStatus.ATIVO, pageable);
+    }
+
+    /**
+     * Lista paginada apenas de produtos com status {@link ProductStatus#INATIVO}.
+     * Atalho semântico para {@code getAll(ProductStatus.INATIVO, pageable)}.
+     * Útil para relatórios de produtos a serem reativados ou removidos.
+     */
+    @Transactional(readOnly = true)
+    public PagedResponse<ProductResponse> findInactive(Pageable pageable) {
+        return getAll(ProductStatus.INATIVO, pageable);
+    }
+
     @Transactional(readOnly = true)
     public ProductResponse getById(UUID id) {
         return productRepository.findById(id)
