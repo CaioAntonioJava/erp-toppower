@@ -429,7 +429,7 @@
     },
     {
       "name": "05. Vendedores",
-      "description": "Cadastro e gestão de vendedores com percentual de comissão. POST e PATCH: todas as roles. GET e DELETE: apenas ADMIN.",
+      "description": "Cadastro e gestão de vendedores com percentual de comissão. POST, PATCH e GET (listar): todas as roles. GET (por ID) e DELETE: apenas ADMIN.",
       "item": [
         {
           "name": "Cadastrar vendedor",
@@ -478,7 +478,7 @@
                 {"key": "sort", "value": "name,asc", "description": "Ordenacao: campo,asc|desc", "disabled": false}
               ]
             },
-            "description": "Lista vendedores paginados, ordenados por nome. Acesso restrito a ROLE_ADMIN."
+            "description": "Lista vendedores paginados, ordenados por nome. Todas as roles autenticadas."
           }
         },
         {
