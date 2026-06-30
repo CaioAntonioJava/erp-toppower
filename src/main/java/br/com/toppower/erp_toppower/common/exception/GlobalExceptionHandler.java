@@ -1,6 +1,9 @@
 package br.com.toppower.erp_toppower.common.exception;
 
 import br.com.toppower.erp_toppower.auth.exception.InvalidCredentialsException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import br.com.toppower.erp_toppower.product.exception.DuplicateProductCodeException;
 import br.com.toppower.erp_toppower.product.exception.ProductNotFoundException;
@@ -13,6 +16,7 @@ import br.com.toppower.erp_toppower.user.exception.IncorrectPasswordException;
 import br.com.toppower.erp_toppower.user.exception.UserNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -25,6 +29,8 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(EmailAlreadyExistsException.class)
     public ResponseEntity<ApiError> handleEmailAlreadyExists(EmailAlreadyExistsException ex) {
@@ -42,7 +48,23 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ApiError> handleAuthentication(AuthenticationException ex) {
-        return build(HttpStatus.UNAUTHORIZED, ex.getMessage());
+        // Mensagem genérica para não expor detalhes internos (ex: "Full authentication is required...").
+        // Loga o detalhe técnico no servidor para diagnóstico.
+        log.debug("Falha de autenticação: {}", ex.getMessage());
+        return build(HttpStatus.UNAUTHORIZED, "Falha na autenticação. Faça login para continuar.");
+    }
+
+    /**
+     * Acesso negado: o usuário está autenticado, mas não tem permissão
+     * para a operação (ex: @PreAuthorize falhou).
+     * <p>Spring Security 6+ lança {@link AuthorizationDeniedException};
+     * versões anteriores e cenários de filtro lançam {@link AccessDeniedException}.
+     * Tratamos ambos para manter compatibilidade.</p>
+     */
+    @ExceptionHandler({AccessDeniedException.class, AuthorizationDeniedException.class})
+    public ResponseEntity<ApiError> handleAccessDenied(RuntimeException ex) {
+        log.debug("Acesso negado: {}", ex.getMessage());
+        return build(HttpStatus.FORBIDDEN, "Acesso negado. Você não tem permissão para esta operação.");
     }
 
     @ExceptionHandler(UserNotFoundException.class)
