@@ -1,5 +1,6 @@
 package br.com.toppower.erp_toppower.seller.dto;
 
+import br.com.toppower.erp_toppower.seller.enums.SellerStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
@@ -32,6 +33,11 @@ public record SellerResponse(
         @Schema(description = "Percentual de comissão do vendedor (ex: 5.50 = 5,50%).",
                 example = "5.50", requiredMode = Schema.RequiredMode.REQUIRED)
         BigDecimal commissionRate,
+
+        @Schema(description = "Status atual do vendedor.",
+                allowableValues = {"ATIVO", "INATIVO"},
+                requiredMode = Schema.RequiredMode.REQUIRED)
+        SellerStatus status,
 
         @Schema(description = "Data de criação.",
                 requiredMode = Schema.RequiredMode.REQUIRED)

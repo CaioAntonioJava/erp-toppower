@@ -12,6 +12,8 @@ public final class SellerMapper {
 
     /**
      * Cria uma nova entidade a partir do request de criação.
+     * O {@code status} pode ser {@code null}; o {@code @PrePersist} da entidade
+     * cuida de aplicar o default {@code ATIVO}.
      */
     public static Seller toEntity(SellerCreateRequest request) {
         Seller seller = new Seller();
@@ -20,6 +22,7 @@ public final class SellerMapper {
         seller.setPhone(request.phone());
         seller.setCpf(request.cpf());
         seller.setCommissionRate(request.commissionRate());
+        seller.setStatus(request.status());
         return seller;
     }
 
@@ -31,6 +34,7 @@ public final class SellerMapper {
                 seller.getPhone(),
                 seller.getCpf(),
                 seller.getCommissionRate(),
+                seller.getStatus(),
                 seller.getCreatedAt(),
                 seller.getUpdatedAt(),
                 seller.getCreatedBy(),
@@ -57,6 +61,9 @@ public final class SellerMapper {
         }
         if (request.commissionRate() != null) {
             seller.setCommissionRate(request.commissionRate());
+        }
+        if (request.status() != null) {
+            seller.setStatus(request.status());
         }
     }
 }

@@ -1,8 +1,12 @@
 package br.com.toppower.erp_toppower.seller.entity;
 
 import br.com.toppower.erp_toppower.person.entity.BasePerson;
+import br.com.toppower.erp_toppower.seller.enums.SellerStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,12 +26,16 @@ import java.math.BigDecimal;
  *
  * <p>Embora {@code Seller} declare apenas {@code extends BasePerson},
  * a herança em cadeia garante que ele também herda todos os campos de
- * {@link BaseEntity}: identificador UUID e auditoria completa
+ * {@code BaseEntity}: identificador UUID e auditoria completa
  * (createdAt, updatedAt, createdBy, updatedBy).</p>
  *
  * <p>O atributo {@code commissionRate} armazena o percentual de
  * comissão do vendedor, em formato decimal
  * (ex: 5.50 representa 5,50% de comissão sobre a venda).</p>
+ *
+ * <p>O atributo {@code status} indica se o vendedor está ativo
+ * (pode receber vendas) ou inativo. Default = ATIVO no momento
+ * da persistência inicial.</p>
  */
 @Entity
 @Table(name = "sellers")
@@ -45,4 +53,20 @@ public class Seller extends BasePerson {
      */
     @Column(name = "commission_rate", precision = 5, scale = 2)
     private BigDecimal commissionRate;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    private SellerStatus status;
+
+    /**
+     * Inicialização do vendedor antes de persistir.
+     * Garante que o status seja {@link SellerStatus#ATIVO} quando não for informado.
+     * Não sobrescreve valores já definidos pelo chamador.
+     */
+    @PrePersist
+    private void onPrePersist() {
+        if (status == null) {
+            status = SellerStatus.ATIVO;
+        }
+    }
 }

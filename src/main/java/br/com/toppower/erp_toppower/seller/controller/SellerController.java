@@ -109,18 +109,36 @@ public class SellerController {
     }
 
     @DeleteMapping("/{id:" + UUID_REGEX + "}")
-    @Operation(summary = "Excluir vendedor (hard delete)",
-            description = "Remove fisicamente o registro. Acesso restrito a administradores (ROLE_ADMIN). Resposta 204 No Content.")
+    @Operation(summary = "Inativar vendedor (soft delete)",
+            description = "Define status como INATIVO. Não remove fisicamente o registro. " +
+                    "Acesso restrito a administradores (ROLE_ADMIN). Resposta 204 No Content.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasRole('ADMIN')")
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Vendedor excluído."),
+            @ApiResponse(responseCode = "204", description = "Vendedor inativado."),
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "403", description = "Acesso negado (sem ROLE_ADMIN).", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "404", description = "Vendedor não encontrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<Void> delete(@PathVariable UUID id) {
-        sellerService.delete(id);
+    public ResponseEntity<Void> inactivate(@PathVariable UUID id) {
+        sellerService.softDelete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping(value = "/{id:" + UUID_REGEX + "}/activate", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Reativar vendedor",
+            description = "Define status como ATIVO, reativando um vendedor inativo. " +
+                    "Acesso restrito a administradores (ROLE_ADMIN).")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasRole('ADMIN')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Vendedor reativado com sucesso.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = SellerResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "403", description = "Acesso negado (sem ROLE_ADMIN).", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "404", description = "Vendedor não encontrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+    })
+    public ResponseEntity<SellerResponse> activate(@PathVariable UUID id) {
+        return ResponseEntity.ok(sellerService.activate(id));
     }
 }

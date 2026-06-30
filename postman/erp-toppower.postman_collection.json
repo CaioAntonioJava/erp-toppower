@@ -429,7 +429,7 @@
     },
     {
       "name": "05. Vendedores",
-      "description": "Cadastro e gestão de vendedores com percentual de comissão. POST, PATCH e GET (listar): todas as roles. GET (por ID) e DELETE: apenas ADMIN.",
+      "description": "Cadastro e gestão de vendedores com percentual de comissão. POST, PATCH e GET (listar): todas as roles. GET (por ID), inativar e reativar: apenas ADMIN.",
       "item": [
         {
           "name": "Cadastrar vendedor",
@@ -445,7 +445,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "sellers"]
             },
-            "description": "Cria um novo vendedor. commissionRate em % (ex: 5.50 = 5,50%) e OPCIONAL: aceita null ou 0.00 (vendedor sem comissao). Quando informado, deve estar entre 0,00% e 100,00%."
+            "description": "Cria um novo vendedor. commissionRate em % (ex: 5.50 = 5,50%) e OPCIONAL: aceita null ou 0.00 (vendedor sem comissao). Quando informado, deve estar entre 0,00% e 100,00%. Status default = ATIVO se omitido."
           },
           "event": [
             {
@@ -508,11 +508,11 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "sellers", "{{sellerId}}"]
             },
-            "description": "Atualiza apenas os campos enviados. commissionRate aceita 0.00 (vendedor sem comissao) e ate 100%. CPF/e-mail duplicado -> 409."
+            "description": "Atualiza apenas os campos enviados. commissionRate aceita 0.00 (vendedor sem comissao) e ate 100%. status aceita ATIVO/INATIVO. CPF/e-mail duplicado -> 409."
           }
         },
         {
-          "name": "Excluir vendedor (hard delete)",
+          "name": "Inativar vendedor (soft delete)",
           "request": {
             "method": "DELETE",
             "header": [],
@@ -521,7 +521,20 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "sellers", "{{sellerId}}"]
             },
-            "description": "Remove fisicamente o registro. Acesso restrito a ROLE_ADMIN. Resposta 204 No Content. ATENCAO: exclusao permanente."
+            "description": "Define status como INATIVO. NAO remove o registro. Acesso restrito a ROLE_ADMIN. Resposta 204 No Content."
+          }
+        },
+        {
+          "name": "Reativar vendedor",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sellers/{{sellerId}}/activate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "sellers", "{{sellerId}}", "activate"]
+            },
+            "description": "Define status como ATIVO, reativando um vendedor inativo. Acesso restrito a ROLE_ADMIN."
           }
         }
       ]

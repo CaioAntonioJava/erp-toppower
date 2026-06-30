@@ -1,5 +1,6 @@
 package br.com.toppower.erp_toppower.seller.dto;
 
+import br.com.toppower.erp_toppower.seller.enums.SellerStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
@@ -41,6 +42,10 @@ public record SellerUpdateRequest(
         @DecimalMin(value = "0.00", message = "Comissão deve ser no mínimo 0%")
         @DecimalMax(value = "100.00", message = "Comissão deve ser no máximo 100%")
         @Digits(integer = 3, fraction = 2, message = "Comissão deve ter no máximo 2 casas decimais")
-        BigDecimal commissionRate
+        BigDecimal commissionRate,
+
+        @Schema(description = "Novo status do vendedor.",
+                allowableValues = {"ATIVO", "INATIVO"})
+        SellerStatus status
 ) {
 }

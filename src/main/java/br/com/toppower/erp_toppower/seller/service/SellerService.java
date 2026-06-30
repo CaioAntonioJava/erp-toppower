@@ -5,6 +5,7 @@ import br.com.toppower.erp_toppower.seller.dto.SellerCreateRequest;
 import br.com.toppower.erp_toppower.seller.dto.SellerResponse;
 import br.com.toppower.erp_toppower.seller.dto.SellerUpdateRequest;
 import br.com.toppower.erp_toppower.seller.entity.Seller;
+import br.com.toppower.erp_toppower.seller.enums.SellerStatus;
 import br.com.toppower.erp_toppower.seller.exception.DuplicateSellerCpfException;
 import br.com.toppower.erp_toppower.seller.exception.DuplicateSellerEmailException;
 import br.com.toppower.erp_toppower.seller.exception.SellerNotFoundException;
@@ -75,11 +76,30 @@ public class SellerService {
         return SellerMapper.toResponse(saved);
     }
 
+    /**
+     * Soft delete: não remove fisicamente o registro, apenas altera o status para INATIVO.
+     * Preserva o histórico de auditoria e referências em vendas.
+     * Acesso restrito a administradores.
+     */
     @Transactional
-    public void delete(UUID id) {
-        if (!sellerRepository.existsById(id)) {
-            throw new SellerNotFoundException(id);
-        }
-        sellerRepository.deleteById(id);
+    public void softDelete(UUID id) {
+        Seller seller = sellerRepository.findById(id)
+                .orElseThrow(() -> new SellerNotFoundException(id));
+        seller.setStatus(SellerStatus.INATIVO);
+        sellerRepository.save(seller);
+    }
+
+    /**
+     * Reativa um vendedor inativo, alterando o status para ATIVO.
+     * Útil para reativar vendedores desligados temporariamente.
+     * Acesso restrito a administradores.
+     */
+    @Transactional
+    public SellerResponse activate(UUID id) {
+        Seller seller = sellerRepository.findById(id)
+                .orElseThrow(() -> new SellerNotFoundException(id));
+        seller.setStatus(SellerStatus.ATIVO);
+        Seller saved = sellerRepository.save(seller);
+        return SellerMapper.toResponse(saved);
     }
 }
