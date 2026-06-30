@@ -106,17 +106,19 @@ public class ProductService {
     }
 
     /**
-     * Busca case-insensitive por substring em {@code name} ou {@code code},
-     * com filtro opcional de status. Quando {@code status} é {@code null},
-     * retorna ATIVOS e INATIVOS. Quando informado, filtra.
+     * Busca flexível por texto (opcional) e/ou status (opcional).
+     * <ul>
+     *   <li>Apenas {@code status} → lista todos os produtos com aquele status</li>
+     *   <li>Apenas {@code query} → lista todos os produtos que dão match com o texto</li>
+     *   <li>Ambos → lista os produtos com aquele status E que dão match com o texto</li>
+     *   <li>Nenhum → lista todos os produtos (paginado)</li>
+     * </ul>
+     * Quando {@code query} é informado, exige no mínimo 2 caracteres.
      */
     @Transactional(readOnly = true)
     public PagedResponse<ProductResponse> search(String query, ProductStatus status, Pageable pageable) {
-        if (query == null || query.isBlank()) {
-            throw new IllegalArgumentException("O termo de busca é obrigatório");
-        }
-        String trimmed = query.trim();
-        if (trimmed.length() < MIN_SEARCH_QUERY_LENGTH) {
+        String trimmed = (query == null) ? null : query.trim();
+        if (trimmed != null && !trimmed.isEmpty() && trimmed.length() < MIN_SEARCH_QUERY_LENGTH) {
             throw new IllegalArgumentException(
                     "O termo de busca deve ter ao menos " + MIN_SEARCH_QUERY_LENGTH + " caracteres");
         }

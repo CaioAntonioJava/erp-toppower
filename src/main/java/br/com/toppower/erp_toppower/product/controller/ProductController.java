@@ -119,9 +119,12 @@ public class ProductController {
     }
 
     @GetMapping(value = "/search", produces = MediaType.APPLICATION_JSON_VALUE)
-    @Operation(summary = "Buscar produtos por termos (paginado)",
-            description = "Busca case-insensitive por substring em nome OU código. " +
-                    "Filtro opcional de status (ATIVO/INATIVO). Se omitido, retorna ambos. Todas as roles.")
+    @Operation(summary = "Buscar produtos (paginado)",
+            description = "Busca flexível: ambos os parâmetros são opcionais. " +
+                    "Filtrar apenas por status: ?status=ATIVO. " +
+                    "Filtrar por texto: ?query=cabo. " +
+                    "Combinar: ?status=ATIVO&query=cabo. " +
+                    "Sem parâmetros: retorna todos (paginado). Todas as roles.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @ApiResponses({
@@ -131,9 +134,11 @@ public class ProductController {
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<PagedResponse<ProductResponse>> search(
-            @Parameter(description = "Termo de busca (mínimo 2 caracteres).", example = "cabo flexível", required = true)
-            @RequestParam("query") String query,
-            @Parameter(description = "Filtro opcional: ATIVO ou INATIVO.", example = "ATIVO", schema = @Schema(allowableValues = {"ATIVO", "INATIVO"}))
+            @Parameter(description = "Termo de busca OPCIONAL (mínimo 2 caracteres quando informado). Match em name ou code.",
+                    example = "cabo flexivel")
+            @RequestParam(value = "query", required = false) String query,
+            @Parameter(description = "Filtro OPCIONAL: ATIVO ou INATIVO. Omitido = ambos.",
+                    example = "ATIVO", schema = @Schema(allowableValues = {"ATIVO", "INATIVO"}))
             @RequestParam(value = "status", required = false) ProductStatus status,
             @Parameter(hidden = true) @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
         return ResponseEntity.ok(productService.search(query, status, pageable));
