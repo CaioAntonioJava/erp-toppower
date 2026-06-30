@@ -11,6 +11,9 @@ import br.com.toppower.erp_toppower.profile.exception.DuplicateProfileCpfExcepti
 import br.com.toppower.erp_toppower.profile.exception.DuplicateProfileEmailException;
 import br.com.toppower.erp_toppower.profile.exception.ProfileNotFoundException;
 import br.com.toppower.erp_toppower.profile.exception.UserAlreadyHasProfileException;
+import br.com.toppower.erp_toppower.seller.exception.DuplicateSellerCpfException;
+import br.com.toppower.erp_toppower.seller.exception.DuplicateSellerEmailException;
+import br.com.toppower.erp_toppower.seller.exception.SellerNotFoundException;
 import br.com.toppower.erp_toppower.user.exception.EmailAlreadyExistsException;
 import br.com.toppower.erp_toppower.user.exception.IncorrectPasswordException;
 import br.com.toppower.erp_toppower.user.exception.UserNotFoundException;
@@ -109,6 +112,21 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(UserAlreadyHasProfileException.class)
     public ResponseEntity<ApiError> handleUserAlreadyHasProfile(UserAlreadyHasProfileException ex) {
+        return build(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(SellerNotFoundException.class)
+    public ResponseEntity<ApiError> handleSellerNotFound(SellerNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(DuplicateSellerCpfException.class)
+    public ResponseEntity<ApiError> handleDuplicateSellerCpf(DuplicateSellerCpfException ex) {
+        return build(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(DuplicateSellerEmailException.class)
+    public ResponseEntity<ApiError> handleDuplicateSellerEmail(DuplicateSellerEmailException ex) {
         return build(HttpStatus.CONFLICT, ex.getMessage());
     }
 
