@@ -40,16 +40,23 @@ public class SellerService {
         return SellerMapper.toResponse(saved);
     }
 
+    /**
+     * Lista paginada de vendedores. Se {@code status} for nulo, retorna todos
+     * (ativos e inativos); caso contrário filtra pelo status informado.
+     */
     @Transactional(readOnly = true)
-    public PagedResponse<SellerResponse> getAll(Pageable pageable) {
-        Page<SellerResponse> mapped = sellerRepository.findAll(pageable)
-                .map(SellerMapper::toResponse);
+    public PagedResponse<SellerResponse> getAll(SellerStatus status, Pageable pageable) {
+        Page<Seller> page = (status == null)
+                ? sellerRepository.findAll(pageable)
+                : sellerRepository.findByStatus(status, pageable);
+        Page<SellerResponse> mapped = page.map(SellerMapper::toResponse);
         return PagedResponse.from(mapped);
     }
 
     /**
      * Lista paginada apenas de vendedores com status {@link SellerStatus#ATIVO}.
-     * Atalho semântico para uso via repository.
+     * Atalho semântico para uso interno (relatórios, jobs). Para a API pública,
+     * use {@code getAll(SellerStatus.ATIVO, pageable)}.
      */
     @Transactional(readOnly = true)
     public PagedResponse<SellerResponse> findActive(Pageable pageable) {
@@ -61,7 +68,7 @@ public class SellerService {
 
     /**
      * Lista paginada apenas de vendedores com status {@link SellerStatus#INATIVO}.
-     * Útil para relatórios de vendedores a serem reativados ou desligados.
+     * Útil para relatórios internos de vendedores a serem reativados ou desligados.
      */
     @Transactional(readOnly = true)
     public PagedResponse<SellerResponse> findInactive(Pageable pageable) {

@@ -4,6 +4,7 @@ import br.com.toppower.erp_toppower.common.dto.PagedResponse;
 import br.com.toppower.erp_toppower.seller.dto.SellerCreateRequest;
 import br.com.toppower.erp_toppower.seller.dto.SellerResponse;
 import br.com.toppower.erp_toppower.seller.dto.SellerUpdateRequest;
+import br.com.toppower.erp_toppower.seller.enums.SellerStatus;
 import br.com.toppower.erp_toppower.seller.service.SellerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -29,6 +30,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
@@ -71,39 +73,10 @@ public class SellerController {
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<PagedResponse<SellerResponse>> getAll(
+            @Parameter(description = "Filtro opcional: ATIVO ou INATIVO.", example = "ATIVO", schema = @Schema(allowableValues = {"ATIVO", "INATIVO"}))
+            @RequestParam(value = "status", required = false) SellerStatus status,
             @Parameter(hidden = true) @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
-        return ResponseEntity.ok(sellerService.getAll(pageable));
-    }
-
-    @GetMapping(value = "/active", produces = MediaType.APPLICATION_JSON_VALUE)
-    @Operation(summary = "Listar vendedores ATIVOS (paginado)",
-            description = "Atalho para listar apenas vendedores com status ATIVO. Todas as roles autenticadas.")
-    @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Página de vendedores ativos retornada com sucesso.",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = PagedResponse.class))),
-            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
-    })
-    public ResponseEntity<PagedResponse<SellerResponse>> getActive(
-            @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
-        return ResponseEntity.ok(sellerService.findActive(pageable));
-    }
-
-    @GetMapping(value = "/inactive", produces = MediaType.APPLICATION_JSON_VALUE)
-    @Operation(summary = "Listar vendedores INATIVOS (paginado)",
-            description = "Atalho para listar apenas vendedores com status INATIVO. " +
-                    "Útil para relatórios de vendedores a serem reativados. Todas as roles autenticadas.")
-    @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Página de vendedores inativos retornada com sucesso.",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = PagedResponse.class))),
-            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
-    })
-    public ResponseEntity<PagedResponse<SellerResponse>> getInactive(
-            @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
-        return ResponseEntity.ok(sellerService.findInactive(pageable));
+        return ResponseEntity.ok(sellerService.getAll(status, pageable));
     }
 
     @GetMapping(value = "/{id:" + UUID_REGEX + "}", produces = MediaType.APPLICATION_JSON_VALUE)
