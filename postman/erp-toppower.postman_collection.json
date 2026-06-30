@@ -429,7 +429,7 @@
     },
     {
       "name": "05. Vendedores",
-      "description": "Cadastro e gestão de vendedores com percentual de comissão. Todas as roles autenticadas podem operar.",
+      "description": "Cadastro e gestão de vendedores com percentual de comissão. POST e PATCH: todas as roles. GET e DELETE: apenas ADMIN.",
       "item": [
         {
           "name": "Cadastrar vendedor",
@@ -478,7 +478,7 @@
                 {"key": "sort", "value": "name,asc", "description": "Ordenacao: campo,asc|desc", "disabled": false}
               ]
             },
-            "description": "Lista vendedores paginados, ordenados por nome."
+            "description": "Lista vendedores paginados, ordenados por nome. Acesso restrito a ROLE_ADMIN."
           }
         },
         {
@@ -491,7 +491,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "sellers", "{{sellerId}}"]
             },
-            "description": "Busca vendedor por UUID. Use {{sellerId}} salvo pelo Cadastrar vendedor."
+            "description": "Busca vendedor por UUID. Acesso restrito a ROLE_ADMIN. Use {{sellerId}} salvo pelo Cadastrar vendedor."
           }
         },
         {
@@ -521,7 +521,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "sellers", "{{sellerId}}"]
             },
-            "description": "Remove fisicamente o registro. Resposta 204 No Content. ATENCAO: exclusao permanente."
+            "description": "Remove fisicamente o registro. Acesso restrito a ROLE_ADMIN. Resposta 204 No Content. ATENCAO: exclusao permanente."
           }
         }
       ]

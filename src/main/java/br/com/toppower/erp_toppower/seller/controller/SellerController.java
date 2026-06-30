@@ -61,13 +61,14 @@ public class SellerController {
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Listar vendedores (paginado)",
-            description = "Lista vendedores paginados, ordenados por nome. Todas as roles.")
+            description = "Lista vendedores paginados, ordenados por nome. Acesso restrito a administradores (ROLE_ADMIN).")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Página de vendedores retornada com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = PagedResponse.class))),
-            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "403", description = "Acesso negado (sem ROLE_ADMIN).", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<PagedResponse<SellerResponse>> getAll(
             @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
@@ -75,13 +76,15 @@ public class SellerController {
     }
 
     @GetMapping(value = "/{id:" + UUID_REGEX + "}", produces = MediaType.APPLICATION_JSON_VALUE)
-    @Operation(summary = "Buscar vendedor por ID", description = "Retorna um vendedor pelo UUID. Todas as roles.")
+    @Operation(summary = "Buscar vendedor por ID",
+            description = "Retorna um vendedor pelo UUID. Acesso restrito a administradores (ROLE_ADMIN).")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Vendedor encontrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = SellerResponse.class))),
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "403", description = "Acesso negado (sem ROLE_ADMIN).", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "404", description = "Vendedor não encontrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<SellerResponse> getById(@PathVariable UUID id) {
@@ -108,12 +111,13 @@ public class SellerController {
 
     @DeleteMapping("/{id:" + UUID_REGEX + "}")
     @Operation(summary = "Excluir vendedor (hard delete)",
-            description = "Remove fisicamente o registro. Todas as roles autenticadas. Resposta 204 No Content.")
+            description = "Remove fisicamente o registro. Acesso restrito a administradores (ROLE_ADMIN). Resposta 204 No Content.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Vendedor excluído."),
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "403", description = "Acesso negado (sem ROLE_ADMIN).", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "404", description = "Vendedor não encontrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
