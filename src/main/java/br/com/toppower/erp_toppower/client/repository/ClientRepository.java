@@ -26,8 +26,9 @@ public interface ClientRepository extends JpaRepository<Client, UUID> {
     Page<Client> findByStatus(ClientStatus status, Pageable pageable);
 
     /**
-     * Busca case-insensitive por substring em {@code code}, {@code legalName}
-     * ou {@code tradeName}, com filtro opcional de status.
+     * Busca case-insensitive por substring em {@code code}, {@code legalName},
+     * {@code tradeName} ou {@code taxId} (CPF/CNPJ, com ou sem formatação),
+     * com filtro opcional de status.
      * Quando {@code status} é {@code null}, retorna ATIVOS e INATIVOS.
      */
     @Query("""
@@ -35,7 +36,8 @@ public interface ClientRepository extends JpaRepository<Client, UUID> {
             WHERE (:status IS NULL OR c.status = :status)
               AND (LOWER(c.code) LIKE LOWER(CONCAT('%', :query, '%'))
                 OR LOWER(c.legalName) LIKE LOWER(CONCAT('%', :query, '%'))
-                OR LOWER(c.tradeName) LIKE LOWER(CONCAT('%', :query, '%')))
+                OR LOWER(c.tradeName) LIKE LOWER(CONCAT('%', :query, '%'))
+                OR LOWER(c.taxId) LIKE LOWER(CONCAT('%', :query, '%')))
             """)
     Page<Client> searchByQuery(@Param("status") ClientStatus status,
                                 @Param("query") String query,
