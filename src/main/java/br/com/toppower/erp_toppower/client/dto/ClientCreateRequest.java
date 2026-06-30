@@ -2,16 +2,16 @@ package br.com.toppower.erp_toppower.client.dto;
 
 import br.com.toppower.erp_toppower.client.enums.ClientStatus;
 import br.com.toppower.erp_toppower.client.enums.PersonType;
-import br.com.toppower.erp_toppower.common.util.DocumentValidator;
+import br.com.toppower.erp_toppower.common.validation.ValidTaxId;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 @Schema(name = "ClientCreateRequest", description = "Dados para cadastro de um novo cliente (PF ou PJ).")
+@ValidTaxId(taxIdField = "taxId", personTypeField = "personType")
 public record ClientCreateRequest(
 
         @Schema(description = "Razão social (nome oficial/registrado).",
@@ -62,23 +62,4 @@ public record ClientCreateRequest(
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         ClientStatus status
 ) {
-    /**
-     * Validação cruzada: verifica se o taxId é válido conforme o tipo de pessoa,
-     * incluindo a verificação dos dígitos verificadores (DV).
-     * <ul>
-     *   <li>FISICA → CPF com 11 dígitos e DV corretos</li>
-     *   <li>JURIDICA → CNPJ com 14 dígitos e DV corretos</li>
-     * </ul>
-     * Retorna true se algum dos campos for nulo (a validação @NotBlank cuida disso).
-     */
-    @AssertTrue(message = "CPF/CNPJ inválido (dígitos verificadores incorretos ou formato incorreto)")
-    public boolean isTaxIdValid() {
-        if (taxId == null || personType == null) {
-            return true;
-        }
-        return switch (personType) {
-            case FISICA -> DocumentValidator.isValidCpf(taxId);
-            case JURIDICA -> DocumentValidator.isValidCnpj(taxId);
-        };
-    }
 }
