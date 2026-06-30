@@ -82,9 +82,12 @@ public class ClientController {
     }
 
     @GetMapping(value = "/search", produces = MediaType.APPLICATION_JSON_VALUE)
-    @Operation(summary = "Buscar clientes por texto (paginado)",
-            description = "Busca case-insensitive por substring em código, razão social ou nome fantasia. " +
-                    "Filtro opcional de status (ATIVO/INATIVO). Se omitido, retorna ambos. Todas as roles.")
+    @Operation(summary = "Buscar clientes (paginado)",
+            description = "Busca flexível: ambos os parâmetros são opcionais. " +
+                    "Filtrar apenas por status: ?status=ATIVO. " +
+                    "Filtrar por texto: ?query=xpto. " +
+                    "Combinar: ?status=ATIVO&query=xpto. " +
+                    "Sem parâmetros: retorna todos (paginado). Todas as roles.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @ApiResponses({
@@ -94,9 +97,11 @@ public class ClientController {
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<PagedResponse<ClientResponse>> search(
-            @Parameter(description = "Termo de busca (mínimo 2 caracteres). Match em code, legalName ou tradeName.", example = "xpto", required = true)
-            @RequestParam("query") String query,
-            @Parameter(description = "Filtro opcional: ATIVO ou INATIVO.", example = "ATIVO", schema = @Schema(allowableValues = {"ATIVO", "INATIVO"}))
+            @Parameter(description = "Termo de busca OPCIONAL (mínimo 2 caracteres quando informado). Match em code, legalName, tradeName ou taxId.",
+                    example = "xpto")
+            @RequestParam(value = "query", required = false) String query,
+            @Parameter(description = "Filtro OPCIONAL: ATIVO ou INATIVO. Omitido = ambos.",
+                    example = "ATIVO", schema = @Schema(allowableValues = {"ATIVO", "INATIVO"}))
             @RequestParam(value = "status", required = false) ClientStatus status,
             @Parameter(hidden = true) @PageableDefault(size = 20, sort = "legalName", direction = Sort.Direction.ASC) Pageable pageable) {
         return ResponseEntity.ok(clientService.search(query, status, pageable));

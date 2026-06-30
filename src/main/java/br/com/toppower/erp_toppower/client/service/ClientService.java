@@ -63,16 +63,19 @@ public class ClientService {
     private static final int MIN_SEARCH_QUERY_LENGTH = 2;
 
     /**
-     * Busca textual por código, razão social ou nome fantasia, com filtro
-     * opcional de status. A query deve ter no mínimo 2 caracteres.
+     * Busca flexível por texto (opcional) e/ou status (opcional).
+     * <ul>
+     *   <li>Apenas {@code status} → lista todos os clientes com aquele status</li>
+     *   <li>Apenas {@code query} → lista todos os clientes que dão match com o texto</li>
+     *   <li>Ambos → lista os clientes com aquele status E que dão match com o texto</li>
+     *   <li>Nenhum → lista todos os clientes (paginado)</li>
+     * </ul>
+     * Quando {@code query} é informado, exige no mínimo 2 caracteres.
      */
     @Transactional(readOnly = true)
     public PagedResponse<ClientResponse> search(String query, ClientStatus status, Pageable pageable) {
-        if (query == null || query.isBlank()) {
-            throw new IllegalArgumentException("O termo de busca é obrigatório");
-        }
-        String trimmed = query.trim();
-        if (trimmed.length() < MIN_SEARCH_QUERY_LENGTH) {
+        String trimmed = (query == null) ? null : query.trim();
+        if (trimmed != null && !trimmed.isEmpty() && trimmed.length() < MIN_SEARCH_QUERY_LENGTH) {
             throw new IllegalArgumentException(
                     "O termo de busca deve ter ao menos " + MIN_SEARCH_QUERY_LENGTH + " caracteres");
         }
