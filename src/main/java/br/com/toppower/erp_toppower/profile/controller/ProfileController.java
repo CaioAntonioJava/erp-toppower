@@ -88,10 +88,10 @@ public class ProfileController {
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<PagedResponse<ProfileResponse>> getAll(
-            @Parameter(description = "Filtro opcional: ATIVO ou INATIVO.", example = "ATIVO", schema = @Schema(allowableValues = {"ATIVO", "INATIVO"}))
+            @Parameter(hidden = true, description = "Filtro opcional: ATIVO ou INATIVO.", example = "ATIVO", schema = @Schema(allowableValues = {"ATIVO", "INATIVO"}))
             @RequestParam(value = "status", required = false) ProfileStatus status,
-            @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC) Pageable pageable,
-            @AuthenticationPrincipal UserDetailsImpl principal) {
+            @Parameter(hidden = true) @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC) Pageable pageable,
+            @Parameter(hidden = true) @AuthenticationPrincipal UserDetailsImpl principal) {
         return ResponseEntity.ok(profileService.getAll(status, pageable, principal));
     }
 

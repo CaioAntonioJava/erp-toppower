@@ -6,6 +6,7 @@ import br.com.toppower.erp_toppower.seller.dto.SellerResponse;
 import br.com.toppower.erp_toppower.seller.dto.SellerUpdateRequest;
 import br.com.toppower.erp_toppower.seller.service.SellerService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -70,7 +71,7 @@ public class SellerController {
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<PagedResponse<SellerResponse>> getAll(
-            @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
+            @Parameter(hidden = true) @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
         return ResponseEntity.ok(sellerService.getAll(pageable));
     }
 
