@@ -13,9 +13,16 @@ import java.math.BigDecimal;
 /**
  * Entidade que representa um vendedor do sistema.
  *
- * <p>Herdar {@link BasePerson} garante os campos compartilhados
- * (name, email, phone, cpf). A herança em cadeia inclui também
- * {@code BaseEntity}, que fornece identificador UUID e auditoria
+ * <p><b>Cadeia de herança (em cascata):</b></p>
+ * <pre>
+ *   Seller
+ *     └─ extends BasePerson        (campos: name, email, phone, cpf)
+ *           └─ extends BaseEntity  (campos: uuid, createdAt, updatedAt, createdBy, updatedBy)
+ * </pre>
+ *
+ * <p>Embora {@code Seller} declare apenas {@code extends BasePerson},
+ * a herança em cadeia garante que ele também herda todos os campos de
+ * {@link BaseEntity}: identificador UUID e auditoria completa
  * (createdAt, updatedAt, createdBy, updatedBy).</p>
  *
  * <p>O atributo {@code commissionRate} armazena o percentual de
