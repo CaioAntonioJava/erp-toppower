@@ -12,20 +12,6 @@ import lombok.Setter;
  * <p>Marcado com {@link Embeddable} para ser embutido em outras entidades
  * (ex: {@code Client}, {@code User}) sem precisar de uma tabela própria.</p>
  *
- * <h2>Como usar em uma entidade:</h2>
- * <pre>
- * &#064;Entity
- * public class Client extends BaseEntity {
- *
- *     &#064;Embedded
- *     &#064;AttributeOverrides({
- *         &#064;AttributeOverride(name = "street", column = &#064;Column(name = "address_street")),
- *         &#064;AttributeOverride(name = "number", column = &#064;Column(name = "address_number"))
- *     })
- *     private Address address;
- * }
- * </pre>
- *
  * <p>O {@code @AttributeOverrides} é recomendado quando os nomes das colunas
  * do endereço podem colidir com colunas da entidade dona (ex: ambos terem
  * um campo "city"). O prefixo "address_" evita ambiguidade.</p>
@@ -86,11 +72,4 @@ public class Address {
      */
     @Column(name = "zip_code", nullable = false, length = 9)
     private String zipCode;
-
-    /**
-     * País. Default = "Brasil".
-     * Opcional.
-     */
-    @Column(name = "country", length = 50)
-    private String country;
 }
