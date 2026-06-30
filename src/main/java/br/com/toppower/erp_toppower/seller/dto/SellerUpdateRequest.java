@@ -6,7 +6,6 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
@@ -37,12 +36,11 @@ public record SellerUpdateRequest(
                 message = "CPF deve estar no formato 000.000.000-00 ou conter 11 dígitos")
         String cpf,
 
-        @Schema(description = "Novo percentual de comissão (ex: 5.50 = 5,50%).",
-                minimum = "0.0", maximum = "100.0")
+        @Schema(description = "Novo percentual de comissão (ex: 5.50 = 5,50%). Aceita 0.00. Faixa válida quando informado: 0,00% a 100,00%.",
+                minimum = "0.0", maximum = "100.0", nullable = true)
         @DecimalMin(value = "0.00", message = "Comissão deve ser no mínimo 0%")
         @DecimalMax(value = "100.00", message = "Comissão deve ser no máximo 100%")
         @Digits(integer = 3, fraction = 2, message = "Comissão deve ter no máximo 2 casas decimais")
-        @Positive(message = "Comissão não pode ser negativa")
         BigDecimal commissionRate
 ) {
 }

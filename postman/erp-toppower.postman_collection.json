@@ -445,7 +445,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "sellers"]
             },
-            "description": "Cria um novo vendedor. commissionRate em % (ex: 5.50 = 5,50%). Validação 0-100%."
+            "description": "Cria um novo vendedor. commissionRate em % (ex: 5.50 = 5,50%) e OPCIONAL: aceita null ou 0.00 (vendedor sem comissao). Quando informado, deve estar entre 0,00% e 100,00%."
           },
           "event": [
             {
@@ -508,7 +508,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "sellers", "{{sellerId}}"]
             },
-            "description": "Atualiza apenas os campos enviados. commissionRate 0-100%. CPF/e-mail duplicado -> 409."
+            "description": "Atualiza apenas os campos enviados. commissionRate aceita 0.00 (vendedor sem comissao) e ate 100%. CPF/e-mail duplicado -> 409."
           }
         },
         {

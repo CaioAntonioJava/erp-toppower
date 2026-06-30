@@ -33,8 +33,9 @@ public class Seller extends BasePerson {
      * Percentual de comissão do vendedor.
      * <p>Exemplos: 5.00 = 5%, 12.50 = 12,5%, 100.00 = 100%.</p>
      * <p>Precisão: até 999.99% (precision=5, scale=2).</p>
-     * <p>Campo obrigatório.</p>
+     * <p>Campo opcional: aceita {@code null} (vendedor ainda sem comissão
+     * configurada) ou {@code 0.00} (vendedor sem comissão).</p>
      */
-    @Column(name = "commission_rate", nullable = false, precision = 5, scale = 2)
+    @Column(name = "commission_rate", precision = 5, scale = 2)
     private BigDecimal commissionRate;
 }
