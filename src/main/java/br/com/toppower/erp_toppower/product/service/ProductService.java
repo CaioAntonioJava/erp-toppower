@@ -88,8 +88,8 @@ public class ProductService {
 
     /**
      * Busca case-insensitive por substring em {@code name} ou {@code code},
-     * retornando apenas produtos com status {@link ProductStatus#ATIVO}.
-     * Pensado para alimentar o campo de busca de uma loja virtual.
+     * retornando produtos ATIVOS e INATIVOS (sem filtro de status).
+     * Pensado para alimentar o campo de busca de uma loja virtual ou de uso interno.
      */
     @Transactional(readOnly = true)
     public PagedResponse<ProductResponse> search(String query, Pageable pageable) {
@@ -102,7 +102,7 @@ public class ProductService {
                     "O termo de busca deve ter ao menos " + MIN_SEARCH_QUERY_LENGTH + " caracteres");
         }
         Page<ProductResponse> mapped = productRepository
-                .searchByQuery(ProductStatus.ATIVO, trimmed, pageable)
+                .searchByQuery(trimmed, pageable)
                 .map(ProductMapper::toResponse);
         return PagedResponse.from(mapped);
     }

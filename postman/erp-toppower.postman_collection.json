@@ -176,7 +176,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "products"]
             },
-            "description": "Cria novo produto. Apenas ROLE_ADMIN. Status default = ATIVO se omitido."
+            "description": "Cria novo produto. Todas as roles autenticadas. Status default = ATIVO se omitido."
           },
           "event": [
             {
@@ -240,7 +240,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "products", "{{productId}}"]
             },
-            "description": "Atualiza apenas os campos enviados. Apenas ROLE_ADMIN. Codigo duplicado -> 409."
+            "description": "Atualiza apenas os campos enviados. Todas as roles autenticadas. Código duplicado -> 409."
           }
         },
         {
@@ -253,11 +253,11 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "products", "{{productId}}"]
             },
-            "description": "Define status=INATIVO. Apenas ROLE_ADMIN. Resposta 204 No Content."
+            "description": "Define status=INATIVO. Todas as roles autenticadas. Resposta 204 No Content."
           }
         },
         {
-          "name": "Buscar produtos (loja virtual)",
+          "name": "Buscar produtos (ATIVOS e INATIVOS)",
           "request": {
             "method": "GET",
             "header": [],
@@ -266,13 +266,13 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "products", "search"],
               "query": [
-                {"key": "query", "value": "cabo", "description": "Termo (min 2 chars). Match name OU code. Apenas ATIVO.", "disabled": false},
+                {"key": "query", "value": "cabo", "description": "Termo (mín. 2 caracteres). Match name OU code. Inclui ATIVOS e INATIVOS.", "disabled": false},
                 {"key": "page", "value": "0", "disabled": false},
                 {"key": "size", "value": "20", "disabled": false},
                 {"key": "sort", "value": "name,asc", "disabled": false}
               ]
             },
-            "description": "Busca case-insensitive por name OU code, apenas ATIVO. Paginado. Todas as roles."
+            "description": "Busca case-insensitive por name OU code, incluindo ATIVOS e INATIVOS. Paginado. Todas as roles."
           }
         }
       ]

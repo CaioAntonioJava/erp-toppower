@@ -40,15 +40,14 @@ public class ProductController {
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Cadastrar produto",
-            description = "Cria um novo produto. Apenas ROLE_ADMIN. Status default = ATIVO se omitido.")
+            description = "Cria novo produto. Todas as roles autenticadas. Status default = ATIVO se omitido.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Produto criado com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ProductResponse.class))),
             @ApiResponse(responseCode = "400", description = "Erro de validação.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "403", description = "Sem ROLE_ADMIN.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "409", description = "Código já cadastrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<ProductResponse> create(@Valid @RequestBody ProductCreateRequest request) {
@@ -88,15 +87,14 @@ public class ProductController {
 
     @PatchMapping(value = "/{id:" + UUID_REGEX + "}", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Atualizar produto (parcial)",
-            description = "Atualiza apenas os campos enviados. Apenas ROLE_ADMIN.")
+            description = "Atualiza apenas os campos enviados. Todas as roles autenticadas. Código duplicado -> 409.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Produto atualizado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ProductResponse.class))),
             @ApiResponse(responseCode = "400", description = "Erro de validação.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "403", description = "Sem ROLE_ADMIN.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "404", description = "Produto não encontrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "409", description = "Código já cadastrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
@@ -106,16 +104,15 @@ public class ProductController {
 
     @DeleteMapping("/{id:" + UUID_REGEX + "}")
     @Operation(summary = "Inativar produto (soft delete)",
-            description = "Define status como INATIVO. Apenas ROLE_ADMIN.")
+            description = "Define status como INATIVO. Todas as roles autenticadas. Resposta 204 No Content.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Produto inativado."),
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "403", description = "Sem ROLE_ADMIN.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "404", description = "Produto não encontrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
- 
+
     public ResponseEntity<Void> inactivate(@PathVariable UUID id) {
         productService.softDelete(id);
         return ResponseEntity.noContent().build();
@@ -123,7 +120,7 @@ public class ProductController {
 
     @GetMapping(value = "/search", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Buscar produtos por termos (paginado)",
-            description = "Busca case-insensitive por substring em nome OU código. Apenas ATIVO. Todas as roles.")
+            description = "Busca case-insensitive por substring em nome OU código. Inclui produtos ATIVOS e INATIVOS. Todas as roles.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @ApiResponses({
