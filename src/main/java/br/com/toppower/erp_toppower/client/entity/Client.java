@@ -1,8 +1,12 @@
 package br.com.toppower.erp_toppower.client.entity;
 
 import br.com.toppower.erp_toppower.client.enums.PersonType;
+import br.com.toppower.erp_toppower.common.embeddable.Address;
 import br.com.toppower.erp_toppower.common.entity.BaseEntity;
+import jakarta.persistence.AttributeOverride;
+import jakarta.persistence.AttributeOverrides;
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -78,4 +82,22 @@ public class Client extends BaseEntity {
      */
     @Column(name = "municipal_registration", length = 30)
     private String municipalRegistration;
+
+    /**
+     * Endereço do cliente (logradouro, número, cidade, UF, CEP, etc.).
+     * <p>Os campos do {@link Address} são embutidos nesta mesma tabela
+     * ({@code clients}) com o prefixo {@code address_} nas colunas
+     * para evitar conflito com colunas do próprio {@code Client}.</p>
+     */
+    @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "street", column = @Column(name = "address_street", nullable = false, length = 200)),
+            @AttributeOverride(name = "number", column = @Column(name = "address_number", nullable = false, length = 20)),
+            @AttributeOverride(name = "complement", column = @Column(name = "address_complement", length = 100)),
+            @AttributeOverride(name = "neighborhood", column = @Column(name = "address_neighborhood", length = 100)),
+            @AttributeOverride(name = "city", column = @Column(name = "address_city", nullable = false, length = 100)),
+            @AttributeOverride(name = "state", column = @Column(name = "address_state", nullable = false, length = 2)),
+            @AttributeOverride(name = "zipCode", column = @Column(name = "address_zip_code", nullable = false, length = 9))
+    })
+    private Address address;
 }
