@@ -1,5 +1,6 @@
 package br.com.toppower.erp_toppower.client.entity;
 
+import br.com.toppower.erp_toppower.client.enums.ClientStatus;
 import br.com.toppower.erp_toppower.client.enums.PersonType;
 import br.com.toppower.erp_toppower.common.embeddable.Address;
 import br.com.toppower.erp_toppower.common.entity.BaseEntity;
@@ -10,6 +11,7 @@ import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -100,4 +102,20 @@ public class Client extends BaseEntity {
             @AttributeOverride(name = "zipCode", column = @Column(name = "address_zip_code", nullable = false, length = 9))
     })
     private Address address;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    private ClientStatus status;
+
+    /**
+     * Inicialização do cliente antes de persistir.
+     * Garante que o status seja {@link ClientStatus#ATIVO} quando não for informado.
+     * Não sobrescreve valores já definidos pelo chamador.
+     */
+    @PrePersist
+    private void onPrePersist() {
+        if (status == null) {
+            status = ClientStatus.ATIVO;
+        }
+    }
 }

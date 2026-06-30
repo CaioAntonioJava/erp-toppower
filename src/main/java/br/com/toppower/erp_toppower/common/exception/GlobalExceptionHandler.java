@@ -5,6 +5,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
+import br.com.toppower.erp_toppower.client.exception.ClientNotFoundException;
+import br.com.toppower.erp_toppower.client.exception.DuplicateClientCodeException;
+import br.com.toppower.erp_toppower.client.exception.DuplicateClientTaxIdException;
 import br.com.toppower.erp_toppower.product.exception.DuplicateProductCodeException;
 import br.com.toppower.erp_toppower.product.exception.ProductNotFoundException;
 import br.com.toppower.erp_toppower.profile.exception.DuplicateProfileCpfException;
@@ -127,6 +130,21 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DuplicateSellerEmailException.class)
     public ResponseEntity<ApiError> handleDuplicateSellerEmail(DuplicateSellerEmailException ex) {
+        return build(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(ClientNotFoundException.class)
+    public ResponseEntity<ApiError> handleClientNotFound(ClientNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(DuplicateClientCodeException.class)
+    public ResponseEntity<ApiError> handleDuplicateClientCode(DuplicateClientCodeException ex) {
+        return build(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(DuplicateClientTaxIdException.class)
+    public ResponseEntity<ApiError> handleDuplicateClientTaxId(DuplicateClientTaxIdException ex) {
         return build(HttpStatus.CONFLICT, ex.getMessage());
     }
 
