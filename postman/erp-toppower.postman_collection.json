@@ -482,6 +482,42 @@
           }
         },
         {
+          "name": "Listar vendedores ATIVOS (paginado)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sellers/active?page=0&size=20&sort=name,asc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "sellers", "active"],
+              "query": [
+                {"key": "page", "value": "0", "description": "Pagina (0-indexed)", "disabled": false},
+                {"key": "size", "value": "20", "description": "Tamanho da pagina", "disabled": false},
+                {"key": "sort", "value": "name,asc", "description": "Ordenacao: campo,asc|desc", "disabled": false}
+              ]
+            },
+            "description": "Atalho para listar apenas vendedores com status ATIVO. Todas as roles autenticadas."
+          }
+        },
+        {
+          "name": "Listar vendedores INATIVOS (paginado)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sellers/inactive?page=0&size=20&sort=name,asc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "sellers", "inactive"],
+              "query": [
+                {"key": "page", "value": "0", "description": "Pagina (0-indexed)", "disabled": false},
+                {"key": "size", "value": "20", "description": "Tamanho da pagina", "disabled": false},
+                {"key": "sort", "value": "name,asc", "description": "Ordenacao: campo,asc|desc", "disabled": false}
+              ]
+            },
+            "description": "Atalho para listar apenas vendedores com status INATIVO. Util para relatorios. Todas as roles."
+          }
+        },
+        {
           "name": "Buscar vendedor por ID",
           "request": {
             "method": "GET",

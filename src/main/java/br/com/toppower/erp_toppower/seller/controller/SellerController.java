@@ -74,6 +74,37 @@ public class SellerController {
         return ResponseEntity.ok(sellerService.getAll(pageable));
     }
 
+    @GetMapping(value = "/active", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Listar vendedores ATIVOS (paginado)",
+            description = "Atalho para listar apenas vendedores com status ATIVO. Todas as roles autenticadas.")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Página de vendedores ativos retornada com sucesso.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = PagedResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+    })
+    public ResponseEntity<PagedResponse<SellerResponse>> getActive(
+            @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.ok(sellerService.findActive(pageable));
+    }
+
+    @GetMapping(value = "/inactive", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Listar vendedores INATIVOS (paginado)",
+            description = "Atalho para listar apenas vendedores com status INATIVO. " +
+                    "Útil para relatórios de vendedores a serem reativados. Todas as roles autenticadas.")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Página de vendedores inativos retornada com sucesso.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = PagedResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+    })
+    public ResponseEntity<PagedResponse<SellerResponse>> getInactive(
+            @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.ok(sellerService.findInactive(pageable));
+    }
+
     @GetMapping(value = "/{id:" + UUID_REGEX + "}", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Buscar vendedor por ID",
             description = "Retorna um vendedor pelo UUID. Acesso restrito a administradores (ROLE_ADMIN).")

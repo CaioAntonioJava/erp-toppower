@@ -47,6 +47,30 @@ public class SellerService {
         return PagedResponse.from(mapped);
     }
 
+    /**
+     * Lista paginada apenas de vendedores com status {@link SellerStatus#ATIVO}.
+     * Atalho semântico para uso via repository.
+     */
+    @Transactional(readOnly = true)
+    public PagedResponse<SellerResponse> findActive(Pageable pageable) {
+        Page<SellerResponse> mapped = sellerRepository
+                .findByStatus(SellerStatus.ATIVO, pageable)
+                .map(SellerMapper::toResponse);
+        return PagedResponse.from(mapped);
+    }
+
+    /**
+     * Lista paginada apenas de vendedores com status {@link SellerStatus#INATIVO}.
+     * Útil para relatórios de vendedores a serem reativados ou desligados.
+     */
+    @Transactional(readOnly = true)
+    public PagedResponse<SellerResponse> findInactive(Pageable pageable) {
+        Page<SellerResponse> mapped = sellerRepository
+                .findByStatus(SellerStatus.INATIVO, pageable)
+                .map(SellerMapper::toResponse);
+        return PagedResponse.from(mapped);
+    }
+
     @Transactional(readOnly = true)
     public SellerResponse getById(UUID id) {
         return sellerRepository.findById(id)
