@@ -78,15 +78,4 @@ public class Client extends BaseEntity {
      */
     @Column(name = "municipal_registration", length = 30)
     private String municipalRegistration;
-
-    /**
-     * Indica se o cliente é ISENTO de Inscrição Estadual.
-     * <ul>
-     *   <li>{@code true} → cliente não tem IE (ex: Microempreendedor Individual)</li>
-     *   <li>{@code false} → cliente possui IE (preencher {@code stateRegistration})</li>
-     * </ul>
-     * Default: {@code false}.
-     */
-    @Column(name = "state_registration_exempt", nullable = false)
-    private boolean stateRegistrationExempt;
 }
