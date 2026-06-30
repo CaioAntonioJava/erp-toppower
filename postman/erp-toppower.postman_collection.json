@@ -268,12 +268,52 @@
               "path": ["api", "v1", "products", "search"],
               "query": [
                 {"key": "query", "value": "cabo", "description": "Termo (mín. 2 caracteres). Match name OU code. Inclui ATIVOS e INATIVOS.", "disabled": false},
-                {"key": "page", "value": "0", "disabled": false},
-                {"key": "size", "value": "20", "disabled": false},
-                {"key": "sort", "value": "name,asc", "disabled": false}
+                {"key": "page", "value": "0", "description": "Pagina (0-indexed)", "disabled": false},
+                {"key": "size", "value": "20", "description": "Tamanho da pagina", "disabled": false},
+                {"key": "sort", "value": "name,asc", "description": "Ordenacao: campo,asc|desc", "disabled": false}
               ]
             },
             "description": "Busca case-insensitive por name OU code, incluindo ATIVOS e INATIVOS. Paginado. Todas as roles."
+          }
+        },
+        {
+          "name": "Buscar produtos apenas ATIVOS",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products/search?query=cabo&status=ATIVO&page=0&size=20&sort=name,asc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "products", "search"],
+              "query": [
+                {"key": "query", "value": "cabo", "description": "Termo (mín. 2 caracteres). Match name OU code.", "disabled": false},
+                {"key": "status", "value": "ATIVO", "description": "Filtro: ATIVO ou INATIVO. Omitido = ambos.", "disabled": false},
+                {"key": "page", "value": "0", "description": "Pagina (0-indexed)", "disabled": false},
+                {"key": "size", "value": "20", "description": "Tamanho da pagina", "disabled": false},
+                {"key": "sort", "value": "name,asc", "description": "Ordenacao: campo,asc|desc", "disabled": false}
+              ]
+            },
+            "description": "Busca case-insensitive por name OU code, filtrando por status ATIVO. Paginado. Todas as roles."
+          }
+        },
+        {
+          "name": "Buscar produtos apenas INATIVOS",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products/search?query=cabo&status=INATIVO&page=0&size=20&sort=name,asc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "products", "search"],
+              "query": [
+                {"key": "query", "value": "cabo", "description": "Termo (mín. 2 caracteres). Match name OU code.", "disabled": false},
+                {"key": "status", "value": "INATIVO", "description": "Filtro: ATIVO ou INATIVO. Omitido = ambos.", "disabled": false},
+                {"key": "page", "value": "0", "description": "Pagina (0-indexed)", "disabled": false},
+                {"key": "size", "value": "20", "description": "Tamanho da pagina", "disabled": false},
+                {"key": "sort", "value": "name,asc", "description": "Ordenacao: campo,asc|desc", "disabled": false}
+              ]
+            },
+            "description": "Busca case-insensitive por name OU code, filtrando por status INATIVO. Paginado. Todas as roles."
           }
         }
       ]

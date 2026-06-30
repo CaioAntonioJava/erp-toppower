@@ -120,7 +120,8 @@ public class ProductController {
 
     @GetMapping(value = "/search", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Buscar produtos por termos (paginado)",
-            description = "Busca case-insensitive por substring em nome OU código. Inclui produtos ATIVOS e INATIVOS. Todas as roles.")
+            description = "Busca case-insensitive por substring em nome OU código. " +
+                    "Filtro opcional de status (ATIVO/INATIVO). Se omitido, retorna ambos. Todas as roles.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @ApiResponses({
@@ -132,7 +133,9 @@ public class ProductController {
     public ResponseEntity<PagedResponse<ProductResponse>> search(
             @Parameter(description = "Termo de busca (mínimo 2 caracteres).", example = "cabo flexível", required = true)
             @RequestParam("query") String query,
-            @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
-        return ResponseEntity.ok(productService.search(query, pageable));
+            @Parameter(description = "Filtro opcional: ATIVO ou INATIVO.", example = "ATIVO", schema = @Schema(allowableValues = {"ATIVO", "INATIVO"}))
+            @RequestParam(value = "status", required = false) ProductStatus status,
+            @Parameter(hidden = true) @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.ok(productService.search(query, status, pageable));
     }
 }

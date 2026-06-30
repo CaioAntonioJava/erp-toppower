@@ -22,14 +22,17 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
     Page<Product> findByStatus(ProductStatus status, Pageable pageable);
 
     /**
-     * Busca case-insensitive por substring em {@code name} OU {@code code}.
-     * Retorna produtos ATIVOS e INATIVOS (sem filtro de status), ordenados pelo nome.
-     * Paginado para suportar listagens grandes.
+     * Busca case-insensitive por substring em {@code name} OU {@code code},
+     * com filtro opcional de status. Quando {@code status} é {@code null},
+     * retorna produtos ATIVOS e INATIVOS. Paginado para suportar listagens grandes.
      */
     @Query("""
             SELECT p FROM Product p
-            WHERE LOWER(p.name) LIKE LOWER(CONCAT('%', :query, '%'))
-               OR LOWER(p.code) LIKE LOWER(CONCAT('%', :query, '%'))
+            WHERE (:status IS NULL OR p.status = :status)
+              AND (LOWER(p.name) LIKE LOWER(CONCAT('%', :query, '%'))
+                OR LOWER(p.code) LIKE LOWER(CONCAT('%', :query, '%')))
             """)
-    Page<Product> searchByQuery(@Param("query") String query, Pageable pageable);
+    Page<Product> searchByQuery(@Param("status") ProductStatus status,
+                                @Param("query") String query,
+                                Pageable pageable);
 }

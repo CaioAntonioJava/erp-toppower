@@ -107,11 +107,11 @@ public class ProductService {
 
     /**
      * Busca case-insensitive por substring em {@code name} ou {@code code},
-     * retornando produtos ATIVOS e INATIVOS (sem filtro de status).
-     * Pensado para alimentar o campo de busca de uma loja virtual ou de uso interno.
+     * com filtro opcional de status. Quando {@code status} é {@code null},
+     * retorna ATIVOS e INATIVOS. Quando informado, filtra.
      */
     @Transactional(readOnly = true)
-    public PagedResponse<ProductResponse> search(String query, Pageable pageable) {
+    public PagedResponse<ProductResponse> search(String query, ProductStatus status, Pageable pageable) {
         if (query == null || query.isBlank()) {
             throw new IllegalArgumentException("O termo de busca é obrigatório");
         }
@@ -121,7 +121,7 @@ public class ProductService {
                     "O termo de busca deve ter ao menos " + MIN_SEARCH_QUERY_LENGTH + " caracteres");
         }
         Page<ProductResponse> mapped = productRepository
-                .searchByQuery(trimmed, pageable)
+                .searchByQuery(status, trimmed, pageable)
                 .map(ProductMapper::toResponse);
         return PagedResponse.from(mapped);
     }
