@@ -17,6 +17,8 @@ import br.com.toppower.erp_toppower.profile.exception.UserAlreadyHasProfileExcep
 import br.com.toppower.erp_toppower.seller.exception.DuplicateSellerCpfException;
 import br.com.toppower.erp_toppower.seller.exception.DuplicateSellerEmailException;
 import br.com.toppower.erp_toppower.seller.exception.SellerNotFoundException;
+import br.com.toppower.erp_toppower.supplier.exception.DuplicateSupplierCnpjException;
+import br.com.toppower.erp_toppower.supplier.exception.SupplierNotFoundException;
 import br.com.toppower.erp_toppower.user.exception.EmailAlreadyExistsException;
 import br.com.toppower.erp_toppower.user.exception.IncorrectPasswordException;
 import br.com.toppower.erp_toppower.user.exception.UserNotFoundException;
@@ -145,6 +147,16 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DuplicateClientTaxIdException.class)
     public ResponseEntity<ApiError> handleDuplicateClientTaxId(DuplicateClientTaxIdException ex) {
+        return build(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(SupplierNotFoundException.class)
+    public ResponseEntity<ApiError> handleSupplierNotFound(SupplierNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(DuplicateSupplierCnpjException.class)
+    public ResponseEntity<ApiError> handleDuplicateSupplierCnpj(DuplicateSupplierCnpjException ex) {
         return build(HttpStatus.CONFLICT, ex.getMessage());
     }
 
