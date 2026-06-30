@@ -71,6 +71,37 @@ public class ProductController {
         return ResponseEntity.ok(productService.getAll(status, pageable));
     }
 
+    @GetMapping(value = "/active", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Listar produtos ATIVOS (paginado)",
+            description = "Atalho para listar apenas produtos com status ATIVO. Equivalente a GET /products?status=ATIVO. Todas as roles.")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Página de produtos ativos retornada com sucesso.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = PagedResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+    })
+    public ResponseEntity<PagedResponse<ProductResponse>> getActive(
+            @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.ok(productService.findActive(pageable));
+    }
+
+    @GetMapping(value = "/inactive", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Listar produtos INATIVOS (paginado)",
+            description = "Atalho para listar apenas produtos com status INATIVO. Equivalente a GET /products?status=INATIVO. " +
+                    "Útil para relatórios de produtos a serem reativados ou removidos. Todas as roles.")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Página de produtos inativos retornada com sucesso.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = PagedResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+    })
+    public ResponseEntity<PagedResponse<ProductResponse>> getInactive(
+            @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.ok(productService.findInactive(pageable));
+    }
+
     @GetMapping(value = "/{id:" + UUID_REGEX + "}", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Buscar produto por ID", description = "Retorna um produto pelo UUID.")
     @SecurityRequirement(name = "bearerAuth")
