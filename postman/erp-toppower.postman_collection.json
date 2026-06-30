@@ -215,42 +215,6 @@
           }
         },
         {
-          "name": "Listar produtos ATIVOS (paginado)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/products/active?page=0&size=20&sort=name,asc",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "products", "active"],
-              "query": [
-                {"key": "page", "value": "0", "description": "Pagina (0-indexed)", "disabled": false},
-                {"key": "size", "value": "20", "description": "Tamanho da pagina", "disabled": false},
-                {"key": "sort", "value": "name,asc", "description": "Ordenacao: campo,asc|desc", "disabled": false}
-              ]
-            },
-            "description": "Atalho para listar apenas produtos com status ATIVO. Equivalente a GET /products?status=ATIVO. Todas as roles."
-          }
-        },
-        {
-          "name": "Listar produtos INATIVOS (paginado)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/products/inactive?page=0&size=20&sort=name,asc",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "products", "inactive"],
-              "query": [
-                {"key": "page", "value": "0", "description": "Pagina (0-indexed)", "disabled": false},
-                {"key": "size", "value": "20", "description": "Tamanho da pagina", "disabled": false},
-                {"key": "sort", "value": "name,asc", "description": "Ordenacao: campo,asc|desc", "disabled": false}
-              ]
-            },
-            "description": "Atalho para listar apenas produtos com status INATIVO. Equivalente a GET /products?status=INATIVO. Util para relatorios. Todas as roles."
-          }
-        },
-        {
           "name": "Buscar produto por ID",
           "request": {
             "method": "GET",
