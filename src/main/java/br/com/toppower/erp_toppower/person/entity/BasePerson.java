@@ -1,6 +1,7 @@
 package br.com.toppower.erp_toppower.person.entity;
 
 import br.com.toppower.erp_toppower.common.entity.BaseEntity;
+import br.com.toppower.erp_toppower.common.validation.ValidCpf;
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
 import lombok.Getter;
@@ -13,6 +14,10 @@ import lombok.Setter;
  *
  * <p>Herdar {@link BaseEntity} garante também o identificador UUID e a
  * auditoria completa (timestamps + autor).</p>
+ *
+ * <p>O campo {@code cpf} é validado por {@link ValidCpf} (incluindo
+ * dígitos verificadores), portanto todas as entidades que herdam desta
+ * classe (Profile, Seller, etc.) herdam automaticamente essa validação.</p>
  */
 @MappedSuperclass
 @Getter
@@ -29,6 +34,7 @@ public abstract class BasePerson extends BaseEntity {
     @Column(name = "phone", length = 20)
     private String phone;
 
+    @ValidCpf(message = "CPF inválido (dígitos verificadores incorretos ou formato incorreto)")
     @Column(name = "cpf", nullable = false, length = 14, unique = true)
     private String cpf;
 }
