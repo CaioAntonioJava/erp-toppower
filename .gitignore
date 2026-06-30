@@ -36,3 +36,8 @@ build/
 
 ### VS Code ###
 .vscode/
+
+
+### Postman ###
+postman/erp-toppower.postman_collection.json
+
