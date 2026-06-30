@@ -2,6 +2,7 @@ package br.com.toppower.erp_toppower.client.dto;
 
 import br.com.toppower.erp_toppower.client.enums.ClientStatus;
 import br.com.toppower.erp_toppower.client.enums.PersonType;
+import br.com.toppower.erp_toppower.common.util.DocumentValidator;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
@@ -62,22 +63,22 @@ public record ClientCreateRequest(
         ClientStatus status
 ) {
     /**
-     * Validação cruzada: verifica se o tamanho do taxId corresponde ao tipo de pessoa.
+     * Validação cruzada: verifica se o taxId é válido conforme o tipo de pessoa,
+     * incluindo a verificação dos dígitos verificadores (DV).
      * <ul>
-     *   <li>FISICA → 11 dígitos (CPF)</li>
-     *   <li>JURIDICA → 14 dígitos (CNPJ)</li>
+     *   <li>FISICA → CPF com 11 dígitos e DV corretos</li>
+     *   <li>JURIDICA → CNPJ com 14 dígitos e DV corretos</li>
      * </ul>
      * Retorna true se algum dos campos for nulo (a validação @NotBlank cuida disso).
      */
-    @AssertTrue(message = "CPF deve ter 11 dígitos para pessoa física, CNPJ deve ter 14 dígitos para pessoa jurídica")
+    @AssertTrue(message = "CPF/CNPJ inválido (dígitos verificadores incorretos ou formato incorreto)")
     public boolean isTaxIdValid() {
         if (taxId == null || personType == null) {
             return true;
         }
-        String digits = taxId.replaceAll("\\D", "");
         return switch (personType) {
-            case FISICA -> digits.length() == 11;
-            case JURIDICA -> digits.length() == 14;
+            case FISICA -> DocumentValidator.isValidCpf(taxId);
+            case JURIDICA -> DocumentValidator.isValidCnpj(taxId);
         };
     }
 }
