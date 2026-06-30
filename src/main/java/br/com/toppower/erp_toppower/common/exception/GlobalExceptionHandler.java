@@ -4,6 +4,10 @@ import br.com.toppower.erp_toppower.auth.exception.InvalidCredentialsException;
 import org.springframework.security.authentication.BadCredentialsException;
 import br.com.toppower.erp_toppower.product.exception.DuplicateProductCodeException;
 import br.com.toppower.erp_toppower.product.exception.ProductNotFoundException;
+import br.com.toppower.erp_toppower.profile.exception.DuplicateProfileCpfException;
+import br.com.toppower.erp_toppower.profile.exception.DuplicateProfileEmailException;
+import br.com.toppower.erp_toppower.profile.exception.ProfileNotFoundException;
+import br.com.toppower.erp_toppower.profile.exception.UserAlreadyHasProfileException;
 import br.com.toppower.erp_toppower.user.exception.EmailAlreadyExistsException;
 import br.com.toppower.erp_toppower.user.exception.IncorrectPasswordException;
 import br.com.toppower.erp_toppower.user.exception.UserNotFoundException;
@@ -63,6 +67,26 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DuplicateProductCodeException.class)
     public ResponseEntity<ApiError> handleDuplicateProductCode(DuplicateProductCodeException ex) {
+        return build(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(ProfileNotFoundException.class)
+    public ResponseEntity<ApiError> handleProfileNotFound(ProfileNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(DuplicateProfileCpfException.class)
+    public ResponseEntity<ApiError> handleDuplicateProfileCpf(DuplicateProfileCpfException ex) {
+        return build(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(DuplicateProfileEmailException.class)
+    public ResponseEntity<ApiError> handleDuplicateProfileEmail(DuplicateProfileEmailException ex) {
+        return build(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(UserAlreadyHasProfileException.class)
+    public ResponseEntity<ApiError> handleUserAlreadyHasProfile(UserAlreadyHasProfileException ex) {
         return build(HttpStatus.CONFLICT, ex.getMessage());
     }
 
