@@ -66,7 +66,7 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "Lista de usuários retornada com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = UserResponse.class))),
-            @ApiResponse(responseCode = "401", description = "Token ausente, invalido ou expirado.",
+            @ApiResponse(responseCode = "401", description = "Token ausente, inválido ou expirado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "403", description = "Usuário não possui ROLE_ADMIN.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
@@ -86,7 +86,7 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "Usuário encontrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = UserResponse.class))),
-            @ApiResponse(responseCode = "401", description = "Token ausente, invalido ou expirado.",
+            @ApiResponse(responseCode = "401", description = "Token ausente, inválido ou expirado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "403", description = "Usuário não possui ROLE_ADMIN.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
@@ -99,8 +99,8 @@ public class UserController {
 
     @PatchMapping(value = "/{id}/password", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(
-            summary = "Alterar propria senha",
-            description = "Permite que o usuário autenticado altere sua propria senha, "
+            summary = "Alterar própria senha",
+            description = "Permite que o usuário autenticado altere sua própria senha, "
                     + "informando a senha atual e a nova senha. O UUID do token JWT deve corresponder ao ID do path. "
                     + "A senha atual é validada antes da atualização."
     )
@@ -109,7 +109,7 @@ public class UserController {
             @ApiResponse(responseCode = "204", description = "Senha alterada com sucesso."),
             @ApiResponse(responseCode = "400", description = "Senha atual incorreta ou erro de validação.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "401", description = "Token ausente, invalido ou expirado.",
+            @ApiResponse(responseCode = "401", description = "Token ausente, inválido ou expirado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "403", description = "Tentativa de alterar senha de outro usuário.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
@@ -127,7 +127,7 @@ public class UserController {
     @Operation(
             summary = "Redefinir senha de usuário (ADMIN)",
             description = "Permite que um administrador redefina a senha de qualquer usuário, "
-                    + "informando a nova senha a ser atribuida. Acesso restrito a administradores (ROLE_ADMIN)."
+                    + "informando a nova senha a ser atribuída. Acesso restrito a administradores (ROLE_ADMIN)."
     )
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasRole('ADMIN')")
@@ -135,7 +135,7 @@ public class UserController {
             @ApiResponse(responseCode = "204", description = "Senha redefinida com sucesso."),
             @ApiResponse(responseCode = "400", description = "Erro de validação nos campos enviados.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "401", description = "Token ausente, invalido ou expirado.",
+            @ApiResponse(responseCode = "401", description = "Token ausente, inválido ou expirado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "403", description = "Usuário não possui ROLE_ADMIN.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),

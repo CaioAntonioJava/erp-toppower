@@ -25,7 +25,7 @@
   "item": [
     {
       "name": "01. Autenticacao",
-      "description": "Endpoints publicos e protegidos de autenticacao.",
+      "description": "Endpoints públicos e protegidos de autenticação.",
       "item": [
         {
           "name": "Login",
@@ -77,7 +77,7 @@
     },
     {
       "name": "02. Usuarios",
-      "description": "Cadastro e gestao de usuarios.",
+      "description": "Cadastro e gestão de usuários.",
       "item": [
         {
           "name": "Cadastrar usuario",
@@ -97,7 +97,7 @@
           }
         },
         {
-          "name": "Listar usuarios",
+          "name": "Listar usuários",
           "request": {
             "method": "GET",
             "header": [],
@@ -106,7 +106,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "users"]
             },
-            "description": "Lista todos os usuarios. Apenas ROLE_ADMIN."
+            "description": "Lista todos os usuários. Apenas ROLE_ADMIN."
           }
         },
         {
@@ -123,7 +123,7 @@
           }
         },
         {
-          "name": "Trocar propria senha",
+          "name": "Trocar própria senha",
           "request": {
             "method": "PATCH",
             "header": [{"key": "Content-Type", "value": "application/json"}],
@@ -279,7 +279,7 @@
     },
     {
       "name": "04. Perfis",
-      "description": "Cadastro e gestao de perfis de usuarios (relacionamento 1:1 com User). O usuario logado cria o proprio perfil; ADMIN pode ler/alterar qualquer um.",
+      "description": "Cadastro e gestão de perfis de usuários (relacionamento 1:1 com User). O usuário logado cria o próprio perfil; ADMIN pode ler/alterar qualquer um.",
       "item": [
         {
           "name": "Cadastrar meu perfil",
@@ -329,7 +329,7 @@
                 {"key": "sort", "value": "name,asc", "description": "Ordenacao: campo,asc|desc", "disabled": false}
               ]
             },
-            "description": "Lista perfis paginados. Filtro de status opcional. Acesso restrito a ROLE_ADMIN. Retorna 403 para outros usuarios."
+            "description": "Lista perfis paginados. Filtro de status opcional. Acesso restrito a ROLE_ADMIN. Retorna 403 para outros usuários."
           }
         },
         {
@@ -342,7 +342,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "profiles", "{{profileId}}"]
             },
-            "description": "Busca perfil por UUID. ADMIN pode ver qualquer; demais usuarios so o proprio (caso contrario retorna 403). Use {{profileId}} salvo pelo Cadastrar meu perfil."
+            "description": "Busca perfil por UUID. ADMIN pode ver qualquer; demais usuários só o próprio (caso contrário retorna 403). Use {{profileId}} salvo pelo Cadastrar meu perfil."
           }
         },
         {
@@ -355,7 +355,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "profiles", "user", "{{userId}}"]
             },
-            "description": "Busca o perfil vinculado a um User especifico. ADMIN pode ver qualquer; demais usuarios so o proprio (userId do path == UUID do JWT). Retorna 404 se o User nao possui perfil."
+            "description": "Busca o perfil vinculado a um User específico. ADMIN pode ver qualquer; demais usuários só o próprio (userId do path == UUID do JWT). Retorna 404 se o User não possui perfil."
           }
         },
         {
@@ -372,7 +372,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "profiles", "{{profileId}}"]
             },
-            "description": "Atualiza apenas os campos enviados. ADMIN pode alterar qualquer perfil; demais usuarios so o proprio (caso contrario 403). O vinculo com User NAO pode ser alterado. CPF/e-mail duplicado -> 409."
+            "description": "Atualiza apenas os campos enviados. ADMIN pode alterar qualquer perfil; demais usuários só o próprio (caso contrário 403). O vínculo com User NÃO pode ser alterado. CPF/e-mail duplicado -> 409."
           }
         },
         {

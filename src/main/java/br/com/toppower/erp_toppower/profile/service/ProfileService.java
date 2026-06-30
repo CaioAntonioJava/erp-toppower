@@ -57,7 +57,7 @@ public class ProfileService {
 
     /**
      * Lista paginada de perfis. Se {@code status} for nulo, retorna todos
-     * (ativos e inativos); caso contrario filtra pelo status informado.
+     * (ativos e inativos); caso contrário filtra pelo status informado.
      * Acesso restrito a administradores.
      */
     @Transactional(readOnly = true)
@@ -74,7 +74,7 @@ public class ProfileService {
 
     /**
      * Busca perfil por ID. ADMIN pode consultar qualquer perfil;
-     * demais usuarios so podem consultar o proprio.
+     * demais usuários só podem consultar o próprio.
      */
     @Transactional(readOnly = true)
     public ProfileResponse getById(UUID id, UserDetailsImpl principal) {
@@ -85,13 +85,13 @@ public class ProfileService {
     }
 
     /**
-     * Busca perfil pelo UUID do usuario. ADMIN pode consultar de qualquer;
-     * demais usuarios so podem consultar o proprio.
+     * Busca perfil pelo UUID do usuário. ADMIN pode consultar qualquer;
+     * demais usuários só podem consultar o próprio.
      */
     @Transactional(readOnly = true)
     public ProfileResponse getByUserId(UUID userId, UserDetailsImpl principal) {
         if (!principal.isAdmin() && !principal.uuid().equals(userId)) {
-            throw new AccessDeniedException("Voce so pode consultar o seu proprio perfil");
+            throw new AccessDeniedException("Você só pode consultar o seu próprio perfil");
         }
         return profileRepository.findByUserUuid(userId)
                 .map(ProfileMapper::toResponse)
@@ -99,8 +99,8 @@ public class ProfileService {
     }
 
     /**
-     * Atualizacao parcial do perfil. ADMIN pode alterar qualquer perfil;
-     * demais usuarios so podem alterar o proprio.
+     * Atualização parcial do perfil. ADMIN pode alterar qualquer perfil;
+     * demais usuários só podem alterar o próprio.
      */
     @Transactional
     public ProfileResponse update(UUID id, ProfileUpdateRequest request, UserDetailsImpl principal) {
@@ -127,8 +127,8 @@ public class ProfileService {
     }
 
     /**
-     * Soft delete: nao remove fisicamente o registro, apenas altera o status para INATIVO.
-     * Preserva o historico de auditoria e o vinculo com o User.
+     * Soft delete: não remove fisicamente o registro, apenas altera o status para INATIVO.
+     * Preserva o histórico de auditoria e o vínculo com o User.
      * Acesso restrito a administradores.
      */
     @Transactional
@@ -143,8 +143,8 @@ public class ProfileService {
     }
 
     /**
-     * Verifica se o usuario autenticado pode acessar (ler/editar) o perfil informado.
-     * ADMIN tem acesso total. Demais usuarios so podem acessar o proprio perfil
+     * Verifica se o usuário autenticado pode acessar (ler/editar) o perfil informado.
+     * ADMIN tem acesso total. Demais usuários só podem acessar o próprio perfil
      * (aquele cujo {@code user.uuid} corresponde ao UUID do principal).
      */
     private void validateAccess(Profile profile, UserDetailsImpl principal) {
@@ -154,6 +154,6 @@ public class ProfileService {
         if (profile.getUser() != null && profile.getUser().getUuid().equals(principal.uuid())) {
             return;
         }
-        throw new AccessDeniedException("Voce so pode acessar o seu proprio perfil");
+        throw new AccessDeniedException("Você só pode acessar o seu próprio perfil");
     }
 }

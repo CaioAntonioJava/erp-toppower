@@ -40,7 +40,7 @@ public class ProductService {
 
     /**
      * Lista paginada de produtos. Se {@code status} for nulo, retorna todos os produtos
-     * (ativos e inativos); caso contrario filtra pelo status informado.
+     * (ativos e inativos); caso contrário filtra pelo status informado.
      */
     @Transactional(readOnly = true)
     public PagedResponse<ProductResponse> getAll(ProductStatus status, Pageable pageable) {
@@ -76,7 +76,7 @@ public class ProductService {
 
     /**
      * Soft delete: não remove fisicamente o registro, apenas altera o status para INATIVO.
-     * Preserva o historico em pedidos/notas fiscais e a rastreabilidade do registro.
+     * Preserva o histórico em pedidos/notas fiscais e a rastreabilidade do registro.
      */
     @Transactional
     public void softDelete(UUID id) {

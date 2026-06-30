@@ -12,7 +12,7 @@ public record ChangePasswordRequest(
         @NotBlank(message = "Senha atual é obrigatória")
         String currentPassword,
 
-        @Schema(description = "Nova senha que substituira a atual. Mínimo 8 caracteres.",
+        @Schema(description = "Nova senha que substituirá a atual. Mínimo 8 caracteres.",
                 example = "N0v@Senh@2026", requiredMode = Schema.RequiredMode.REQUIRED,
                 minLength = 8, maxLength = 200, format = "password")
         @NotBlank(message = "Nova senha é obrigatória")

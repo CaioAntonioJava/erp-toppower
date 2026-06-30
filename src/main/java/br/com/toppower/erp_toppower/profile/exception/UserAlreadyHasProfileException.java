@@ -5,6 +5,6 @@ import java.util.UUID;
 public class UserAlreadyHasProfileException extends RuntimeException {
 
     public UserAlreadyHasProfileException(UUID userId) {
-        super("O usuario ja possui um perfil cadastrado: " + userId);
+        super("O usuário já possui um perfil cadastrado: " + userId);
     }
 }

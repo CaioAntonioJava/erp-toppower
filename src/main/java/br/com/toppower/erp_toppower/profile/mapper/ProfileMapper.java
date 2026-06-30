@@ -12,8 +12,8 @@ public final class ProfileMapper {
     }
 
     /**
-     * Cria uma nova entidade a partir do request de criacao.
-     * O {@link User} deve ser resolvido pelo service antes de chamar este metodo.
+     * Cria uma nova entidade a partir do request de criação.
+     * O {@link User} deve ser resolvido pelo service antes de chamar este método.
      * O {@code status} pode ser {@code null}; o {@code @PrePersist} da entidade
      * cuida de aplicar o default {@code ATIVO}.
      */
@@ -45,9 +45,9 @@ public final class ProfileMapper {
     }
 
     /**
-     * Aplica uma atualizacao parcial (PATCH) na entidade carregada.
-     * Apenas campos nao-nulos do request sobrescrevem o estado atual.
-     * O vinculo com o User NAO pode ser alterado por este metodo.
+     * Aplica uma atualização parcial (PATCH) na entidade carregada.
+     * Apenas campos não nulos do request sobrescrevem o estado atual.
+     * O vínculo com o User NÃO pode ser alterado por este método.
      */
     public static void applyUpdate(Profile profile, ProfileUpdateRequest request) {
         if (request.name() != null) {

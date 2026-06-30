@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Size;
 @Schema(name = "ResetPasswordRequest", description = "Reset de senha de um usuário pelo ADMIN.")
 public record ResetPasswordRequest(
 
-        @Schema(description = "Nova senha a ser atribuida ao usuário. Mínimo 8 caracteres.",
+        @Schema(description = "Nova senha a ser atribuída ao usuário. Mínimo 8 caracteres.",
                 example = "T3mp@Senha!2026", requiredMode = Schema.RequiredMode.REQUIRED,
                 minLength = 8, maxLength = 200, format = "password")
         @NotBlank(message = "Nova senha é obrigatória")

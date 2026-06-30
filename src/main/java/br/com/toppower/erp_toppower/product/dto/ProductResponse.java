@@ -8,7 +8,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-@Schema(name = "ProductResponse", description = "Representacao publica de um produto retornado pela API.")
+@Schema(name = "ProductResponse", description = "Representação pública de um produto retornado pela API.")
 public record ProductResponse(
 
         @Schema(description = "Identificador único (UUID) do produto.",

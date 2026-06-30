@@ -12,7 +12,7 @@ public record LoginRequest(
                 example = "caio@toppower.com.br", requiredMode = Schema.RequiredMode.REQUIRED,
                 maxLength = 100)
         @NotBlank(message = "E-mail é obrigatório")
-        @Email(message = "E-mail invalido")
+        @Email(message = "E-mail inválido")
         String email,
 
         @Schema(description = "Senha em texto puro. Mínimo 8 caracteres.",

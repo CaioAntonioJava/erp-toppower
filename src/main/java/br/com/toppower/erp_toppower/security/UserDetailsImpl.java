@@ -31,14 +31,14 @@ public record UserDetailsImpl(UUID uuid, String email, String password, String r
 
     @Override
     public String getUsername() {
-        // O Spring Security usa o username como identificador principal da autenticacao;
-        // neste projeto o login e feito por e-mail.
+        // O Spring Security usa o username como identificador principal da autenticação;
+        // neste projeto o login é feito por e-mail.
         return email;
     }
 
     /**
-     * Indica se o usuario autenticado possui o papel de administrador.
-     * Util para checagens de autorizacao em regras que liberam acesso total ao ADMIN.
+     * Indica se o usuário autenticado possui o papel de administrador.
+     * Útil para checagens de autorização em regras que liberam acesso total ao ADMIN.
      */
     public boolean isAdmin() {
         return "ROLE_ADMIN".equals(role);

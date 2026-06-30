@@ -33,7 +33,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler({InvalidCredentialsException.class, BadCredentialsException.class})
     public ResponseEntity<ApiError> handleInvalidCredentials(BadCredentialsException ex) {
-        // Mensagem generica para evitar login oracle (nao revela se o email existe ou nao)
+        // Mensagem genérica para evitar login oracle (não revela se o e-mail existe ou não)
         String message = (ex instanceof InvalidCredentialsException)
                 ? ex.getMessage()
                 : "E-mail e/ou senha inválidos";

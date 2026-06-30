@@ -18,12 +18,12 @@ import lombok.Setter;
 
 /**
  * Entidade que representa o perfil (dados pessoais e profissionais) de um
- * usuario do sistema. Cada {@link Profile} esta vinculado a exatamente um
- * {@link User} - aquele que o cadastrou - por meio de um relacionamento
+ * usuário do sistema. Cada {@link Profile} está vinculado a exatamente um
+ * {@link User} — aquele que o cadastrou — por meio de um relacionamento
  * 1:1 unidirecional.
  *
  * <p>Herdar {@link BasePerson} garante os campos compartilhados
- * (name, email, phone, cpf). A heranca em cadeia inclui tambem
+ * (name, email, phone, cpf). A herança em cadeia inclui também
  * {@code BaseEntity}, que fornece identificador UUID e auditoria
  * (createdAt, updatedAt, createdBy, updatedBy).</p>
  */
@@ -35,9 +35,9 @@ import lombok.Setter;
 public class Profile extends BasePerson {
 
     /**
-     * Usuario responsavel pelo cadastro deste perfil.
-     * O indice unico em {@code user_id} assegura a cardinalidade 1:1
-     * (um User pode estar vinculado a no maximo um Profile).
+     * Usuário responsável pelo cadastro deste perfil.
+     * O índice único em {@code user_id} assegura a cardinalidade 1:1
+     * (um User pode estar vinculado a no máximo um Profile).
      */
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", unique = true, nullable = false)
@@ -48,9 +48,9 @@ public class Profile extends BasePerson {
     private ProfileStatus status;
 
     /**
-     * Inicializacao do perfil antes de persistir.
-     * Garante que o status seja {@link ProfileStatus#ATIVO} quando nao for informado.
-     * Nao sobrescreve valores ja definidos pelo chamador.
+     * Inicialização do perfil antes de persistir.
+     * Garante que o status seja {@link ProfileStatus#ATIVO} quando não for informado.
+     * Não sobrescreve valores já definidos pelo chamador.
      */
     @PrePersist
     private void onPrePersist() {

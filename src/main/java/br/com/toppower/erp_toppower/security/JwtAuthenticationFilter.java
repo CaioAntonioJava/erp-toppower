@@ -46,10 +46,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String token = header.substring(BEARER_PREFIX.length());
 
-        // O token pode estar assinado correctamente mas o usuario ter sido removido
-        // do banco (ou nunca ter existido). Nesse caso, tratar como ausencia de
-        // autenticacao e deixar os matchers de rotas decidirem se o endpoint
-        // eh publico ou exige auth.
+        // O token pode estar assinado corretamente mas o usuário ter sido removido
+        // do banco (ou nunca ter existido). Nesse caso, tratar como ausência de
+        // autenticação e deixar os matchers de rotas decidirem se o endpoint
+        // é público ou exige auth.
         jwtService.extractEmail(token).ifPresent(email -> {
             if (SecurityContextHolder.getContext().getAuthentication() != null) {
                 return;
@@ -58,7 +58,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(email);
                 setAuthentication(request, userDetails);
             } catch (UsernameNotFoundException ex) {
-                log.debug("JWT aponta para um usuario inexistente: '{}'. Ignorando token.", email);
+                log.debug("JWT aponta para um usuário inexistente: '{}'. Ignorando token.", email);
                 SecurityContextHolder.clearContext();
             }
         });

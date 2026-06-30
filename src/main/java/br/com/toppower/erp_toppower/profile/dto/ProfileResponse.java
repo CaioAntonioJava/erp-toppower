@@ -6,10 +6,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import java.util.UUID;
 
-@Schema(name = "ProfileResponse", description = "Representacao publica de um perfil retornado pela API.")
+@Schema(name = "ProfileResponse", description = "Representação pública de um perfil retornado pela API.")
 public record ProfileResponse(
 
-        @Schema(description = "Identificador unico (UUID) do perfil.",
+        @Schema(description = "Identificador único (UUID) do perfil.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         UUID uuid,
 
@@ -25,7 +25,7 @@ public record ProfileResponse(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         String phone,
 
-        @Schema(description = "CPF unico do perfil.",
+        @Schema(description = "CPF único do perfil.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         String cpf,
 
@@ -34,22 +34,22 @@ public record ProfileResponse(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         ProfileStatus status,
 
-        @Schema(description = "UUID do usuario vinculado (relacionamento 1:1).",
+        @Schema(description = "UUID do usuário vinculado (relacionamento 1:1).",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         UUID userId,
 
-        @Schema(description = "Data de criacao.",
+        @Schema(description = "Data de criação.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         Instant createdAt,
 
-        @Schema(description = "Data da ultima atualizacao.",
+        @Schema(description = "Data da última atualização.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         Instant updatedAt,
 
-        @Schema(description = "E-mail do usuario que criou o registro.")
+        @Schema(description = "E-mail do usuário que criou o registro.")
         String createdBy,
 
-        @Schema(description = "E-mail do usuario que fez a ultima atualizacao.")
+        @Schema(description = "E-mail do usuário que fez a última atualização.")
         String updatedBy
 ) {
 }

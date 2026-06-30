@@ -20,8 +20,8 @@ public class BootstrapRunner implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
 
     /**
-     * CREDENCIAIS INICIAIS. Use somente na primeira subida da aplicacao.
-     * Em producao, sobrescreva via variaveis de ambiente (APP_BOOTSTRAP_ADMIN_*) no .env.
+     * CREDENCIAIS INICIAIS. Use somente na primeira subida da aplicação.
+     * Em produção, sobrescreva via variáveis de ambiente (APP_BOOTSTRAP_ADMIN_*) no .env.
      */
     private final String adminEmail;
     private final String adminPassword;
@@ -47,16 +47,16 @@ public class BootstrapRunner implements CommandLineRunner {
             return;
         }
         if (userRepository.count() > 0) {
-            log.info("Tabela 'users' ja possui registros. Bootstrap nao necessario.");
+            log.info("Tabela 'users' já possui registros. Bootstrap não necessário.");
             return;
         }
 
         log.warn("=================================================================");
-        log.warn(" TABELA DE USUARIOS VAZIA: criando administrador padrao.");
-        log.warn("   Email:    {}", adminEmail);
-        log.warn("   Senha:    {}", adminPassword);
+        log.warn(" TABELA DE USUÁRIOS VAZIA: criando administrador padrão.");
+        log.warn("   E-mail:  {}", adminEmail);
+        log.warn("   Senha:   {}", adminPassword);
         log.warn("   -> Use esta credencial para o primeiro login.");
-        log.warn("   -> Aplique APP_BOOTSTRAP_ADMIN_PASSWORD=<outra-senha> no .env antes de subir para prod.");
+        log.warn("   -> Defina APP_BOOTSTRAP_ADMIN_PASSWORD=<outra-senha> no .env antes de subir para produção.");
         log.warn("=================================================================");
 
         User admin = new User();
@@ -65,6 +65,6 @@ public class BootstrapRunner implements CommandLineRunner {
         admin.setRole(Role.ROLE_ADMIN);
         userRepository.save(admin);
 
-        log.info("Administrador padrao criado: {}", adminEmail);
+        log.info("Administrador padrão criado: {}", adminEmail);
     }
 }

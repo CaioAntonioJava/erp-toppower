@@ -12,7 +12,7 @@ public final class UserMapper {
 
     /**
      * Cria uma entidade a partir do request de cadastro.
-     * A role e SEMPRE {@link Role#ROLE_MANAGER}; promocoes para ADMIN sao feitas
+     * A role é SEMPRE {@link Role#ROLE_MANAGER}; promoções para ADMIN são feitas
      * diretamente no banco (ou via endpoint dedicado a ser implementado).
      */
     public static User toEntity(UserCreateRequest request, String encodedPassword) {

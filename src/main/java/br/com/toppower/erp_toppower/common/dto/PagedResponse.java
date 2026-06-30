@@ -5,7 +5,7 @@ import org.springframework.data.domain.Page;
 
 import java.util.List;
 
-@Schema(name = "PagedResponse", description = "Resposta paginada generica.")
+@Schema(name = "PagedResponse", description = "Resposta paginada genérica.")
 public record PagedResponse<T>(
 
         @Schema(description = "Lista de elementos da página atual.")
@@ -17,16 +17,16 @@ public record PagedResponse<T>(
         @Schema(description = "Tamanho da página solicitada.", example = "20")
         int size,
 
-        @Schema(description = "Total de elementos em todas as paginas.", example = "125")
+        @Schema(description = "Total de elementos em todas as páginas.", example = "125")
         long totalElements,
 
-        @Schema(description = "Total de paginas disponiveis.", example = "7")
+        @Schema(description = "Total de páginas disponíveis.", example = "7")
         int totalPages,
 
         @Schema(description = "Indica se esta é a primeira página.", example = "true")
         boolean first,
 
-        @Schema(description = "Indica se esta é a ultima página.", example = "false")
+        @Schema(description = "Indica se esta é a última página.", example = "false")
         boolean last
 ) {
     public static <T> PagedResponse<T> from(Page<T> page) {

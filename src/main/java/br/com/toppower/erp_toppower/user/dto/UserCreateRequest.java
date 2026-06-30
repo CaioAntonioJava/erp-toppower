@@ -6,37 +6,37 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-@Schema(name = "UserCreateRequest", description = "Dados para cadastro de novo usuario. " +
-        "A role e definida automaticamente como ROLE_MANAGER no cadastro.")
+@Schema(name = "UserCreateRequest", description = "Dados para cadastro de novo usuário. " +
+        "A role é definida automaticamente como ROLE_MANAGER no cadastro.")
 public record UserCreateRequest(
 
-        @Schema(description = "E-mail unico do usuario. Sera usado como credencial de login.",
+        @Schema(description = "E-mail único do usuário. Será usado como credencial de login.",
                 example = "caio@toppower.com.br", requiredMode = Schema.RequiredMode.REQUIRED,
                 maxLength = 100)
-        @NotBlank(message = "E-mail eh obrigatorio")
-        @Email(message = "E-mail invalido")
-        @Size(max = 100, message = "E-mail deve ter no maximo {max} caracteres")
+        @NotBlank(message = "E-mail é obrigatório")
+        @Email(message = "E-mail inválido")
+        @Size(max = 100, message = "E-mail deve ter no máximo {max} caracteres")
         String email,
 
-        @Schema(description = "Senha em texto puro. Sera codificada (BCrypt) antes de persistida.",
+        @Schema(description = "Senha em texto puro. Será codificada (BCrypt) antes de persistida.",
                 example = "S3nh@Forte!", requiredMode = Schema.RequiredMode.REQUIRED,
                 minLength = 8, maxLength = 200, format = "password")
-        @NotBlank(message = "Senha eh obrigatoria")
+        @NotBlank(message = "Senha é obrigatória")
         @Size(min = 8, max = 200, message = "Senha deve ter entre {min} e {max} caracteres")
         String password,
 
-        @Schema(description = "Confirmacao da senha. Deve ser identica a 'password'.",
+        @Schema(description = "Confirmação da senha. Deve ser idêntica a 'password'.",
                 example = "S3nh@Forte!", requiredMode = Schema.RequiredMode.REQUIRED,
                 minLength = 8, maxLength = 200, format = "password")
-        @NotBlank(message = "Confirmacao de senha eh obrigatoria")
+        @NotBlank(message = "Confirmação de senha é obrigatória")
         String passwordConfirmation
 ) {
 
     /**
      * Cross-field validation: garante que password e passwordConfirmation sejam iguais.
-     * Lanca MethodArgumentNotValidException -> 400 via GlobalExceptionHandler.
+     * Lança MethodArgumentNotValidException → 400 via GlobalExceptionHandler.
      */
-    @AssertTrue(message = "Senha e confirmacao devem ser iguais")
+    @AssertTrue(message = "Senha e confirmação devem ser iguais")
     public boolean isPasswordsMatching() {
         return password != null && password.equals(passwordConfirmation);
     }

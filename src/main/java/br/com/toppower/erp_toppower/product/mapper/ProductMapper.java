@@ -12,7 +12,7 @@ public final class ProductMapper {
 
     /**
      * Cria uma nova entidade a partir do request de criação.
-     * Observacao: o {@code status} pode ser {@code null}; o {@code @PrePersist}
+     * Observação: o {@code status} pode ser {@code null}; o {@code @PrePersist}
      * da entidade cuida de aplicar o default {@code ATIVO}.
      */
     public static Product toEntity(ProductCreateRequest request) {

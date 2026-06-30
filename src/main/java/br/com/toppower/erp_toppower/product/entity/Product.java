@@ -43,7 +43,7 @@ public class Product extends BaseEntity {
     private BigDecimal stockQuantity;
 
     /**
-     * Inicializacao do produto antes de persistir.
+     * Inicialização do produto antes de persistir.
      * Garante que o status seja {@link ProductStatus#ATIVO} quando não for informado.
      * Não sobrescreve valores já definidos pelo chamador.
      */

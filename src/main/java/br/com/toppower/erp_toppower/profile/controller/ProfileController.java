@@ -40,7 +40,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/profiles")
 @RequiredArgsConstructor
-@Tag(name = "Perfis", description = "Cadastro e gestao de perfis de usuarios (relacionamento 1:1 com User).")
+@Tag(name = "Perfis", description = "Cadastro e gestão de perfis de usuários (relacionamento 1:1 com User).")
 public class ProfileController {
 
     private static final String UUID_REGEX =
@@ -50,21 +50,21 @@ public class ProfileController {
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Cadastrar meu perfil",
-            description = "Cria o perfil do usuario autenticado (1:1 com o User do JWT). " +
-                    "O vinculo com o User eh feito automaticamente a partir do token - o body NAO envia userId. " +
-                    "Cada usuario so pode ter um perfil. Status default = ATIVO se omitido.")
+            description = "Cria o perfil do usuário autenticado (1:1 com o User do JWT). " +
+                    "O vínculo com o User é feito automaticamente a partir do token — o body NÃO envia userId. " +
+                    "Cada usuário só pode ter um perfil. Status default = ATIVO se omitido.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Perfil criado com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ProfileResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Erro de validacao.",
+            @ApiResponse(responseCode = "400", description = "Erro de validação.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "401", description = "Token ausente/invalido.",
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "404", description = "Usuario nao encontrado.",
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "409", description = "CPF, e-mail ou ja existe perfil para este usuario.",
+            @ApiResponse(responseCode = "409", description = "CPF, e-mail ou já existe perfil para este usuário.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<ProfileResponse> create(
@@ -82,7 +82,7 @@ public class ProfileController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "OK.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = PagedResponse.class))),
-            @ApiResponse(responseCode = "401", description = "Token ausente/invalido.",
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "403", description = "Sem ROLE_ADMIN.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
@@ -97,17 +97,17 @@ public class ProfileController {
 
     @GetMapping(value = "/{id:" + UUID_REGEX + "}", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Buscar perfil por ID",
-            description = "Retorna um perfil pelo UUID. ADMIN pode ver qualquer; demais usuarios so o proprio.")
+            description = "Retorna um perfil pelo UUID. ADMIN pode ver qualquer; demais usuários só o próprio.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Perfil encontrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ProfileResponse.class))),
-            @ApiResponse(responseCode = "401", description = "Token ausente/invalido.",
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "403", description = "Acesso negado (perfil de outro usuario).",
+            @ApiResponse(responseCode = "403", description = "Acesso negado (perfil de outro usuário).",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "404", description = "Perfil nao encontrado.",
+            @ApiResponse(responseCode = "404", description = "Perfil não encontrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<ProfileResponse> getById(@PathVariable UUID id,
@@ -116,18 +116,18 @@ public class ProfileController {
     }
 
     @GetMapping(value = "/user/{userId:" + UUID_REGEX + "}", produces = MediaType.APPLICATION_JSON_VALUE)
-    @Operation(summary = "Buscar perfil por usuario",
-            description = "Retorna o perfil vinculado a um User especifico. ADMIN pode ver qualquer; demais usuarios so o proprio.")
+    @Operation(summary = "Buscar perfil por usuário",
+            description = "Retorna o perfil vinculado a um User específico. ADMIN pode ver qualquer; demais usuários só o próprio.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Perfil encontrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ProfileResponse.class))),
-            @ApiResponse(responseCode = "401", description = "Token ausente/invalido.",
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "403", description = "Acesso negado (perfil de outro usuario).",
+            @ApiResponse(responseCode = "403", description = "Acesso negado (perfil de outro usuário).",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "404", description = "Perfil nao encontrado para este usuario.",
+            @ApiResponse(responseCode = "404", description = "Perfil não encontrado para este usuário.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<ProfileResponse> getByUserId(@PathVariable UUID userId,
@@ -137,22 +137,22 @@ public class ProfileController {
 
     @PatchMapping(value = "/{id:" + UUID_REGEX + "}", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Atualizar perfil (parcial)",
-            description = "Atualiza apenas os campos enviados. O vinculo com o User NAO pode ser alterado. " +
-                    "ADMIN pode alterar qualquer perfil; demais usuarios so o proprio.")
+            description = "Atualiza apenas os campos enviados. O vínculo com o User NÃO pode ser alterado. " +
+                    "ADMIN pode alterar qualquer perfil; demais usuários só o próprio.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Perfil atualizado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ProfileResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Erro de validacao.",
+            @ApiResponse(responseCode = "400", description = "Erro de validação.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "401", description = "Token ausente/invalido.",
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "403", description = "Acesso negado (perfil de outro usuario).",
+            @ApiResponse(responseCode = "403", description = "Acesso negado (perfil de outro usuário).",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "404", description = "Perfil nao encontrado.",
+            @ApiResponse(responseCode = "404", description = "Perfil não encontrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "409", description = "CPF ou e-mail ja cadastrado.",
+            @ApiResponse(responseCode = "409", description = "CPF ou e-mail já cadastrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<ProfileResponse> update(@PathVariable UUID id,
@@ -168,11 +168,11 @@ public class ProfileController {
     @PreAuthorize("hasRole('ADMIN')")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Perfil inativado."),
-            @ApiResponse(responseCode = "401", description = "Token ausente/invalido.",
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "403", description = "Sem ROLE_ADMIN.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "404", description = "Perfil nao encontrado.",
+            @ApiResponse(responseCode = "404", description = "Perfil não encontrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<Void> inactivate(@PathVariable UUID id,

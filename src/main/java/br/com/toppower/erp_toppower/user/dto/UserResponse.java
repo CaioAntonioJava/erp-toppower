@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.UUID;
 
-@Schema(name = "UserResponse", description = "Representacao publica de um usuário retornado pela API.")
+@Schema(name = "UserResponse", description = "Representação pública de um usuário retornado pela API.")
 public record UserResponse(
 
         @Schema(description = "Identificador único (UUID) gerado pelo banco.",
