@@ -19,7 +19,8 @@
     {"key": "baseUrl", "value": "http://localhost:8081", "type": "string"},
     {"key": "jwt_token", "value": "", "type": "string"},
     {"key": "userId", "value": "00000000-0000-0000-0000-000000000000", "type": "string"},
-    {"key": "productId", "value": "00000000-0000-0000-0000-000000000000", "type": "string"}
+    {"key": "productId", "value": "00000000-0000-0000-0000-000000000000", "type": "string"},
+    {"key": "profileId", "value": "00000000-0000-0000-0000-000000000000", "type": "string"}
   ],
   "item": [
     {
@@ -272,6 +273,119 @@
               ]
             },
             "description": "Busca case-insensitive por name OU code, apenas ATIVO. Paginado. Todas as roles."
+          }
+        }
+      ]
+    },
+    {
+      "name": "04. Perfis",
+      "description": "Cadastro e gestao de perfis de usuarios (relacionamento 1:1 com User). O usuario logado cria o proprio perfil; ADMIN pode ler/alterar qualquer um.",
+      "item": [
+        {
+          "name": "Cadastrar meu perfil",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Caio Antonio da Silva\",\n  \"email\": \"caio@toppower.com.br\",\n  \"phone\": \"(11) 98765-4321\",\n  \"cpf\": \"123.456.789-00\",\n  \"status\": \"ATIVO\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/profiles",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "profiles"]
+            },
+            "description": "Cria o perfil do usuario autenticado (1:1 com o User do JWT). O userId NAO vai no body - vem do token. Cada usuario so pode ter 1 perfil (409 se ja existir). Status default = ATIVO se omitido."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  var json = pm.response.json();",
+                  "  pm.collectionVariables.set(\"profileId\", json.uuid);",
+                  "  console.log(\"profileId saved: \" + json.uuid);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar perfis (paginado)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/profiles?status=ATIVO&page=0&size=20&sort=name,asc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "profiles"],
+              "query": [
+                {"key": "status", "value": "ATIVO", "description": "Filtro opcional: ATIVO ou INATIVO", "disabled": false},
+                {"key": "page", "value": "0", "description": "Pagina (0-indexed)", "disabled": false},
+                {"key": "size", "value": "20", "description": "Tamanho da pagina", "disabled": false},
+                {"key": "sort", "value": "name,asc", "description": "Ordenacao: campo,asc|desc", "disabled": false}
+              ]
+            },
+            "description": "Lista perfis paginados. Filtro de status opcional. Acesso restrito a ROLE_ADMIN. Retorna 403 para outros usuarios."
+          }
+        },
+        {
+          "name": "Buscar perfil por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/profiles/{{profileId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "profiles", "{{profileId}}"]
+            },
+            "description": "Busca perfil por UUID. ADMIN pode ver qualquer; demais usuarios so o proprio (caso contrario retorna 403). Use {{profileId}} salvo pelo Cadastrar meu perfil."
+          }
+        },
+        {
+          "name": "Buscar perfil por usuario",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/profiles/user/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "profiles", "user", "{{userId}}"]
+            },
+            "description": "Busca o perfil vinculado a um User especifico. ADMIN pode ver qualquer; demais usuarios so o proprio (userId do path == UUID do JWT). Retorna 404 se o User nao possui perfil."
+          }
+        },
+        {
+          "name": "Atualizar perfil (parcial)",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Caio Antonio da Silva Junior\",\n  \"phone\": \"(11) 91234-5678\",\n  \"status\": \"ATIVO\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/profiles/{{profileId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "profiles", "{{profileId}}"]
+            },
+            "description": "Atualiza apenas os campos enviados. ADMIN pode alterar qualquer perfil; demais usuarios so o proprio (caso contrario 403). O vinculo com User NAO pode ser alterado. CPF/e-mail duplicado -> 409."
+          }
+        },
+        {
+          "name": "Inativar perfil (soft delete)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/profiles/{{profileId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "profiles", "{{profileId}}"]
+            },
+            "description": "Define status=INATIVO. Acesso restrito a ROLE_ADMIN. Resposta 204 No Content."
           }
         }
       ]
