@@ -81,14 +81,37 @@ public class ClientController {
         return ResponseEntity.ok(clientService.getAll(status, pageable));
     }
 
-    @GetMapping(value = "/{id:" + UUID_REGEX + "}", produces = MediaType.APPLICATION_JSON_VALUE)
-    @Operation(summary = "Buscar cliente por ID", description = "Retorna um cliente pelo UUID. Todas as roles.")
+    @GetMapping(value = "/search", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Buscar clientes por texto (paginado)",
+            description = "Busca case-insensitive por substring em código, razão social ou nome fantasia. " +
+                    "Filtro opcional de status (ATIVO/INATIVO). Se omitido, retorna ambos. Todas as roles.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Página de clientes retornada com sucesso.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = PagedResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Termo de busca inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+    })
+    public ResponseEntity<PagedResponse<ClientResponse>> search(
+            @Parameter(description = "Termo de busca (mínimo 2 caracteres). Match em code, legalName ou tradeName.", example = "xpto", required = true)
+            @RequestParam("query") String query,
+            @Parameter(description = "Filtro opcional: ATIVO ou INATIVO.", example = "ATIVO", schema = @Schema(allowableValues = {"ATIVO", "INATIVO"}))
+            @RequestParam(value = "status", required = false) ClientStatus status,
+            @Parameter(hidden = true) @PageableDefault(size = 20, sort = "legalName", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.ok(clientService.search(query, status, pageable));
+    }
+
+    @GetMapping(value = "/{id:" + UUID_REGEX + "}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Buscar cliente por ID",
+            description = "Retorna um cliente pelo UUID. Acesso restrito a administradores (ROLE_ADMIN).")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasRole('ADMIN')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Cliente encontrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ClientResponse.class))),
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "403", description = "Acesso negado (sem ROLE_ADMIN).", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "404", description = "Cliente não encontrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<ClientResponse> getById(@PathVariable UUID id) {

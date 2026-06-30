@@ -60,6 +60,28 @@ public class ClientService {
                 .orElseThrow(() -> new ClientNotFoundException(id));
     }
 
+    private static final int MIN_SEARCH_QUERY_LENGTH = 2;
+
+    /**
+     * Busca textual por código, razão social ou nome fantasia, com filtro
+     * opcional de status. A query deve ter no mínimo 2 caracteres.
+     */
+    @Transactional(readOnly = true)
+    public PagedResponse<ClientResponse> search(String query, ClientStatus status, Pageable pageable) {
+        if (query == null || query.isBlank()) {
+            throw new IllegalArgumentException("O termo de busca é obrigatório");
+        }
+        String trimmed = query.trim();
+        if (trimmed.length() < MIN_SEARCH_QUERY_LENGTH) {
+            throw new IllegalArgumentException(
+                    "O termo de busca deve ter ao menos " + MIN_SEARCH_QUERY_LENGTH + " caracteres");
+        }
+        Page<ClientResponse> mapped = clientRepository
+                .searchByQuery(status, trimmed, pageable)
+                .map(ClientMapper::toResponse);
+        return PagedResponse.from(mapped);
+    }
+
     @Transactional
     public ClientResponse update(UUID id, ClientUpdateRequest request) {
         Client client = clientRepository.findById(id)
