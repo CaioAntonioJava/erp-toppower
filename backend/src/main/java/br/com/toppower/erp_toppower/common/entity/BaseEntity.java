@@ -14,6 +14,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import br.com.toppower.erp_toppower.common.listener.UpperCaseFieldListener;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -22,10 +23,19 @@ import java.util.UUID;
  * Entidade base com os campos compartilhados por todas as entidades do sistema:
  * identificador UUID e auditoria completa (timestamps + e-mail do autor).
  *
- * Requer {@code @EnableJpaAuditing(auditorAwareRef = "auditorAware")} no bootstrap.
+ * <p>Aplica automaticamente dois listeners JPA em todas as subclasses:</p>
+ * <ul>
+ *   <li>{@code AuditingEntityListener} — preenche createdAt/updatedAt/createdBy/updatedBy</li>
+ *   <li>{@link UpperCaseFieldListener} — normaliza para MAIÚSCULAS
+ *       todos os campos {@code String} anotados com {@code @UpperCase}
+ *       (declarados na entidade ou em qualquer {@code @MappedSuperclass}
+ *       da hierarquia, ex: {@code BasePerson.name})</li>
+ * </ul>
+ *
+ * <p>Requer {@code @EnableJpaAuditing(auditorAwareRef = "auditorAware")} no bootstrap.</p>
  */
 @MappedSuperclass
-@EntityListeners(AuditingEntityListener.class)
+@EntityListeners({AuditingEntityListener.class, UpperCaseFieldListener.class})
 @Getter
 @NoArgsConstructor
 public abstract class BaseEntity {
