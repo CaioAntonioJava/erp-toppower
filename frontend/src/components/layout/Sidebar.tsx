@@ -1,7 +1,10 @@
 import { NavLink } from 'react-router-dom'
 import {
+  Briefcase,
   Building2,
   LayoutDashboard,
+  Package,
+  Truck,
   User,
   UserCircle,
   Users,
@@ -17,6 +20,9 @@ const navItems: NavItem[] = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/companies', label: 'Empresas (PJ)', icon: Building2 },
   { to: '/customers', label: 'Clientes (PF)', icon: User },
+  { to: '/suppliers', label: 'Fornecedores', icon: Truck },
+  { to: '/sellers', label: 'Vendedores', icon: Briefcase },
+  { to: '/products', label: 'Produtos', icon: Package },
   { to: '/profile', label: 'Meu perfil', icon: UserCircle },
 ]
 

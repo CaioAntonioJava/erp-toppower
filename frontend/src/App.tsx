@@ -7,6 +7,12 @@ import { CompaniesListPage } from './pages/CompaniesListPage'
 import { CompanyFormPage } from './pages/CompanyFormPage'
 import { CustomersListPage } from './pages/CustomersListPage'
 import { CustomerFormPage } from './pages/CustomerFormPage'
+import { SuppliersListPage } from './pages/SuppliersListPage'
+import { SupplierFormPage } from './pages/SupplierFormPage'
+import { SellersListPage } from './pages/SellersListPage'
+import { SellerFormPage } from './pages/SellerFormPage'
+import { ProductsListPage } from './pages/ProductsListPage'
+import { ProductFormPage } from './pages/ProductFormPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { AppLayout } from './components/layout/AppLayout'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -35,6 +41,15 @@ export default function App() {
         <Route path="/customers" element={<CustomersListPage />} />
         <Route path="/customers/new" element={<CustomerFormPage />} />
         <Route path="/customers/:id" element={<CustomerFormPage />} />
+        <Route path="/suppliers" element={<SuppliersListPage />} />
+        <Route path="/suppliers/new" element={<SupplierFormPage />} />
+        <Route path="/suppliers/:id" element={<SupplierFormPage />} />
+        <Route path="/sellers" element={<SellersListPage />} />
+        <Route path="/sellers/new" element={<SellerFormPage />} />
+        <Route path="/sellers/:id" element={<SellerFormPage />} />
+        <Route path="/products" element={<ProductsListPage />} />
+        <Route path="/products/new" element={<ProductFormPage />} />
+        <Route path="/products/:id" element={<ProductFormPage />} />
       </Route>
 
       {/* Compat: rota raiz redireciona para /login se não houver auth. */}
