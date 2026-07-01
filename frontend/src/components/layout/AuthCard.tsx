@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
-import { Zap } from 'lucide-react'
 import { ThemeToggle } from '../ui/ThemeToggle'
+import { LogoTopPower } from '../ui/LogoTopPower'
 
 interface AuthCardProps {
   title: string
@@ -20,13 +20,12 @@ export function AuthCard({ title, subtitle, children, footer }: AuthCardProps) {
       <div className="flex min-h-screen items-center justify-center px-4">
         <div className="w-full max-w-md">
           <div className="mb-6 flex flex-col items-center">
-            <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-white shadow-lg shadow-primary/20">
-              <Zap className="h-6 w-6" />
-            </div>
-            <h1 className="text-2xl font-semibold tracking-tight">ERP TopPower</h1>
-            <h2 className="mt-1 text-lg font-medium text-slate-700 dark:text-slate-300">
+            {/* Logo TopPower como SVG inline — texto adapta a cor
+               automaticamente (escuro no light, claro no dark). */}
+            <LogoTopPower className="mb-4 h-20 w-auto" />
+            <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300">
               {title}
-            </h2>
+            </h4>
             {subtitle ? (
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 {subtitle}
