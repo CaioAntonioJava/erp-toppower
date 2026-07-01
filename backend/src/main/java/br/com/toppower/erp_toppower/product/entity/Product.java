@@ -1,5 +1,6 @@
 package br.com.toppower.erp_toppower.product.entity;
 
+import br.com.toppower.erp_toppower.common.annotation.UpperCase;
 import br.com.toppower.erp_toppower.common.entity.BaseEntity;
 import br.com.toppower.erp_toppower.product.enums.ProductStatus;
 import br.com.toppower.erp_toppower.product.enums.UnitType;
@@ -22,6 +23,7 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 public class Product extends BaseEntity {
 
+    @UpperCase
     @Column(name = "name", nullable = false, length = 150)
     private String name;
 
