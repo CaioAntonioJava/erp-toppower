@@ -35,6 +35,13 @@
   color-scheme: dark;
 }
 
+/* Cursor pointer em todos os botões clicáveis por padrão.
+   O `not-allowed` continua sendo aplicado via Tailwind
+   `disabled:cursor-not-allowed` nos componentes individuais. */
+button:not(:disabled) {
+  cursor: pointer;
+}
+
 html,
 body,
 #root {
