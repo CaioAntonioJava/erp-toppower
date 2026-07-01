@@ -24,7 +24,7 @@ export function Topbar() {
 
       <div className="hidden md:block">
         <span className="text-sm text-slate-500 dark:text-slate-400">
-          Bem-vindo de volta
+          Controle total do seu negócio em um só lugar.
         </span>
       </div>
 

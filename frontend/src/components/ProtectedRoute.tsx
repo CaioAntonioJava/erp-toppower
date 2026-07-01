@@ -8,14 +8,19 @@ interface ProtectedRouteProps {
 }
 
 /**
- * Bloqueia rotas privadas: redireciona para /login quando não autenticado.
- * Enquanto o AuthProvider verifica o token inicial, exibe um spinner.
+ * Bloqueia rotas privadas:
+ * 1. Redireciona para /login quando não autenticado
+ * 2. Redireciona para /profile quando autenticado mas sem perfil preenchido
+ *
+ * Enquanto o AuthProvider verifica o token e o status do perfil inicial,
+ * exibe um spinner para evitar piscar a tela de login indevidamente.
  */
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading } = useAuth()
+  const { isAuthenticated, isLoading, hasProfile } = useAuth()
   const location = useLocation()
 
-  if (isLoading) {
+  // Aguardando verificação inicial do token e do perfil
+  if (isLoading || (isAuthenticated && hasProfile === null)) {
     return (
       <div className="flex h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
         <Spinner size="lg" />
@@ -23,8 +28,14 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     )
   }
 
+  // Não autenticado → /login
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />
+  }
+
+  // Autenticado mas sem perfil → força preenchimento (exceto se já está em /profile)
+  if (hasProfile === false && location.pathname !== '/profile') {
+    return <Navigate to="/profile" replace />
   }
 
   return <>{children}</>

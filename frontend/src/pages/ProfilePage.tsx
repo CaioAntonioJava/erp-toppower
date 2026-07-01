@@ -90,7 +90,7 @@ function validatePassword(values: {
 type LoadState = 'loading' | 'not-found' | 'loaded' | 'error'
 
 export function ProfilePage() {
-  const { user } = useAuth()
+  const { user, refreshProfileStatus } = useAuth()
   const navigate = useNavigate()
 
   /* ---- perfil ---- */
@@ -171,6 +171,9 @@ export function ProfilePage() {
         setProfile(created)
         setLoadState('loaded')
         setSuccess('Perfil criado com sucesso!')
+        // Atualiza o gate do AuthContext para liberar a navegação
+        // para as demais rotas do sistema.
+        await refreshProfileStatus()
         // Após criar o perfil pela primeira vez (fluxo de cadastro),
         // redireciona para o dashboard.
         navigate('/', { replace: true })
