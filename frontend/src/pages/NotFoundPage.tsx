@@ -1,6 +1,5 @@
-import { Link } from 'react-router-dom'
 import { AlertTriangle } from 'lucide-react'
-import { Button } from '../components/ui/Button'
+import { BackButton } from '../components/ui/BackButton'
 
 export function NotFoundPage() {
   return (
@@ -14,9 +13,7 @@ export function NotFoundPage() {
           A página que você tentou acessar não existe ou foi movida.
         </p>
         <div className="mt-6">
-          <Link to="/">
-            <Button>Voltar para o início</Button>
-          </Link>
+          <BackButton to="/" label="Voltar para o início" size="md" />
         </div>
       </div>
     </div>

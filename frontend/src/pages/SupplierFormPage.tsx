@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Power } from 'lucide-react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { Power } from 'lucide-react'
 import { Button } from '../components/ui/Button'
+import { BackButton } from '../components/ui/BackButton'
 import { Spinner } from '../components/ui/Spinner'
 import { Alert } from '../components/ui/Alert'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
@@ -122,13 +123,7 @@ export function SupplierFormPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <Link
-            to="/suppliers"
-            className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Voltar para a lista
-          </Link>
+          <BackButton to="/suppliers" label="Voltar para a lista" />
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">
             {mode === 'create' ? 'Novo fornecedor' : supplier?.legalName ?? 'Fornecedor'}
           </h1>
@@ -162,10 +157,7 @@ export function SupplierFormPage() {
       {loadError ? (
         <Alert variant="error">
           {loadError}.{' '}
-          <Link to="/suppliers" className="font-medium underline">
-            Voltar para a lista
-          </Link>
-          .
+          <BackButton to="/suppliers" label="Voltar para a lista" />
         </Alert>
       ) : null}
 
