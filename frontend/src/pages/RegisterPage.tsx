@@ -56,9 +56,10 @@ export function RegisterPage() {
         passwordConfirmation: confirm,
       })
       setSuccess(true)
-      // signUp já autentica o usuário recém-criado — segue direto para o
-      // dashboard, sem precisar passar pela tela de login.
-      navigate('/', { replace: true })
+      // signUp já autentica o usuário recém-criado. Redireciona para a
+      // página de perfil para que ele preencha seus dados pessoais antes
+      // de acessar o sistema.
+      navigate('/profile', { replace: true })
     } catch (err) {
       const apiErr = toApiError(err)
       setFormError(apiErr.message)
@@ -88,7 +89,7 @@ export function RegisterPage() {
         {formError ? <Alert variant="error">{formError}</Alert> : null}
         {success ? (
           <Alert variant="success">
-            Conta criada com sucesso! Entrando no sistema…
+            Conta criada com sucesso! Complete seu perfil para continuar…
           </Alert>
         ) : null}
 

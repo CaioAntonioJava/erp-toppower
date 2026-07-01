@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { KeyRound, Save, UserCircle2 } from 'lucide-react'
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
@@ -90,6 +91,7 @@ type LoadState = 'loading' | 'not-found' | 'loaded' | 'error'
 
 export function ProfilePage() {
   const { user } = useAuth()
+  const navigate = useNavigate()
 
   /* ---- perfil ---- */
   const [loadState, setLoadState] = useState<LoadState>('loading')
@@ -169,6 +171,9 @@ export function ProfilePage() {
         setProfile(created)
         setLoadState('loaded')
         setSuccess('Perfil criado com sucesso!')
+        // Após criar o perfil pela primeira vez (fluxo de cadastro),
+        // redireciona para o dashboard.
+        navigate('/', { replace: true })
       } else {
         const payload: ProfileUpdateRequest = {
           name: name.trim(),
