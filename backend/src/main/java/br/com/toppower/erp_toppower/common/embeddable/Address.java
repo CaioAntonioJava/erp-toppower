@@ -10,7 +10,8 @@ import lombok.Setter;
  * Componente reutilizável que representa um endereço.
  *
  * <p>Marcado com {@link Embeddable} para ser embutido em outras entidades
- * (ex: {@code Client}, {@code User}) sem precisar de uma tabela própria.</p>
+ * (ex: {@code Company}, {@code Customer}, {@code Supplier}, {@code User})
+ * sem precisar de uma tabela própria.</p>
  *
  * <p>O {@code @AttributeOverrides} é recomendado quando os nomes das colunas
  * do endereço podem colidir com colunas da entidade dona (ex: ambos terem
