@@ -49,6 +49,7 @@ public class CompanyController {
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Cadastrar empresa",
             description = "Cria uma nova empresa (pessoa jurídica). CNPJ é validado com dígitos verificadores. " +
+                    "O código interno (EMP000001, EMP000002, ...) é gerado automaticamente pelo servidor. " +
                     "Status default = ATIVO se omitido.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
@@ -57,7 +58,7 @@ public class CompanyController {
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = CompanyResponse.class))),
             @ApiResponse(responseCode = "400", description = "Erro de validação (CNPJ/CEP/UF/Endereço).", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "409", description = "Código ou CNPJ já cadastrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+            @ApiResponse(responseCode = "409", description = "CNPJ já cadastrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<CompanyResponse> create(@Valid @RequestBody CompanyCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(companyService.create(request));
@@ -97,7 +98,7 @@ public class CompanyController {
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<PagedResponse<CompanyResponse>> search(
-            @Parameter(description = "Termo de busca OPCIONAL (mínimo 2 caracteres quando informado). Match em code, legalName, tradeName ou cnpj.",
+            @Parameter(description = "Termo de busca OPCIONAL (mínimo 2 caracteres quando informado). Match em legalName, tradeName ou cnpj.",
                     example = "xpto")
             @RequestParam(value = "query", required = false) String query,
             @Parameter(description = "Filtro OPCIONAL: ATIVO ou INATIVO. Omitido = ambos.",

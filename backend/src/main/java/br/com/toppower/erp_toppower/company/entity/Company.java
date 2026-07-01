@@ -51,10 +51,12 @@ public class Company extends BaseEntity {
     private String tradeName;
 
     /**
-     * Código interno único da empresa (ex: "CLI-001").
-     * Obrigatório e único.
+     * Código interno único da empresa (ex.: {@code "EMP000001"}, {@code "EMP000002"}).
+     * Gerado automaticamente pelo {@code CompanyService} no momento do cadastro
+     * a partir do prefixo {@code EMP} + sequência de 6 dígitos. Imutável após
+     * o cadastro (nunca é alterado pelo {@code CompanyUpdateRequest}).
      */
-    @Column(name = "code", unique = true, nullable = false, length = 50)
+    @Column(name = "code", unique = true, nullable = false, updatable = false, length = 50)
     private String code;
 
     /**

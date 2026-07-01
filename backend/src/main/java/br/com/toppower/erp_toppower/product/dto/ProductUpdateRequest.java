@@ -21,7 +21,8 @@ public record ProductUpdateRequest(
         @Size(max = 150, message = "Nome deve ter no máximo {max} caracteres")
         String name,
 
-        @Schema(description = "Novo código do produto (SKU).", maxLength = 50)
+        @Schema(description = "Novo código do produto (SKU). Opcional — envie apenas se quiser definir/alterar o SKU.",
+                maxLength = 50)
         @Size(max = 50, message = "Código deve ter no máximo {max} caracteres")
         @Pattern(regexp = "^[A-Za-z0-9._-]+$",
                 message = "Código aceita apenas letras, números, ponto, underline e hífen")

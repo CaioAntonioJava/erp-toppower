@@ -2,12 +2,12 @@ package br.com.toppower.erp_toppower.customer.service;
 
 import br.com.toppower.erp_toppower.common.dto.PagedResponse;
 import br.com.toppower.erp_toppower.common.enums.RegistrationStatus;
+import br.com.toppower.erp_toppower.common.util.CodeSequenceGenerator;
 import br.com.toppower.erp_toppower.customer.dto.CustomerCreateRequest;
 import br.com.toppower.erp_toppower.customer.dto.CustomerResponse;
 import br.com.toppower.erp_toppower.customer.dto.CustomerUpdateRequest;
 import br.com.toppower.erp_toppower.customer.entity.Customer;
 import br.com.toppower.erp_toppower.customer.exception.CustomerNotFoundException;
-import br.com.toppower.erp_toppower.customer.exception.DuplicateCustomerCodeException;
 import br.com.toppower.erp_toppower.customer.exception.DuplicateCustomerCpfException;
 import br.com.toppower.erp_toppower.customer.mapper.CustomerMapper;
 import br.com.toppower.erp_toppower.customer.repository.CustomerRepository;
@@ -23,6 +23,9 @@ public class CustomerService {
 
     private static final int MIN_SEARCH_QUERY_LENGTH = 2;
 
+    /** Prefixo usado no código interno dos clientes PF (ex.: {@code CLI000001}). */
+    static final String CODE_PREFIX = "CLI";
+
     private final CustomerRepository customerRepository;
 
     public CustomerService(CustomerRepository customerRepository) {
@@ -31,15 +34,24 @@ public class CustomerService {
 
     @Transactional
     public CustomerResponse create(CustomerCreateRequest request) {
-        if (customerRepository.existsByCode(request.code())) {
-            throw new DuplicateCustomerCodeException(request.code());
-        }
         if (customerRepository.existsByCpf(request.cpf())) {
             throw new DuplicateCustomerCpfException(request.cpf());
         }
         Customer customer = CustomerMapper.toEntity(request);
+        customer.setCode(generateNextCode());
         Customer saved = customerRepository.save(customer);
         return CustomerMapper.toResponse(saved);
+    }
+
+    /**
+     * Gera o próximo código sequencial no formato {@code CLI000001}, {@code CLI000002}, ...
+     * consultando o maior código existente com o prefixo {@link #CODE_PREFIX}.
+     * Caso não haja nenhum registro com esse prefixo, retorna {@code CLI000001}.
+     */
+    private String generateNextCode() {
+        String maxCode = customerRepository.findMaxCodeByPrefix(CODE_PREFIX);
+        return CodeSequenceGenerator.nextCode(
+                maxCode, CODE_PREFIX, CodeSequenceGenerator.DEFAULT_PADDING_WIDTH);
     }
 
     /**

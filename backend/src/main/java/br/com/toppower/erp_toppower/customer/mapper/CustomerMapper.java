@@ -38,8 +38,13 @@ public final class CustomerMapper {
 
     /**
      * Cria uma nova entidade a partir do request de criação.
-     * O {@code status} pode ser {@code null}; o {@code @PrePersist} da entidade
-     * cuida de aplicar o default {@code ATIVO}.
+     * <ul>
+     *   <li>O {@code code} (código interno) NÃO é setado aqui — ele é gerado
+     *   automaticamente no service (ex.: {@code CLI000001}) antes do
+     *   {@code save}.</li>
+     *   <li>O {@code status} pode ser {@code null}; o {@code @PrePersist} da
+     *   entidade cuida de aplicar o default {@code ATIVO}.</li>
+     * </ul>
      */
     public static Customer toEntity(CustomerCreateRequest request) {
         Customer customer = new Customer();
@@ -47,7 +52,6 @@ public final class CustomerMapper {
         customer.setEmail(request.email());
         customer.setPhone(request.phone());
         customer.setCpf(request.cpf());
-        customer.setCode(request.code());
         customer.setAddress(toEntity(request.address()));
         customer.setStatus(request.status());
         return customer;
@@ -73,7 +77,11 @@ public final class CustomerMapper {
     /**
      * Aplica uma atualização parcial (PATCH) na entidade carregada.
      * Apenas campos não nulos do request sobrescrevem o estado atual.
-     * O CPF NÃO é alterável (identidade fiscal).
+     * <ul>
+     *   <li>O CPF NÃO é alterável (identidade fiscal).</li>
+     *   <li>O {@code code} NÃO é alterável — é gerado uma única vez no
+     *   momento do cadastro e nunca muda.</li>
+     * </ul>
      */
     public static void applyUpdate(Customer customer, CustomerUpdateRequest request) {
         if (request.name() != null) {

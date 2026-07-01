@@ -21,9 +21,9 @@ public record ProductCreateRequest(
         @Size(max = 150, message = "Nome deve ter no máximo {max} caracteres")
         String name,
 
-        @Schema(description = "Código único do produto (SKU).", example = "CB-FLEX-2.5",
-                requiredMode = Schema.RequiredMode.REQUIRED, maxLength = 50)
-        @NotBlank(message = "Código é obrigatório")
+        @Schema(description = "Código único do produto (SKU). Opcional — se omitido, o produto é cadastrado sem SKU.",
+                example = "CB-FLEX-2.5",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED, maxLength = 50)
         @Size(max = 50, message = "Código deve ter no máximo {max} caracteres")
         @Pattern(regexp = "^[A-Za-z0-9._-]+$",
                 message = "Código aceita apenas letras, números, ponto, underline e hífen")

@@ -30,7 +30,9 @@ public class ProductService {
 
     @Transactional
     public ProductResponse create(ProductCreateRequest request) {
-        if (productRepository.existsByCode(request.code())) {
+        // code (SKU) é opcional: só validamos duplicidade quando foi informado.
+        if (request.code() != null && !request.code().isBlank()
+                && productRepository.existsByCode(request.code())) {
             throw new DuplicateProductCodeException(request.code());
         }
         Product product = ProductMapper.toEntity(request);
@@ -82,10 +84,10 @@ public class ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ProductNotFoundException(id));
 
-        if (request.code() != null && !request.code().equals(product.getCode())) {
-            if (productRepository.existsByCode(request.code())) {
-                throw new DuplicateProductCodeException(request.code());
-            }
+        if (request.code() != null && !request.code().isBlank()
+                && !request.code().equals(product.getCode())
+                && productRepository.existsByCode(request.code())) {
+            throw new DuplicateProductCodeException(request.code());
         }
 
         ProductMapper.applyUpdate(product, request);

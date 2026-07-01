@@ -34,10 +34,12 @@ import lombok.Setter;
 public class Customer extends BasePerson {
 
     /**
-     * Código interno único do cliente (ex: "CUS-001").
-     * Obrigatório e único.
+     * Código interno único do cliente (ex.: {@code "CLI000001"}, {@code "CLI000002"}).
+     * Gerado automaticamente pelo {@code CustomerService} no momento do cadastro
+     * a partir do prefixo {@code CLI} + sequência de 6 dígitos. Imutável após
+     * o cadastro (nunca é alterado pelo {@code CustomerUpdateRequest}).
      */
-    @Column(name = "code", unique = true, nullable = false, length = 50)
+    @Column(name = "code", unique = true, nullable = false, updatable = false, length = 50)
     private String code;
 
     /**

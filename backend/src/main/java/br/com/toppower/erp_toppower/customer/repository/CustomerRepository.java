@@ -26,6 +26,16 @@ public interface CustomerRepository extends JpaRepository<Customer, UUID> {
     Page<Customer> findByStatus(RegistrationStatus status, Pageable pageable);
 
     /**
+     * Retorna o maior código existente cuja string começa com o prefixo
+     * informado (ex.: {@code "CLI"}). Usado para gerar o próximo código
+     * sequencial (ex.: {@code CLI000001}) a partir do maior já cadastrado.
+     *
+     * <p>Retorna {@code null} quando ainda não houver registros com o prefixo.</p>
+     */
+    @Query("SELECT MAX(c.code) FROM Customer c WHERE c.code LIKE CONCAT(:prefix, '%')")
+    String findMaxCodeByPrefix(@Param("prefix") String prefix);
+
+    /**
      * Busca flexível por texto (opcional) e/ou status (opcional).
      * <ul>
      *   <li>{@code query} nulo/blank → ignora o filtro de texto</li>

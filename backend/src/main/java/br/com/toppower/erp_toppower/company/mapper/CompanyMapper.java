@@ -38,14 +38,18 @@ public final class CompanyMapper {
 
     /**
      * Cria uma nova entidade a partir do request de criação.
-     * O {@code status} pode ser {@code null}; o {@code @PrePersist} da entidade
-     * cuida de aplicar o default {@code ATIVO}.
+     * <ul>
+     *   <li>O {@code code} (código interno) NÃO é setado aqui — ele é gerado
+     *   automaticamente no service (ex.: {@code EMP000001}) antes do
+     *   {@code save}.</li>
+     *   <li>O {@code status} pode ser {@code null}; o {@code @PrePersist} da
+     *   entidade cuida de aplicar o default {@code ATIVO}.</li>
+     * </ul>
      */
     public static Company toEntity(CompanyCreateRequest request) {
         Company company = new Company();
         company.setLegalName(request.legalName());
         company.setTradeName(request.tradeName());
-        company.setCode(request.code());
         company.setCnpj(request.cnpj());
         company.setStateRegistration(request.stateRegistration());
         company.setMunicipalRegistration(request.municipalRegistration());
@@ -75,7 +79,11 @@ public final class CompanyMapper {
     /**
      * Aplica uma atualização parcial (PATCH) na entidade carregada.
      * Apenas campos não nulos do request sobrescrevem o estado atual.
-     * O CNPJ NÃO é alterável (identidade fiscal).
+     * <ul>
+     *   <li>O CNPJ NÃO é alterável (identidade fiscal).</li>
+     *   <li>O {@code code} NÃO é alterável — é gerado uma única vez no
+     *   momento do cadastro e nunca muda.</li>
+     * </ul>
      */
     public static void applyUpdate(Company company, CompanyUpdateRequest request) {
         if (request.legalName() != null) {

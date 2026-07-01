@@ -2,13 +2,13 @@ package br.com.toppower.erp_toppower.company.service;
 
 import br.com.toppower.erp_toppower.common.dto.PagedResponse;
 import br.com.toppower.erp_toppower.common.enums.RegistrationStatus;
+import br.com.toppower.erp_toppower.common.util.CodeSequenceGenerator;
 import br.com.toppower.erp_toppower.company.dto.CompanyCreateRequest;
 import br.com.toppower.erp_toppower.company.dto.CompanyResponse;
 import br.com.toppower.erp_toppower.company.dto.CompanyUpdateRequest;
 import br.com.toppower.erp_toppower.company.entity.Company;
 import br.com.toppower.erp_toppower.company.exception.CompanyNotFoundException;
 import br.com.toppower.erp_toppower.company.exception.DuplicateCompanyCnpjException;
-import br.com.toppower.erp_toppower.company.exception.DuplicateCompanyCodeException;
 import br.com.toppower.erp_toppower.company.mapper.CompanyMapper;
 import br.com.toppower.erp_toppower.company.repository.CompanyRepository;
 import org.springframework.data.domain.Page;
@@ -23,6 +23,9 @@ public class CompanyService {
 
     private static final int MIN_SEARCH_QUERY_LENGTH = 2;
 
+    /** Prefixo usado no código interno das empresas (ex.: {@code EMP000001}). */
+    static final String CODE_PREFIX = "EMP";
+
     private final CompanyRepository companyRepository;
 
     public CompanyService(CompanyRepository companyRepository) {
@@ -31,15 +34,24 @@ public class CompanyService {
 
     @Transactional
     public CompanyResponse create(CompanyCreateRequest request) {
-        if (companyRepository.existsByCode(request.code())) {
-            throw new DuplicateCompanyCodeException(request.code());
-        }
         if (companyRepository.existsByCnpj(request.cnpj())) {
             throw new DuplicateCompanyCnpjException(request.cnpj());
         }
         Company company = CompanyMapper.toEntity(request);
+        company.setCode(generateNextCode());
         Company saved = companyRepository.save(company);
         return CompanyMapper.toResponse(saved);
+    }
+
+    /**
+     * Gera o próximo código sequencial no formato {@code EMP000001}, {@code EMP000002}, ...
+     * consultando o maior código existente com o prefixo {@link #CODE_PREFIX}.
+     * Caso não haja nenhum registro com esse prefixo, retorna {@code EMP000001}.
+     */
+    private String generateNextCode() {
+        String maxCode = companyRepository.findMaxCodeByPrefix(CODE_PREFIX);
+        return CodeSequenceGenerator.nextCode(
+                maxCode, CODE_PREFIX, CodeSequenceGenerator.DEFAULT_PADDING_WIDTH);
     }
 
     /**
@@ -67,7 +79,7 @@ public class CompanyService {
      * <ul>
      *   <li>Apenas {@code status} → lista todas as empresas com aquele status</li>
      *   <li>Apenas {@code query} → lista todas as empresas que dão match com o texto</li>
-     *   <li>Ambos → lista as empresas com aquele status E que dão match com o texto</li>
+     *   <li>Ambos → lista todas as empresas com aquele status E que dão match com o texto</li>
      *   <li>Nenhum → lista todas as empresas (paginado)</li>
      * </ul>
      * Quando {@code query} é informado, exige no mínimo 2 caracteres.

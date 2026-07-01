@@ -10,7 +10,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-@Schema(name = "CustomerCreateRequest", description = "Dados para cadastro de um novo cliente (pessoa física).")
+@Schema(name = "CustomerCreateRequest", description = "Dados para cadastro de um novo cliente (pessoa física). "
+        + "O código interno (CLI000001, CLI000002, ...) é gerado automaticamente pelo servidor.")
 public record CustomerCreateRequest(
 
         @Schema(description = "Nome completo da pessoa.", example = "Caio Antônio da Silva",
@@ -39,12 +40,6 @@ public record CustomerCreateRequest(
         @ValidCpf(message = "CPF inválido")
         @Size(max = 14, message = "CPF deve ter no máximo {max} caracteres")
         String cpf,
-
-        @Schema(description = "Código interno único do cliente.", example = "CUS-001",
-                requiredMode = Schema.RequiredMode.REQUIRED, maxLength = 50)
-        @NotBlank(message = "Código é obrigatório")
-        @Size(max = 50, message = "Código deve ter no máximo {max} caracteres")
-        String code,
 
         @Schema(description = "Endereço do cliente.", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull(message = "Endereço é obrigatório")

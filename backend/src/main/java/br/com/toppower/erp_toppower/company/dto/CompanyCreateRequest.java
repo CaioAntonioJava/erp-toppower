@@ -9,7 +9,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-@Schema(name = "CompanyCreateRequest", description = "Dados para cadastro de uma nova empresa (pessoa jurídica).")
+@Schema(name = "CompanyCreateRequest", description = "Dados para cadastro de uma nova empresa (pessoa jurídica). "
+        + "O código interno (EMP000001, EMP000002, ...) é gerado automaticamente pelo servidor.")
 public record CompanyCreateRequest(
 
         @Schema(description = "Razão social (nome oficial/registrado).",
@@ -22,12 +23,6 @@ public record CompanyCreateRequest(
                 maxLength = 200)
         @Size(max = 200, message = "Nome fantasia deve ter no máximo {max} caracteres")
         String tradeName,
-
-        @Schema(description = "Código interno único da empresa.", example = "CLI-001",
-                requiredMode = Schema.RequiredMode.REQUIRED, maxLength = 50)
-        @NotBlank(message = "Código é obrigatório")
-        @Size(max = 50, message = "Código deve ter no máximo {max} caracteres")
-        String code,
 
         @Schema(description = "CNPJ (14 dígitos, com ou sem formatação).",
                 example = "12.345.678/0001-90", requiredMode = Schema.RequiredMode.REQUIRED, maxLength = 20)

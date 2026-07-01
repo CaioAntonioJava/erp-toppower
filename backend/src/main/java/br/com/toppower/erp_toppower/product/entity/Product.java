@@ -27,7 +27,12 @@ public class Product extends BaseEntity {
     @Column(name = "name", nullable = false, length = 150)
     private String name;
 
-    @Column(name = "code", unique = true, nullable = false, length = 50)
+    /**
+     * Código único do produto (SKU). Opcional — quando não informado, o produto
+     * é cadastrado sem SKU e a coluna aceita {@code NULL} (constraint única
+     * do banco ignora nulos).
+     */
+    @Column(name = "code", unique = true, length = 50)
     private String code;
 
     @Enumerated(EnumType.STRING)

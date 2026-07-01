@@ -49,6 +49,7 @@ public class CustomerController {
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Cadastrar cliente (pessoa física)",
             description = "Cria um novo cliente PF. CPF é validado com dígitos verificadores. " +
+                    "O código interno (CLI000001, CLI000002, ...) é gerado automaticamente pelo servidor. " +
                     "Status default = ATIVO se omitido.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
@@ -57,7 +58,7 @@ public class CustomerController {
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = CustomerResponse.class))),
             @ApiResponse(responseCode = "400", description = "Erro de validação (CPF/CEP/UF/Endereço).", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "409", description = "Código ou CPF já cadastrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+            @ApiResponse(responseCode = "409", description = "CPF já cadastrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<CustomerResponse> create(@Valid @RequestBody CustomerCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(customerService.create(request));
@@ -97,7 +98,7 @@ public class CustomerController {
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<PagedResponse<CustomerResponse>> search(
-            @Parameter(description = "Termo de busca OPCIONAL (mínimo 2 caracteres quando informado). Match em code, name, email ou cpf.",
+            @Parameter(description = "Termo de busca OPCIONAL (mínimo 2 caracteres quando informado). Match em name, email ou cpf.",
                     example = "xpto")
             @RequestParam(value = "query", required = false) String query,
             @Parameter(description = "Filtro OPCIONAL: ATIVO ou INATIVO. Omitido = ambos.",

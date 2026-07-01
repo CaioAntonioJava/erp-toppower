@@ -12,8 +12,12 @@ public final class ProductMapper {
 
     /**
      * Cria uma nova entidade a partir do request de criação.
-     * Observação: o {@code status} pode ser {@code null}; o {@code @PrePersist}
-     * da entidade cuida de aplicar o default {@code ATIVO}.
+     * Observações:
+     * <ul>
+     *   <li>O {@code code} (SKU) é <b>opcional</b> — pode ser {@code null}.</li>
+     *   <li>O {@code status} pode ser {@code null}; o {@code @PrePersist}
+     *   da entidade cuida de aplicar o default {@code ATIVO}.</li>
+     * </ul>
      */
     public static Product toEntity(ProductCreateRequest request) {
         Product product = new Product();
@@ -45,6 +49,9 @@ public final class ProductMapper {
     /**
      * Aplica uma atualização parcial (PATCH) na entidade carregada.
      * Apenas campos não-nulos do request sobrescrevem o estado atual.
+     * <p>O {@code code} (SKU) aceita {@code null} na atualização apenas se for
+     * enviado explicitamente — a checagem de duplicidade no service ignora
+     * valores em branco.</p>
      */
     public static void applyUpdate(Product product, ProductUpdateRequest request) {
         if (request.name() != null) {
