@@ -1,5 +1,6 @@
 package br.com.toppower.erp_toppower.person.entity;
 
+import br.com.toppower.erp_toppower.common.annotation.UpperCase;
 import br.com.toppower.erp_toppower.common.entity.BaseEntity;
 import br.com.toppower.erp_toppower.common.validation.ValidCpf;
 import jakarta.persistence.Column;
@@ -18,6 +19,12 @@ import lombok.Setter;
  * <p>O campo {@code cpf} é validado por {@link ValidCpf} (incluindo
  * dígitos verificadores), portanto todas as entidades que herdam desta
  * classe (Profile, Seller, etc.) herdam automaticamente essa validação.</p>
+ *
+ * <p>O campo {@code name} é normalizado para MAIÚSCULAS pelo
+ * {@code UpperCaseFieldListener} (registrado em {@link BaseEntity})
+ * antes de cada persistência/atualização, portanto todos os descendentes
+ * ({@code Customer}, {@code Profile}, {@code Seller}, ...) também salvam
+ * o nome em maiúsculas.</p>
  */
 @MappedSuperclass
 @Getter
@@ -25,6 +32,7 @@ import lombok.Setter;
 @NoArgsConstructor
 public abstract class BasePerson extends BaseEntity {
 
+    @UpperCase
     @Column(name = "name", nullable = false, length = 150)
     private String name;
 
