@@ -1,5 +1,6 @@
 package br.com.toppower.erp_toppower.supplier.entity;
 
+import br.com.toppower.erp_toppower.common.annotation.UpperCase;
 import br.com.toppower.erp_toppower.common.embeddable.Address;
 import br.com.toppower.erp_toppower.common.entity.BaseEntity;
 import br.com.toppower.erp_toppower.common.validation.ValidCnpj;
@@ -36,15 +37,17 @@ public class Supplier extends BaseEntity {
 
     /**
      * Razão social — nome oficial/registrado do fornecedor.
-     * Obrigatório.
+     * Obrigatório. Salvo em MAIÚSCULAS (UpperCaseFieldListener).
      */
+    @UpperCase
     @Column(name = "legal_name", nullable = false, length = 200)
     private String legalName;
 
     /**
      * Nome fantasia — nome comercial do fornecedor.
-     * Opcional.
+     * Opcional. Salvo em MAIÚSCULAS (UpperCaseFieldListener).
      */
+    @UpperCase
     @Column(name = "trade_name", length = 200)
     private String tradeName;
 
@@ -86,8 +89,9 @@ public class Supplier extends BaseEntity {
 
     /**
      * Nome da pessoa de contato no fornecedor (ex: "João - Vendas").
-     * Opcional.
+     * Opcional. Salvo em MAIÚSCULAS (UpperCaseFieldListener).
      */
+    @UpperCase
     @Column(name = "contact_name", length = 150)
     private String contactName;
 
