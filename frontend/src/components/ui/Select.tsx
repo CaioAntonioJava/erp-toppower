@@ -24,6 +24,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
     options,
     placeholder,
     leftAdornment,
+    required,
     className = '',
     id,
     ...rest
@@ -40,6 +41,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
           className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200"
         >
           {label}
+          {required && <span className="ml-0.5 text-red-500">*</span>}
         </label>
       ) : null}
 
@@ -61,6 +63,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
         <select
           ref={ref}
           id={selectId}
+          required={required}
           className={[
             'h-11 w-full appearance-none bg-transparent px-3 text-sm text-slate-900 outline-none',
             'dark:text-slate-100',

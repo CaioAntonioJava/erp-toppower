@@ -14,7 +14,7 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
  * (quando type="password"). Encapsula o estado do toggle internamente.
  */
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
-  { label, error, hint, leftAdornment, type = 'text', className = '', id, ...rest },
+  { label, error, hint, leftAdornment, required, type = 'text', className = '', id, ...rest },
   ref,
 ) {
   const generatedId = useId()
@@ -31,6 +31,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200"
         >
           {label}
+          {required && <span className="ml-0.5 text-red-500">*</span>}
         </label>
       ) : null}
 
@@ -53,6 +54,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           ref={ref}
           id={inputId}
           type={resolvedType}
+          required={required}
           className={[
             'h-11 w-full bg-transparent px-3 text-sm text-slate-900 outline-none',
             'placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-500',

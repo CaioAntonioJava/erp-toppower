@@ -44,7 +44,6 @@ export function AddressFields({
         error={errors.street}
         disabled={disabled}
         required
-        placeholder="Av. Paulista"
         className="sm:col-span-6"
       />
       <Input
@@ -54,7 +53,6 @@ export function AddressFields({
         error={errors.number}
         disabled={disabled}
         required
-        placeholder="1000 ou S/N"
         className="sm:col-span-2"
       />
       <Input
@@ -63,7 +61,6 @@ export function AddressFields({
         onChange={(e) => patch('complement', e.target.value)}
         error={errors.complement}
         disabled={disabled}
-        placeholder="Apto 101, Bloco B"
         className="sm:col-span-4"
       />
 
@@ -74,7 +71,6 @@ export function AddressFields({
         onChange={(e) => patch('neighborhood', e.target.value)}
         error={errors.neighborhood}
         disabled={disabled}
-        placeholder="Bela Vista"
         className="sm:col-span-4"
       />
       <Input
@@ -84,7 +80,6 @@ export function AddressFields({
         error={errors.city}
         disabled={disabled}
         required
-        placeholder="São Paulo"
         className="sm:col-span-5"
       />
       <Input
@@ -95,7 +90,6 @@ export function AddressFields({
         disabled={disabled}
         required
         maxLength={9}
-        placeholder="01310-100"
         className="sm:col-span-3"
       />
 
