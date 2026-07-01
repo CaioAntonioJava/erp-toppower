@@ -1,0 +1,22 @@
+-- Migration V1: drop the legacy `clients` table from the pre-refactor schema.
+--
+-- Context:
+--   O módulo `client` (que misturava PF/PJ num único agregado com `personType`)
+--   foi refatorado em dois módulos coesos:
+--     - `Company` (pessoa jurídica) — substituiu o antigo `Client`
+--     - `Customer` (pessoa física) — reaproveita o stub `Customer` que já existia
+--       e estende `BasePerson` (que herda de `BaseEntity`)
+--
+--   Hibernate com `ddl-auto=update` NÃO renomeia/dropa tabelas, por isso a tabela
+--   antiga `clients` permanece no schema mesmo após a remoção da entidade.
+--
+--   Esta migration é executada automaticamente pelo Spring Boot antes do
+--   Hibernate, via `spring.sql.init.mode=always` + `schema-locations` no
+--   application.properties. O DROP é idempotente (IF EXISTS) para permitir
+--   reinicializações em ambientes de dev sem erro.
+--
+-- ATENÇÃO: este DROP é destrutivo. Em produção, faça backup antes de subir
+-- esta versão (ou substitua o conteúdo deste script por uma migration de
+-- cópia de dados + DROP).
+
+DROP TABLE IF EXISTS clients;
