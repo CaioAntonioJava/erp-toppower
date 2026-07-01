@@ -3,33 +3,25 @@ import { ArrowLeft } from 'lucide-react'
 import { Button } from './Button'
 
 interface BackButtonProps {
-  /** Rota de destino do botão "voltar". */
-  to: string
-  /** Texto exibido ao lado do ícone. Default: "Voltar". */
-  label?: string
   /** Tamanho do botão. Default: "sm" (compacto, ideal para cabeçalhos e Alerts). */
   size?: 'sm' | 'md' | 'lg'
 }
 
 /**
- * Botão "voltar" padronizado: ícone `ArrowLeft` + texto, com a cor
- * primária do sistema (`--color-primary`, variante `primary` do `Button`).
+ * Botão "Voltar" padronizado: ícone `ArrowLeft` + texto "Voltar",
+ * com a cor primária do sistema (`--color-primary`).
  *
- * Usado em:
- * - cabeçalho das páginas de formulário (voltar para a lista),
+ * Sempre redireciona para o dashboard (`/`). Usado em:
+ * - cabeçalho das páginas de formulário,
  * - dentro do `Alert` de erro de carregamento,
  * - página 404.
  */
-export function BackButton({
-  to,
-  label = 'Voltar',
-  size = 'sm',
-}: BackButtonProps) {
+export function BackButton({ size = 'sm' }: BackButtonProps) {
   return (
-    <Link to={to}>
+    <Link to="/">
       <Button variant="primary" size={size}>
         <ArrowLeft className="h-4 w-4" />
-        {label}
+        Voltar
       </Button>
     </Link>
   )

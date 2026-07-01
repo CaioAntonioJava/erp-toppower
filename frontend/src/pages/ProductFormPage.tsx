@@ -125,7 +125,7 @@ export function ProductFormPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <BackButton to="/products" label="Voltar para a lista" />
+          <BackButton />
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">
             {mode === 'create' ? 'Novo produto' : product?.name ?? 'Produto'}
           </h1>
@@ -159,7 +159,7 @@ export function ProductFormPage() {
       {loadError ? (
         <Alert variant="error">
           {loadError}.{' '}
-          <BackButton to="/products" label="Voltar para a lista" />
+          <BackButton />
         </Alert>
       ) : null}
 

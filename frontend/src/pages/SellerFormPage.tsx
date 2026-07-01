@@ -123,7 +123,7 @@ export function SellerFormPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <BackButton to="/sellers" label="Voltar para a lista" />
+          <BackButton />
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">
             {mode === 'create' ? 'Novo vendedor' : seller?.name ?? 'Vendedor'}
           </h1>
@@ -157,7 +157,7 @@ export function SellerFormPage() {
       {loadError ? (
         <Alert variant="error">
           {loadError}.{' '}
-          <BackButton to="/sellers" label="Voltar para a lista" />
+          <BackButton />
         </Alert>
       ) : null}
 

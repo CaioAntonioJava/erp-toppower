@@ -123,7 +123,7 @@ export function CompanyFormPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <BackButton to="/companies" label="Voltar para a lista" />
+          <BackButton />
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">
             {mode === 'create' ? 'Nova empresa' : company?.legalName ?? 'Empresa'}
           </h1>
@@ -157,7 +157,7 @@ export function CompanyFormPage() {
       {loadError ? (
         <Alert variant="error">
           {loadError}.{' '}
-          <BackButton to="/companies" label="Voltar para a lista" />
+          <BackButton />
         </Alert>
       ) : null}
 

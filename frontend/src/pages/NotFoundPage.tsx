@@ -13,7 +13,7 @@ export function NotFoundPage() {
           A página que você tentou acessar não existe ou foi movida.
         </p>
         <div className="mt-6">
-          <BackButton to="/" label="Voltar para o início" size="md" />
+          <BackButton size="md" />
         </div>
       </div>
     </div>
