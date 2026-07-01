@@ -37,8 +37,12 @@ export const UNIT_TYPE_OPTIONS: ReadonlyArray<{ value: UnitType; label: string }
 export interface ProductResponse {
   uuid: string
   name: string
-  /** SKU — único. Pode ser alterado (validado no PATCH). */
-  code: string
+  /**
+   * SKU — único quando informado. Opcional no backend: produtos sem SKU
+   * vêm com `code = null` (a coluna aceita NULL e a constraint única
+   * do banco ignora nulos).
+   */
+  code: string | null
   unitType: UnitType
   status: ProductStatus
   /** Preço unitário de venda. */
@@ -51,10 +55,14 @@ export interface ProductResponse {
   updatedBy: string | null
 }
 
-/** Corpo de POST /api/v1/products. */
+/**
+ * Corpo de POST /api/v1/products.
+ * `code` é opcional: omitir (ou enviar `undefined`) cadastra o produto
+ * sem SKU. Não envie string vazia — o `@Pattern` do backend rejeita.
+ */
 export interface ProductCreateRequest {
   name: string
-  code: string
+  code?: string
   unitType: UnitType
   status?: ProductStatus
   /** Preço unitário (> 0). */

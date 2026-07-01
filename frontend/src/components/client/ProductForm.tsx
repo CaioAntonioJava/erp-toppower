@@ -77,13 +77,17 @@ export function ProductForm({
   function validateAll(): boolean {
     const errs: Record<string, string> = {}
 
-    if (!code.trim()) {
-      errs.code = 'Código é obrigatório.'
-    } else if (code.length > 50) {
-      errs.code = 'Código deve ter no máximo 50 caracteres.'
-    } else if (!CODE_PATTERN.test(code)) {
-      errs.code =
-        'Código aceita apenas letras, números, ponto, underline e hífen.'
+    // code (SKU) é opcional no backend. Validamos formato/tamanho apenas
+    // quando o usuário preencheu o campo — string vazia é tratada como
+    // "sem SKU".
+    const trimmedCode = code.trim()
+    if (trimmedCode.length > 0) {
+      if (trimmedCode.length > 50) {
+        errs.code = 'Código deve ter no máximo 50 caracteres.'
+      } else if (!CODE_PATTERN.test(trimmedCode)) {
+        errs.code =
+          'Código aceita apenas letras, números, ponto, underline e hífen.'
+      }
     }
 
     if (!name.trim()) {
@@ -122,10 +126,15 @@ export function ProductForm({
     const stockNum = parseNumber(stockQuantity) ?? 0
 
     try {
+      // code (SKU) é opcional: só enviamos quando há valor. Enviá-lo
+      // como string vazia quebraria o `@Pattern` do backend.
+      const trimmedCode = code.trim()
+      const codeField = trimmedCode ? { code: trimmedCode } : {}
+
       if (isEdit && product) {
         const payload: ProductUpdateRequest = {
           name: name.trim(),
-          code: code.trim(),
+          ...codeField,
           unitType,
           price: priceNum,
           stockQuantity: stockNum,
@@ -137,7 +146,7 @@ export function ProductForm({
       } else {
         const payload: ProductCreateRequest = {
           name: name.trim(),
-          code: code.trim(),
+          ...codeField,
           unitType,
           price: priceNum,
           stockQuantity: stockNum,
@@ -165,7 +174,8 @@ export function ProductForm({
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <h3 className="mb-1 text-base font-semibold">Identificação</h3>
         <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
-          Código e nome do produto. O código (SKU) deve ser único.
+          Código (SKU, opcional) e nome do produto. Quando informado, o
+          código deve ser único.
         </p>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -175,9 +185,9 @@ export function ProductForm({
             onChange={(e) => setCode(e.target.value.toUpperCase())}
             onBlur={getBlurHandler('code')}
             error={shouldShowError('code', fieldErrors.code)}
-            required
             maxLength={50}
-          
+            hint="Opcional. Use letras, números, ponto, underline ou hífen (até 50 caracteres)."
+
           />
           <Input
             label="Nome"
