@@ -21,7 +21,7 @@ interface AuthContextValue {
   isAuthenticated: boolean
   isLoading: boolean
   signIn: (payload: LoginRequest) => Promise<AuthenticatedUser>
-  signUp: (payload: RegisterRequest) => Promise<void>
+  signUp: (payload: RegisterRequest) => Promise<AuthenticatedUser>
   signOut: () => void
   /** Força a releitura do usuário a partir do /me. */
   refresh: () => Promise<AuthenticatedUser | null>
@@ -69,9 +69,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [],
   )
 
-  const signUp = useCallback(async (payload: RegisterRequest) => {
-    await apiRegister(payload)
-  }, [])
+  const signUp = useCallback(
+    async (payload: RegisterRequest): Promise<AuthenticatedUser> => {
+      // Cria o usuário e, em seguida, autentica automaticamente com as
+      // mesmas credenciais. Assim o usuário recém-cadastrado já entra no
+      // sistema sem precisar passar pela tela de login.
+      await apiRegister(payload)
+      const response = await apiLogin({
+        email: payload.email,
+        password: payload.password,
+      })
+      localStorage.setItem(TOKEN_KEY, response.accessToken)
+      setUser(response.user)
+      return response.user
+    },
+    [],
+  )
 
   const signOut = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY)

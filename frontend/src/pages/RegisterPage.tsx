@@ -56,8 +56,9 @@ export function RegisterPage() {
         passwordConfirmation: confirm,
       })
       setSuccess(true)
-      // Redireciona para o login após um curto intervalo, dando tempo de ler o aviso.
-      setTimeout(() => navigate('/login', { replace: true }), 1200)
+      // signUp já autentica o usuário recém-criado — segue direto para o
+      // dashboard, sem precisar passar pela tela de login.
+      navigate('/', { replace: true })
     } catch (err) {
       const apiErr = toApiError(err)
       setFormError(apiErr.message)
@@ -87,7 +88,7 @@ export function RegisterPage() {
         {formError ? <Alert variant="error">{formError}</Alert> : null}
         {success ? (
           <Alert variant="success">
-            Conta criada com sucesso! Redirecionando para o login…
+            Conta criada com sucesso! Entrando no sistema…
           </Alert>
         ) : null}
 
