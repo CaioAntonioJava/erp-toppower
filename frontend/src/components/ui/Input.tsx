@@ -41,8 +41,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           // O estado de erro é sinalizado APENAS pela mensagem abaixo do
           // campo — mantemos a borda com a cor padrão para não competir
           // visualmente com o asterisco vermelho do label obrigatório.
-          'border-slate-300 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 dark:border-slate-700',
-          'transition-colors',
+          // Borda + ring no focus usam a cor `--color-focus` (#ffae00).
+          'border-slate-300 focus-within:border-focus focus-within:ring-2 focus-within:ring-focus/30 dark:border-slate-700',
+          // Fade mais lento (500ms) na borda (color) e no ring (box-shadow).
+          // ease-in-out garante entrada e saída equilibradas.
+          'transition-[border-color,box-shadow] duration-500 ease-in-out',
         ].join(' ')}
       >
         {leftAdornment ? (

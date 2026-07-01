@@ -5,7 +5,9 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* Paleta de tema. A cor primária da marca (#0271e3) é definida aqui
-   e exposta como utilitários bg-primary, text-primary, border-primary, etc. */
+   e exposta como utilitários bg-primary, text-primary, border-primary, etc.
+   A cor de focus (#ffae00) é um amarelo/dourado para destacar
+   o campo ativo do formulário contra a paleta geral da interface. */
 @theme {
   --color-primary: #0271e3;
   --color-primary-50: #e8f1fe;
@@ -18,6 +20,8 @@
   --color-primary-700: #014685;
   --color-primary-800: #013056;
   --color-primary-900: #001a28;
+
+  --color-focus: #ffae00;
 
   --font-sans:
     'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
