@@ -1,11 +1,50 @@
 package br.com.toppower.erp_toppower.customer.repository;
 
+import br.com.toppower.erp_toppower.common.enums.RegistrationStatus;
 import br.com.toppower.erp_toppower.customer.entity.Customer;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
 public interface CustomerRepository extends JpaRepository<Customer, UUID> {
+
+    boolean existsByCode(String code);
+
+    boolean existsByCpf(String cpf);
+
+    Optional<Customer> findByCode(String code);
+
+    Optional<Customer> findByCpf(String cpf);
+
+    Page<Customer> findByStatus(RegistrationStatus status, Pageable pageable);
+
+    /**
+     * Busca flexível por texto (opcional) e/ou status (opcional).
+     * <ul>
+     *   <li>{@code query} nulo/blank → ignora o filtro de texto</li>
+     *   <li>{@code status} nulo → ignora o filtro de status</li>
+     *   <li>Ambos nulos → retorna todos os clientes (paginado)</li>
+     * </ul>
+     * Quando {@code query} é informado, busca case-insensitive em
+     * {@code code}, {@code name}, {@code email} ou {@code cpf}.
+     */
+    @Query("""
+            SELECT c FROM Customer c
+            WHERE (:status IS NULL OR c.status = :status)
+              AND (:query IS NULL
+                OR LOWER(c.code) LIKE LOWER(CONCAT('%', :query, '%'))
+                OR LOWER(c.name) LIKE LOWER(CONCAT('%', :query, '%'))
+                OR LOWER(c.email) LIKE LOWER(CONCAT('%', :query, '%'))
+                OR LOWER(c.cpf) LIKE LOWER(CONCAT('%', :query, '%')))
+            """)
+    Page<Customer> searchByQuery(@Param("status") RegistrationStatus status,
+                                 @Param("query") String query,
+                                 Pageable pageable);
 }
