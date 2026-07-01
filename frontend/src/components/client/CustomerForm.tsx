@@ -14,6 +14,7 @@ import { AddressFields } from './AddressFields'
 import { toApiError } from '../../lib/errors'
 import { isValidCpf, maskCpf, maskPhone } from '../../lib/documents'
 import { isValidUf } from '../../lib/brazilianStates'
+import { useFieldTouched } from '../../hooks/useFieldTouched'
 
 const EMPTY_ADDRESS: Address = {
   street: '',
@@ -61,6 +62,15 @@ export function CustomerForm({
   const [formError, setFormError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+
+  // Erros só são exibidos após o usuário tocar no campo ou tentar submeter.
+  const {
+    shouldShowError,
+    getBlurHandler,
+    markAllTouched,
+    reset,
+    submitAttempted,
+  } = useFieldTouched()
 
   // Campos imutáveis após o cadastro.
   const [code, setCode] = useState(customer?.code ?? '')
@@ -114,6 +124,8 @@ export function CustomerForm({
     e.preventDefault()
     setFormError(null)
     setSuccess(null)
+    // Revela os erros de todos os campos no submit, mesmo os ainda não tocados.
+    markAllTouched()
     if (!validateAll()) return
 
     const trimmedAddress: Address = {
@@ -137,6 +149,7 @@ export function CustomerForm({
         }
         await onSaveUpdate(payload)
         setSuccess('Cliente atualizado com sucesso!')
+        reset()
       } else {
         const payload: CustomerCreateRequest = {
           code: code.trim(),
@@ -149,6 +162,7 @@ export function CustomerForm({
         }
         await onSaveCreate(payload)
         setSuccess('Cliente criado com sucesso!')
+        reset()
       }
     } catch (err) {
       const apiErr = toApiError(err)
@@ -178,7 +192,8 @@ export function CustomerForm({
             label="Código"
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
-            error={fieldErrors.code}
+            onBlur={getBlurHandler('code')}
+            error={shouldShowError('code', fieldErrors.code)}
             disabled={isEdit}
             required={!isEdit}
             hint={
@@ -192,7 +207,8 @@ export function CustomerForm({
             label="CPF"
             value={cpf}
             onChange={(e) => setCpf(maskCpf(e.target.value))}
-            error={fieldErrors.cpf}
+            onBlur={getBlurHandler('cpf')}
+            error={shouldShowError('cpf', fieldErrors.cpf)}
             disabled={isEdit}
             required
             maxLength={14}
@@ -202,7 +218,8 @@ export function CustomerForm({
             label="Nome completo"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            error={fieldErrors.name}
+            onBlur={getBlurHandler('name')}
+            error={shouldShowError('name', fieldErrors.name)}
             required
             maxLength={150}
           />
@@ -211,14 +228,16 @@ export function CustomerForm({
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            error={fieldErrors.email}
+            onBlur={getBlurHandler('email')}
+            error={shouldShowError('email', fieldErrors.email)}
             required
           />
           <Input
             label="Telefone"
             value={phone}
             onChange={(e) => setPhone(maskPhone(e.target.value))}
-            error={fieldErrors.phone}
+            onBlur={getBlurHandler('phone')}
+            error={shouldShowError('phone', fieldErrors.phone)}
             required
           />
         </div>
@@ -234,6 +253,7 @@ export function CustomerForm({
           value={address}
           onChange={setAddress}
           errors={addressErrors}
+          forceShowErrors={submitAttempted}
         />
       </section>
 

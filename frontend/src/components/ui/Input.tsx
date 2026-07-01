@@ -38,9 +38,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
       <div
         className={[
           'flex items-stretch overflow-hidden rounded-lg border bg-white dark:bg-slate-900',
-          error
-            ? 'border-red-500 focus-within:ring-2 focus-within:ring-red-500/30'
-            : 'border-slate-300 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 dark:border-slate-700',
+          // O estado de erro é sinalizado APENAS pela mensagem abaixo do
+          // campo — mantemos a borda com a cor padrão para não competir
+          // visualmente com o asterisco vermelho do label obrigatório.
+          'border-slate-300 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 dark:border-slate-700',
           'transition-colors',
         ].join(' ')}
       >
@@ -54,7 +55,12 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           ref={ref}
           id={inputId}
           type={resolvedType}
-          required={required}
+          // Usamos `aria-required` em vez do atributo HTML `required` para
+          // evitar que o navegador aplique a pseudo-classe `:invalid` em
+          // campos vazios, o que adiciona um contorno/box-shadow vermelho
+          // que não conseguimos estilizar consistentemente entre browsers.
+          // A validação real é feita via prop `error` controlada pelo form.
+          aria-required={required || undefined}
           className={[
             'h-11 w-full bg-transparent px-3 text-sm text-slate-900 outline-none',
             'placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-500',

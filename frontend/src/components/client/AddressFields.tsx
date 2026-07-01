@@ -1,3 +1,4 @@
+import { useState, type FocusEvent } from 'react'
 import type { Address } from '../../types/company'
 import { Input } from '../ui/Input'
 import { Select } from '../ui/Select'
@@ -9,6 +10,11 @@ interface AddressFieldsProps {
   onChange: (next: Address) => void
   errors?: Partial<Record<keyof Address, string>>
   disabled?: boolean
+  /**
+   * Quando true, força a exibição de todos os erros independente do
+   * estado "tocado" de cada campo. Usado no submit do formulário pai.
+   */
+  forceShowErrors?: boolean
 }
 
 const UF_OPTIONS = BRAZILIAN_STATES.map((s) => ({
@@ -16,13 +22,57 @@ const UF_OPTIONS = BRAZILIAN_STATES.map((s) => ({
   label: `${s.uf} — ${s.name}`,
 }))
 
+// IDs internos de cada campo, usados para rastrear o estado "tocado".
+type AddressFieldKey =
+  | 'street'
+  | 'number'
+  | 'complement'
+  | 'neighborhood'
+  | 'city'
+  | 'zipCode'
+  | 'state'
+
 /** Subformulário para os dados de endereço do cliente. */
 export function AddressFields({
   value,
   onChange,
   errors = {},
   disabled = false,
+  forceShowErrors = false,
 }: AddressFieldsProps) {
+  // Estado de campos tocados (focados e desfocados ao menos uma vez).
+  const [touched, setTouched] = useState<ReadonlySet<AddressFieldKey>>(
+    () => new Set(),
+  )
+
+  function markTouched(field: AddressFieldKey) {
+    setTouched((prev) => {
+      if (prev.has(field)) return prev
+      const next = new Set(prev)
+      next.add(field)
+      return next
+    })
+  }
+
+  function onBlurField(field: AddressFieldKey) {
+    return (_e: FocusEvent<HTMLInputElement | HTMLSelectElement>) => {
+      markTouched(field)
+    }
+  }
+
+  /**
+   * Mostra o erro apenas se o campo foi tocado OU se o pai já tentou
+   * submeter (`forceShowErrors`). Caso contrário devolve undefined.
+   */
+  function showError(
+    field: AddressFieldKey,
+    error: string | undefined,
+  ): string | undefined {
+    if (!error) return undefined
+    if (forceShowErrors || touched.has(field)) return error
+    return undefined
+  }
+
   function patch<K extends keyof Address>(key: K, val: Address[K]) {
     onChange({ ...value, [key]: val })
   }
@@ -41,7 +91,8 @@ export function AddressFields({
         label="Logradouro"
         value={value.street}
         onChange={(e) => patch('street', e.target.value)}
-        error={errors.street}
+        onBlur={onBlurField('street')}
+        error={showError('street', errors.street)}
         disabled={disabled}
         required
         className="sm:col-span-6"
@@ -50,7 +101,8 @@ export function AddressFields({
         label="Número"
         value={value.number}
         onChange={(e) => patch('number', e.target.value)}
-        error={errors.number}
+        onBlur={onBlurField('number')}
+        error={showError('number', errors.number)}
         disabled={disabled}
         required
         className="sm:col-span-2"
@@ -59,7 +111,8 @@ export function AddressFields({
         label="Complemento"
         value={value.complement ?? ''}
         onChange={(e) => patch('complement', e.target.value)}
-        error={errors.complement}
+        onBlur={onBlurField('complement')}
+        error={showError('complement', errors.complement)}
         disabled={disabled}
         className="sm:col-span-4"
       />
@@ -69,7 +122,8 @@ export function AddressFields({
         label="Bairro"
         value={value.neighborhood ?? ''}
         onChange={(e) => patch('neighborhood', e.target.value)}
-        error={errors.neighborhood}
+        onBlur={onBlurField('neighborhood')}
+        error={showError('neighborhood', errors.neighborhood)}
         disabled={disabled}
         className="sm:col-span-4"
       />
@@ -77,7 +131,8 @@ export function AddressFields({
         label="Cidade"
         value={value.city}
         onChange={(e) => patch('city', e.target.value)}
-        error={errors.city}
+        onBlur={onBlurField('city')}
+        error={showError('city', errors.city)}
         disabled={disabled}
         required
         className="sm:col-span-5"
@@ -86,7 +141,8 @@ export function AddressFields({
         label="CEP"
         value={value.zipCode}
         onChange={(e) => patch('zipCode', maskZipCode(e.target.value))}
-        error={errors.zipCode}
+        onBlur={onBlurField('zipCode')}
+        error={showError('zipCode', errors.zipCode)}
         disabled={disabled}
         required
         maxLength={9}
@@ -98,7 +154,8 @@ export function AddressFields({
         label="UF"
         value={value.state}
         onChange={(e) => patch('state', e.target.value.toUpperCase())}
-        error={errors.state}
+        onBlur={onBlurField('state')}
+        error={showError('state', errors.state)}
         disabled={disabled}
         required
         options={UF_OPTIONS}

@@ -14,6 +14,7 @@ import { AddressFields } from './AddressFields'
 import { toApiError } from '../../lib/errors'
 import { isValidCnpj, maskCnpj } from '../../lib/documents'
 import { isValidUf } from '../../lib/brazilianStates'
+import { useFieldTouched } from '../../hooks/useFieldTouched'
 
 const EMPTY_ADDRESS: Address = {
   street: '',
@@ -62,6 +63,15 @@ export function CompanyForm({
   const [success, setSuccess] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
+  // Erros só são exibidos após o usuário tocar no campo ou tentar submeter.
+  const {
+    shouldShowError,
+    getBlurHandler,
+    markAllTouched,
+    reset,
+    submitAttempted,
+  } = useFieldTouched()
+
   // Campos imutáveis após o cadastro.
   const [code, setCode] = useState(company?.code ?? '')
   const [cnpj, setCnpj] = useState(company?.cnpj ?? '')
@@ -109,6 +119,8 @@ export function CompanyForm({
     e.preventDefault()
     setFormError(null)
     setSuccess(null)
+    // Revela os erros de todos os campos no submit, mesmo os ainda não tocados.
+    markAllTouched()
     if (!validateAll()) return
 
     const trimmedAddress: Address = {
@@ -134,6 +146,7 @@ export function CompanyForm({
         }
         await onSaveUpdate(payload)
         setSuccess('Empresa atualizada com sucesso!')
+        reset()
       } else {
         const payload: CompanyCreateRequest = {
           code: code.trim(),
@@ -148,6 +161,7 @@ export function CompanyForm({
         }
         await onSaveCreate(payload)
         setSuccess('Empresa criada com sucesso!')
+        reset()
       }
     } catch (err) {
       const apiErr = toApiError(err)
@@ -177,7 +191,8 @@ export function CompanyForm({
             label="Código"
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
-            error={fieldErrors.code}
+            onBlur={getBlurHandler('code')}
+            error={shouldShowError('code', fieldErrors.code)}
             disabled={isEdit}
             required={!isEdit}
             hint={
@@ -191,7 +206,8 @@ export function CompanyForm({
             label="CNPJ"
             value={cnpj}
             onChange={(e) => setCnpj(maskCnpj(e.target.value))}
-            error={fieldErrors.cnpj}
+            onBlur={getBlurHandler('cnpj')}
+            error={shouldShowError('cnpj', fieldErrors.cnpj)}
             disabled={isEdit}
             required
             maxLength={18}
@@ -201,7 +217,8 @@ export function CompanyForm({
             label="Razão social"
             value={legalName}
             onChange={(e) => setLegalName(e.target.value)}
-            error={fieldErrors.legalName}
+            onBlur={getBlurHandler('legalName')}
+            error={shouldShowError('legalName', fieldErrors.legalName)}
             required
             maxLength={200}
           />
@@ -209,21 +226,30 @@ export function CompanyForm({
             label="Nome fantasia"
             value={tradeName}
             onChange={(e) => setTradeName(e.target.value)}
-            error={fieldErrors.tradeName}
+            onBlur={getBlurHandler('tradeName')}
+            error={shouldShowError('tradeName', fieldErrors.tradeName)}
             maxLength={200}
           />
           <Input
             label="Inscrição Estadual"
             value={stateRegistration}
             onChange={(e) => setStateRegistration(e.target.value)}
-            error={fieldErrors.stateRegistration}
+            onBlur={getBlurHandler('stateRegistration')}
+            error={shouldShowError(
+              'stateRegistration',
+              fieldErrors.stateRegistration,
+            )}
             maxLength={30}
           />
           <Input
             label="Inscrição Municipal"
             value={municipalRegistration}
             onChange={(e) => setMunicipalRegistration(e.target.value)}
-            error={fieldErrors.municipalRegistration}
+            onBlur={getBlurHandler('municipalRegistration')}
+            error={shouldShowError(
+              'municipalRegistration',
+              fieldErrors.municipalRegistration,
+            )}
             maxLength={30}
           />
         </div>
@@ -240,6 +266,7 @@ export function CompanyForm({
           value={address}
           onChange={setAddress}
           errors={addressErrors}
+          forceShowErrors={submitAttempted}
         />
       </section>
 
