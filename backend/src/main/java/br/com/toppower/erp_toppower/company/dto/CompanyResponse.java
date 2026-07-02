@@ -32,6 +32,11 @@ public record CompanyResponse(
         @Schema(description = "Inscrição Estadual.")
         String stateRegistration,
 
+        @Schema(description = "Indica se a empresa é ISENTA de Inscrição Estadual (IE Isento).",
+                allowableValues = {"true", "false"},
+                requiredMode = Schema.RequiredMode.REQUIRED)
+        boolean stateRegistrationExempt,
+
         @Schema(description = "Inscrição Municipal.")
         String municipalRegistration,
 

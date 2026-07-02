@@ -36,6 +36,12 @@ public record CompanyCreateRequest(
         @Size(max = 30, message = "Inscrição estadual deve ter no máximo {max} caracteres")
         String stateRegistration,
 
+        @Schema(description = "Indica se a empresa é ISENTA de Inscrição Estadual (IE Isento). "
+                + "Quando true, a empresa é dispensada de possuir IE — comum em MEIs e "
+                + "prestadores de serviço. Default: false.",
+                example = "false", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        Boolean stateRegistrationExempt,
+
         @Schema(description = "Inscrição Municipal.", example = "9876543",
                 maxLength = 30)
         @Size(max = 30, message = "Inscrição municipal deve ter no máximo {max} caracteres")

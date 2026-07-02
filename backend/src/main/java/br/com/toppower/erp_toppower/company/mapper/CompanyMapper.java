@@ -52,6 +52,9 @@ public final class CompanyMapper {
         company.setTradeName(request.tradeName());
         company.setCnpj(request.cnpj());
         company.setStateRegistration(request.stateRegistration());
+        // stateRegistrationExempt: se não informado no request, assume false (default).
+        company.setStateRegistrationExempt(
+                Boolean.TRUE.equals(request.stateRegistrationExempt()));
         company.setMunicipalRegistration(request.municipalRegistration());
         company.setAddress(toEntity(request.address()));
         company.setStatus(request.status());
@@ -66,6 +69,7 @@ public final class CompanyMapper {
                 company.getCode(),
                 company.getCnpj(),
                 company.getStateRegistration(),
+                company.isStateRegistrationExempt(),
                 company.getMunicipalRegistration(),
                 toDto(company.getAddress()),
                 company.getStatus(),
@@ -83,6 +87,9 @@ public final class CompanyMapper {
      *   <li>O CNPJ NÃO é alterável (identidade fiscal).</li>
      *   <li>O {@code code} NÃO é alterável — é gerado uma única vez no
      *   momento do cadastro e nunca muda.</li>
+     *   <li>{@code stateRegistrationExempt} usa {@code Boolean} (wrapper)
+     *   para distinguir "não enviado" (preserva valor atual) de
+     *   "enviado como false" (desmarca o checkbox).</li>
      * </ul>
      */
     public static void applyUpdate(Company company, CompanyUpdateRequest request) {
@@ -94,6 +101,9 @@ public final class CompanyMapper {
         }
         if (request.stateRegistration() != null) {
             company.setStateRegistration(request.stateRegistration());
+        }
+        if (request.stateRegistrationExempt() != null) {
+            company.setStateRegistrationExempt(request.stateRegistrationExempt());
         }
         if (request.municipalRegistration() != null) {
             company.setMunicipalRegistration(request.municipalRegistration());

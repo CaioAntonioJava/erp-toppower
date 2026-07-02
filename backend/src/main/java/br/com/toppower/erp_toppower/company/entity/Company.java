@@ -76,6 +76,18 @@ public class Company extends BaseEntity {
     private String stateRegistration;
 
     /**
+     * Indica se a empresa é ISENTA de Inscrição Estadual (IE Isento).
+     * Quando {@code true}, significa que a empresa é dispensada de possuir
+     * IE — caso comum de MEIs, prestadores de serviço e empresas em início
+     * de atividade. Nesse cenário, o sistema não deve exigir/exibir a IE
+     * em documentos fiscais.
+     *
+     * <p>Default: {@code false} (empresa NÃO é isenta).</p>
+     */
+    @Column(name = "state_registration_exempt", nullable = false)
+    private boolean stateRegistrationExempt;
+
+    /**
      * Inscrição Municipal (IM) — registro da empresa na Prefeitura.
      * Opcional.
      */

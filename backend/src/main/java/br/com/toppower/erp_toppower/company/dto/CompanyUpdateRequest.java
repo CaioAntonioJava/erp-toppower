@@ -29,6 +29,12 @@ public record CompanyUpdateRequest(
         @Size(max = 30, message = "Inscrição estadual deve ter no máximo {max} caracteres")
         String stateRegistration,
 
+        @Schema(description = "Indica se a empresa é ISENTA de Inscrição Estadual (IE Isento). "
+                + "Envie true para marcar como isenta, false para desmarcar. "
+                + "Quando omitido, o valor atual é preservado.",
+                example = "false")
+        Boolean stateRegistrationExempt,
+
         @Schema(description = "Nova inscrição municipal.", maxLength = 30)
         @Size(max = 30, message = "Inscrição municipal deve ter no máximo {max} caracteres")
         String municipalRegistration,
