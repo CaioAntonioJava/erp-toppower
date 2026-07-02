@@ -1,6 +1,7 @@
 import api from './client'
 import type {
   CompanyCreateRequest,
+  CompanyNextCodeResponse,
   CompanyResponse,
   CompanyUpdateRequest,
 } from '../types/company'
@@ -59,6 +60,16 @@ export async function searchCompanies(params: {
 export async function getCompany(id: string): Promise<CompanyResponse> {
   const { data } = await api.get<CompanyResponse>(`${BASE}/${id}`)
   return data
+}
+
+/**
+ * GET /companies/next-code — pré-visualiza o próximo código sequencial
+ * (ex.: EMP000007) que seria atribuído à próxima empresa cadastrada.
+ * Não persiste nada.
+ */
+export async function getNextCompanyCode(): Promise<string> {
+  const { data } = await api.get<CompanyNextCodeResponse>(`${BASE}/next-code`)
+  return data.code
 }
 
 /** POST /companies — cria uma nova empresa. */

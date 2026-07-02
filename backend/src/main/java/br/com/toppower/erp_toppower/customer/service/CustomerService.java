@@ -55,6 +55,16 @@ public class CustomerService {
     }
 
     /**
+     * Retorna o próximo código que seria atribuído a um novo cliente, sem
+     * persistir nada. Útil para o frontend exibir o valor previsto no campo
+     * "Código" antes do cadastro.
+     */
+    @Transactional(readOnly = true)
+    public String getNextCode() {
+        return generateNextCode();
+    }
+
+    /**
      * Lista paginada de clientes (PF). Se {@code status} for nulo, retorna
      * todos (ativos e inativos); caso contrário filtra pelo status informado.
      */

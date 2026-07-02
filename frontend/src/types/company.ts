@@ -36,12 +36,16 @@ export interface CompanyResponse {
 export interface CompanyCreateRequest {
   legalName: string
   tradeName?: string
-  code: string
   cnpj: string
   stateRegistration?: string
   municipalRegistration?: string
   address: Address
   status?: RegistrationStatus
+}
+
+/** Resposta de GET /api/v1/companies/next-code. */
+export interface CompanyNextCodeResponse {
+  code: string
 }
 
 /** Corpo de PATCH /api/v1/companies/{id}. Campos opcionais. */

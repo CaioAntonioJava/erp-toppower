@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Save } from 'lucide-react'
 import type {
   Address,
@@ -15,6 +15,7 @@ import { toApiError } from '../../lib/errors'
 import { isValidCpf, maskCpf, maskPhone } from '../../lib/documents'
 import { isValidUf } from '../../lib/brazilianStates'
 import { useFieldTouched } from '../../hooks/useFieldTouched'
+import { getNextCustomerCode } from '../../api/customer.api'
 
 const EMPTY_ADDRESS: Address = {
   street: '',
@@ -73,8 +74,29 @@ export function CustomerForm({
   } = useFieldTouched()
 
   // Campos imutáveis após o cadastro.
+  // `code` é gerado pelo servidor; em cadastro novo pré-baixamos o próximo
+  // código disponível para exibir no campo desabilitado, e em edição
+  // mostramos o código já atribuído.
   const [code, setCode] = useState(customer?.code ?? '')
   const [cpf, setCpf] = useState(customer?.cpf ?? '')
+
+  // Pré-busca o próximo código ao entrar no modo de cadastro. Em modo de
+  // edição o código já veio no `customer`; não precisa buscar de novo.
+  useEffect(() => {
+    if (customer) return
+    let cancelled = false
+    getNextCustomerCode()
+      .then((next) => {
+        if (!cancelled) setCode(next)
+      })
+      .catch(() => {
+        // Silencioso: se a chamada falhar, o campo fica vazio até o backend
+        // atribuir o código real no momento do POST.
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [customer])
 
   // Campos editáveis.
   const [name, setName] = useState(customer?.name ?? '')
@@ -92,9 +114,6 @@ export function CustomerForm({
   function validateAll(): boolean {
     const errs: Record<string, string> = {}
 
-    if (!isEdit && !code.trim()) {
-      errs.code = 'Código é obrigatório.'
-    }
     if (!name.trim()) errs.name = 'Nome é obrigatório.'
     if (!email.trim()) {
       errs.email = 'E-mail é obrigatório.'
@@ -152,7 +171,6 @@ export function CustomerForm({
         reset()
       } else {
         const payload: CustomerCreateRequest = {
-          code: code.trim(),
           name: name.trim(),
           email: email.trim(),
           phone: phone.trim(),
@@ -183,24 +201,16 @@ export function CustomerForm({
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <h3 className="mb-1 text-base font-semibold">Identificação</h3>
         <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
-          Dados básicos do cliente. Código e CPF não podem ser alterados após o
-          cadastro.
+          Dados básicos do cliente. O código é gerado automaticamente e o CPF
+          não pode ser alterado após o cadastro.
         </p>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Input
             label="Código"
             value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-            onBlur={getBlurHandler('code')}
-            error={shouldShowError('code', fieldErrors.code)}
-            disabled={isEdit}
-            required={!isEdit}
-            hint={
-              isEdit
-                ? 'O código não pode ser alterado.'
-                : 'Identificador único (ex: CUS-001).'
-            }
+            disabled
+            readOnly
           />
 
           <Input

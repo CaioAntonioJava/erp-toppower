@@ -55,6 +55,16 @@ public class CompanyService {
     }
 
     /**
+     * Retorna o próximo código que seria atribuído a uma nova empresa, sem
+     * persistir nada. Útil para o frontend exibir o valor previsto no campo
+     * "Código" antes do cadastro.
+     */
+    @Transactional(readOnly = true)
+    public String getNextCode() {
+        return generateNextCode();
+    }
+
+    /**
      * Lista paginada de empresas. Se {@code status} for nulo, retorna todas
      * (ativas e inativas); caso contrário filtra pelo status informado.
      */

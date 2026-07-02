@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Save } from 'lucide-react'
 import type {
   Address,
@@ -15,6 +15,7 @@ import { toApiError } from '../../lib/errors'
 import { isValidCnpj, maskCnpj } from '../../lib/documents'
 import { isValidUf } from '../../lib/brazilianStates'
 import { useFieldTouched } from '../../hooks/useFieldTouched'
+import { getNextCompanyCode } from '../../api/company.api'
 
 const EMPTY_ADDRESS: Address = {
   street: '',
@@ -73,8 +74,29 @@ export function CompanyForm({
   } = useFieldTouched()
 
   // Campos imutáveis após o cadastro.
+  // `code` é gerado pelo servidor; em cadastro novo pré-baixamos o próximo
+  // código disponível para exibir no campo desabilitado, e em edição
+  // mostramos o código já atribuído.
   const [code, setCode] = useState(company?.code ?? '')
   const [cnpj, setCnpj] = useState(company?.cnpj ?? '')
+
+  // Pré-busca o próximo código ao entrar no modo de cadastro. Em modo de
+  // edição o código já veio no `company`; não precisa buscar de novo.
+  useEffect(() => {
+    if (company) return
+    let cancelled = false
+    getNextCompanyCode()
+      .then((next) => {
+        if (!cancelled) setCode(next)
+      })
+      .catch(() => {
+        // Silencioso: se a chamada falhar, o campo fica vazio até o backend
+        // atribuir o código real no momento do POST.
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [company])
 
   // Campos editáveis.
   const [legalName, setLegalName] = useState(company?.legalName ?? '')
@@ -97,9 +119,6 @@ export function CompanyForm({
   function validateAll(): boolean {
     const errs: Record<string, string> = {}
 
-    if (!isEdit) {
-      if (!code.trim()) errs.code = 'Código é obrigatório.'
-    }
     if (!legalName.trim()) errs.legalName = 'Razão social é obrigatória.'
 
     const digits = cnpj.replace(/\D/g, '')
@@ -149,7 +168,6 @@ export function CompanyForm({
         reset()
       } else {
         const payload: CompanyCreateRequest = {
-          code: code.trim(),
           legalName: legalName.trim(),
           tradeName: tradeName.trim() || undefined,
           cnpj: cnpj.replace(/\D/g, ''),
@@ -182,24 +200,16 @@ export function CompanyForm({
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <h3 className="mb-1 text-base font-semibold">Identificação</h3>
         <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
-          Dados básicos da empresa. Código e CNPJ não podem ser alterados após o
-          cadastro.
+          Dados básicos da empresa. O código é gerado automaticamente e o CNPJ
+          não pode ser alterado após o cadastro.
         </p>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Input
             label="Código"
             value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-            onBlur={getBlurHandler('code')}
-            error={shouldShowError('code', fieldErrors.code)}
-            disabled={isEdit}
-            required={!isEdit}
-            hint={
-              isEdit
-                ? 'O código não pode ser alterado.'
-                : 'Identificador único (ex: EMP-001).'
-            }
+            disabled
+            readOnly
           />
 
           <Input

@@ -1,5 +1,6 @@
 package br.com.toppower.erp_toppower.company.controller;
 
+import br.com.toppower.erp_toppower.common.dto.NextCodeResponse;
 import br.com.toppower.erp_toppower.common.dto.PagedResponse;
 import br.com.toppower.erp_toppower.common.enums.RegistrationStatus;
 import br.com.toppower.erp_toppower.company.dto.CompanyCreateRequest;
@@ -80,6 +81,22 @@ public class CompanyController {
             @RequestParam(value = "status", required = false) RegistrationStatus status,
             @Parameter(hidden = true) @PageableDefault(size = 20, sort = "legalName", direction = Sort.Direction.ASC) Pageable pageable) {
         return ResponseEntity.ok(companyService.getAll(status, pageable));
+    }
+
+    @GetMapping(value = "/next-code", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Pré-visualizar próximo código de empresa",
+            description = "Retorna o próximo código sequencial (ex.: EMP000001, EMP000002, ...) " +
+                    "que seria atribuído à próxima empresa cadastrada. " +
+                    "Não persiste nada — apenas consulta o maior código existente com o prefixo EMP.")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Próximo código retornado com sucesso.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = NextCodeResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+    })
+    public ResponseEntity<NextCodeResponse> getNextCode() {
+        return ResponseEntity.ok(new NextCodeResponse(companyService.getNextCode()));
     }
 
     @GetMapping(value = "/search", produces = MediaType.APPLICATION_JSON_VALUE)

@@ -1,6 +1,7 @@
 import api from './client'
 import type {
   CustomerCreateRequest,
+  CustomerNextCodeResponse,
   CustomerResponse,
   CustomerUpdateRequest,
 } from '../types/customer'
@@ -59,6 +60,16 @@ export async function searchCustomers(params: {
 export async function getCustomer(id: string): Promise<CustomerResponse> {
   const { data } = await api.get<CustomerResponse>(`${BASE}/${id}`)
   return data
+}
+
+/**
+ * GET /customers/next-code — pré-visualiza o próximo código sequencial
+ * (ex.: CLI000007) que seria atribuído ao próximo cliente cadastrado.
+ * Não persiste nada.
+ */
+export async function getNextCustomerCode(): Promise<string> {
+  const { data } = await api.get<CustomerNextCodeResponse>(`${BASE}/next-code`)
+  return data.code
 }
 
 /** POST /customers — cria um novo cliente. */

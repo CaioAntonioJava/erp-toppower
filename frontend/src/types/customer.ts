@@ -27,9 +27,13 @@ export interface CustomerCreateRequest {
   email: string
   phone: string
   cpf: string
-  code: string
   address: Address
   status?: RegistrationStatus
+}
+
+/** Resposta de GET /api/v1/customers/next-code. */
+export interface CustomerNextCodeResponse {
+  code: string
 }
 
 /** Corpo de PATCH /api/v1/customers/{id}. Campos opcionais. */
