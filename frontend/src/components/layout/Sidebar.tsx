@@ -62,7 +62,7 @@ export function Sidebar() {
               {/* Ação rápida logo abaixo do menu Produtos: importação de XML. */}
               {item.to === '/products' ? (
                 <Button
-                  variant="secondary"
+                  variant="primary"
                   size="sm"
                   fullWidth
                   className="mt-1"
