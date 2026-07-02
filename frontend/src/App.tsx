@@ -13,6 +13,9 @@ import { SellersListPage } from './pages/SellersListPage'
 import { SellerFormPage } from './pages/SellerFormPage'
 import { ProductsListPage } from './pages/ProductsListPage'
 import { ProductFormPage } from './pages/ProductFormPage'
+import { QuotationsListPage } from './pages/QuotationsListPage'
+import { QuotationFormPage } from './pages/QuotationFormPage'
+import { QuotationDetailPage } from './pages/QuotationDetailPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { AppLayout } from './components/layout/AppLayout'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -50,6 +53,10 @@ export default function App() {
         <Route path="/products" element={<ProductsListPage />} />
         <Route path="/products/new" element={<ProductFormPage />} />
         <Route path="/products/:id" element={<ProductFormPage />} />
+        <Route path="/quotations" element={<QuotationsListPage />} />
+        <Route path="/quotations/new" element={<QuotationFormPage />} />
+        <Route path="/quotations/:id/edit" element={<QuotationFormPage />} />
+        <Route path="/quotations/:id" element={<QuotationDetailPage />} />
       </Route>
 
       {/* Compat: rota raiz redireciona para /login se não houver auth. */}
