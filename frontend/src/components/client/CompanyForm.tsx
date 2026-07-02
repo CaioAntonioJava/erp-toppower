@@ -104,6 +104,14 @@ export function CompanyForm({
   const [stateRegistration, setStateRegistration] = useState(
     company?.stateRegistration ?? '',
   )
+  /**
+   * Flag de isenção de Inscrição Estadual. Quando marcada, a empresa
+   * é dispensada de possuir IE (MEIs, prestadores de serviço). O campo
+   * "Inscrição Estadual" fica desabilitado e é limpo no envio.
+   */
+  const [stateRegistrationExempt, setStateRegistrationExempt] = useState(
+    company?.stateRegistrationExempt ?? false,
+  )
   const [municipalRegistration, setMunicipalRegistration] = useState(
     company?.municipalRegistration ?? '',
   )
@@ -157,7 +165,12 @@ export function CompanyForm({
         const payload: CompanyUpdateRequest = {
           legalName: legalName.trim(),
           tradeName: tradeName.trim() || undefined,
-          stateRegistration: stateRegistration.trim() || undefined,
+          // Quando isenta, não envia a IE (ou envia como nulo) para
+          // evitar inconsistência com a flag.
+          stateRegistration: stateRegistrationExempt
+            ? undefined
+            : stateRegistration.trim() || undefined,
+          stateRegistrationExempt,
           municipalRegistration:
             municipalRegistration.trim() || undefined,
           address: trimmedAddress,
@@ -171,7 +184,10 @@ export function CompanyForm({
           legalName: legalName.trim(),
           tradeName: tradeName.trim() || undefined,
           cnpj: cnpj.replace(/\D/g, ''),
-          stateRegistration: stateRegistration.trim() || undefined,
+          stateRegistration: stateRegistrationExempt
+            ? undefined
+            : stateRegistration.trim() || undefined,
+          stateRegistrationExempt,
           municipalRegistration:
             municipalRegistration.trim() || undefined,
           address: trimmedAddress,
@@ -240,17 +256,41 @@ export function CompanyForm({
             error={shouldShowError('tradeName', fieldErrors.tradeName)}
             maxLength={200}
           />
-          <Input
-            label="Inscrição Estadual"
-            value={stateRegistration}
-            onChange={(e) => setStateRegistration(e.target.value)}
-            onBlur={getBlurHandler('stateRegistration')}
-            error={shouldShowError(
-              'stateRegistration',
-              fieldErrors.stateRegistration,
-            )}
-            maxLength={30}
-          />
+          <div className="flex flex-col">
+            <Input
+              label="Inscrição Estadual"
+              value={stateRegistration}
+              onChange={(e) => setStateRegistration(e.target.value)}
+              onBlur={getBlurHandler('stateRegistration')}
+              error={shouldShowError(
+                'stateRegistration',
+                fieldErrors.stateRegistration,
+              )}
+              maxLength={30}
+              disabled={stateRegistrationExempt}
+              hint={
+                stateRegistrationExempt
+                  ? 'IE não se aplica — empresa isenta.'
+                  : undefined
+              }
+            />
+            <label className="mt-2 inline-flex cursor-pointer items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+              <input
+                type="checkbox"
+                checked={stateRegistrationExempt}
+                onChange={(e) => {
+                  const next = e.target.checked
+                  setStateRegistrationExempt(next)
+                  // Ao marcar como isenta, limpa o campo IE para evitar
+                  // inconsistência. Ao desmarcar, mantém o estado atual
+                  // (o usuário pode re-digitar).
+                  if (next) setStateRegistration('')
+                }}
+                className="h-4 w-4 cursor-pointer rounded border-slate-300 text-primary focus:ring-primary dark:border-slate-600 dark:bg-slate-800"
+              />
+              <span>IE Isento (empresa dispensada de Inscrição Estadual)</span>
+            </label>
+          </div>
           <Input
             label="Inscrição Municipal"
             value={municipalRegistration}

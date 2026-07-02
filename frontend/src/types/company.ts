@@ -23,6 +23,12 @@ export interface CompanyResponse {
   code: string
   cnpj: string
   stateRegistration: string | null
+  /**
+   * Indica se a empresa é ISENTA de Inscrição Estadual. Quando true,
+   * a `stateRegistration` deve ser nula (empresa dispensada de possuir
+   * IE — caso comum de MEIs e prestadores de serviço).
+   */
+  stateRegistrationExempt: boolean
   municipalRegistration: string | null
   address: Address
   status: RegistrationStatus
@@ -38,6 +44,11 @@ export interface CompanyCreateRequest {
   tradeName?: string
   cnpj: string
   stateRegistration?: string
+  /**
+   * Se a empresa é isenta de IE. Quando omitido no create, o backend
+   * assume `false` (não isenta). Para marcar como isenta, envie `true`.
+   */
+  stateRegistrationExempt?: boolean
   municipalRegistration?: string
   address: Address
   status?: RegistrationStatus
@@ -53,6 +64,12 @@ export interface CompanyUpdateRequest {
   legalName?: string
   tradeName?: string
   stateRegistration?: string
+  /**
+   * Atualiza a flag de isenção de IE. Envie `true` para marcar como
+   * isenta, `false` para desmarcar. Quando omitido no update, o valor
+   * atual é preservado.
+   */
+  stateRegistrationExempt?: boolean
   municipalRegistration?: string
   address?: Address
   status?: RegistrationStatus
