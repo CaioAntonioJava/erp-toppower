@@ -13,7 +13,7 @@ interface LogoTopPowerProps {
  */
 export function LogoTopPower({
   className,
-  title = 'ERP TopPower',
+  title = 'ERP TOP POWER',
 }: LogoTopPowerProps) {
   return (
     <svg

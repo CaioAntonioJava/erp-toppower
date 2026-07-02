@@ -35,7 +35,7 @@ export function Sidebar() {
         <div className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-white">
           <Users className="h-5 w-5" />
         </div>
-        <span className="text-base font-semibold">ERP TopPower</span>
+        <span className="text-base font-semibold">ERP TOP POWER</span>
       </div>
 
       <nav className="flex flex-col gap-1">

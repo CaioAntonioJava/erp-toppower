@@ -72,7 +72,7 @@ export function RegisterPage() {
   return (
     <AuthCard
       title="Criar sua conta"
-      subtitle="Cadastre-se para acessar o ERP TopPower"
+      subtitle="Cadastre-se para acessar o ERP TOP POWER"
       footer={
         <>
           Já tem uma conta?{' '}

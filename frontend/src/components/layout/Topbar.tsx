@@ -1,9 +1,8 @@
 import { LogOut, UserCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { ThemeToggle } from '../ui/ThemeToggle'
 
-/** Topbar com toggle de tema, papel do usuário e botão de logout. */
+/** Topbar com papel do usuário e botão de logout. */
 export function Topbar() {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
@@ -23,7 +22,7 @@ export function Topbar() {
   return (
     <header className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 dark:border-slate-800 dark:bg-slate-900">
       <div className="md:hidden">
-        <span className="text-base font-semibold">ERP TopPower</span>
+        <span className="text-base font-semibold">ERP TOP POWER</span>
       </div>
 
       <div className="hidden md:block">
@@ -44,8 +43,6 @@ export function Topbar() {
             </span>
           </div>
         </div>
-
-        <ThemeToggle />
 
         <button
           type="button"

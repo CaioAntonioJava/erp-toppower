@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
+import { Footer } from './Footer'
 import { useAuth } from '../../context/AuthContext'
 
 /**
@@ -15,7 +16,7 @@ import { useAuth } from '../../context/AuthContext'
 export function AppLayout() {
   const { hasProfile } = useAuth()
 
-  // Modo "setup inicial": sem sidebar, mas com Topbar (usuário/tema/logout)
+  // Modo "setup inicial": sem sidebar, mas com Topbar (usuário/logout)
   if (hasProfile === false) {
     return (
       <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
@@ -25,11 +26,12 @@ export function AppLayout() {
             <Outlet />
           </div>
         </main>
+        <Footer />
       </div>
     )
   }
 
-  // Modo normal: sidebar + topbar + conteúdo
+  // Modo normal: sidebar + topbar + conteúdo + rodapé com seletor de tema
   return (
     <div className="flex min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <Sidebar />
@@ -43,6 +45,7 @@ export function AppLayout() {
             <Outlet />
           </div>
         </main>
+        <Footer />
       </div>
     </div>
   )
