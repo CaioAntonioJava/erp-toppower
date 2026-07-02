@@ -1,0 +1,174 @@
+import { useEffect, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { Button } from '../components/ui/Button'
+import { BackButton } from '../components/ui/BackButton'
+import { Spinner } from '../components/ui/Spinner'
+import { Alert } from '../components/ui/Alert'
+import { QuotationForm } from '../components/sales/QuotationForm'
+import { QuotationStatusBadge } from '../components/sales/QuotationStatusBadge'
+import { RegistrationAuditCard } from '../components/client/RegistrationAuditCard'
+import {
+  createQuotation,
+  getNextQuotationNumber,
+  getQuotation,
+  updateQuotation,
+} from '../api/quotation.api'
+import type {
+  QuotationCreateRequest,
+  QuotationResponse,
+  QuotationUpdateRequest,
+} from '../types/quotation'
+import { toApiError } from '../lib/errors'
+import { useAuth } from '../context/AuthContext'
+
+type Mode = 'loading' | 'create' | 'view'
+
+/**
+ * Página unificada para criar/visualizar/editar uma proposta comercial.
+ * - /quotations/new    → modo create (pode pré-visualizar o próximo número)
+ * - /quotations/:id    → modo view (carrega GET /quotations/{id})
+ */
+export function QuotationFormPage() {
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'ROLE_ADMIN'
+
+  const [mode, setMode] = useState<Mode>('loading')
+  const [quotation, setQuotation] = useState<QuotationResponse | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [nextNumber, setNextNumber] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (!id) {
+      setMode('create')
+      // Pré-visualiza o próximo número para exibir no header.
+      getNextQuotationNumber()
+        .then((n) => setNextNumber(n))
+        .catch(() => setNextNumber(null))
+      return
+    }
+    let cancelled = false
+    setMode('loading')
+    setLoadError(null)
+    getQuotation(id)
+      .then((data) => {
+        if (cancelled) return
+        setQuotation(data)
+        setMode('view')
+      })
+      .catch((err) => {
+        if (cancelled) return
+        setLoadError(toApiError(err).message)
+        setMode('create')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [id])
+
+  async function handleCreate(payload: QuotationCreateRequest) {
+    setSaving(true)
+    try {
+      await createQuotation(payload)
+      navigate('/quotations', { replace: true })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleUpdate(payload: QuotationUpdateRequest) {
+    if (!quotation) return
+    setSaving(true)
+    try {
+      const updated = await updateQuotation(quotation.uuid, payload)
+      setQuotation(updated)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Propostas CONVERTIDAS não podem ser editadas.
+  const readOnly = mode === 'view' && quotation?.status === 'CONVERTIDA'
+  const canEdit = mode === 'view' && !readOnly
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <BackButton />
+          <h1 className="mt-4 text-2xl font-semibold tracking-tight">
+            {mode === 'create'
+              ? 'Nova proposta'
+              : quotation
+                ? `Proposta ${quotation.number}`
+                : 'Proposta'}
+          </h1>
+          {mode === 'create' ? (
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Preencha os dados para criar a proposta.
+            </p>
+          ) : mode === 'view' && quotation ? (
+            <div className="mt-1 flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+              <span>Emissão: {quotation.issueDate}</span>
+              <span aria-hidden>•</span>
+              <QuotationStatusBadge status={quotation.status} />
+            </div>
+          ) : null}
+        </div>
+
+        {readOnly && quotation ? (
+          <Button
+            variant="secondary"
+            onClick={() => navigate(`/quotations/${quotation.uuid}`)}
+          >
+            Modo somente leitura (CONVERTIDA)
+          </Button>
+        ) : null}
+      </div>
+
+      {loadError ? (
+        <Alert variant="error">
+          {loadError}. <BackButton />
+        </Alert>
+      ) : null}
+
+      {isAdmin && mode === 'view' && quotation ? (
+        <RegistrationAuditCard
+          createdBy={quotation.createdBy}
+          createdAt={quotation.createdAt}
+          updatedBy={quotation.updatedBy}
+          updatedAt={quotation.updatedAt}
+        />
+      ) : null}
+
+      {mode === 'loading' ? (
+        <div className="flex h-64 items-center justify-center">
+          <Spinner size="lg" />
+        </div>
+      ) : (
+        <div className="relative">
+          {readOnly ? (
+            <div className="mb-4">
+              <Alert variant="info">
+                Propostas convertidas não podem ser editadas. Use a tela de
+                listagem para visualizar ou cancelar.
+              </Alert>
+            </div>
+          ) : null}
+          <fieldset disabled={readOnly} className={readOnly ? 'opacity-70' : ''}>
+            <QuotationForm
+              quotation={canEdit ? quotation ?? undefined : undefined}
+              isLoading={saving}
+              initialNumber={mode === 'create' ? nextNumber : null}
+              isAdmin={isAdmin}
+              onSaveCreate={handleCreate}
+              onSaveUpdate={handleUpdate}
+            />
+          </fieldset>
+        </div>
+      )}
+    </div>
+  )
+}

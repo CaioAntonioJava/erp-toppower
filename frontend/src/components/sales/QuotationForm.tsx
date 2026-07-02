@@ -1,0 +1,1315 @@
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from 'react'
+import { Plus, Save, Trash2 } from 'lucide-react'
+import { Input } from '../ui/Input'
+import { Select } from '../ui/Select'
+import { Button } from '../ui/Button'
+import { Alert } from '../ui/Alert'
+import { Spinner } from '../ui/Spinner'
+import { RichTextEditor } from '../ui/RichTextEditor'
+import { toApiError } from '../../lib/errors'
+import { useFieldTouched } from '../../hooks/useFieldTouched'
+import { searchProducts } from '../../api/product.api'
+import { getProduct } from '../../api/product.api'
+import { listSellers } from '../../api/seller.api'
+import { searchQuotationClients } from '../../api/quotation.api'
+import type { ProductResponse, UnitType } from '../../types/product'
+import type { SellerResponse } from '../../types/seller'
+import type {
+  ClientSummaryResponse,
+  DiscountType,
+  PaymentCondition,
+  QuotationClientType,
+  QuotationCreateRequest,
+  QuotationItemRequest,
+  QuotationResponse,
+  QuotationUpdateRequest,
+} from '../../types/quotation'
+import {
+  DISCOUNT_TYPE_OPTIONS,
+  PAYMENT_CONDITION_OPTIONS,
+  QUOTATION_CLIENT_TYPE_LABELS,
+} from '../../types/quotation'
+
+interface QuotationFormProps {
+  /** Proposta existente (modo edição). Quando omitido, é cadastro novo. */
+  quotation?: QuotationResponse
+  isLoading?: boolean
+  /** Próximo número previsto pelo backend (modo create). */
+  initialNumber?: number | null
+  /**
+   * Quando true, libera a edição dos campos gerados pelo servidor
+   * (número da proposta, data de emissão). Mesmo com `isAdmin=true`, o
+   * backend atual ignora esses campos no payload — o override é
+   * visual, preparando o terreno para um endpoint admin futuro.
+   */
+  isAdmin?: boolean
+  onSaveCreate: (payload: QuotationCreateRequest) => Promise<void>
+  onSaveUpdate: (payload: QuotationUpdateRequest) => Promise<void>
+}
+
+/** Linha do editor de itens (estado local, antes de virar QuotationItemRequest). */
+interface ItemDraft {
+  /** Chave local para controle de lista. Diferente do uuid do backend. */
+  rowKey: string
+  productUuid: string
+  productLabel: string
+  /** SKU/código do produto, exibido na coluna "Código" (pode ser null). */
+  productCode: string | null
+  /** Unidade de medida do produto (UN/MT/BB), exibida na coluna "Un". */
+  unitType: UnitType | null
+  /** Preço de lista (catálogo) — snapshot read-only no momento da seleção. */
+  listPrice: number
+  /** Preço unitário negociado (editável, default = listPrice). */
+  unitPrice: number
+  quantity: number
+  discountType: DiscountType | null
+  discount: number | null
+}
+
+/**
+ * Abreviações de unidade para a coluna "Un" da tabela. Mantemos uma
+ * largura fixa de ~2 caracteres para a coluna caber confortavelmente.
+ */
+const UNIT_SHORT_LABELS: Record<UnitType, string> = {
+  UNIDADE: 'UN',
+  METROS: 'MT',
+  BOBINA: 'BB',
+}
+
+/**
+ * Template do grid da tabela de itens (header e linhas). Mantemos
+ * uma única definição para garantir que as colunas se alinhem.
+ *   # | Item | Código | Un | Qtde | Preço lista | Desc % | Preço un | Preço total | Ações
+ */
+const ITEMS_GRID_TEMPLATE =
+  '[40px_minmax(0,1fr)_110px_56px_96px_120px_96px_120px_120px_44px]'
+const ITEMS_GRID_CLASS = `grid gap-2 ${ITEMS_GRID_TEMPLATE}`
+
+/** Estilo base para os inputs compactos da tabela (h-9 em vez do h-11 default). */
+const TABLE_INPUT_BASE =
+  'h-9 w-full rounded-md border bg-white px-2 text-sm text-slate-900 outline-none ' +
+  'placeholder:text-slate-400 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 ' +
+  'border-slate-300 focus:border-focus focus:ring-1 focus:ring-focus/30 dark:border-slate-700 ' +
+  'transition-colors duration-200'
+const TABLE_INPUT_ERROR =
+  'border-red-500 focus:border-red-500 focus:ring-red-500/30'
+/** Combina base + estado de erro (quando há mensagem). */
+function tableInputClass(hasError: boolean): string {
+  return hasError ? `${TABLE_INPUT_BASE} ${TABLE_INPUT_ERROR}` : TABLE_INPUT_BASE
+}
+
+/** Formatador de moeda BRL compartilhado. */
+const brlFormatter = new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'BRL',
+})
+
+/** Gera uma chave local única para cada linha do editor. */
+function nextRowKey(): string {
+  return `row_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
+}
+
+/** Converte string (com vírgula ou ponto) em número finito, ou null. */
+function parseNumber(value: string): number | null {
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  const normalized = trimmed.replace(',', '.')
+  const n = Number(normalized)
+  return Number.isFinite(n) ? n : null
+}
+
+/** Retorna a data atual no formato ISO `YYYY-MM-DD` aceito por `<input type="date">`. */
+function todayIso(): string {
+  const d = new Date()
+  const yyyy = d.getFullYear()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
+}
+
+/**
+ * Calcula o total líquido de uma linha (depois do desconto por item),
+ * replicando a fórmula do backend: totalPrice = unitPrice * quantity - discount
+ * (desconto interpretado conforme discountType).
+ */
+function lineTotal(item: ItemDraft): number {
+  const gross = item.unitPrice * item.quantity
+  if (item.discount == null || item.discountType == null) return gross
+  if (item.discountType === 'PERCENT') {
+    return Math.max(0, gross - (gross * item.discount) / 100)
+  }
+  return Math.max(0, gross - item.discount)
+}
+
+/** Calcula o desconto global em R$ dado o subtotal e o tipo/valor. */
+function globalDiscountAmount(
+  subtotal: number,
+  discountType: DiscountType | null,
+  discount: number | null,
+): number {
+  if (discount == null || discountType == null) return 0
+  if (discountType === 'PERCENT') {
+    return Math.min(subtotal, (subtotal * discount) / 100)
+  }
+  return Math.min(subtotal, discount)
+}
+
+export function QuotationForm({
+  quotation,
+  isLoading = false,
+  initialNumber = null,
+  isAdmin = false,
+  onSaveCreate,
+  onSaveUpdate,
+}: QuotationFormProps) {
+  const isEdit = !!quotation
+
+  // === cabeçalho ===
+  const [clientType, setClientType] = useState<QuotationClientType>(
+    quotation?.clientType ?? 'CUSTOMER',
+  )
+  const [clientUuid, setClientUuid] = useState<string>(
+    quotation?.customerUuid ?? quotation?.companyUuid ?? '',
+  )
+  const [clientLabel, setClientLabel] = useState<string>('')
+  const [attention, setAttention] = useState<string>(quotation?.attention ?? '')
+  const [sellerUuid, setSellerUuid] = useState<string>(
+    quotation?.sellerUuid ?? '',
+  )
+  const [validityDays, setValidityDays] = useState<string>(
+    quotation?.validityDays != null ? String(quotation.validityDays) : '',
+  )
+  const [paymentCondition, setPaymentCondition] = useState<PaymentCondition | ''>(
+    quotation?.paymentCondition ?? '',
+  )
+  const [notes, setNotes] = useState<string>(quotation?.notes ?? '')
+  const [discountType, setDiscountType] = useState<DiscountType | ''>(
+    quotation?.discountType ?? '',
+  )
+  const [discount, setDiscount] = useState<string>(
+    quotation?.discount != null ? String(quotation.discount) : '',
+  )
+
+  // === campos gerados pelo servidor ===
+  // O número vem do backend (já gerado a partir de 1500). Pré-preenchido em
+  // create com `initialNumber` (next-number) e em edit com `quotation.number`.
+  // Data de emissão: preenchida automaticamente pelo servidor; exibida em
+  // create como hoje e em edit como o valor persistido. Ambos ficam
+  // bloqueados para não-admin; admin pode editar (override visual).
+  const [number, setNumber] = useState<string>(() => {
+    if (quotation?.number != null) return String(quotation.number)
+    if (initialNumber != null) return String(initialNumber)
+    return ''
+  })
+  // Marca se o usuário editou manualmente o número. Usado para evitar
+  // sobrescrever a digitação do usuário quando o `initialNumber` chega
+  // assincronamente após a primeira renderização do formulário.
+  const numberDirtyRef = useRef<boolean>(false)
+  const [issueDate, setIssueDate] = useState<string>(
+    quotation?.issueDate ?? todayIso(),
+  )
+
+  // === itens ===
+  // Em modo create já iniciamos com uma linha vazia para o primeiro item,
+  // conforme requisito. Em modo edit, carregamos os itens persistidos e
+  // hidratamos o nome/código/unidade/preço de lista do produto via
+  // `getProduct` (o `QuotationItemResponse` não embute esses dados).
+  const [items, setItems] = useState<ItemDraft[]>(() => {
+    if (quotation?.items && quotation.items.length > 0) {
+      return quotation.items.map((it) => ({
+        rowKey: nextRowKey(),
+        productUuid: it.productUuid,
+        productLabel: it.productUuid, // preenchido pelo useEffect de hidratação
+        productCode: null,
+        unitType: null,
+        // Sem informação de listPrice no DTO, usamos o unitPrice como
+        // aproximação (em geral lista = un na ausência de desconto).
+        listPrice: it.unitPrice,
+        unitPrice: it.unitPrice,
+        quantity: it.quantity,
+        discountType: it.discountType ?? null,
+        discount: it.discount ?? null,
+      }))
+    }
+    if (!quotation) {
+      return [
+        {
+          rowKey: nextRowKey(),
+          productUuid: '',
+          productLabel: '',
+          productCode: null,
+          unitType: null,
+          listPrice: 0,
+          unitPrice: 0,
+          quantity: 1,
+          discountType: null,
+          discount: null,
+        },
+      ]
+    }
+    return []
+  })
+
+  // === coleções auxiliares ===
+  const [sellers, setSellers] = useState<SellerResponse[]>([])
+  const [sellersLoading, setSellersLoading] = useState(false)
+  const [clientOptions, setClientOptions] = useState<ClientSummaryResponse[]>([])
+  const [clientSearching, setClientSearching] = useState(false)
+  const [productOptions, setProductOptions] = useState<ProductResponse[]>([])
+  const [productSearching, setProductSearching] = useState(false)
+  const [activeProductRow, setActiveProductRow] = useState<string | null>(null)
+
+  const [formError, setFormError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+
+  const { shouldShowError, getBlurHandler, markAllTouched, reset } =
+    useFieldTouched()
+
+  // Carrega lista de vendedores ativos uma vez.
+  useEffect(() => {
+    let cancelled = false
+    setSellersLoading(true)
+    listSellers({ status: 'ATIVO', size: 100, page: 0 })
+      .then((p) => {
+        if (cancelled) return
+        setSellers(p.content)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setSellers([])
+      })
+      .finally(() => {
+        if (!cancelled) setSellersLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // Sincroniza o número da proposta com o `initialNumber` que chega
+  // assincronamente do endpoint `/quotations/next-number`. Em modo create,
+  // o componente monta antes do fetch resolver, então precisamos refletir
+  // o valor assim que ele chega — sem sobrescrever a digitação do usuário.
+  useEffect(() => {
+    if (quotation) return
+    if (initialNumber == null) return
+    if (numberDirtyRef.current) return
+    setNumber(String(initialNumber))
+  }, [initialNumber, quotation])
+
+  // Pré-preenche o rótulo do cliente no modo edição.
+  useEffect(() => {
+    if (!quotation) return
+    if (quotation.clientType === 'CUSTOMER' && quotation.customerUuid) {
+      setClientOptions([
+        {
+          type: 'CUSTOMER',
+          uuid: quotation.customerUuid,
+          code: '',
+          name: '',
+          document: '',
+        },
+      ])
+    } else if (quotation.clientType === 'COMPANY' && quotation.companyUuid) {
+      setClientOptions([
+        {
+          type: 'COMPANY',
+          uuid: quotation.companyUuid,
+          code: '',
+          name: '',
+          document: '',
+        },
+      ])
+    }
+  }, [quotation])
+
+  // Hidrata dados de produto (nome/código/unidade/preço de lista) para
+  // itens carregados de uma proposta existente. O backend não embute
+  // essas informações no `QuotationItemResponse`, então buscamos via
+  // `getProduct(uuid)` para cada UUID único. Falhas de fetch são
+  // silenciosas (mantém o que já temos e a UI mostra "—"). Usamos
+  // `quotation.items` (fonte estável) como gatilho para evitar re-fetches
+  // a cada `setItems`.
+  useEffect(() => {
+    if (!quotation?.items) return
+    const uuids = Array.from(
+      new Set(quotation.items.map((it) => it.productUuid).filter(Boolean)),
+    )
+    if (uuids.length === 0) return
+
+    let cancelled = false
+    Promise.all(
+      uuids.map((uuid) =>
+        getProduct(uuid)
+          .then((p) => p)
+          .catch(() => null),
+      ),
+    ).then((products) => {
+      if (cancelled) return
+      const byUuid = new Map<string, ProductResponse>()
+      for (const p of products) if (p) byUuid.set(p.uuid, p)
+      if (byUuid.size === 0) return
+      setItems((prev) =>
+        prev.map((it) => {
+          const p = byUuid.get(it.productUuid)
+          if (!p) return it
+          return {
+            ...it,
+            productLabel: p.name,
+            productCode: p.code,
+            unitType: p.unitType,
+            listPrice: p.price,
+            // Mantém o `unitPrice` que veio do backend (snapshot original),
+            // que pode divergir do listPrice se houve desconto por linha.
+            unitPrice: it.unitPrice,
+          }
+        }),
+      )
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [quotation])
+
+  // Debounce do typeahead de clientes.
+  const clientDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const handleClientQuery = useCallback(
+    (query: string) => {
+      if (clientDebounce.current) clearTimeout(clientDebounce.current)
+      const trimmed = query.trim()
+      if (trimmed.length < 2) {
+        setClientOptions([])
+        return
+      }
+      clientDebounce.current = setTimeout(() => {
+        setClientSearching(true)
+        searchQuotationClients(trimmed, 20)
+          .then((r) => {
+            setClientOptions(r)
+          })
+          .catch(() => {
+            setClientOptions([])
+          })
+          .finally(() => {
+            setClientSearching(false)
+          })
+      }, 300)
+    },
+    [],
+  )
+
+  // Typeahead de produtos por linha.
+  const productDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const handleProductQuery = useCallback(
+    (rowKey: string, query: string) => {
+      setActiveProductRow(rowKey)
+      if (productDebounce.current) clearTimeout(productDebounce.current)
+      const trimmed = query.trim()
+      if (trimmed.length < 2) {
+        setProductOptions([])
+        return
+      }
+      productDebounce.current = setTimeout(() => {
+        setProductSearching(true)
+        searchProducts({ query: trimmed, status: 'ATIVO', page: 0, size: 20 })
+          .then((p) => {
+            // Só atualiza se o usuário ainda está na mesma linha.
+            setProductOptions(p.content)
+          })
+          .catch(() => {
+            setProductOptions([])
+          })
+          .finally(() => {
+            setProductSearching(false)
+          })
+      }, 300)
+    },
+    [],
+  )
+
+  // === handlers de itens ===
+  function addItem() {
+    setItems((prev) => [
+      ...prev,
+      {
+        rowKey: nextRowKey(),
+        productUuid: '',
+        productLabel: '',
+        productCode: null,
+        unitType: null,
+        listPrice: 0,
+        unitPrice: 0,
+        quantity: 1,
+        discountType: null,
+        discount: null,
+      },
+    ])
+  }
+
+  function removeItem(rowKey: string) {
+    setItems((prev) => prev.filter((it) => it.rowKey !== rowKey))
+  }
+
+  function updateItem(rowKey: string, patch: Partial<ItemDraft>) {
+    setItems((prev) =>
+      prev.map((it) => (it.rowKey === rowKey ? { ...it, ...patch } : it)),
+    )
+  }
+
+  function selectProduct(rowKey: string, p: ProductResponse) {
+    updateItem(rowKey, {
+      productUuid: p.uuid,
+      productLabel: p.name,
+      productCode: p.code,
+      unitType: p.unitType,
+      // snapshot do preço atual do produto (lista + un inicial = mesmo valor;
+      // o usuário pode ajustar "Preço un" depois se precisar).
+      listPrice: p.price,
+      unitPrice: p.price,
+    })
+    setProductOptions([])
+    setActiveProductRow(null)
+  }
+
+  // === totais calculados ===
+  const subtotal = useMemo(
+    () => items.reduce((sum, it) => sum + lineTotal(it), 0),
+    [items],
+  )
+  const totalQuantity = useMemo(
+    () => items.reduce((sum, it) => sum + (it.quantity ?? 0), 0),
+    [items],
+  )
+  const globalDiscountValue = useMemo(
+    () =>
+      globalDiscountAmount(
+        subtotal,
+        discountType === '' ? null : discountType,
+        parseNumber(discount),
+      ),
+    [subtotal, discountType, discount],
+  )
+  const total = useMemo(
+    () => Math.max(0, subtotal - globalDiscountValue),
+    [subtotal, globalDiscountValue],
+  )
+
+  // === validação e submit ===
+  function validateAll(): boolean {
+    const errs: Record<string, string> = {}
+
+    if (!clientUuid) {
+      errs.clientUuid = 'Selecione um cliente.'
+    }
+    if (!sellerUuid) {
+      errs.sellerUuid = 'Selecione o vendedor responsável.'
+    }
+
+    if (items.length === 0) {
+      errs.items = 'A proposta deve ter ao menos um item.'
+    } else {
+      items.forEach((it, idx) => {
+        if (!it.productUuid) {
+          errs[`items.${idx}.product`] = 'Selecione um produto.'
+        }
+        if (!(it.quantity > 0)) {
+          errs[`items.${idx}.quantity`] = 'Quantidade deve ser maior que zero.'
+        }
+        if (!(it.unitPrice >= 0)) {
+          errs[`items.${idx}.unitPrice`] =
+            'Preço unitário não pode ser negativo.'
+        }
+      })
+    }
+
+    if (validityDays.trim() !== '') {
+      const v = parseNumber(validityDays)
+      if (v == null || !Number.isInteger(v) || v < 1) {
+        errs.validityDays = 'Validade deve ser um inteiro ≥ 1.'
+      }
+    }
+
+    if (discount.trim() !== '') {
+      const d = parseNumber(discount)
+      if (d == null || d < 0) {
+        errs.discount = 'Desconto não pode ser negativo.'
+      }
+      if (discountType === '') {
+        errs.discountType =
+          'Informe o tipo de desconto ou deixe o valor em branco.'
+      }
+    }
+    if (discountType !== '' && discount.trim() === '') {
+      errs.discount = 'Informe o valor do desconto ou remova o tipo.'
+    }
+
+    if (attention.length > 150) {
+      errs.attention = 'Aos cuidados de deve ter no máximo 150 caracteres.'
+    }
+    if (notes.length > 2000) {
+      errs.notes = 'Observações devem ter no máximo 2000 caracteres.'
+    }
+
+    setFieldErrors(errs)
+    return Object.keys(errs).length === 0
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    setFormError(null)
+    setSuccess(null)
+    markAllTouched()
+    if (!validateAll()) return
+
+    const itemsPayload: QuotationItemRequest[] = items.map((it) => {
+      const base: QuotationItemRequest = {
+        productUuid: it.productUuid,
+        quantity: it.quantity,
+        unitPrice: it.unitPrice,
+      }
+      if (it.discountType != null) base.discountType = it.discountType
+      if (it.discount != null) base.discount = it.discount
+      return base
+    })
+
+    try {
+      if (isEdit) {
+        const payload: QuotationUpdateRequest = {
+          attention: attention.trim() ? attention.trim() : null,
+          sellerUuid,
+          items: itemsPayload,
+        }
+        if (clientType === 'CUSTOMER') {
+          payload.customerUuid = clientUuid
+          payload.companyUuid = null
+        } else {
+          payload.companyUuid = clientUuid
+          payload.customerUuid = null
+        }
+        if (discountType !== '') {
+          payload.discountType = discountType
+          payload.discount = parseNumber(discount) ?? 0
+        } else {
+          payload.discountType = null
+          payload.discount = null
+        }
+        if (validityDays.trim() !== '') {
+          payload.validityDays = parseNumber(validityDays) as number
+        } else {
+          payload.validityDays = null
+        }
+        payload.paymentCondition = paymentCondition === '' ? null : paymentCondition
+        payload.notes = notes.trim() ? notes.trim() : null
+
+        // Override admin: envia `number`/`issueDate` no payload. O backend
+        // atual (QuotationUpdateRequest) não inclui esses campos, então o
+        // cast é necessário — quando um endpoint admin for adicionado, basta
+        // tipar `number` e `issueDate` nos DTOs de request.
+        if (isAdmin) {
+          const adminPayload = payload as QuotationUpdateRequest & {
+            number?: number
+            issueDate?: string
+          }
+          const num = parseNumber(number)
+          if (num != null && Number.isInteger(num) && num >= 0) {
+            adminPayload.number = num
+          }
+          if (issueDate.trim()) adminPayload.issueDate = issueDate.trim()
+        }
+
+        await onSaveUpdate(payload)
+        setSuccess('Proposta atualizada com sucesso!')
+        reset()
+      } else {
+        const payload: QuotationCreateRequest = {
+          sellerUuid,
+          items: itemsPayload,
+        }
+        if (clientType === 'CUSTOMER') {
+          payload.customerUuid = clientUuid
+        } else {
+          payload.companyUuid = clientUuid
+        }
+        if (attention.trim()) payload.attention = attention.trim()
+        if (discountType !== '') {
+          payload.discountType = discountType
+          payload.discount = parseNumber(discount) ?? 0
+        }
+        if (validityDays.trim() !== '') {
+          payload.validityDays = parseNumber(validityDays) as number
+        }
+        if (paymentCondition !== '') {
+          payload.paymentCondition = paymentCondition
+        }
+        if (notes.trim()) payload.notes = notes.trim()
+
+        // Override admin (mesma observação do bloco de update acima).
+        if (isAdmin) {
+          const adminPayload = payload as QuotationCreateRequest & {
+            number?: number
+            issueDate?: string
+          }
+          const num = parseNumber(number)
+          if (num != null && Number.isInteger(num) && num >= 0) {
+            adminPayload.number = num
+          }
+          if (issueDate.trim()) adminPayload.issueDate = issueDate.trim()
+        }
+
+        await onSaveCreate(payload)
+        setSuccess('Proposta criada com sucesso!')
+        reset()
+      }
+    } catch (err) {
+      const apiErr = toApiError(err)
+      setFormError(apiErr.message)
+      if (apiErr.fieldErrors) setFieldErrors(apiErr.fieldErrors)
+    }
+  }
+
+  const clientTypeOptions = [
+    { value: 'CUSTOMER', label: QUOTATION_CLIENT_TYPE_LABELS.CUSTOMER },
+    { value: 'COMPANY', label: QUOTATION_CLIENT_TYPE_LABELS.COMPANY },
+  ]
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6" noValidate>
+      {formError ? <Alert variant="error">{formError}</Alert> : null}
+      {success ? <Alert variant="success">{success}</Alert> : null}
+
+      {/* Cabeçalho — cliente + vendedor */}
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <h3 className="mb-1 text-base font-semibold">Cliente e vendedor</h3>
+        <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+          Selecione o tipo de cliente (PF ou PJ), busque pelo nome ou código,
+          e informe o vendedor responsável.
+        </p>
+
+        <div className="grid gap-4 sm:grid-cols-[160px_180px_1fr]">
+          <Input
+            label="Número da proposta"
+            type="number"
+            inputMode="numeric"
+            min={1}
+            value={number}
+            onChange={(e) => {
+              numberDirtyRef.current = true
+              setNumber(e.target.value)
+            }}
+            onBlur={getBlurHandler('number')}
+            error={shouldShowError('number', fieldErrors.number)}
+            disabled={!isAdmin}
+            readOnly={!isAdmin}
+            className="max-w-[160px]"
+          />
+          <Select
+            label="Tipo de cliente"
+            value={clientType}
+            onChange={(e) => {
+              setClientType(e.target.value as QuotationClientType)
+              setClientUuid('')
+              setClientLabel('')
+              setClientOptions([])
+            }}
+            options={clientTypeOptions}
+            required
+            aria-label="Tipo de cliente"
+          />
+          <div className="flex flex-col">
+            <label
+              htmlFor="client-search"
+              className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200"
+            >
+              Cliente
+              <span className="ml-0.5 text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <Input
+                id="client-search"
+                placeholder={
+                  clientType === 'CUSTOMER'
+                    ? 'Buscar cliente (PF) por nome ou código…'
+                    : 'Buscar empresa (PJ) por nome ou código…'
+                }
+                value={clientLabel}
+                onChange={(e) => {
+                  setClientLabel(e.target.value)
+                  setClientUuid('')
+                  handleClientQuery(e.target.value)
+                }}
+                onBlur={getBlurHandler('clientUuid')}
+                hint={
+                  clientLabel.trim().length > 0 &&
+                  clientLabel.trim().length < 2
+                    ? 'Digite ao menos 2 caracteres para buscar.'
+                    : undefined
+                }
+                required
+              />
+              {clientSearching ? (
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                  <Spinner size="sm" />
+                </span>
+              ) : null}
+            </div>
+            {clientOptions.length > 0 && !clientUuid ? (
+              <ul className="mt-1 max-h-56 overflow-y-auto rounded-lg border border-slate-200 bg-white text-sm shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                {clientOptions.map((c) => (
+                  <li key={c.uuid}>
+                    <button
+                      type="button"
+                      className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800"
+                      onClick={() => {
+                        setClientUuid(c.uuid)
+                        setClientLabel(
+                          `${c.code ? `${c.code} — ` : ''}${c.name}${c.document ? ` (${c.document})` : ''}`,
+                        )
+                        setClientOptions([])
+                      }}
+                    >
+                      <span className="inline-flex shrink-0 rounded border border-slate-300 px-1.5 py-0.5 text-[10px] font-medium uppercase text-slate-600 dark:border-slate-600 dark:text-slate-300">
+                        {c.type === 'CUSTOMER' ? 'PF' : 'PJ'}
+                      </span>
+                      <span className="flex-1">
+                        <span className="block font-medium text-slate-900 dark:text-slate-100">
+                          {c.name}
+                        </span>
+                        <span className="block text-xs text-slate-500 dark:text-slate-400">
+                          {c.code}
+                          {c.document ? ` • ${c.document}` : ''}
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {shouldShowError('clientUuid', fieldErrors.clientUuid) ? (
+              <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">
+                {fieldErrors.clientUuid}
+              </p>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <Select
+            label="Vendedor"
+            value={sellerUuid}
+            onChange={(e) => setSellerUuid(e.target.value)}
+            onBlur={getBlurHandler('sellerUuid')}
+            error={shouldShowError('sellerUuid', fieldErrors.sellerUuid)}
+            required
+            options={[
+              { value: '', label: sellersLoading ? 'Carregando…' : 'Selecione…' },
+              ...sellers.map((s) => ({ value: s.uuid, label: s.name })),
+            ]}
+            aria-label="Vendedor responsável"
+          />
+          <Input
+            label="Aos cuidados de"
+            value={attention}
+            onChange={(e) => setAttention(e.target.value)}
+            onBlur={getBlurHandler('attention')}
+            error={shouldShowError('attention', fieldErrors.attention)}
+            maxLength={150}
+          />
+        </div>
+      </section>
+
+      {/* Itens */}
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="mb-1 flex items-center justify-between">
+          <h3 className="text-base font-semibold">Itens</h3>
+          <Button type="button" size="sm" variant="secondary" onClick={addItem}>
+            <Plus className="h-4 w-4" />
+            Adicionar item
+          </Button>
+        </div>
+        <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+          Liste os produtos da proposta com quantidade, preço unitário e
+          desconto por linha (opcional).
+        </p>
+
+        {fieldErrors.items && !fieldErrors.items.startsWith('items.') ? (
+          <Alert variant="error">{fieldErrors.items}</Alert>
+        ) : null}
+
+        {items.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+            Nenhum item. Clique em <strong>Adicionar item</strong> para começar.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            {/* Cabeçalho da tabela */}
+            <div
+              className={`${ITEMS_GRID_CLASS} min-w-[1020px] border-b border-slate-200 pb-2 text-xs font-medium uppercase tracking-wide text-slate-500 dark:border-slate-700 dark:text-slate-400`}
+              role="row"
+            >
+              <div role="columnheader" className="text-center">#</div>
+              <div role="columnheader">Item</div>
+              <div role="columnheader">Código</div>
+              <div role="columnheader" className="text-center">Un</div>
+              <div role="columnheader" className="text-right">Qtde</div>
+              <div role="columnheader" className="text-right">Preço lista</div>
+              <div role="columnheader" className="text-right">Desc %</div>
+              <div role="columnheader" className="text-right">Preço un</div>
+              <div role="columnheader" className="text-right">Preço total</div>
+              <div role="columnheader" aria-label="Ações" />
+            </div>
+
+            {/* Linhas */}
+            <div className="flex flex-col">
+              {items.map((it, idx) => (
+                <ItemRow
+                  key={it.rowKey}
+                  index={idx}
+                  item={it}
+                  fieldErrors={fieldErrors}
+                  productOptions={productOptions}
+                  productSearching={
+                    productSearching && activeProductRow === it.rowKey
+                  }
+                  showError={shouldShowError}
+                  getBlurHandler={getBlurHandler}
+                  onQuery={(q) => handleProductQuery(it.rowKey, q)}
+                  onSelect={(p) => selectProduct(it.rowKey, p)}
+                  onPatch={(patch) => updateItem(it.rowKey, patch)}
+                  onRemove={() => removeItem(it.rowKey)}
+                  onCloseSuggestions={() => {
+                    setProductOptions([])
+                    setActiveProductRow(null)
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* Desconto, validade, pagamento, observações */}
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <h3 className="mb-1 text-base font-semibold">Condições</h3>
+        <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+          Desconto global, prazo de validade, condição de pagamento e
+          observações da proposta.
+        </p>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <Select
+            label="Tipo de desconto global"
+            value={discountType}
+            onChange={(e) =>
+              setDiscountType(e.target.value as DiscountType | '')
+            }
+            onBlur={getBlurHandler('discountType')}
+            error={shouldShowError('discountType', fieldErrors.discountType)}
+            options={[
+              { value: '', label: 'Sem desconto' },
+              ...DISCOUNT_TYPE_OPTIONS,
+            ]}
+            aria-label="Tipo de desconto"
+          />
+          <Input
+            label={
+              discountType === 'PERCENT'
+                ? 'Desconto global (%)'
+                : discountType === 'AMOUNT'
+                  ? 'Desconto global (R$)'
+                  : 'Desconto global'
+            }
+            type="number"
+            inputMode="decimal"
+            step="0.01"
+            min={0}
+            value={discount}
+            onChange={(e) => setDiscount(e.target.value)}
+            onBlur={getBlurHandler('discount')}
+            error={shouldShowError('discount', fieldErrors.discount)}
+            disabled={discountType === ''}
+            hint={
+              discountType === 'PERCENT'
+                ? 'Percentual aplicado sobre o subtotal.'
+                : discountType === 'AMOUNT'
+                  ? 'Valor fixo em reais.'
+                  : 'Defina o tipo de desconto primeiro.'
+            }
+          />
+          <Input
+            label="Data de emissão"
+            type="date"
+            value={issueDate}
+            onChange={(e) => setIssueDate(e.target.value)}
+            onBlur={getBlurHandler('issueDate')}
+            error={shouldShowError('issueDate', fieldErrors.issueDate)}
+            disabled={!isAdmin}
+            readOnly={!isAdmin}
+            hint={
+              isAdmin
+                ? 'Override administrativo — data normal é gerada pelo servidor.'
+                : 'Preenchida automaticamente com a data atual (somente leitura).'
+            }
+          />
+          <Input
+            label="Validade (dias)"
+            type="number"
+            inputMode="numeric"
+            step="1"
+            min={1}
+            value={validityDays}
+            onChange={(e) => setValidityDays(e.target.value)}
+            onBlur={getBlurHandler('validityDays')}
+            error={shouldShowError('validityDays', fieldErrors.validityDays)}
+            hint="Dias contados a partir da data de emissão."
+          />
+          <div className="sm:col-span-2 lg:col-span-2">
+            <Select
+              label="Condição de pagamento"
+              value={paymentCondition}
+              onChange={(e) =>
+                setPaymentCondition(e.target.value as PaymentCondition | '')
+              }
+              options={[
+                { value: '', label: 'Selecione…' },
+                ...PAYMENT_CONDITION_OPTIONS,
+              ]}
+              aria-label="Condição de pagamento"
+            />
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <label
+            htmlFor="quotation-notes"
+            className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200"
+          >
+            Observações
+          </label>
+          <RichTextEditor
+            id="quotation-notes"
+            value={notes}
+            onChange={setNotes}
+            onBlur={getBlurHandler('notes')}
+            maxLength={2000}
+            placeholder="Instruções de entrega, garantias, condições adicionais…"
+          />
+          {shouldShowError('notes', fieldErrors.notes) ? (
+            <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">
+              {fieldErrors.notes}
+            </p>
+          ) : (
+            <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
+              {notes.length}/2000 caracteres (inclui formatação).
+            </p>
+          )}
+        </div>
+      </section>
+
+      {/* Totais */}
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <h3 className="mb-4 text-base font-semibold">Totais</h3>
+        <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Itens
+            </dt>
+            <dd className="mt-1 text-lg font-semibold text-slate-900 dark:text-slate-100">
+              {items.length}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Quantidade
+            </dt>
+            <dd className="mt-1 text-lg font-semibold text-slate-900 dark:text-slate-100">
+              {totalQuantity}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Subtotal
+            </dt>
+            <dd className="mt-1 text-lg font-semibold text-slate-900 dark:text-slate-100">
+              {brlFormatter.format(subtotal)}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Total
+            </dt>
+            <dd className="mt-1 text-lg font-semibold text-primary-700 dark:text-primary-200">
+              {brlFormatter.format(total)}
+            </dd>
+          </div>
+        </dl>
+        {globalDiscountValue > 0 ? (
+          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+            Desconto global aplicado:{' '}
+            {brlFormatter.format(globalDiscountValue)}
+          </p>
+        ) : null}
+      </section>
+
+      <div className="flex justify-end">
+        <Button type="submit" isLoading={isLoading} size="lg">
+          <Save className="h-4 w-4" />
+          {isEdit ? 'Salvar alterações' : 'Cadastrar proposta'}
+        </Button>
+      </div>
+    </form>
+  )
+}
+
+// =====================================================================
+// Subcomponente de linha de item
+// =====================================================================
+
+interface ItemRowProps {
+  index: number
+  item: ItemDraft
+  fieldErrors: Record<string, string>
+  productOptions: ProductResponse[]
+  productSearching: boolean
+  /**
+   * Mesmo formato de `shouldShowError` do hook `useFieldTouched`:
+   * recebe (field, errorMessage) e devolve a mensagem se o campo já
+   * foi tocado/houve submit, ou `undefined` caso contrário.
+   */
+  showError: <E extends string | null | undefined>(
+    field: string,
+    error: E,
+  ) => E | undefined
+  getBlurHandler: (field: string) => () => void
+  onQuery: (query: string) => void
+  onSelect: (p: ProductResponse) => void
+  onPatch: (patch: Partial<ItemDraft>) => void
+  onRemove: () => void
+  onCloseSuggestions: () => void
+}
+
+function ItemRow({
+  index,
+  item,
+  fieldErrors,
+  productOptions,
+  productSearching,
+  showError,
+  getBlurHandler,
+  onQuery,
+  onSelect,
+  onPatch,
+  onRemove,
+}: ItemRowProps) {
+  const total = lineTotal(item)
+  const quantityField = `items.${index}.quantity`
+  const unitPriceField = `items.${index}.unitPrice`
+  const productField = `items.${index}.product`
+  const discountField = `items.${index}.discount`
+
+  const productError = showError(productField, fieldErrors[productField])
+  const quantityError = showError(quantityField, fieldErrors[quantityField])
+  const unitPriceError = showError(
+    unitPriceField,
+    fieldErrors[unitPriceField],
+  )
+
+  return (
+    <div
+      className={`${ITEMS_GRID_CLASS} min-w-[1020px] items-center border-b border-slate-100 py-2 last:border-b-0 dark:border-slate-800`}
+      role="row"
+    >
+      {/* # */}
+      <div
+        role="cell"
+        className="text-center text-sm text-slate-500 dark:text-slate-400"
+      >
+        {index + 1}
+      </div>
+
+      {/* Item (busca de produto com typeahead) */}
+      <div role="cell" className="relative">
+        <input
+          type="text"
+          aria-label="Produto"
+          aria-invalid={!!productError}
+          placeholder="Buscar produto por nome ou código…"
+          value={item.productLabel}
+          onChange={(e) => {
+            onPatch({ productLabel: e.target.value, productUuid: '' })
+            onQuery(e.target.value)
+          }}
+          onBlur={getBlurHandler(productField)}
+          className={tableInputClass(!!productError)}
+          required
+        />
+        {productSearching ? (
+          <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400">
+            <Spinner size="sm" />
+          </span>
+        ) : null}
+        {productOptions.length > 0 && !item.productUuid ? (
+          <ul className="absolute left-0 right-0 top-full z-20 mt-1 max-h-56 overflow-y-auto rounded-lg border border-slate-200 bg-white text-sm shadow-lg dark:border-slate-700 dark:bg-slate-900">
+            {productOptions.map((p) => (
+              <li key={p.uuid}>
+                <button
+                  type="button"
+                  className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800"
+                  onClick={() => onSelect(p)}
+                >
+                  <span className="flex-1">
+                    <span className="block font-medium text-slate-900 dark:text-slate-100">
+                      {p.name}
+                    </span>
+                    <span className="block text-xs text-slate-500 dark:text-slate-400">
+                      {p.code ? `${p.code} • ` : ''}
+                      {UNIT_SHORT_LABELS[p.unitType]} •{' '}
+                      {brlFormatter.format(p.price)}
+                    </span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        {productError ? (
+          <p className="mt-0.5 text-xs text-red-600 dark:text-red-400">
+            {productError}
+          </p>
+        ) : null}
+      </div>
+
+      {/* Código */}
+      <div
+        role="cell"
+        className="truncate text-sm text-slate-700 dark:text-slate-300"
+        title={item.productCode ?? undefined}
+      >
+        {item.productCode ?? (
+          <span className="text-slate-400 dark:text-slate-600">—</span>
+        )}
+      </div>
+
+      {/* Un */}
+      <div
+        role="cell"
+        className="text-center text-sm font-medium text-slate-700 dark:text-slate-300"
+      >
+        {item.unitType ? (
+          UNIT_SHORT_LABELS[item.unitType]
+        ) : (
+          <span className="text-slate-400 dark:text-slate-600">—</span>
+        )}
+      </div>
+
+      {/* Qtde */}
+      <div role="cell">
+        <input
+          type="number"
+          inputMode="decimal"
+          step="0.0001"
+          min={0.0001}
+          aria-label="Quantidade"
+          value={String(item.quantity ?? '')}
+          onChange={(e) => {
+            const v = parseNumber(e.target.value)
+            onPatch({ quantity: v ?? 0 })
+          }}
+          onBlur={getBlurHandler(quantityField)}
+          className={`${tableInputClass(!!quantityError)} text-right`}
+          required
+        />
+        {quantityError ? (
+          <p className="mt-0.5 text-xs text-red-600 dark:text-red-400">
+            {quantityError}
+          </p>
+        ) : null}
+      </div>
+
+      {/* Preço lista (read-only) */}
+      <div
+        role="cell"
+        className="text-right text-sm text-slate-700 dark:text-slate-300"
+      >
+        {item.listPrice > 0
+          ? brlFormatter.format(item.listPrice)
+          : '—'}
+      </div>
+
+      {/* Desconto (R$) */}
+      <div role="cell">
+        <input
+          type="number"
+          inputMode="decimal"
+          step="0.01"
+          min={0}
+          aria-label="Desconto (R$)"
+          placeholder="0,00"
+          value={item.discount != null ? String(item.discount) : ''}
+          onChange={(e) => {
+            const v = parseNumber(e.target.value)
+            onPatch({
+              discount: v,
+              discountType: v != null ? 'AMOUNT' : null,
+            })
+          }}
+          onBlur={getBlurHandler(discountField)}
+          className={`${TABLE_INPUT_BASE} text-right`}
+        />
+      </div>
+
+      {/* Preço un */}
+      <div role="cell">
+        <input
+          type="number"
+          inputMode="decimal"
+          step="0.01"
+          min={0}
+          aria-label="Preço unitário"
+          value={String(item.unitPrice ?? '')}
+          onChange={(e) => {
+            const v = parseNumber(e.target.value)
+            onPatch({ unitPrice: v ?? 0 })
+          }}
+          onBlur={getBlurHandler(unitPriceField)}
+          className={`${tableInputClass(!!unitPriceError)} text-right`}
+          required
+        />
+        {unitPriceError ? (
+          <p className="mt-0.5 text-xs text-red-600 dark:text-red-400">
+            {unitPriceError}
+          </p>
+        ) : null}
+      </div>
+
+      {/* Preço total (read-only) */}
+      <div
+        role="cell"
+        className="text-right text-sm font-semibold text-slate-900 dark:text-slate-100"
+      >
+        {total > 0 ? brlFormatter.format(total) : '—'}
+      </div>
+
+      {/* Ações */}
+      <div role="cell" className="flex items-center justify-center">
+        <button
+          type="button"
+          onClick={onRemove}
+          aria-label="Remover item"
+          title="Remover item"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-red-600 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-red-400"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  )
+}
