@@ -71,6 +71,14 @@ export function Sidebar() {
                   IMPORTAR XML
                 </Button>
               ) : null}
+
+              {/* Separador entre o bloco de cadastros e os próximos módulos. */}
+              {item.to === '/products' ? (
+                <div
+                  aria-hidden
+                  className="my-3 h-px bg-slate-200 dark:bg-slate-800"
+                />
+              ) : null}
             </Fragment>
           )
         })}
