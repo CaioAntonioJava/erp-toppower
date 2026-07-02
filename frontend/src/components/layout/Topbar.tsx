@@ -1,4 +1,4 @@
-import { LogOut } from 'lucide-react'
+import { LogOut, UserCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { ThemeToggle } from '../ui/ThemeToggle'
@@ -11,6 +11,10 @@ export function Topbar() {
   function handleLogout() {
     signOut()
     navigate('/login', { replace: true })
+  }
+
+  function handleProfile() {
+    navigate('/profile')
   }
 
   const initials = (user?.email ?? '?').slice(0, 2).toUpperCase()
@@ -42,6 +46,17 @@ export function Topbar() {
         </div>
 
         <ThemeToggle />
+
+        <button
+          type="button"
+          onClick={handleProfile}
+          className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+          aria-label="Meu perfil"
+          title="Meu perfil"
+        >
+          <UserCircle className="h-4 w-4" />
+          <span className="hidden sm:inline">Meu perfil</span>
+        </button>
 
         <button
           type="button"

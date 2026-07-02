@@ -6,7 +6,6 @@ import {
   Package,
   Truck,
   User,
-  UserCircle,
   Users,
 } from 'lucide-react'
 
@@ -23,7 +22,6 @@ const navItems: NavItem[] = [
   { to: '/suppliers', label: 'Fornecedores', icon: Truck },
   { to: '/sellers', label: 'Vendedores', icon: Briefcase },
   { to: '/products', label: 'Produtos', icon: Package },
-  { to: '/profile', label: 'Meu perfil', icon: UserCircle },
 ]
 
 /** Sidebar com os links principais. Mantida simples para um MVP. */
