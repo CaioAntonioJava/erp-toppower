@@ -76,7 +76,7 @@ export function Sidebar() {
               {item.to === '/products' ? (
                 <div
                   aria-hidden
-                  className="mt-[18px] mb-3 h-px bg-slate-300 dark:bg-slate-700"
+                  className="mt-[18px] mb-3 h-px bg-slate-200 dark:bg-slate-800"
                 />
               ) : null}
             </Fragment>
