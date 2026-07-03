@@ -66,7 +66,7 @@ export function QuotationsListPage() {
   const [number, setNumber] = useState('')
   const [debouncedNumber, setDebouncedNumber] = useState('')
   const [page, setPage] = useState(0)
-  const size = 20
+  const size = 10
 
   const [data, setData] = useState<PagedResponse<QuotationSummaryResponse> | null>(
     null,
@@ -306,7 +306,7 @@ export function QuotationsListPage() {
               size="sm"
               variant="secondary"
               onClick={() => setPage((p) => Math.max(0, p - 1))}
-              disabled={loading || !data?.first}
+              disabled={loading || data?.first}
             >
               <ChevronLeft className="h-4 w-4" />
               Anterior
@@ -315,7 +315,7 @@ export function QuotationsListPage() {
               size="sm"
               variant="secondary"
               onClick={() => setPage((p) => p + 1)}
-              disabled={loading || !data?.last}
+              disabled={loading || data?.last}
             >
               Próxima
               <ChevronRight className="h-4 w-4" />

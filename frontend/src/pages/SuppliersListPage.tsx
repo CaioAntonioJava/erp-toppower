@@ -371,7 +371,7 @@ export function SuppliersListPage() {
             <Button
               size="sm" variant="secondary"
               onClick={() => list.setPage((p) => Math.max(0, p - 1))}
-              disabled={list.loading || !list.data?.first}
+              disabled={list.loading || list.data?.first}
             >
               <ChevronLeft className="h-4 w-4" />
               Anterior
@@ -379,7 +379,7 @@ export function SuppliersListPage() {
             <Button
               size="sm" variant="secondary"
               onClick={() => list.setPage((p) => p + 1)}
-              disabled={list.loading || !list.data?.last}
+              disabled={list.loading || list.data?.last}
             >
               Próxima
               <ChevronRight className="h-4 w-4" />

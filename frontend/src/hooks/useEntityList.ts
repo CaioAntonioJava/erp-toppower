@@ -42,7 +42,7 @@ interface UseEntityListOptions<T> {
 /** Estado e handlers compartilhados entre as listas (Empresas, Clientes PF, ...). */
 export function useEntityList<T extends EntityListItem>({
   api,
-  pageSize = 20,
+  pageSize = 10,
   minQueryLength = 2,
 }: UseEntityListOptions<T>) {
   const [page, setPage] = useState(0)
