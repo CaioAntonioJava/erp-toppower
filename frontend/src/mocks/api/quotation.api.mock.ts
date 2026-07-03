@@ -303,8 +303,15 @@ export async function searchQuotationClients(
 ): Promise<ClientSummaryResponse[]> {
   await delay()
   const q = query.trim().toLowerCase()
-  // eslint-disable-next-line no-console
-  console.log('[MOCK searchQuotationClients]', { query, limit, type, q })
+  // Versão só-dígitos da query, usada para casar com CPF/CNPJ sem
+  // pontuação. Calculada uma única vez aqui (e não inline no filter)
+  // para evitar o bug clássico de `"qualquer".includes("") === true`:
+  // quando o usuário digita só letras (ex.: "ana"),
+  // `q.replace(/\D/g, '')` resulta em string vazia e o `.includes("")`
+  // retornaria `true` para TODOS os clientes, quebrando o filtro.
+  // Por isso só aplicamos o match por CPF/CNPJ quando a query tiver
+  // pelo menos um dígito.
+  const qDigits = q.replace(/\D/g, '')
 
   // Filtro de tipo: 'CUSTOMER' (apenas PF), 'COMPANY' (apenas PJ) ou
   // undefined/vazio (ambos). Espelha o contrato do endpoint real.
@@ -314,13 +321,13 @@ export async function searchQuotationClients(
   const customerMatches: ClientSummaryResponse[] = includeCustomers
     ? store.customers
         .filter((c) => c.status === 'ATIVO')
-        .filter(
-          (c) =>
-            !q ||
-            c.name.toLowerCase().includes(q) ||
-            c.code.toLowerCase().includes(q) ||
-            c.cpf.replace(/\D/g, '').includes(q.replace(/\D/g, '')),
-        )
+        .filter((c) => {
+          if (!q) return true
+          if (c.name.toLowerCase().includes(q)) return true
+          if (c.code.toLowerCase().includes(q)) return true
+          if (qDigits && c.cpf.replace(/\D/g, '').includes(qDigits)) return true
+          return false
+        })
         .map((c) => ({
           type: 'CUSTOMER',
           uuid: c.uuid,
@@ -333,14 +340,14 @@ export async function searchQuotationClients(
   const companyMatches: ClientSummaryResponse[] = includeCompanies
     ? store.companies
         .filter((c) => c.status === 'ATIVO')
-        .filter(
-          (c) =>
-            !q ||
-            c.legalName.toLowerCase().includes(q) ||
-            (c.tradeName?.toLowerCase().includes(q) ?? false) ||
-            c.code.toLowerCase().includes(q) ||
-            c.cnpj.replace(/\D/g, '').includes(q.replace(/\D/g, '')),
-        )
+        .filter((c) => {
+          if (!q) return true
+          if (c.legalName.toLowerCase().includes(q)) return true
+          if (c.tradeName && c.tradeName.toLowerCase().includes(q)) return true
+          if (c.code.toLowerCase().includes(q)) return true
+          if (qDigits && c.cnpj.replace(/\D/g, '').includes(qDigits)) return true
+          return false
+        })
         .map((c) => ({
           type: 'COMPANY',
           uuid: c.uuid,
