@@ -89,9 +89,9 @@ export function StickyFormActions({
           : '-translate-y-full opacity-0 pointer-events-none invisible',
       ].join(' ')}
     >
-      <div className="border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/95">
-        <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <span className="truncate text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
+      <div className="border-b border-primary-800 bg-primary-900 shadow-lg shadow-primary/5 backdrop-blur dark:border-slate-700 dark:bg-slate-900/95 dark:shadow-none">
+        <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-3 px-4 py-[22px] sm:px-6">
+          <span className="truncate text-sm font-semibold uppercase tracking-wide text-white dark:text-slate-200">
             {title}
           </span>
           <div className="flex flex-wrap items-center gap-2">
