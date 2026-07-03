@@ -9,8 +9,8 @@ export function DashboardPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          Olá, <span className="font-medium text-slate-700 dark:text-slate-200">{user?.email}</span>.
-          Use o menu lateral para acessar o seu perfil.
+          Bem-vindo, <span className="font-medium text-slate-700 dark:text-slate-200">{user?.email}</span>.
+          Utilize o menu lateral para navegar pelos módulos e acessar os recursos disponíveis.
         </p>
       </div>
 
