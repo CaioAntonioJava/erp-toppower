@@ -68,6 +68,17 @@ async function checkHasProfile(userId: string): Promise<boolean> {
   }
 }
 
+/**
+ * Usuários com `ROLE_ADMIN` não precisam completar o cadastro de perfil
+ * — o papel administrativo já lhes dá acesso completo ao sistema. Essa
+ * função centraliza a regra para evitar chamadas ao backend
+ * `GET /profiles/user/{id}` e para que o `ProtectedRoute` não redirecione
+ * admins para `/profile` indevidamente.
+ */
+function adminBypassesProfile(role: AuthenticatedUser['role']): boolean {
+  return role === 'ROLE_ADMIN'
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthenticatedUser | null>(null)
   const [isLoading, setLoading] = useState<boolean>(true)
@@ -75,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Verifica, na inicialização, se há um token válido em localStorage
   // e, em caso positivo, também checa se o perfil está preenchido.
+  // Admins (`ROLE_ADMIN`) pulam a checagem — não precisam de perfil.
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -82,12 +94,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (cancelled) return
       setUser(u)
       if (u) {
-        try {
-          const ok = await checkHasProfile(u.uuid)
-          if (!cancelled) setHasProfile(ok)
-        } catch {
-          // Em caso de erro de rede, marca como null para permitir retry
-          if (!cancelled) setHasProfile(null)
+        if (adminBypassesProfile(u.role)) {
+          if (!cancelled) setHasProfile(true)
+        } else {
+          try {
+            const ok = await checkHasProfile(u.uuid)
+            if (!cancelled) setHasProfile(ok)
+          } catch {
+            // Em caso de erro de rede, marca como null para permitir retry
+            if (!cancelled) setHasProfile(null)
+          }
         }
       } else {
         setHasProfile(null)
@@ -102,11 +118,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   /**
    * Re-checa o status do perfil do usuário atual e atualiza o estado.
    * Usado após criar/editar o perfil para liberar a navegação.
+   * Admins sempre retornam `true` sem chamar o backend.
    */
   const refreshProfileStatus = useCallback(async (): Promise<boolean> => {
     if (!user) {
       setHasProfile(null)
       return false
+    }
+    if (adminBypassesProfile(user.role)) {
+      setHasProfile(true)
+      return true
     }
     try {
       const ok = await checkHasProfile(user.uuid)
@@ -123,6 +144,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await apiLogin(payload)
       localStorage.setItem(TOKEN_KEY, response.accessToken)
       setUser(response.user)
+      // Admins não precisam completar perfil — pula a checagem e a
+      // chamada ao backend, liberando navegação imediatamente.
+      if (adminBypassesProfile(response.user.role)) {
+        setHasProfile(true)
+        return response.user
+      }
       // Verifica o perfil em paralelo ao prosseguir com o login
       setHasProfile(null)
       try {
@@ -148,8 +175,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       localStorage.setItem(TOKEN_KEY, response.accessToken)
       setUser(response.user)
-      // Usuário recém-criado nunca tem perfil — força hasProfile=false
-      setHasProfile(false)
+      // Usuário recém-criado não tem perfil — exceto admins, que pulam
+      // essa etapa por papel.
+      setHasProfile(adminBypassesProfile(response.user.role))
       return response.user
     },
     [],
