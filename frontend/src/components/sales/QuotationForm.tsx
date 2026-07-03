@@ -15,7 +15,7 @@ import { Spinner } from '../ui/Spinner'
 import { RichTextEditor } from '../ui/RichTextEditor'
 import { toApiError } from '../../lib/errors'
 import { useFieldTouched } from '../../hooks/useFieldTouched'
-import { searchProducts } from '../../api/product.api'
+import { getProduct, searchProducts } from '../../api/product.api'
 import { listSellers } from '../../api/seller.api'
 import { searchQuotationClients } from '../../api/quotation.api'
 import type { ProductResponse, UnitType } from '../../types/product'
@@ -190,8 +190,13 @@ export function QuotationForm({
       return quotation.items.map((it) => ({
         rowKey: nextRowKey(),
         productUuid: it.productUuid,
-        productLabel: it.productUuid, // preenchido por busca se necessário
-        unitType: null, // hidratado via getProduct
+        // Rótulo inicial vazio — hidratado com o nome real via `getProduct`
+        // no efeito abaixo. Exibir o UUID aqui faria o campo mostrá-lo até
+        // a resolução (ou para sempre, se a busca falhar), como acontecia
+        // no bug reportado.
+        productLabel: '',
+        // Unidade de medida (UN/MT/BOB) — também hidratada via `getProduct`.
+        unitType: null,
         unitPrice: it.unitPrice,
         quantity: it.quantity,
         discountType: it.discountType ?? null,
@@ -302,6 +307,67 @@ export function QuotationForm({
     }
   }, [quotation])
 
+  // Hidrata o nome e a unidade de medida dos itens no modo edição.
+  //
+  // O `QuotationResponse` carrega apenas o `productUuid` em cada item — sem
+  // nome e sem unidade. Sem este efeito, o campo "Produto" de cada linha
+  // ficava vazio (ou, antes, exibia o UUID), e o select de unidade aparecia
+  // como "—". Aqui dedupamos os UUIDs e buscamos cada produto uma vez,
+  // atualizando todas as linhas que o referenciam. Mantemos o UUID curto
+  // como fallback caso o produto tenha sido inativado/removido ou a busca
+  // falhe, para que o campo não fique vazio.
+  useEffect(() => {
+    if (!quotation) return
+    let cancelled = false
+
+    const uniqueProductUuids = Array.from(
+      new Set(quotation.items.map((it) => it.productUuid)),
+    )
+    if (uniqueProductUuids.length === 0) return
+
+    Promise.all(
+      uniqueProductUuids.map(async (uuid) => {
+        try {
+          const p = await getProduct(uuid)
+          return [uuid, p] as const
+        } catch {
+          return [uuid, null] as const
+        }
+      }),
+    )
+      .then((entries) => {
+        if (cancelled) return
+        setItems((prev) =>
+          prev.map((it) => {
+            const found = entries.find(([uuid]) => uuid === it.productUuid)
+            const product = found?.[1]
+            if (product) {
+              const label = product.code
+                ? `${product.code} — ${product.name}`
+                : product.name
+              return {
+                ...it,
+                productLabel: label,
+                unitType: product.unitType,
+              }
+            }
+            // Fallback: UUID curto mantém o campo visível.
+            return {
+              ...it,
+              productLabel: it.productLabel || `${it.productUuid.slice(0, 8)}…`,
+            }
+          }),
+        )
+      })
+      .catch(() => {
+        /* mantém o que já está renderizado */
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [quotation])
+
   // Debounce do typeahead de clientes.
   const clientDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Ref que espelha o `clientType` mais recente, permitindo que o
@@ -376,7 +442,9 @@ export function QuotationForm({
         productLabel: '',
         unitType: null,
         unitPrice: 0,
-        quantity: 0,
+        // Pré-preenche com 1 unidade para evitar que o item novo entre
+        // com quantidade zero (o que dispararia erro de validação no submit).
+        quantity: 1,
         discountType: null,
         discount: null,
       },

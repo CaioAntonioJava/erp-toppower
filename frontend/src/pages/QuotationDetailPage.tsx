@@ -9,6 +9,10 @@ import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { QuotationStatusBadge } from '../components/sales/QuotationStatusBadge'
 import { RegistrationAuditCard } from '../components/client/RegistrationAuditCard'
 import { cancelQuotation, getQuotation } from '../api/quotation.api'
+import { getCustomer } from '../api/customer.api'
+import { getCompany } from '../api/company.api'
+import { getSeller } from '../api/seller.api'
+import { getProduct } from '../api/product.api'
 import { toApiError } from '../lib/errors'
 import type { QuotationResponse } from '../types/quotation'
 import {
@@ -92,6 +96,80 @@ export function QuotationDetailPage() {
     }
   }, [id])
 
+  // === resolução de nomes (cliente, vendedor e produtos) ===
+  // O `QuotationResponse` traz apenas UUIDs; para exibir o nome real no
+  // resumo, buscamos cliente/vendedor/produtos em paralelo após a
+  // proposta carregar. Mantemos o UUID curto como fallback caso a
+  // resolução falhe (registro inativado, removido, ou erro de rede).
+  const [clientName, setClientName] = useState<string | null>(null)
+  const [sellerName, setSellerName] = useState<string | null>(null)
+  const [productNames, setProductNames] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    if (!quotation) return
+    let cancelled = false
+
+    // Cliente (PF ou PJ) — busca conforme o tipo persistido.
+    const clientUuid =
+      quotation.clientType === 'CUSTOMER'
+        ? quotation.customerUuid
+        : quotation.companyUuid
+    const clientPromise =
+      clientUuid != null
+        ? quotation.clientType === 'CUSTOMER'
+          ? getCustomer(clientUuid)
+              .then((c) => `${c.code} — ${c.name}`)
+              .catch(() => null)
+          : getCompany(clientUuid)
+              .then((c) => `${c.code} — ${c.legalName}`)
+              .catch(() => null)
+        : Promise.resolve(null)
+
+    // Vendedor — sempre presente no payload.
+    const sellerPromise = quotation.sellerUuid
+      ? getSeller(quotation.sellerUuid)
+          .then((s) => s.name)
+          .catch(() => null)
+      : Promise.resolve(null)
+
+    // Produtos — dedupe por UUID para não buscar o mesmo item duas vezes.
+    const uniqueProductUuids = Array.from(
+      new Set(quotation.items.map((it) => it.productUuid)),
+    )
+    const productEntriesPromise = Promise.all(
+      uniqueProductUuids.map(async (uuid) => {
+        try {
+          const p = await getProduct(uuid)
+          const label = p.code ? `${p.code} — ${p.name}` : p.name
+          return [uuid, label] as const
+        } catch {
+          return [uuid, null] as const
+        }
+      }),
+    ).then((entries) => {
+      const map: Record<string, string> = {}
+      for (const [uuid, label] of entries) {
+        if (label != null) map[uuid] = label
+      }
+      return map
+    })
+
+    Promise.all([clientPromise, sellerPromise, productEntriesPromise])
+      .then(([client, seller, products]) => {
+        if (cancelled) return
+        setClientName(client)
+        setSellerName(seller)
+        setProductNames(products)
+      })
+      .catch(() => {
+        /* mantém fallbacks (UUID curto) */
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [quotation])
+
   async function handleCancel() {
     if (!quotation) return
     setCanceling(true)
@@ -134,12 +212,20 @@ export function QuotationDetailPage() {
     quotation.status === 'ATIVA' || quotation.status === 'EXPIRADA'
   const canCancel = canEdit
 
+  // UUIDs "curtos" usados como fallback visual enquanto os nomes reais
+  // não chegam (ou quando a resolução falha).
+  const clientUuid =
+    quotation.clientType === 'CUSTOMER'
+      ? quotation.customerUuid
+      : quotation.companyUuid
+  const clientDisplay = clientName ?? (clientUuid ? `${clientUuid.slice(0, 8)}…` : '—')
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <BackButton variant="ghost" />
+          <BackButton />
           <h1 className="mt-4 flex items-center gap-3 text-2xl font-semibold tracking-tight">
             <span>Proposta {quotation.number}</span>
             <QuotationStatusBadge status={quotation.status} />
@@ -193,20 +279,18 @@ export function QuotationDetailPage() {
           </div>
           <div>
             <dt className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              UUID do cliente
+              Cliente
             </dt>
-            <dd className="mt-1 break-all font-mono text-xs text-slate-800 dark:text-slate-200">
-              {quotation.clientType === 'CUSTOMER'
-                ? quotation.customerUuid
-                : quotation.companyUuid}
+            <dd className="mt-1 text-sm text-slate-800 dark:text-slate-200">
+              {clientDisplay}
             </dd>
           </div>
           <div>
             <dt className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Vendedor (UUID)
+              Vendedor
             </dt>
-            <dd className="mt-1 break-all font-mono text-xs text-slate-800 dark:text-slate-200">
-              {quotation.sellerUuid}
+            <dd className="mt-1 text-sm text-slate-800 dark:text-slate-200">
+              {sellerName ?? `${quotation.sellerUuid.slice(0, 8)}…`}
             </dd>
           </div>
           <div>
@@ -277,12 +361,23 @@ export function QuotationDetailPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-              {quotation.items.map((it) => (
+              {quotation.items.map((it) => {
+                const productLabel = productNames[it.productUuid]
+                return (
                 <tr key={it.uuid}>
                   <td className="px-4 py-3">
-                    <span className="break-all font-mono text-xs text-slate-700 dark:text-slate-200">
-                      {it.productUuid}
-                    </span>
+                    {productLabel != null ? (
+                      <span className="text-sm text-slate-800 dark:text-slate-200">
+                        {productLabel}
+                      </span>
+                    ) : (
+                      <span
+                        className="break-all font-mono text-xs text-slate-500 dark:text-slate-400"
+                        title={it.productUuid}
+                      >
+                        {`${it.productUuid.slice(0, 8)}…`}
+                      </span>
+                    )}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-xs">
                     {it.quantity}
@@ -300,7 +395,8 @@ export function QuotationDetailPage() {
                     {brlFormatter.format(it.totalPrice)}
                   </td>
                 </tr>
-              ))}
+                )
+              })}
             </tbody>
           </table>
         </div>
