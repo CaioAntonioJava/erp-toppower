@@ -15,6 +15,10 @@ import br.com.toppower.erp_toppower.profile.exception.DuplicateProfileCpfExcepti
 import br.com.toppower.erp_toppower.profile.exception.DuplicateProfileEmailException;
 import br.com.toppower.erp_toppower.profile.exception.ProfileNotFoundException;
 import br.com.toppower.erp_toppower.profile.exception.UserAlreadyHasProfileException;
+import br.com.toppower.erp_toppower.sales.quotation.exception.InvalidQuotationClientException;
+import br.com.toppower.erp_toppower.sales.quotation.exception.QuotationBusinessException;
+import br.com.toppower.erp_toppower.sales.quotation.exception.QuotationClientNotFoundException;
+import br.com.toppower.erp_toppower.sales.quotation.exception.QuotationNotFoundException;
 import br.com.toppower.erp_toppower.seller.exception.DuplicateSellerCpfException;
 import br.com.toppower.erp_toppower.seller.exception.DuplicateSellerEmailException;
 import br.com.toppower.erp_toppower.seller.exception.SellerNotFoundException;
@@ -31,6 +35,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -156,6 +161,30 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.CONFLICT, ex.getMessage());
     }
 
+    // =====================================================================
+    // Propostas comerciais (Quotation)
+    // =====================================================================
+
+    @ExceptionHandler(QuotationNotFoundException.class)
+    public ResponseEntity<ApiError> handleQuotationNotFound(QuotationNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(QuotationClientNotFoundException.class)
+    public ResponseEntity<ApiError> handleQuotationClientNotFound(QuotationClientNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidQuotationClientException.class)
+    public ResponseEntity<ApiError> handleInvalidQuotationClient(InvalidQuotationClientException ex) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(QuotationBusinessException.class)
+    public ResponseEntity<ApiError> handleQuotationBusiness(QuotationBusinessException ex) {
+        return build(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
     @ExceptionHandler(SupplierNotFoundException.class)
     public ResponseEntity<ApiError> handleSupplierNotFound(SupplierNotFoundException ex) {
         return build(HttpStatus.NOT_FOUND, ex.getMessage());
@@ -179,6 +208,24 @@ public class GlobalExceptionHandler {
                 fieldErrors
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    /**
+     * Parâmetro de URL ou query com tipo incorreto (ex.: UUID malformado,
+     * data em formato inválido, valor de enum fora do conjunto).
+     * Substitui a resposta 500 padrão do Spring por uma 400 com mensagem
+     * útil para o cliente.
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiError> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        String paramName = ex.getName();
+        Object value = ex.getValue();
+        Class<?> requiredType = ex.getRequiredType();
+        String typeName = (requiredType != null) ? requiredType.getSimpleName() : "valor válido";
+        String message = String.format(
+                "Parâmetro '%s' com valor '%s' não pode ser convertido para %s.",
+                paramName, value, typeName);
+        return build(HttpStatus.BAD_REQUEST, message);
     }
 
     private static ResponseEntity<ApiError> build(HttpStatus status, String message) {
