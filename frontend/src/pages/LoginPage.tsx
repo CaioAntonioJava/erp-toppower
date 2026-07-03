@@ -40,7 +40,6 @@ export function LoginPage() {
   return (
     <AuthCard
       title="Acessar sua conta"
-      subtitle="Entre com seu e-mail e senha para continuar"
       footer={
         <>
           Não tem uma conta?{' '}

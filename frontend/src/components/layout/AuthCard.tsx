@@ -19,11 +19,23 @@ export function AuthCard({ title, subtitle, children, footer }: AuthCardProps) {
 
       <div className="flex min-h-screen items-center justify-center px-4">
         <div className="w-full max-w-md">
-          <div className="mb-6 flex flex-col items-center">
+          <div className="mb-8 flex flex-col items-center">
             {/* Logo TopPower como SVG inline — texto adapta a cor
                automaticamente (escuro no light, claro no dark). */}
-            <LogoTopPower className="mb-4 h-20 w-auto" />
-            <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300">
+            <LogoTopPower className="h-20 w-auto" />
+            {/* Tagline institucional exibida abaixo da logo — comunica
+               o propósito do ERP logo na primeira tela. */}
+            <p className="mt-2 text-center text-sm text-slate-500 dark:text-slate-400">
+              Uma plataforma completa para administrar sua empresa
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            {/* Título centralizado dentro do box para criar uma
+               hierarquia visual mais forte: o cabeçalho do formulário
+               (ex.: "Acessar sua conta") ganha destaque logo no topo
+               do card, acima dos campos. */}
+            <h4 className="text-center text-lg font-bold text-slate-900 dark:text-slate-100">
               {title}
             </h4>
             {subtitle ? (
@@ -31,10 +43,7 @@ export function AuthCard({ title, subtitle, children, footer }: AuthCardProps) {
                 {subtitle}
               </p>
             ) : null}
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            {children}
+            <div className="mt-4">{children}</div>
           </div>
 
           {footer ? (
