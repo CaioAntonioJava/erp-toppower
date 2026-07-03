@@ -6,7 +6,7 @@ import {
   useState,
   type FormEvent,
 } from 'react'
-import { Plus, RotateCcw, Save, Trash2, Undo2, X } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
 import { Input } from '../ui/Input'
 import { Select } from '../ui/Select'
 import { Button } from '../ui/Button'
@@ -18,7 +18,7 @@ import { useFieldTouched } from '../../hooks/useFieldTouched'
 import { searchProducts } from '../../api/product.api'
 import { listSellers } from '../../api/seller.api'
 import { searchQuotationClients } from '../../api/quotation.api'
-import type { ProductResponse } from '../../types/product'
+import type { ProductResponse, UnitType } from '../../types/product'
 import type { SellerResponse } from '../../types/seller'
 import type {
   ClientSummaryResponse,
@@ -39,7 +39,6 @@ import {
 interface QuotationFormProps {
   /** Proposta existente (modo edição). Quando omitido, é cadastro novo. */
   quotation?: QuotationResponse
-  isLoading?: boolean
   /** Próximo número previsto pelo backend (modo create). */
   initialNumber?: number | null
   /**
@@ -59,11 +58,19 @@ interface ItemDraft {
   rowKey: string
   productUuid: string
   productLabel: string
+  /** Unidade de medida do produto (UN/MT/BOB) — definida ao selecionar o produto. */
+  unitType: UnitType | null
   unitPrice: number
   quantity: number
   discountType: DiscountType | null
   discount: number | null
 }
+
+/**
+ * Teto absoluto para valores unitários e totais da proposta (9 bilhões).
+ * Evita overflow numérico no cálculo de `qty * unitPrice - discount`.
+ */
+const MAX_ITEM_VALUE = 9_000_000_000
 
 /** Formatador de moeda BRL compartilhado. */
 const brlFormatter = new Intl.NumberFormat('pt-BR', {
@@ -83,23 +90,6 @@ function parseNumber(value: string): number | null {
   const normalized = trimmed.replace(',', '.')
   const n = Number(normalized)
   return Number.isFinite(n) ? n : null
-}
-
-/** Snapshot completo do estado do formulário. Usado pelo histórico de undo. */
-interface FormSnapshot {
-  items: ItemDraft[]
-  clientType: QuotationClientType
-  clientUuid: string
-  clientLabel: string
-  attention: string
-  sellerUuid: string
-  validityDays: string
-  paymentCondition: PaymentCondition | ''
-  notes: string
-  discountType: DiscountType | ''
-  discount: string
-  number: string
-  issueDate: string
 }
 
 /** Retorna a data atual no formato ISO `YYYY-MM-DD` aceito por `<input type="date">`. */
@@ -140,7 +130,6 @@ function globalDiscountAmount(
 
 export function QuotationForm({
   quotation,
-  isLoading = false,
   initialNumber = null,
   isAdmin = false,
   onSaveCreate,
@@ -202,6 +191,7 @@ export function QuotationForm({
         rowKey: nextRowKey(),
         productUuid: it.productUuid,
         productLabel: it.productUuid, // preenchido por busca se necessário
+        unitType: null, // hidratado via getProduct
         unitPrice: it.unitPrice,
         quantity: it.quantity,
         discountType: it.discountType ?? null,
@@ -214,6 +204,7 @@ export function QuotationForm({
           rowKey: nextRowKey(),
           productUuid: '',
           productLabel: '',
+          unitType: null,
           unitPrice: 0,
           quantity: 1,
           discountType: null,
@@ -239,94 +230,6 @@ export function QuotationForm({
 
   const { shouldShowError, getBlurHandler, markAllTouched, reset } =
     useFieldTouched()
-
-  // === Histórico de undo (Desfazer alterações) ===
-  //
-  // Pilha de snapshots anteriores. A captura é automática via useEffect
-  // abaixo: sempre que algum campo tracked muda, o estado ANTERIOR é
-  // empilhado antes de o novo sobrescrever. Limite de 30 entradas para
-  // conter o uso de memória.
-  const [formHistory, setFormHistory] = useState<FormSnapshot[]>([])
-  const initialSnapshotRef = useRef<FormSnapshot | null>(null)
-  const prevSnapshotRef = useRef<FormSnapshot | null>(null)
-  const historyInitializedRef = useRef<boolean>(false)
-  const skipNextSnapshotRef = useRef<boolean>(false)
-  const MAX_HISTORY = 30
-
-  /** Captura o estado atual do formulário. */
-  function captureSnapshot(): FormSnapshot {
-    return {
-      items: JSON.parse(JSON.stringify(items)) as ItemDraft[],
-      clientType,
-      clientUuid,
-      clientLabel,
-      attention,
-      sellerUuid,
-      validityDays,
-      paymentCondition,
-      notes,
-      discountType,
-      discount,
-      number,
-      issueDate,
-    }
-  }
-
-  /** Aplica um snapshot ao estado do formulário. */
-  function applySnapshot(s: FormSnapshot): void {
-    setItems(s.items)
-    setClientType(s.clientType)
-    setClientUuid(s.clientUuid)
-    setClientLabel(s.clientLabel)
-    setAttention(s.attention)
-    setSellerUuid(s.sellerUuid)
-    setValidityDays(s.validityDays)
-    setPaymentCondition(s.paymentCondition)
-    setNotes(s.notes)
-    setDiscountType(s.discountType)
-    setDiscount(s.discount)
-    setNumber(s.number)
-    setIssueDate(s.issueDate)
-    // Limpa validação e estado de "tocado" — o usuário vai re-interagir
-    // com os campos restaurados e o touched deve refletir isso.
-    setFieldErrors({})
-    setSuccess(null)
-    setFormError(null)
-    reset()
-  }
-
-  /** Restaura o snapshot anterior, se houver. */
-  function undo(): void {
-    setFormHistory((prev) => {
-      if (prev.length === 0) return prev
-      const last = prev[prev.length - 1]
-      const rest = prev.slice(0, -1)
-      skipNextSnapshotRef.current = true
-      applySnapshot(last)
-      return rest
-    })
-  }
-
-  /** Restaura o estado inicial (carregado na criação do form). */
-  function resetAll(): void {
-    if (!initialSnapshotRef.current) return
-    setFormHistory([])
-    skipNextSnapshotRef.current = true
-    applySnapshot(initialSnapshotRef.current)
-  }
-
-  /**
-   * Re-baseline do histórico para o estado ATUAL. Chamado após save
-   * bem-sucedido: o que foi salvo vira o novo "inicial" e o próximo
-   * "Desfazer" volta para o estado salvo (não para o estado original).
-   */
-  function resetHistoryToCurrent(): void {
-    setFormHistory([])
-    const current = captureSnapshot()
-    initialSnapshotRef.current = current
-    prevSnapshotRef.current = current
-    skipNextSnapshotRef.current = true
-  }
 
   // Carrega lista de vendedores ativos uma vez.
   useEffect(() => {
@@ -381,7 +284,7 @@ export function QuotationForm({
     setClientOptions([])
 
     let cancelled = false
-    searchQuotationClients('', 200)
+    searchQuotationClients('', 200, quotation.clientType)
       .then((clients) => {
         if (cancelled) return
         const found = clients.find((c) => c.uuid === targetUuid)
@@ -399,84 +302,40 @@ export function QuotationForm({
     }
   }, [quotation])
 
-  // === Captura automática de snapshots para o histórico de undo ===
-  //
-  // Reage a mudanças em qualquer campo tracked. Na primeira execução
-  // (após hidratação dos dados iniciais), apenas registra o estado
-  // inicial. Em execuções seguintes, se o estado mudou, empilha o
-  // snapshot ANTERIOR (em `prevSnapshotRef`) na pilha.
-  //
-  // O flag `skipNextSnapshotRef` é usado por `undo`/`resetAll` para
-  // evitar que a restauração do estado seja interpretada como uma
-  // mudança e gere um snapshot espúrio.
-  useEffect(() => {
-    if (!historyInitializedRef.current) {
-      historyInitializedRef.current = true
-      const initial = captureSnapshot()
-      initialSnapshotRef.current = initial
-      prevSnapshotRef.current = initial
-      return
-    }
-    if (skipNextSnapshotRef.current) {
-      skipNextSnapshotRef.current = false
-      prevSnapshotRef.current = captureSnapshot()
-      return
-    }
-    const current = captureSnapshot()
-    // Compara por JSON (objetos simples). O custo é desprezível frente à
-    // re-renderização.
-    if (
-      prevSnapshotRef.current &&
-      JSON.stringify(current) !== JSON.stringify(prevSnapshotRef.current)
-    ) {
-      setFormHistory((prev) => [
-        ...prev.slice(-(MAX_HISTORY - 1)),
-        prevSnapshotRef.current as FormSnapshot,
-      ])
-    }
-    prevSnapshotRef.current = current
-  }, [
-    items,
-    clientType,
-    clientUuid,
-    clientLabel,
-    attention,
-    sellerUuid,
-    validityDays,
-    paymentCondition,
-    notes,
-    discountType,
-    discount,
-    number,
-    issueDate,
-  ])
-
   // Debounce do typeahead de clientes.
   const clientDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const handleClientQuery = useCallback(
-    (query: string) => {
-      if (clientDebounce.current) clearTimeout(clientDebounce.current)
-      const trimmed = query.trim()
-      if (trimmed.length < 2) {
-        setClientOptions([])
-        return
-      }
-      clientDebounce.current = setTimeout(() => {
-        setClientSearching(true)
-        searchQuotationClients(trimmed, 20)
-          .then((r) => {
-            setClientOptions(r)
-          })
-          .catch(() => {
-            setClientOptions([])
-          })
-          .finally(() => {
-            setClientSearching(false)
-          })
-      }, 300)
-    },
-    [],
-  )
+  // Ref que espelha o `clientType` mais recente, permitindo que o
+  // callback do debounce (criado uma única vez no mount) sempre leia o
+  // tipo atual sem precisar dele nas deps do useCallback. Isso evita
+  // reinstanciar o callback quando o usuário troca PF/PJ no select.
+  const clientTypeRef = useRef<QuotationClientType>(clientType)
+  useEffect(() => {
+    clientTypeRef.current = clientType
+  }, [clientType])
+
+  const handleClientQuery = useCallback((query: string) => {
+    if (clientDebounce.current) clearTimeout(clientDebounce.current)
+    const trimmed = query.trim()
+    if (trimmed.length < 2) {
+      setClientOptions([])
+      return
+    }
+    clientDebounce.current = setTimeout(() => {
+      setClientSearching(true)
+      // Lê o tipo atual via ref para que mudanças no select (PF/PJ)
+      // reflitam na próxima busca agendada.
+      searchQuotationClients(trimmed, 20, clientTypeRef.current)
+        .then((r) => {
+          setClientOptions(r)
+        })
+        .catch(() => {
+          setClientOptions([])
+        })
+        .finally(() => {
+          setClientSearching(false)
+        })
+    }, 300)
+  }, [])
 
   // Typeahead de produtos por linha.
   const productDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -515,8 +374,9 @@ export function QuotationForm({
         rowKey: nextRowKey(),
         productUuid: '',
         productLabel: '',
+        unitType: null,
         unitPrice: 0,
-        quantity: 1,
+        quantity: 0,
         discountType: null,
         discount: null,
       },
@@ -537,6 +397,7 @@ export function QuotationForm({
     updateItem(rowKey, {
       productUuid: p.uuid,
       productLabel: p.name,
+      unitType: p.unitType,
       // snapshot do preço atual do produto
       unitPrice: p.price,
     })
@@ -588,9 +449,21 @@ export function QuotationForm({
         if (!(it.quantity > 0)) {
           errs[`items.${idx}.quantity`] = 'Quantidade deve ser maior que zero.'
         }
+        if (it.quantity > MAX_ITEM_VALUE) {
+          errs[`items.${idx}.quantity`] =
+            `Quantidade não pode exceder ${MAX_ITEM_VALUE.toLocaleString('pt-BR')}.`
+        }
         if (!(it.unitPrice >= 0)) {
           errs[`items.${idx}.unitPrice`] =
             'Preço unitário não pode ser negativo.'
+        }
+        if (it.unitPrice > MAX_ITEM_VALUE) {
+          errs[`items.${idx}.unitPrice`] =
+            `Preço unitário não pode exceder ${MAX_ITEM_VALUE.toLocaleString('pt-BR')}.`
+        }
+        if (lineTotal(it) > MAX_ITEM_VALUE) {
+          errs[`items.${idx}.unitPrice`] =
+            `Total da linha não pode exceder ${MAX_ITEM_VALUE.toLocaleString('pt-BR')}.`
         }
       })
     }
@@ -693,9 +566,6 @@ export function QuotationForm({
         await onSaveUpdate(payload)
         setSuccess('Proposta atualizada com sucesso!')
         reset()
-        // Re-baseline: a partir de agora "Desfazer" volta ao estado salvo,
-        // não ao estado original carregado.
-        resetHistoryToCurrent()
       } else {
         const payload: QuotationCreateRequest = {
           sellerUuid,
@@ -735,9 +605,6 @@ export function QuotationForm({
         await onSaveCreate(payload)
         setSuccess('Proposta criada com sucesso!')
         reset()
-        // Em modo create a página navega imediatamente, mas mantemos o
-        // reset por consistência.
-        resetHistoryToCurrent()
       }
     } catch (err) {
       const apiErr = toApiError(err)
@@ -752,7 +619,12 @@ export function QuotationForm({
   ]
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6" noValidate>
+    <form
+      id="quotation-form"
+      onSubmit={handleSubmit}
+      className="flex flex-col gap-6"
+      noValidate
+    >
       {formError ? <Alert variant="error">{formError}</Alert> : null}
       {success ? <Alert variant="success">{success}</Alert> : null}
 
@@ -900,31 +772,14 @@ export function QuotationForm({
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div className="mb-1 flex items-center justify-between gap-2">
           <h3 className="text-base font-semibold">Itens</h3>
-          <div className="flex items-center gap-2">
-            {formHistory.length > 0 ? (
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                onClick={undo}
-                title={`Desfazer a última alteração (${formHistory.length} disponivel${formHistory.length === 1 ? '' : 'is'})`}
-              >
-                <Undo2 className="h-4 w-4" />
-                Desfazer
-                <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-slate-200 px-1.5 text-[10px] font-semibold text-slate-700 dark:bg-slate-700 dark:text-slate-200">
-                  {formHistory.length}
-                </span>
-              </Button>
-            ) : null}
-            <Button type="button" size="sm" variant="secondary" onClick={addItem}>
-              <Plus className="h-4 w-4" />
-              Adicionar item
-            </Button>
-          </div>
+          <Button type="button" size="sm" variant="primary" onClick={addItem}>
+            <Plus className="h-4 w-4" />
+            Adicionar item
+          </Button>
         </div>
         <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
-          Liste os produtos da proposta com quantidade, preço unitário e
-          desconto por linha (opcional).
+          Liste os produtos da proposta. Cada linha é um item com quantidade,
+          preço unitário e desconto opcional.
         </p>
 
         {fieldErrors.items && !fieldErrors.items.startsWith('items.') ? (
@@ -936,11 +791,12 @@ export function QuotationForm({
             Nenhum item. Clique em <strong>Adicionar item</strong> para começar.
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="rounded-lg border border-slate-200 dark:border-slate-700">
             {items.map((it, idx) => (
               <ItemRow
                 key={it.rowKey}
                 index={idx}
+                isFirst={idx === 0}
                 item={it}
                 fieldErrors={fieldErrors}
                 productOptions={productOptions}
@@ -953,10 +809,6 @@ export function QuotationForm({
                 onSelect={(p) => selectProduct(it.rowKey, p)}
                 onPatch={(patch) => updateItem(it.rowKey, patch)}
                 onRemove={() => removeItem(it.rowKey)}
-                onCloseSuggestions={() => {
-                  setProductOptions([])
-                  setActiveProductRow(null)
-                }}
               />
             ))}
           </div>
@@ -1125,24 +977,6 @@ export function QuotationForm({
           </p>
         ) : null}
       </section>
-
-      <div className="flex flex-wrap justify-end gap-2">
-        {formHistory.length > 0 ? (
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={resetAll}
-            title="Reverte todas as alterações desde o carregamento inicial"
-          >
-            <RotateCcw className="h-4 w-4" />
-            Desfazer tudo
-          </Button>
-        ) : null}
-        <Button type="submit" isLoading={isLoading} size="lg">
-          <Save className="h-4 w-4" />
-          {isEdit ? 'Salvar alterações' : 'Cadastrar proposta'}
-        </Button>
-      </div>
     </form>
   )
 }
@@ -1153,6 +987,8 @@ export function QuotationForm({
 
 interface ItemRowProps {
   index: number
+  /** Indica se esta é a primeira linha — usada para mostrar labels acima dos campos. */
+  isFirst: boolean
   item: ItemDraft
   fieldErrors: Record<string, string>
   productOptions: ProductResponse[]
@@ -1171,11 +1007,11 @@ interface ItemRowProps {
   onSelect: (p: ProductResponse) => void
   onPatch: (patch: Partial<ItemDraft>) => void
   onRemove: () => void
-  onCloseSuggestions: () => void
 }
 
 function ItemRow({
   index,
+  isFirst,
   item,
   fieldErrors,
   productOptions,
@@ -1186,133 +1022,221 @@ function ItemRow({
   onSelect,
   onPatch,
   onRemove,
-  onCloseSuggestions,
 }: ItemRowProps) {
   const total = lineTotal(item)
   const quantityField = `items.${index}.quantity`
   const unitPriceField = `items.${index}.unitPrice`
+  const discountField = `items.${index}.discount`
   const productField = `items.${index}.product`
 
+  const productError = showError(productField, fieldErrors[productField])
+  const quantityError = showError(quantityField, fieldErrors[quantityField])
+  const unitPriceError = showError(unitPriceField, fieldErrors[unitPriceField])
+
+  // Estilo base dos inputs compactos da linha. Mesmo padrão visual dos
+  // campos da tabela — borda + focus ring com a cor `--color-focus`.
+  const inputBase =
+    'h-9 w-full min-w-0 rounded-md border bg-white px-2 text-sm text-slate-900 outline-none ' +
+    'placeholder:text-slate-400 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 ' +
+    'border-slate-300 focus:border-focus focus:ring-1 focus:ring-focus/30 dark:border-slate-700 ' +
+    'transition-colors duration-200'
+  const inputError =
+    'border-red-500 focus:border-red-500 focus:ring-red-500/30'
+
+  // Estilo do label — exibido apenas na primeira linha, alinhado ao input.
+  const labelCls =
+    'mb-1.5 block text-xs font-medium text-slate-600 dark:text-slate-300'
+
   return (
-    <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-700">
-      <div className="grid gap-3 sm:grid-cols-[1fr_120px_140px_140px_120px_44px] lg:grid-cols-[minmax(0,2fr)_140px_160px_160px_140px_44px]">
-        <div className="relative">
-          <Input
-            label="Produto"
-            placeholder="Buscar produto por nome ou código…"
-            value={item.productLabel}
-            onChange={(e) => {
-              onPatch({ productLabel: e.target.value, productUuid: '' })
-              onQuery(e.target.value)
-            }}
-            onBlur={getBlurHandler(productField)}
-            error={showError(productField, fieldErrors[productField])}
-            required
-          />
-          {productSearching ? (
-            <span className="absolute right-3 top-9 text-slate-400">
-              <Spinner size="sm" />
-            </span>
-          ) : null}
-          {productOptions.length > 0 && !item.productUuid ? (
-            <ul className="absolute left-0 right-0 top-full z-10 mt-1 max-h-56 overflow-y-auto rounded-lg border border-slate-200 bg-white text-sm shadow-lg dark:border-slate-700 dark:bg-slate-900">
-              {productOptions.map((p) => (
-                <li key={p.uuid}>
-                  <button
-                    type="button"
-                    className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800"
-                    onClick={() => onSelect(p)}
-                  >
-                    <span className="flex-1">
-                      <span className="block font-medium text-slate-900 dark:text-slate-100">
-                        {p.name}
-                      </span>
-                      <span className="block text-xs text-slate-500 dark:text-slate-400">
-                        {p.code ? `${p.code} • ` : ''}
-                        {brlFormatter.format(p.price)}
-                      </span>
+    <div
+      className={[
+        // `items-start` (em vez de `items-center`) é necessário porque a
+        // primeira linha tem label acima do input, ficando mais alta que
+        // as demais. O restante do grid continua alinhado pelo topo.
+        'grid items-start gap-2 px-3 py-2 sm:grid-cols-[40px_1fr_64px_64px_80px_80px_120px_32px] lg:grid-cols-[40px_minmax(0,2fr)_88px_80px_96px_96px_160px_40px]',
+      ].join(' ')}
+      role="row"
+    >
+      {/* # — sempre centralizado verticalmente, sem label */}
+      <div
+        role="cell"
+        className="flex h-full flex-col items-center justify-center text-center font-mono text-xs font-semibold text-slate-500 dark:text-slate-400"
+      >
+        {String(index + 1).padStart(2, '0')}
+      </div>
+
+      {/* Produto (busca com typeahead) */}
+      <div role="cell" className="relative min-w-0">
+        {isFirst ? <label className={labelCls}>Produto</label> : null}
+        <input
+          type="text"
+          aria-label="Produto"
+          aria-invalid={!!productError}
+          placeholder="Buscar produto por nome ou código…"
+          value={item.productLabel}
+          onChange={(e) => {
+            onPatch({ productLabel: e.target.value, productUuid: '' })
+            onQuery(e.target.value)
+          }}
+          onBlur={getBlurHandler(productField)}
+          className={[inputBase, productError ? inputError : ''].join(' ')}
+          required
+        />
+        {productSearching ? (
+          <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400">
+            <Spinner size="sm" />
+          </span>
+        ) : null}
+        {productOptions.length > 0 && !item.productUuid ? (
+          <ul className="absolute left-0 right-0 top-full z-20 mt-1 max-h-56 overflow-y-auto rounded-lg border border-slate-200 bg-white text-sm shadow-lg dark:border-slate-700 dark:bg-slate-900">
+            {productOptions.map((p) => (
+              <li key={p.uuid}>
+                <button
+                  type="button"
+                  className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800"
+                  onClick={() => onSelect(p)}
+                >
+                  <span className="flex-1">
+                    <span className="block font-medium text-slate-900 dark:text-slate-100">
+                      {p.name}
                     </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
-        <Input
-          label="Quantidade"
+                    <span className="block text-xs text-slate-500 dark:text-slate-400">
+                      {p.code ? `${p.code} • ` : ''}
+                      {brlFormatter.format(p.price)}
+                    </span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        {productError ? (
+          <p className="mt-0.5 text-xs text-red-600 dark:text-red-400">
+            {productError}
+          </p>
+        ) : null}
+      </div>
+
+      {/* Unidade (Select compacto) */}
+      <div role="cell" className="min-w-0">
+        {isFirst ? <label className={labelCls}>Unidade</label> : null}
+        <select
+          aria-label="Unidade de medida"
+          value={item.unitType ?? ''}
+          onChange={(e) => {
+            const v = e.target.value
+            onPatch({ unitType: v === '' ? null : (v as UnitType) })
+          }}
+          className={[
+            'h-9 w-full min-w-0 rounded-md border border-slate-300 bg-white px-1 text-center text-sm text-slate-900 outline-none',
+            'focus:border-focus focus:ring-1 focus:ring-focus/30 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100',
+            'transition-colors duration-200',
+          ].join(' ')}
+        >
+          <option value="">—</option>
+          <option value="UNIDADE">UN</option>
+          <option value="METROS">MT</option>
+          <option value="BOBINA">BOB</option>
+        </select>
+      </div>
+
+      {/* Quantidade */}
+      <div role="cell" className="min-w-0">
+        {isFirst ? <label className={labelCls}>Qtde</label> : null}
+        <input
           type="number"
           inputMode="decimal"
           step="0.0001"
           min={0.0001}
+          max={MAX_ITEM_VALUE}
+          aria-label="Quantidade"
+          placeholder="Qtde"
           value={String(item.quantity ?? '')}
           onChange={(e) => {
             const v = parseNumber(e.target.value)
             onPatch({ quantity: v ?? 0 })
           }}
           onBlur={getBlurHandler(quantityField)}
-          error={showError(quantityField, fieldErrors[quantityField])}
+          className={[inputBase, 'text-right', quantityError ? inputError : ''].join(' ')}
           required
         />
-        <Input
-          label="Preço Unit"
+      </div>
+
+      {/* Preço Unit */}
+      <div role="cell" className="min-w-0">
+        {isFirst ? <label className={labelCls}>Preço</label> : null}
+        <input
           type="number"
           inputMode="decimal"
           step="0.01"
           min={0}
+          max={MAX_ITEM_VALUE}
+          aria-label="Preço unitário"
+          placeholder="Preço"
           value={String(item.unitPrice ?? '')}
           onChange={(e) => {
             const v = parseNumber(e.target.value)
             onPatch({ unitPrice: v ?? 0 })
           }}
           onBlur={getBlurHandler(unitPriceField)}
-          error={showError(unitPriceField, fieldErrors[unitPriceField])}
+          className={[inputBase, 'text-right', unitPriceError ? inputError : ''].join(' ')}
           required
         />
-        <Input
-          label="Desconto"
+      </div>
+
+      {/* Desconto */}
+      <div role="cell" className="min-w-0">
+        {isFirst ? <label className={labelCls}>Desconto</label> : null}
+        <input
           type="number"
           inputMode="decimal"
           step="0.01"
           min={0}
+          max={MAX_ITEM_VALUE}
+          aria-label="Desconto"
           value={item.discount != null ? String(item.discount) : ''}
           onChange={(e) => {
             const v = parseNumber(e.target.value)
-            onPatch({ discount: v, discountType: v != null ? 'AMOUNT' : null })
+            onPatch({
+              discount: v,
+              discountType: v != null ? 'AMOUNT' : null,
+            })
           }}
-          hint={item.discount != null ? 'Valor fixo em R$' : 'Opcional'}
+          onBlur={getBlurHandler(discountField)}
+          className={[inputBase, 'text-right'].join(' ')}
         />
-        <div className="flex flex-col">
-          <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200">
-            Total
-          </label>
-          <div className="flex h-11 items-center rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
-            {brlFormatter.format(total)}
-          </div>
-        </div>
-        <div className="flex items-end">
-          <Button
-            type="button"
-            size="md"
-            variant="ghost"
-            onClick={onRemove}
-            aria-label="Remover item"
-            title="Remover item"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+      </div>
+
+      {/* Total (read-only) */}
+      <div role="cell" className="min-w-0">
+        {isFirst ? <label className={labelCls}>Total</label> : null}
+        <div
+          className="flex h-9 min-w-0 items-center justify-end truncate rounded-md border border-slate-200 bg-slate-50 px-2 text-right text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+          title={brlFormatter.format(total)}
+        >
+          {brlFormatter.format(total)}
         </div>
       </div>
-      {productOptions.length > 0 && !item.productUuid ? (
-        <div className="mt-2 text-right">
-          <button
-            type="button"
-            onClick={onCloseSuggestions}
-            className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-          >
-            <X className="h-3 w-3" /> Fechar sugestões
-          </button>
-        </div>
-      ) : null}
+
+      {/* Ações */}
+      <div role="cell" className="flex h-full flex-col items-center justify-center">
+        {isFirst ? (
+          // Label invisível só para ocupar o espaço do label das outras
+          // células e alinhar verticalmente o ícone.
+          <span className={`${labelCls} invisible`} aria-hidden="true">
+            ·
+          </span>
+        ) : null}
+        <button
+          type="button"
+          onClick={onRemove}
+          aria-label="Remover item"
+          title="Remover item"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-red-600 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-red-400"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
     </div>
   )
 }

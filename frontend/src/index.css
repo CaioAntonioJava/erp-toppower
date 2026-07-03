@@ -72,3 +72,16 @@ textarea:-moz-ui-invalid {
   box-shadow: none !important;
   -webkit-box-shadow: none !important;
 }
+
+/* Remove os botões de spinner (setinhas) de TODOS os <input type="number">.
+   Aplicado globalmente — vale para qualquer campo numérico atual ou futuro,
+   sem precisar repetir a regra em cada componente. */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { Save, X } from 'lucide-react'
 import { Button } from '../components/ui/Button'
 import { BackButton } from '../components/ui/BackButton'
 import { Spinner } from '../components/ui/Spinner'
@@ -89,6 +90,11 @@ export function QuotationFormPage() {
     }
   }
 
+  /** Volta para a lista de propostas, descartando qualquer edição em andamento. */
+  function handleCancel() {
+    navigate('/quotations')
+  }
+
   // Propostas CONVERTIDAS não podem ser editadas.
   const readOnly = mode === 'view' && quotation?.status === 'CONVERTIDA'
   const canEdit = mode === 'view' && !readOnly
@@ -97,13 +103,8 @@ export function QuotationFormPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <BackButton />
-          <h1 className="mt-4 text-2xl font-semibold tracking-tight">
-            {mode === 'create'
-              ? 'Nova proposta'
-              : quotation
-                ? `Proposta ${quotation.number}`
-                : 'Proposta'}
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Proposta Comercial
           </h1>
           {mode === 'create' ? (
             <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -118,14 +119,38 @@ export function QuotationFormPage() {
           ) : null}
         </div>
 
-        {readOnly && quotation ? (
-          <Button
-            variant="secondary"
-            onClick={() => navigate(`/quotations/${quotation.uuid}`)}
-          >
-            Modo somente leitura (CONVERTIDA)
-          </Button>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-2">
+          {readOnly && quotation ? (
+            <Button
+              variant="secondary"
+              onClick={() => navigate(`/quotations/${quotation.uuid}`)}
+            >
+              Modo somente leitura (CONVERTIDA)
+            </Button>
+          ) : mode !== 'loading' ? (
+            <>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleCancel}
+                size="md"
+              >
+                <X className="h-4 w-4" />
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                form="quotation-form"
+                isLoading={saving}
+                size="md"
+                disabled={readOnly}
+              >
+                <Save className="h-4 w-4" />
+                {canEdit ? 'Salvar alterações' : 'Cadastrar proposta'}
+              </Button>
+            </>
+          ) : null}
+        </div>
       </div>
 
       {loadError ? (
@@ -160,7 +185,6 @@ export function QuotationFormPage() {
           <fieldset disabled={readOnly} className={readOnly ? 'opacity-70' : ''}>
             <QuotationForm
               quotation={canEdit ? quotation ?? undefined : undefined}
-              isLoading={saving}
               initialNumber={mode === 'create' ? nextNumber : null}
               isAdmin={isAdmin}
               onSaveCreate={handleCreate}
