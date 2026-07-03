@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Save, X } from 'lucide-react'
 import { Button } from '../components/ui/Button'
@@ -7,6 +7,7 @@ import { Spinner } from '../components/ui/Spinner'
 import { Alert } from '../components/ui/Alert'
 import { QuotationForm } from '../components/sales/QuotationForm'
 import { QuotationStatusBadge } from '../components/sales/QuotationStatusBadge'
+import { StickyFormActions } from '../components/sales/StickyFormActions'
 import { RegistrationAuditCard } from '../components/client/RegistrationAuditCard'
 import {
   createQuotation,
@@ -40,6 +41,13 @@ export function QuotationFormPage() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [nextNumber, setNextNumber] = useState<number | null>(null)
+
+  // Ref do contêiner de ações no cabeçalho. O `StickyFormActions`
+  // observa esse elemento: quando ele sai do viewport, o menu sticky
+  // aparece; quando volta, some. Mantemos o `null` inicial para que o
+  // observer só seja criado quando o elemento estiver montado (após o
+  // primeiro render, com `mode !== 'loading'`).
+  const actionsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!id) {
@@ -119,7 +127,7 @@ export function QuotationFormPage() {
           ) : null}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div ref={actionsRef} className="flex flex-wrap items-center gap-2">
           {readOnly && quotation ? (
             <Button
               variant="secondary"
@@ -152,6 +160,17 @@ export function QuotationFormPage() {
           ) : null}
         </div>
       </div>
+
+      {mode !== 'loading' ? (
+        <StickyFormActions
+          triggerRef={actionsRef}
+          formId="quotation-form"
+          saving={saving}
+          readOnly={readOnly}
+          canEdit={canEdit}
+          onCancel={handleCancel}
+        />
+      ) : null}
 
       {loadError ? (
         <Alert variant="error">
