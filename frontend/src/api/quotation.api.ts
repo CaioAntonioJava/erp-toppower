@@ -3,6 +3,7 @@ import type { PagedResponse } from '../types/api'
 import type {
   ClientSummaryResponse,
   NextQuotationNumberResponse,
+  QuotationClientType,
   QuotationCreateRequest,
   QuotationFilters,
   QuotationResponse,

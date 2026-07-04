@@ -6,6 +6,7 @@ import {
   Eye,
   FileText,
   Plus,
+  Printer,
   Search,
   X,
 } from 'lucide-react'
@@ -271,6 +272,17 @@ export function QuotationsListPage() {
                           aria-label="Ver detalhe"
                         >
                           <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() =>
+                            window.open(`/quotations/${q.uuid}/pdf`, '_blank')
+                          }
+                          title="Gerar PDF"
+                          aria-label="Gerar PDF"
+                        >
+                          <Printer className="h-4 w-4" />
                         </Button>
                         {canCancel(q) ? (
                           <Button

@@ -85,3 +85,34 @@ input[type='number'] {
   -moz-appearance: textfield;
   appearance: textfield;
 }
+
+/* =====================================================================
+   Estilos de impressão — usados pela rota /quotations/:id/pdf.
+   Forçamos margens de página, preservação de cores (logo/destaques) e
+   ocultamos elementos marcados com `.no-print` (botões, spinners, erros).
+   ===================================================================== */
+@media print {
+  @page {
+    margin: 14mm;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    /* Preserva cores do logo (vermelho) e de destaques ao imprimir. */
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* Elementos marcados não aparecem na saída impressa. */
+  .no-print {
+    display: none !important;
+  }
+
+  /* Evita quebras de linha dentro de seções e linhas da tabela. */
+  section,
+  tr {
+    break-inside: avoid;
+  }
+}

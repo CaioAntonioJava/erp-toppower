@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { FileEdit, X } from 'lucide-react'
+import { FileEdit, Printer, X } from 'lucide-react'
 import { Button } from '../components/ui/Button'
 import { Spinner } from '../components/ui/Spinner'
 import { Alert } from '../components/ui/Alert'
@@ -239,6 +239,15 @@ export function QuotationDetailPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="secondary"
+            onClick={() =>
+              window.open(`/quotations/${quotation.uuid}/pdf`, '_blank')
+            }
+          >
+            <Printer className="h-4 w-4" />
+            Gerar PDF
+          </Button>
           {canEdit ? (
             <Button
               variant="secondary"

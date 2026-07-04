@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { DashboardPage } from './pages/DashboardPage'
@@ -16,6 +16,7 @@ import { ProductFormPage } from './pages/ProductFormPage'
 import { QuotationsListPage } from './pages/QuotationsListPage'
 import { QuotationFormPage } from './pages/QuotationFormPage'
 import { QuotationDetailPage } from './pages/QuotationDetailPage'
+import { QuotationPrintPage } from './pages/QuotationPrintPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { AppLayout } from './components/layout/AppLayout'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -57,6 +58,20 @@ export default function App() {
         <Route path="/quotations/new" element={<QuotationFormPage />} />
         <Route path="/quotations/:id/edit" element={<QuotationFormPage />} />
         <Route path="/quotations/:id" element={<QuotationDetailPage />} />
+      </Route>
+
+      {/* Rota de impressão/PDF da proposta — sem AppLayout (sidebar/topbar),
+          para uma saída limpa em window.print(). */}
+      <Route
+        element={
+          <ProtectedRoute>
+            <div className="min-h-screen bg-white text-slate-900">
+              <Outlet />
+            </div>
+          </ProtectedRoute>
+        }
+      >
+        <Route path="/quotations/:id/pdf" element={<QuotationPrintPage />} />
       </Route>
 
       {/* Compat: rota raiz redireciona para /login se não houver auth. */}
