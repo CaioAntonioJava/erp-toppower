@@ -18,6 +18,7 @@ export { mockCustomers } from './customers.mock'
 export { mockSellers } from './sellers.mock'
 export { mockProducts } from './products.mock'
 export { mockQuotations } from './quotations.mock'
+export { mockCarriers } from './carriers.mock'
 
 /** Helper para embrulhar um array como `PagedResponse` (igual ao backend). */
 export function asPaged<T>(

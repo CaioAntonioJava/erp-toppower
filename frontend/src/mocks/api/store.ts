@@ -18,12 +18,14 @@ import {
   mockSellers as seedSellers,
   mockProducts as seedProducts,
   mockQuotations as seedQuotations,
+  mockCarriers as seedCarriers,
 } from '..'
 import type { CompanyResponse } from '../../types/company'
 import type { CustomerResponse } from '../../types/customer'
 import type { SellerResponse } from '../../types/seller'
 import type { ProductResponse } from '../../types/product'
 import type { QuotationResponse } from '../../types/quotation'
+import type { CarrierResponse } from '../../types/carrier'
 
 /** Clone profundo via JSON — seguro porque os seeds só têm dados primitivos. */
 function clone<T>(value: T): T {
@@ -36,6 +38,7 @@ interface Store {
   sellers: SellerResponse[]
   products: ProductResponse[]
   quotations: QuotationResponse[]
+  carriers: CarrierResponse[]
 }
 
 /**
@@ -50,6 +53,7 @@ export const store: Store = {
   sellers: clone(seedSellers) as SellerResponse[],
   products: clone(seedProducts) as ProductResponse[],
   quotations: clone(seedQuotations) as QuotationResponse[],
+  carriers: clone(seedCarriers) as CarrierResponse[],
 }
 
 /**
