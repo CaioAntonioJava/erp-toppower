@@ -9,9 +9,6 @@ import type { RegistrationStatus } from '../types/registration'
 
 const BASE = '/api/v1/products'
 
-/** Quando `true`, este módulo delega para os mocks em `src/mocks/api/`. */
-const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true'
-
 /** Parâmetros comuns para listagem e busca. */
 interface PageParams {
   page?: number
@@ -22,10 +19,6 @@ interface PageParams {
 export async function listProducts(
   params: PageParams & { status?: RegistrationStatus },
 ): Promise<PagedResponse<ProductResponse>> {
-  if (USE_MOCKS) {
-    const { listProducts: mock } = await import('../mocks/api/product.api.mock')
-    return mock(params)
-  }
   const { data } = await api.get<PagedResponse<ProductResponse>>(BASE, {
     params: {
       page: params.page ?? 0,
@@ -48,10 +41,6 @@ export async function searchProducts(params: {
   page?: number
   size?: number
 }): Promise<PagedResponse<ProductResponse>> {
-  if (USE_MOCKS) {
-    const { searchProducts: mock } = await import('../mocks/api/product.api.mock')
-    return mock(params)
-  }
   const { data } = await api.get<PagedResponse<ProductResponse>>(
     `${BASE}/search`,
     {
@@ -69,10 +58,6 @@ export async function searchProducts(params: {
 
 /** GET /products/{id} — detalhe. */
 export async function getProduct(id: string): Promise<ProductResponse> {
-  if (USE_MOCKS) {
-    const { getProduct: mock } = await import('../mocks/api/product.api.mock')
-    return mock(id)
-  }
   const { data } = await api.get<ProductResponse>(`${BASE}/${id}`)
   return data
 }
@@ -81,10 +66,6 @@ export async function getProduct(id: string): Promise<ProductResponse> {
 export async function createProduct(
   payload: ProductCreateRequest,
 ): Promise<ProductResponse> {
-  if (USE_MOCKS) {
-    const { createProduct: mock } = await import('../mocks/api/product.api.mock')
-    return mock(payload)
-  }
   const { data } = await api.post<ProductResponse>(BASE, payload)
   return data
 }
@@ -94,19 +75,11 @@ export async function updateProduct(
   id: string,
   payload: ProductUpdateRequest,
 ): Promise<ProductResponse> {
-  if (USE_MOCKS) {
-    const { updateProduct: mock } = await import('../mocks/api/product.api.mock')
-    return mock(id, payload)
-  }
   const { data } = await api.patch<ProductResponse>(`${BASE}/${id}`, payload)
   return data
 }
 
 /** DELETE /products/{id} — inativação (soft delete). Retorna 204. */
 export async function inactivateProduct(id: string): Promise<void> {
-  if (USE_MOCKS) {
-    const { inactivateProduct: mock } = await import('../mocks/api/product.api.mock')
-    return mock(id)
-  }
   await api.delete(`${BASE}/${id}`)
 }

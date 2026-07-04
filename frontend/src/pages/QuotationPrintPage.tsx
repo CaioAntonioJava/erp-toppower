@@ -230,13 +230,10 @@ export function QuotationPrintPage() {
   const clientDisplay = clientName ?? (clientUuid ? `${clientUuid.slice(0, 8)}…` : '—')
   const sellerDisplay = sellerName ?? `${quotation.sellerUuid.slice(0, 8)}…`
 
-  // Desconto global em valor monetário (para a linha de totais).
-  const globalDiscountAmount =
-    quotation.discountType && quotation.discount != null
-      ? quotation.discountType === 'PERCENT'
-        ? quotation.subtotal * (quotation.discount / 100)
-        : quotation.discount
-      : 0
+  // Desconto global em valor monetário (calculado pelo backend). Usado
+  // apenas para a linha de totais no PDF — o valor já considera a margem
+  // de lucro aplicada sobre o subtotal dos itens.
+  const globalDiscountAmount = quotation.globalDiscountValue
 
   return (
     <div className="min-h-screen bg-white px-8 py-10 text-slate-900 print:bg-white">

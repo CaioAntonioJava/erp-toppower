@@ -10,9 +10,6 @@ import type { PagedResponse } from '../types/api'
 
 const BASE = '/api/v1/carriers'
 
-/** Quando `true`, este módulo delega para os mocks em `src/mocks/api/`. */
-const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true'
-
 /** Parâmetros comuns para listagem. */
 interface PageParams {
   page?: number
@@ -23,10 +20,6 @@ interface PageParams {
 export async function listCarriers(
   params: PageParams & { status?: CarrierStatus },
 ): Promise<PagedResponse<CarrierResponse>> {
-  if (USE_MOCKS) {
-    const { listCarriers: mock } = await import('../mocks/api/carrier.api.mock')
-    return mock(params)
-  }
   const { data } = await api.get<PagedResponse<CarrierResponse>>(BASE, {
     params: {
       page: params.page ?? 0,
@@ -48,10 +41,6 @@ export async function searchCarriers(params: {
   page?: number
   size?: number
 }): Promise<PagedResponse<CarrierResponse>> {
-  if (USE_MOCKS) {
-    const { searchCarriers: mock } = await import('../mocks/api/carrier.api.mock')
-    return mock(params)
-  }
   const { data } = await api.get<PagedResponse<CarrierResponse>>(
     `${BASE}/search`,
     {
@@ -69,10 +58,6 @@ export async function searchCarriers(params: {
 
 /** GET /carriers/{id} — detalhe. */
 export async function getCarrier(id: string): Promise<CarrierResponse> {
-  if (USE_MOCKS) {
-    const { getCarrier: mock } = await import('../mocks/api/carrier.api.mock')
-    return mock(id)
-  }
   const { data } = await api.get<CarrierResponse>(`${BASE}/${id}`)
   return data
 }
@@ -81,10 +66,6 @@ export async function getCarrier(id: string): Promise<CarrierResponse> {
 export async function createCarrier(
   payload: CarrierCreateRequest,
 ): Promise<CarrierResponse> {
-  if (USE_MOCKS) {
-    const { createCarrier: mock } = await import('../mocks/api/carrier.api.mock')
-    return mock(payload)
-  }
   const { data } = await api.post<CarrierResponse>(BASE, payload)
   return data
 }
@@ -94,33 +75,17 @@ export async function updateCarrier(
   id: string,
   payload: CarrierUpdateRequest,
 ): Promise<CarrierResponse> {
-  if (USE_MOCKS) {
-    const { updateCarrier: mock } = await import('../mocks/api/carrier.api.mock')
-    return mock(id, payload)
-  }
   const { data } = await api.patch<CarrierResponse>(`${BASE}/${id}`, payload)
   return data
 }
 
 /** DELETE /carriers/{id} — inativação (soft delete). Retorna 204. */
 export async function inactivateCarrier(id: string): Promise<void> {
-  if (USE_MOCKS) {
-    const { inactivateCarrier: mock } = await import(
-      '../mocks/api/carrier.api.mock'
-    )
-    return mock(id)
-  }
   await api.delete(`${BASE}/${id}`)
 }
 
 /** PATCH /carriers/{id}/activate — reativação. */
 export async function activateCarrier(id: string): Promise<CarrierResponse> {
-  if (USE_MOCKS) {
-    const { activateCarrier: mock } = await import(
-      '../mocks/api/carrier.api.mock'
-    )
-    return mock(id)
-  }
   const { data } = await api.patch<CarrierResponse>(`${BASE}/${id}/activate`)
   return data
 }

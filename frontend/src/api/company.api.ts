@@ -10,9 +10,6 @@ import type { RegistrationStatus } from '../types/registration'
 
 const BASE = '/api/v1/companies'
 
-/** Quando `true`, este módulo delega para os mocks em `src/mocks/api/`. */
-const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true'
-
 /** Parâmetros comuns para listagem e busca. */
 interface PageParams {
   page?: number
@@ -23,10 +20,6 @@ interface PageParams {
 export async function listCompanies(
   params: PageParams & { status?: RegistrationStatus },
 ): Promise<PagedResponse<CompanyResponse>> {
-  if (USE_MOCKS) {
-    const { listCompanies: mock } = await import('../mocks/api/company.api.mock')
-    return mock(params)
-  }
   const { data } = await api.get<PagedResponse<CompanyResponse>>(BASE, {
     params: {
       page: params.page ?? 0,
@@ -48,10 +41,6 @@ export async function searchCompanies(params: {
   page?: number
   size?: number
 }): Promise<PagedResponse<CompanyResponse>> {
-  if (USE_MOCKS) {
-    const { searchCompanies: mock } = await import('../mocks/api/company.api.mock')
-    return mock(params)
-  }
   const { data } = await api.get<PagedResponse<CompanyResponse>>(
     `${BASE}/search`,
     {
@@ -69,10 +58,6 @@ export async function searchCompanies(params: {
 
 /** GET /companies/{id} — detalhe. Requer ROLE_ADMIN no backend. */
 export async function getCompany(id: string): Promise<CompanyResponse> {
-  if (USE_MOCKS) {
-    const { getCompany: mock } = await import('../mocks/api/company.api.mock')
-    return mock(id)
-  }
   const { data } = await api.get<CompanyResponse>(`${BASE}/${id}`)
   return data
 }
@@ -83,10 +68,6 @@ export async function getCompany(id: string): Promise<CompanyResponse> {
  * Não persiste nada.
  */
 export async function getNextCompanyCode(): Promise<string> {
-  if (USE_MOCKS) {
-    const { getNextCompanyCode: mock } = await import('../mocks/api/company.api.mock')
-    return mock()
-  }
   const { data } = await api.get<CompanyNextCodeResponse>(`${BASE}/next-code`)
   return data.code
 }
@@ -95,10 +76,6 @@ export async function getNextCompanyCode(): Promise<string> {
 export async function createCompany(
   payload: CompanyCreateRequest,
 ): Promise<CompanyResponse> {
-  if (USE_MOCKS) {
-    const { createCompany: mock } = await import('../mocks/api/company.api.mock')
-    return mock(payload)
-  }
   const { data } = await api.post<CompanyResponse>(BASE, payload)
   return data
 }
@@ -108,29 +85,17 @@ export async function updateCompany(
   id: string,
   payload: CompanyUpdateRequest,
 ): Promise<CompanyResponse> {
-  if (USE_MOCKS) {
-    const { updateCompany: mock } = await import('../mocks/api/company.api.mock')
-    return mock(id, payload)
-  }
   const { data } = await api.patch<CompanyResponse>(`${BASE}/${id}`, payload)
   return data
 }
 
 /** DELETE /companies/{id} — inativação (soft delete). Retorna 204. */
 export async function inactivateCompany(id: string): Promise<void> {
-  if (USE_MOCKS) {
-    const { inactivateCompany: mock } = await import('../mocks/api/company.api.mock')
-    return mock(id)
-  }
   await api.delete(`${BASE}/${id}`)
 }
 
 /** PATCH /companies/{id}/activate — reativação. */
 export async function activateCompany(id: string): Promise<CompanyResponse> {
-  if (USE_MOCKS) {
-    const { activateCompany: mock } = await import('../mocks/api/company.api.mock')
-    return mock(id)
-  }
   const { data } = await api.patch<CompanyResponse>(`${BASE}/${id}/activate`)
   return data
 }

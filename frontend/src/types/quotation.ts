@@ -197,14 +197,25 @@ export interface QuotationResponse {
   freightValue: number | null
   /**
    * Margem de lucro aplicada sobre o total da proposta (em %). Ex.: 10 = 10%.
-   * Aplicada como multiplicação (fator `1 + profitMargin/100`) sobre o total
-   * parcial (subtotal - desconto global + frete).
+   * Aplicada como multiplicação (fator `1 + profitMargin/100`) sobre o subtotal
+   * dos itens, antes do desconto global e do frete.
    */
   profitMargin: number
   /** Soma dos totais líquidos dos itens (antes do desconto global). */
   subtotal: number
-  /** Total final (subtotal - desconto global + frete, multiplicado pela margem de lucro). */
+  /**
+   * Total final da proposta. Composição:
+   * `(subtotal × (1 + profitMargin/100)) − desconto global + frete`.
+   * A margem incide apenas sobre o subtotal dos itens; o desconto é retirado
+   * depois da margem; o frete é somado por último e não participa da margem
+   * nem do desconto.
+   */
   total: number
+  /**
+   * Valor em R$ do desconto global efetivamente aplicado (já considerando a
+   * margem de lucro sobre o subtotal). Calculado pelo backend.
+   */
+  globalDiscountValue: number
   /** Soma das quantidades de todos os itens. */
   totalQuantity: number
   createdAt: string
@@ -296,4 +307,59 @@ export interface QuotationFilters {
   number?: string
   page?: number
   size?: number
+}
+
+// =====================================================================
+// Simulação de totais (preview sem persistência)
+// =====================================================================
+
+/**
+ * Linha de produto enviada à simulação de totais. Variação permissiva de
+ * {@link QuotationItemRequest}: campos numéricos são opcionais para tolerar
+ * preview com o formulário em estado intermediário. Espelha
+ * QuotationSimulateItemRequest no backend.
+ */
+export interface QuotationSimulateItemRequest {
+  productUuid?: string | null
+  quantity?: number | null
+  unitPrice?: number | null
+  discountType?: DiscountType | null
+  discount?: number | null
+}
+
+/**
+ * Corpo de POST /api/v1/quotations/simulate. Variação permissiva de
+ * {@link QuotationCreateRequest}: nenhum campo é obrigatório, pois o
+ * preview pode ser disparado com o formulário incompleto. Espelha
+ * QuotationSimulateRequest no backend.
+ */
+export interface QuotationSimulateRequest {
+  customerUuid?: string | null
+  companyUuid?: string | null
+  attention?: string | null
+  sellerUuid?: string | null
+  items?: QuotationSimulateItemRequest[] | null
+  discountType?: DiscountType | null
+  discount?: number | null
+  validityDays?: number | null
+  paymentCondition?: PaymentCondition | null
+  notes?: string | null
+  carrierUuid?: string | null
+  freightType?: FreightType | null
+  freightValue?: number | null
+  profitMargin?: number | null
+}
+
+/**
+ * Resultado da simulação de totais (preview). Espelha
+ * QuotationSimulateResponse no backend. Todos os valores são calculados
+ * pelo backend.
+ */
+export interface QuotationSimulateResponse {
+  items: QuotationItemResponse[]
+  subtotal: number
+  /** Valor em R$ do desconto global efetivamente aplicado. */
+  globalDiscountValue: number
+  total: number
+  totalQuantity: number
 }
