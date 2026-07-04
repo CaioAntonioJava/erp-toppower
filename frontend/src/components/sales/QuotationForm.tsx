@@ -1,7 +1,6 @@
 import {
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
   type FormEvent,
@@ -18,7 +17,7 @@ import { useFieldTouched } from '../../hooks/useFieldTouched'
 import { getProduct, searchProducts } from '../../api/product.api'
 import { listSellers } from '../../api/seller.api'
 import { listCarriers } from '../../api/carrier.api'
-import { searchQuotationClients } from '../../api/quotation.api'
+import { searchQuotationClients, simulateQuotation } from '../../api/quotation.api'
 import type { ProductResponse, UnitType } from '../../types/product'
 import type { SellerResponse } from '../../types/seller'
 import type { CarrierResponse } from '../../types/carrier'
@@ -32,6 +31,7 @@ import type {
   QuotationCreateRequest,
   QuotationItemRequest,
   QuotationResponse,
+  QuotationSimulateResponse,
   QuotationUpdateRequest,
 } from '../../types/quotation'
 import {
@@ -97,6 +97,18 @@ function parseNumber(value: string): number | null {
   return Number.isFinite(n) ? n : null
 }
 
+/**
+ * Formata um valor (número ou string) para o padrão monetário brasileiro
+ * com 2 casas decimais usando vírgula. Ex.: 80 → "80,00"; 45,9 → "45,90".
+ * Retorna string vazia se o valor for vazio/inválido.
+ */
+function formatBRLValue(value: number | string | null | undefined): string {
+  if (value == null) return ''
+  const n = typeof value === 'string' ? parseNumber(value) : value
+  if (n == null || !Number.isFinite(n)) return ''
+  return n.toFixed(2).replace('.', ',')
+}
+
 /** Retorna a data atual no formato ISO `YYYY-MM-DD` aceito por `<input type="date">`. */
 function todayIso(): string {
   const d = new Date()
@@ -104,33 +116,6 @@ function todayIso(): string {
   const mm = String(d.getMonth() + 1).padStart(2, '0')
   const dd = String(d.getDate()).padStart(2, '0')
   return `${yyyy}-${mm}-${dd}`
-}
-
-/**
- * Calcula o total líquido de uma linha (depois do desconto por item),
- * replicando a fórmula do backend: totalPrice = unitPrice * quantity - discount
- * (desconto interpretado conforme discountType).
- */
-function lineTotal(item: ItemDraft): number {
-  const gross = item.unitPrice * item.quantity
-  if (item.discount == null || item.discountType == null) return gross
-  if (item.discountType === 'PERCENT') {
-    return Math.max(0, gross - (gross * item.discount) / 100)
-  }
-  return Math.max(0, gross - item.discount)
-}
-
-/** Calcula o desconto global em R$ dado o subtotal e o tipo/valor. */
-function globalDiscountAmount(
-  subtotal: number,
-  discountType: DiscountType | null,
-  discount: number | null,
-): number {
-  if (discount == null || discountType == null) return 0
-  if (discountType === 'PERCENT') {
-    return Math.min(subtotal, (subtotal * discount) / 100)
-  }
-  return Math.min(subtotal, discount)
 }
 
 export function QuotationForm({
@@ -517,41 +502,69 @@ export function QuotationForm({
     setActiveProductRow(null)
   }
 
-  // === totais calculados ===
-  const subtotal = useMemo(
-    () => items.reduce((sum, it) => sum + lineTotal(it), 0),
-    [items],
-  )
-  const totalQuantity = useMemo(
-    () => items.reduce((sum, it) => sum + (it.quantity ?? 0), 0),
-    [items],
-  )
-  const globalDiscountValue = useMemo(
-    () =>
-      globalDiscountAmount(
-        subtotal,
-        discountType === '' ? null : discountType,
-        parseNumber(discount),
-      ),
-    [subtotal, discountType, discount],
-  )
-  const freightValueNumber = useMemo(
-    () => parseNumber(freightValue) ?? 0,
-    [freightValue],
-  )
-  const profitMarginNumber = useMemo(
-    () => parseNumber(profitMargin) ?? 0,
-    [profitMargin],
-  )
-  // Total final = (subtotal - desconto global) + frete, multiplicado pela
-  // margem de lucro (fator 1 + profitMargin/100). O frete nunca entra no
-  // desconto — é somado após o desconto e antes da margem.
-  const total = useMemo(
-    () =>
-      Math.max(0, (subtotal - globalDiscountValue) + freightValueNumber)
-        * (1 + profitMarginNumber / 100),
-    [subtotal, globalDiscountValue, freightValueNumber, profitMarginNumber],
-  )
+  // === totais calculados pelo backend (simulate debounced) ===
+  // Toda a lógica de cálculo vive no backend; o frontend apenas exibe o
+  // resultado de POST /quotations/simulate. O preview é atualizado com
+  // debounce sempre que os campos relevantes mudam.
+  const [simulation, setSimulation] = useState<QuotationSimulateResponse | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    const handle = setTimeout(() => {
+      const itemsPayload = items.map((it) => ({
+        productUuid: it.productUuid || null,
+        quantity: it.quantity,
+        unitPrice: it.unitPrice,
+        ...(it.discountType != null ? { discountType: it.discountType } : {}),
+        ...(it.discount != null ? { discount: it.discount } : {}),
+      }))
+      const payload = {
+        ...(clientType === 'CUSTOMER'
+          ? { customerUuid: clientUuid || null }
+          : { companyUuid: clientUuid || null }),
+        sellerUuid: sellerUuid || null,
+        items: itemsPayload,
+        ...(discountType !== ''
+          ? {
+              discountType,
+              discount: parseNumber(discount) ?? 0,
+            }
+          : {}),
+        ...(parseNumber(freightValue) != null
+          ? { freightValue: parseNumber(freightValue) }
+          : {}),
+        profitMargin: parseNumber(profitMargin) ?? 0,
+      }
+      simulateQuotation(payload)
+        .then((res) => {
+          if (!cancelled) setSimulation(res)
+        })
+        .catch(() => {
+          // Erro de simulação não bloqueia a edição: mantém o último
+          // preview válido (ou null, exibindo zeros).
+        })
+    }, 400)
+
+    return () => {
+      cancelled = true
+      clearTimeout(handle)
+    }
+  }, [
+    items,
+    clientType,
+    clientUuid,
+    sellerUuid,
+    discountType,
+    discount,
+    freightValue,
+    profitMargin,
+  ])
+
+  const subtotal = simulation?.subtotal ?? 0
+  const totalQuantity = simulation?.totalQuantity ?? 0
+  const globalDiscountValue = simulation?.globalDiscountValue ?? 0
+  const freightValueNumber = parseNumber(freightValue) ?? 0
+  const total = simulation?.total ?? 0
 
   // === validação e submit ===
   function validateAll(): boolean {
@@ -586,7 +599,8 @@ export function QuotationForm({
           errs[`items.${idx}.unitPrice`] =
             `Preço unitário não pode exceder ${MAX_ITEM_VALUE.toLocaleString('pt-BR')}.`
         }
-        if (lineTotal(it) > MAX_ITEM_VALUE) {
+        const grossLine = it.unitPrice * it.quantity
+        if (grossLine > MAX_ITEM_VALUE) {
           errs[`items.${idx}.unitPrice`] =
             `Total da linha não pode exceder ${MAX_ITEM_VALUE.toLocaleString('pt-BR')}.`
         }
@@ -928,7 +942,7 @@ export function QuotationForm({
                 htmlFor="quotation-profit-margin"
                 className="mb-1.5 block text-sm font-medium text-red-600 dark:text-red-400"
               >
-                Margem de lucro
+                Margem de lucro (%)
               </label>
               <Input
                 id="quotation-profit-margin"
@@ -972,6 +986,7 @@ export function QuotationForm({
                 index={idx}
                 isFirst={idx === 0}
                 item={it}
+                lineTotal={simulation?.items?.[idx]?.totalPrice ?? it.unitPrice * it.quantity}
                 fieldErrors={fieldErrors}
                 productOptions={productOptions}
                 productSearching={
@@ -1020,13 +1035,21 @@ export function QuotationForm({
                   ? 'Desconto global (R$)'
                   : 'Desconto global'
             }
-            type="number"
+            type="text"
             inputMode="decimal"
-            step="0.01"
-            min={0}
+            placeholder={discountType === 'PERCENT' ? '0,00' : '0,00'}
             value={discount}
             onChange={(e) => setDiscount(e.target.value)}
-            onBlur={getBlurHandler('discount')}
+            onBlur={() => {
+              // Normaliza para 2 casas decimais no formato brasileiro
+              // (vírgula). Aplica tanto para valor em R$ quanto para
+              // percentual, mantendo consistência com os demais campos.
+              if (discount.trim() !== '') {
+                const formatted = formatBRLValue(discount)
+                if (formatted) setDiscount(formatted)
+              }
+              getBlurHandler('discount')()
+            }}
             error={shouldShowError('discount', fieldErrors.discount)}
             disabled={discountType === ''}
             hint={
@@ -1127,9 +1150,9 @@ export function QuotationForm({
                   // Normaliza para 2 casas decimais no formato brasileiro
                   // (vírgula). Se o usuário digitar "45" vira "45,00"; se
                   // digitar "45,9" vira "45,90". Campos vazios são mantidos.
-                  const n = parseNumber(freightValue)
-                  if (freightValue.trim() !== '' && n != null && n >= 0) {
-                    setFreightValue(n.toFixed(2).replace('.', ','))
+                  if (freightValue.trim() !== '') {
+                    const formatted = formatBRLValue(freightValue)
+                    if (formatted) setFreightValue(formatted)
                   }
                   getBlurHandler('freightValue')()
                 }}
@@ -1217,14 +1240,14 @@ export function QuotationForm({
         </dl>
         {globalDiscountValue > 0 ? (
           <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-            Desconto global aplicado sobre o subtotal:{' '}
+            Desconto global aplicado (após margem de lucro):{' '}
             {brlFormatter.format(globalDiscountValue)}
-            {freightValueNumber > 0 ? ' • Frete somado ao total (não descontado).' : ''}
+            {freightValueNumber > 0 ? ' • Frete somado ao total (sem margem nem desconto).' : ''}
           </p>
         ) : (
           freightValueNumber > 0 ? (
             <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-              Frete somado ao total (não descontado).
+              Frete somado ao total (sem margem nem desconto).
             </p>
           ) : null
         )}
@@ -1242,6 +1265,8 @@ interface ItemRowProps {
   /** Indica se esta é a primeira linha — usada para mostrar labels acima dos campos. */
   isFirst: boolean
   item: ItemDraft
+  /** Total líquido da linha (vindo do backend via simulate). */
+  lineTotal: number
   fieldErrors: Record<string, string>
   productOptions: ProductResponse[]
   productSearching: boolean
@@ -1265,6 +1290,7 @@ function ItemRow({
   index,
   isFirst,
   item,
+  lineTotal,
   fieldErrors,
   productOptions,
   productSearching,
@@ -1275,7 +1301,7 @@ function ItemRow({
   onPatch,
   onRemove,
 }: ItemRowProps) {
-  const total = lineTotal(item)
+  const total = lineTotal
   const quantityField = `items.${index}.quantity`
   const unitPriceField = `items.${index}.unitPrice`
   const discountField = `items.${index}.discount`
@@ -1284,6 +1310,26 @@ function ItemRow({
   const productError = showError(productField, fieldErrors[productField])
   const quantityError = showError(quantityField, fieldErrors[quantityField])
   const unitPriceError = showError(unitPriceField, fieldErrors[unitPriceField])
+
+  // Estado local de exibição para os campos monetários (Preço e Desconto).
+  // Permite mostrar o valor formatado com 2 casas decimais (ex.: "80,00")
+  // mesmo quando o número armazenado for 80. O estado é sincronizado com
+  // o número externo sempre que ele muda (ex.: ao selecionar um produto,
+  // que sobrescreve o preço) e formatado no blur.
+  const [unitPriceDisplay, setUnitPriceDisplay] = useState<string>(
+    item.unitPrice != null ? formatBRLValue(item.unitPrice) : '',
+  )
+  const [discountDisplay, setDiscountDisplay] = useState<string>(
+    item.discount != null ? formatBRLValue(item.discount) : '',
+  )
+
+  useEffect(() => {
+    setUnitPriceDisplay(item.unitPrice != null ? formatBRLValue(item.unitPrice) : '')
+  }, [item.unitPrice])
+
+  useEffect(() => {
+    setDiscountDisplay(item.discount != null ? formatBRLValue(item.discount) : '')
+  }, [item.discount])
 
   // Estilo base dos inputs compactos da linha. Mesmo padrão visual dos
   // campos da tabela — borda + focus ring com a cor `--color-focus`.
@@ -1418,19 +1464,25 @@ function ItemRow({
       <div role="cell" className="min-w-0">
         {isFirst ? <label className={labelCls}>Preço</label> : null}
         <input
-          type="number"
+          type="text"
           inputMode="decimal"
-          step="0.01"
-          min={0}
-          max={MAX_ITEM_VALUE}
           aria-label="Preço unitário"
-          placeholder="Preço"
-          value={String(item.unitPrice ?? '')}
+          placeholder="0,00"
+          value={unitPriceDisplay}
           onChange={(e) => {
+            setUnitPriceDisplay(e.target.value)
             const v = parseNumber(e.target.value)
             onPatch({ unitPrice: v ?? 0 })
           }}
-          onBlur={getBlurHandler(unitPriceField)}
+          onBlur={() => {
+            // Normaliza para 2 casas decimais no formato brasileiro
+            // (vírgula): "80" → "80,00"; "45,9" → "45,90".
+            const formatted = formatBRLValue(unitPriceDisplay)
+            setUnitPriceDisplay(formatted)
+            const n = parseNumber(formatted)
+            onPatch({ unitPrice: n ?? 0 })
+            getBlurHandler(unitPriceField)()
+          }}
           className={[inputBase, 'text-right', unitPriceError ? inputError : ''].join(' ')}
           required
         />
@@ -1440,21 +1492,33 @@ function ItemRow({
       <div role="cell" className="min-w-0">
         {isFirst ? <label className={labelCls}>Desconto</label> : null}
         <input
-          type="number"
+          type="text"
           inputMode="decimal"
-          step="0.01"
-          min={0}
-          max={MAX_ITEM_VALUE}
           aria-label="Desconto"
-          value={item.discount != null ? String(item.discount) : ''}
+          placeholder="0,00"
+          value={discountDisplay}
           onChange={(e) => {
+            setDiscountDisplay(e.target.value)
             const v = parseNumber(e.target.value)
             onPatch({
               discount: v,
               discountType: v != null ? 'AMOUNT' : null,
             })
           }}
-          onBlur={getBlurHandler(discountField)}
+          onBlur={() => {
+            // Normaliza para 2 casas decimais no formato brasileiro
+            // (vírgula): "80" → "80,00"; "45,9" → "45,90". Se o campo
+            // estiver vazio, limpa o desconto e o tipo.
+            if (discountDisplay.trim() === '') {
+              onPatch({ discount: null, discountType: null })
+            } else {
+              const formatted = formatBRLValue(discountDisplay)
+              setDiscountDisplay(formatted)
+              const n = parseNumber(formatted)
+              onPatch({ discount: n, discountType: 'AMOUNT' })
+            }
+            getBlurHandler(discountField)()
+          }}
           className={[inputBase, 'text-right'].join(' ')}
         />
       </div>
