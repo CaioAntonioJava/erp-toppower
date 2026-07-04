@@ -239,7 +239,8 @@ export function SalesOrdersListPage() {
                 (data?.content ?? []).map((o) => (
                   <tr
                     key={o.uuid}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                    className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                    onClick={() => navigate(`/sales-orders/${o.uuid}`)}
                   >
                     <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-slate-700 dark:text-slate-200">
                       {o.number}
@@ -264,7 +265,10 @@ export function SalesOrdersListPage() {
                     <td className="px-4 py-3">
                       <SalesOrderStatusBadge status={o.status} />
                     </td>
-                    <td className="px-4 py-3">
+                    <td
+                      className="px-4 py-3"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <div className="flex items-center justify-end gap-1">
                         <Button
                           size="sm"

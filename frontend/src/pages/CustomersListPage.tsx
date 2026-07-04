@@ -263,12 +263,16 @@ export function CustomersListPage() {
                     <tr
                       key={c.uuid}
                       className={[
-                        'hover:bg-slate-50 dark:hover:bg-slate-800/40',
+                        'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40',
                         isSelected ? 'bg-primary-50/50 dark:bg-primary-900/10' : '',
                       ].join(' ')}
+                      onClick={() => navigate(`/customers/${c.uuid}`)}
                     >
                       {isAdmin ? (
-                        <td className="px-4 py-3">
+                        <td
+                          className="px-4 py-3"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <input
                             type="checkbox"
                             aria-label={`Selecionar ${c.name}`}
@@ -310,7 +314,10 @@ export function CustomersListPage() {
                           ) : null}
                         </td>
                       ) : null}
-                      <td className="px-4 py-3">
+                      <td
+                        className="px-4 py-3"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <div className="flex items-center justify-end gap-1">
                           <Button
                             size="sm" variant="ghost"

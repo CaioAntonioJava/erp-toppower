@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import {
   ChevronLeft,
   ChevronRight,
+  ClipboardList,
   Eye,
   FileText,
   Plus,
@@ -18,6 +19,7 @@ import { Alert } from '../components/ui/Alert'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { QuotationStatusBadge } from '../components/sales/QuotationStatusBadge'
 import { cancelQuotation, listQuotations } from '../api/quotation.api'
+import { createSalesOrderFromQuotation } from '../api/salesOrder.api'
 import { toApiError } from '../lib/errors'
 import type {
   QuotationStatus,
@@ -80,6 +82,11 @@ export function QuotationsListPage() {
     useState<QuotationSummaryResponse | null>(null)
   const [canceling, setCanceling] = useState(false)
 
+  // Conversão em pedido de venda
+  const [confirmConvert, setConfirmConvert] =
+    useState<QuotationSummaryResponse | null>(null)
+  const [converting, setConverting] = useState(false)
+
   // Debounce do filtro por número.
   useEffect(() => {
     const t = setTimeout(() => setDebouncedNumber(number.trim()), 300)
@@ -139,6 +146,25 @@ export function QuotationsListPage() {
 
   const canCancel = (q: QuotationSummaryResponse) =>
     q.status === 'ATIVA' || q.status === 'EXPIRADA'
+
+  // Apenas propostas ATIVAS podem ser convertidas em pedido (regra do backend).
+  const canConvert = (q: QuotationSummaryResponse) => q.status === 'ATIVA'
+
+  async function handleConvert() {
+    if (!confirmConvert) return
+    setConverting(true)
+    setError(null)
+    try {
+      const order = await createSalesOrderFromQuotation(confirmConvert.uuid)
+      setConfirmConvert(null)
+      // Navega para o detalhe do pedido recém-criado.
+      navigate(`/sales-orders/${order.uuid}`)
+    } catch (err) {
+      setError(toApiError(err).message)
+    } finally {
+      setConverting(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -237,7 +263,8 @@ export function QuotationsListPage() {
                 (data?.content ?? []).map((q) => (
                   <tr
                     key={q.uuid}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                    className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                    onClick={() => navigate(`/quotations/${q.uuid}`)}
                   >
                     <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-slate-700 dark:text-slate-200">
                       {q.number}
@@ -262,7 +289,10 @@ export function QuotationsListPage() {
                     <td className="px-4 py-3">
                       <QuotationStatusBadge status={q.status} />
                     </td>
-                    <td className="px-4 py-3">
+                    <td
+                      className="px-4 py-3"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <div className="flex items-center justify-end gap-1">
                         <Button
                           size="sm"
@@ -284,6 +314,17 @@ export function QuotationsListPage() {
                         >
                           <Printer className="h-4 w-4" />
                         </Button>
+                        {canConvert(q) ? (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setConfirmConvert(q)}
+                            title="Converter em pedido de venda"
+                            aria-label="Converter em pedido de venda"
+                          >
+                            <ClipboardList className="h-4 w-4" />
+                          </Button>
+                        ) : null}
                         {canCancel(q) ? (
                           <Button
                             size="sm"
@@ -346,6 +387,19 @@ export function QuotationsListPage() {
         onConfirm={handleCancel}
         onClose={() => {
           if (!canceling) setConfirmCancel(null)
+        }}
+      />
+
+      <ConfirmDialog
+        open={!!confirmConvert}
+        title="Converter em pedido de venda?"
+        description={`A proposta ${confirmConvert?.number} será convertida em um novo pedido de venda (status ABERTO). A proposta passará a constar como CONVERTIDA.`}
+        confirmText="Converter em pedido"
+        confirmVariant="primary"
+        isLoading={converting}
+        onConfirm={handleConvert}
+        onClose={() => {
+          if (!converting) setConfirmConvert(null)
         }}
       />
     </div>

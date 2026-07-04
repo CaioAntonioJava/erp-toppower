@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { FileEdit, Printer, X } from 'lucide-react'
+import { ClipboardList, FileEdit, Printer, X } from 'lucide-react'
 import { Button } from '../components/ui/Button'
 import { Spinner } from '../components/ui/Spinner'
 import { Alert } from '../components/ui/Alert'
@@ -9,6 +9,7 @@ import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { QuotationStatusBadge } from '../components/sales/QuotationStatusBadge'
 import { RegistrationAuditCard } from '../components/client/RegistrationAuditCard'
 import { cancelQuotation, getQuotation } from '../api/quotation.api'
+import { createSalesOrderFromQuotation } from '../api/salesOrder.api'
 import { getCustomer } from '../api/customer.api'
 import { getCompany } from '../api/company.api'
 import { getSeller } from '../api/seller.api'
@@ -73,6 +74,9 @@ export function QuotationDetailPage() {
   const [confirmCancel, setConfirmCancel] = useState(false)
   const [canceling, setCanceling] = useState(false)
   const [cancelError, setCancelError] = useState<string | null>(null)
+  const [confirmConvert, setConfirmConvert] = useState(false)
+  const [converting, setConverting] = useState(false)
+  const [convertError, setConvertError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -185,6 +189,21 @@ export function QuotationDetailPage() {
     }
   }
 
+  async function handleConvert() {
+    if (!quotation) return
+    setConverting(true)
+    setConvertError(null)
+    try {
+      const order = await createSalesOrderFromQuotation(quotation.uuid)
+      // Navega para o detalhe do pedido recém-criado.
+      navigate(`/sales-orders/${order.uuid}`)
+    } catch (err) {
+      setConvertError(toApiError(err).message)
+    } finally {
+      setConverting(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -211,6 +230,8 @@ export function QuotationDetailPage() {
   const canEdit =
     quotation.status === 'ATIVA' || quotation.status === 'EXPIRADA'
   const canCancel = canEdit
+  // Apenas propostas ATIVAS podem ser convertidas em pedido (regra do backend).
+  const canConvert = quotation.status === 'ATIVA'
 
   // UUIDs "curtos" usados como fallback visual enquanto os nomes reais
   // não chegam (ou quando a resolução falha).
@@ -257,6 +278,18 @@ export function QuotationDetailPage() {
               Editar
             </Button>
           ) : null}
+          {canConvert ? (
+            <Button
+              variant="primary"
+              onClick={() => {
+                setConvertError(null)
+                setConfirmConvert(true)
+              }}
+            >
+              <ClipboardList className="h-4 w-4" />
+              Converter em pedido
+            </Button>
+          ) : null}
           {canCancel ? (
             <Button
               variant="danger"
@@ -273,6 +306,7 @@ export function QuotationDetailPage() {
       </div>
 
       {cancelError ? <Alert variant="error">{cancelError}</Alert> : null}
+      {convertError ? <Alert variant="error">{convertError}</Alert> : null}
 
       {/* Resumo */}
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -346,6 +380,25 @@ export function QuotationDetailPage() {
             </div>
           ) : null}
         </dl>
+
+        {canConvert ? (
+          <div className="mt-6 flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Esta proposta está ativa e pode ser convertida em um pedido de
+              venda.
+            </p>
+            <Button
+              variant="primary"
+              onClick={() => {
+                setConvertError(null)
+                setConfirmConvert(true)
+              }}
+            >
+              <ClipboardList className="h-4 w-4" />
+              Converter em pedido
+            </Button>
+          </div>
+        ) : null}
       </section>
 
       {/* Itens */}
@@ -455,6 +508,19 @@ export function QuotationDetailPage() {
         onConfirm={handleCancel}
         onClose={() => {
           if (!canceling) setConfirmCancel(false)
+        }}
+      />
+
+      <ConfirmDialog
+        open={confirmConvert}
+        title="Converter em pedido de venda?"
+        description={`A proposta ${quotation.number} será convertida em um novo pedido de venda (status ABERTO). A proposta passará a constar como CONVERTIDA.`}
+        confirmText="Converter em pedido"
+        confirmVariant="primary"
+        isLoading={converting}
+        onConfirm={handleConvert}
+        onClose={() => {
+          if (!converting) setConfirmConvert(false)
         }}
       />
     </div>
