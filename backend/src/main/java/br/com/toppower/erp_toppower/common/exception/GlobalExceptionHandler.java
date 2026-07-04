@@ -20,6 +20,11 @@ import br.com.toppower.erp_toppower.sales.quotation.exception.InvalidQuotationCl
 import br.com.toppower.erp_toppower.sales.quotation.exception.QuotationBusinessException;
 import br.com.toppower.erp_toppower.sales.quotation.exception.QuotationClientNotFoundException;
 import br.com.toppower.erp_toppower.sales.quotation.exception.QuotationNotFoundException;
+import br.com.toppower.erp_toppower.sales.salesorder.exception.InvalidSalesOrderClientException;
+import br.com.toppower.erp_toppower.sales.salesorder.exception.QuotationAlreadyConvertedException;
+import br.com.toppower.erp_toppower.sales.salesorder.exception.SalesOrderBusinessException;
+import br.com.toppower.erp_toppower.sales.salesorder.exception.SalesOrderClientNotFoundException;
+import br.com.toppower.erp_toppower.sales.salesorder.exception.SalesOrderNotFoundException;
 import br.com.toppower.erp_toppower.seller.exception.DuplicateSellerCpfException;
 import br.com.toppower.erp_toppower.seller.exception.DuplicateSellerEmailException;
 import br.com.toppower.erp_toppower.seller.exception.SellerNotFoundException;
@@ -188,6 +193,35 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(QuotationBusinessException.class)
     public ResponseEntity<ApiError> handleQuotationBusiness(QuotationBusinessException ex) {
+        return build(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    // =====================================================================
+    // Pedidos de venda (SalesOrder)
+    // =====================================================================
+
+    @ExceptionHandler(SalesOrderNotFoundException.class)
+    public ResponseEntity<ApiError> handleSalesOrderNotFound(SalesOrderNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(SalesOrderClientNotFoundException.class)
+    public ResponseEntity<ApiError> handleSalesOrderClientNotFound(SalesOrderClientNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidSalesOrderClientException.class)
+    public ResponseEntity<ApiError> handleInvalidSalesOrderClient(InvalidSalesOrderClientException ex) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(SalesOrderBusinessException.class)
+    public ResponseEntity<ApiError> handleSalesOrderBusiness(SalesOrderBusinessException ex) {
+        return build(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(QuotationAlreadyConvertedException.class)
+    public ResponseEntity<ApiError> handleQuotationAlreadyConverted(QuotationAlreadyConvertedException ex) {
         return build(HttpStatus.CONFLICT, ex.getMessage());
     }
 
