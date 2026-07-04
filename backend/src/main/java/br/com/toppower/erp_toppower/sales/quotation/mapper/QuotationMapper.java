@@ -4,6 +4,9 @@ import br.com.toppower.erp_toppower.sales.quotation.dto.QuotationCreateRequest;
 import br.com.toppower.erp_toppower.sales.quotation.dto.QuotationItemRequest;
 import br.com.toppower.erp_toppower.sales.quotation.dto.QuotationItemResponse;
 import br.com.toppower.erp_toppower.sales.quotation.dto.QuotationResponse;
+import br.com.toppower.erp_toppower.sales.quotation.dto.QuotationSimulateItemRequest;
+import br.com.toppower.erp_toppower.sales.quotation.dto.QuotationSimulateRequest;
+import br.com.toppower.erp_toppower.sales.quotation.dto.QuotationSimulateResponse;
 import br.com.toppower.erp_toppower.sales.quotation.dto.QuotationSummaryResponse;
 import br.com.toppower.erp_toppower.sales.quotation.dto.QuotationUpdateRequest;
 import br.com.toppower.erp_toppower.sales.quotation.entity.Quotation;
@@ -38,6 +41,28 @@ public final class QuotationMapper {
      * (com o desconto interpretado conforme {@code discountType}).
      */
     public static QuotationItem toItemEntity(QuotationItemRequest request, UUID quotationUuid) {
+        QuotationItem item = new QuotationItem();
+        item.setQuotationUuid(quotationUuid);
+        item.setProductUuid(request.productUuid());
+        item.setQuantity(request.quantity());
+        item.setUnitPrice(request.unitPrice());
+        item.setDiscountType(request.discountType());
+        item.setDiscount(request.discount());
+        item.setTotalPrice(calculateItemTotalPrice(
+                request.unitPrice(),
+                request.quantity(),
+                request.discount(),
+                request.discountType()));
+        return item;
+    }
+
+    /**
+     * Cria uma entidade {@link QuotationItem} a partir do DTO permissivo
+     * de simulação. Campos nulos (quantidade/preço/desconto) são tratados
+     * como zero pelo cálculo — o preview pode ser disparado com o
+     * formulário em estado intermediário.
+     */
+    public static QuotationItem toItemEntity(QuotationSimulateItemRequest request, UUID quotationUuid) {
         QuotationItem item = new QuotationItem();
         item.setQuotationUuid(quotationUuid);
         item.setProductUuid(request.productUuid());
@@ -108,6 +133,22 @@ public final class QuotationMapper {
      * {@code @PrePersist}.
      */
     public static Quotation toEntity(QuotationCreateRequest request) {
+        Quotation q = new Quotation();
+        applyHeader(q, request.customerUuid(), request.companyUuid(), request.attention(),
+                request.sellerUuid(), request.discountType(), request.discount(),
+                request.validityDays(), request.paymentCondition(), request.notes(),
+                request.carrierUuid(), request.freightType(), request.freightValue(),
+                request.profitMargin());
+        return q;
+    }
+
+    /**
+     * Cria a entidade {@link Quotation} (header) a partir do request
+     * permissivo de simulação. Apenas os campos relevantes para o cálculo
+     * são populados; campos nulos são tolerados (o cálculo trata como
+     * zero). Não define número nem status — o simulate não persiste.
+     */
+    public static Quotation toEntity(QuotationSimulateRequest request) {
         Quotation q = new Quotation();
         applyHeader(q, request.customerUuid(), request.companyUuid(), request.attention(),
                 request.sellerUuid(), request.discountType(), request.discount(),
@@ -222,11 +263,26 @@ public final class QuotationMapper {
                 quotation.getStatus(),
                 quotation.getSubtotal(),
                 quotation.getTotal(),
+                quotation.calculateGlobalDiscountValue(),
                 quotation.getTotalQuantity(),
                 quotation.getCreatedAt(),
                 quotation.getUpdatedAt(),
                 quotation.getCreatedBy(),
                 quotation.getUpdatedBy());
+    }
+
+    /**
+     * Constrói o resumo de simulação (totais sem persistência) a partir
+     * da entidade já com totais calculados (via {@code recalculateTotals})
+     * e da lista de itens.
+     */
+    public static QuotationSimulateResponse toSimulateResponse(Quotation quotation, List<QuotationItem> items) {
+        return new QuotationSimulateResponse(
+                items.stream().map(QuotationMapper::toItemResponse).toList(),
+                quotation.getSubtotal(),
+                quotation.calculateGlobalDiscountValue(),
+                quotation.getTotal(),
+                quotation.getTotalQuantity());
     }
 
     /**

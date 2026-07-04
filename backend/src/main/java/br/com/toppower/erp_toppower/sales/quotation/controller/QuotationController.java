@@ -5,6 +5,8 @@ import br.com.toppower.erp_toppower.sales.quotation.dto.ClientSummaryResponse;
 import br.com.toppower.erp_toppower.sales.quotation.dto.NextQuotationNumberResponse;
 import br.com.toppower.erp_toppower.sales.quotation.dto.QuotationCreateRequest;
 import br.com.toppower.erp_toppower.sales.quotation.dto.QuotationResponse;
+import br.com.toppower.erp_toppower.sales.quotation.dto.QuotationSimulateRequest;
+import br.com.toppower.erp_toppower.sales.quotation.dto.QuotationSimulateResponse;
 import br.com.toppower.erp_toppower.sales.quotation.dto.QuotationSummaryResponse;
 import br.com.toppower.erp_toppower.sales.quotation.dto.QuotationUpdateRequest;
 import br.com.toppower.erp_toppower.sales.quotation.enums.QuotationStatus;
@@ -79,6 +81,26 @@ public class QuotationController {
     })
     public ResponseEntity<QuotationResponse> create(@Valid @RequestBody QuotationCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(quotationService.create(request));
+    }
+
+    @PostMapping(value = "/simulate", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Simular totais de uma proposta",
+            description = "Calcula os totais de uma proposta (subtotal, desconto global em R$, total e "
+                    + "total de unidades) sem persistir nada. Permite que o frontend exiba um preview em "
+                    + "tempo real delegando toda a lógica de cálculo ao backend.")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Totais calculados com sucesso.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = QuotationSimulateResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Erro de validação ou invariante violada.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+    })
+    public ResponseEntity<QuotationSimulateResponse> simulate(@Valid @RequestBody QuotationSimulateRequest request) {
+        return ResponseEntity.ok(quotationService.simulate(request));
     }
 
     @GetMapping(value = "/next-number", produces = MediaType.APPLICATION_JSON_VALUE)

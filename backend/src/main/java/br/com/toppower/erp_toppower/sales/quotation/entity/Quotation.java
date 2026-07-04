@@ -48,11 +48,11 @@ import java.util.UUID;
      * após carregar os itens, através de {@link #recalculateTotals(List)}.
      * O desconto por item <b>já está</b> subtraído em
      * {@code item.totalPrice}, de modo que o {@code subtotal} reflete o
-     * total líquido dos itens. O desconto global é então subtraído do
-     * subtotal, o {@link #freightValue} é somado ao resultado e, por
-     * fim, a {@link #profitMargin} é aplicada como multiplicação
-     * percentual para chegar ao {@code total} — o frete nunca participa
-     * do desconto.</p>
+     * total líquido dos itens. A {@link #profitMargin} é aplicada como
+     * multiplicação percentual sobre o {@code subtotal}, o desconto
+     * global é então subtraído do valor já com margem, e por último o
+     * {@link #freightValue} é somado — o frete nunca participa da margem
+     * nem do desconto.</p>
  */
 @Entity
 @Table(
@@ -225,11 +225,13 @@ public class Quotation extends BaseEntity {
     private BigDecimal subtotal = BigDecimal.ZERO;
 
     /**
-     * Total final da proposta (subtotal menos o desconto global, mais o
-     * frete, multiplicado pela margem de lucro). Preenchido em memória
-     * por {@link #recalculateTotals(List)}. O frete é somado após o
-     * desconto e nunca é descontado; a margem de lucro é aplicada por
-     * último sobre o total parcial.
+     * Total final da proposta. Preenchido em memória por
+     * {@link #recalculateTotals(List)}. Regra de composição:
+     * {@code (subtotal × (1 + profitMargin/100)) − desconto global + frete}.
+     * A margem de lucro incide apenas sobre o total dos itens (subtotal);
+     * o desconto global é aplicado depois, sobre o valor já com margem;
+     * o frete é somado por último e nunca participa da margem nem do
+     * desconto.
      */
     @Transient
     private BigDecimal total = BigDecimal.ZERO;
@@ -254,11 +256,13 @@ public class Quotation extends BaseEntity {
      *   <li>{@code subtotal} = soma de {@code item.totalPrice} de cada
      *       item (já líquido do desconto por item, que é deduzido na
      *       criação/atualização do item);</li>
-     *   <li>{@code total} = ({@code subtotal} − desconto global
-     *       (valor ou percentual)) + {@code freightValue}, multiplicado
-     *       pela {@link #profitMargin} (fator {@code 1 + profitMargin/100}).
-     *       O frete é somado após o desconto e nunca participa do
-     *       desconto global; a margem de lucro é aplicada por último;</li>
+     *   <li>{@code total} = ({@code subtotal} multiplicado pela
+     *       {@link #profitMargin} (fator {@code 1 + profitMargin/100}))
+     *       menos o desconto global (valor ou percentual), e por último
+     *       somado ao {@code freightValue}. A margem de lucro incide apenas
+     *       sobre o subtotal dos itens; o desconto é aplicado depois, sobre
+     *       o valor já com margem; o frete é somado ao final e nunca
+     *       participa da margem nem do desconto;</li>
      *   <li>{@code totalQuantity} = soma de {@code item.quantity}.</li>
      * </ul>
      *
@@ -280,19 +284,36 @@ public class Quotation extends BaseEntity {
                     .reduce(BigDecimal.ZERO, BigDecimal::add)
                     .intValue();
         }
-        // total = (subtotal - desconto global) + frete, aplicada a margem
-        // de lucro por último. O frete nunca entra no desconto — é somado
-        // ao subtotal já descontado antes da margem.
-        BigDecimal discounted = applyGlobalDiscount(this.subtotal);
+        // total = subtotal × (1 + margem/100), aplicado o desconto global
+        // sobre o valor já com margem, e por último somado o frete.
+        // A margem incide apenas sobre o total dos itens; o desconto é
+        // retirado depois da margem; o frete é repassado de forma fixa,
+        // sem participar da margem nem do desconto.
+        BigDecimal withMargin = applyProfitMargin(this.subtotal);
+        BigDecimal discounted = applyGlobalDiscount(withMargin);
         BigDecimal freight = (freightValue != null) ? freightValue : BigDecimal.ZERO;
-        BigDecimal beforeMargin = discounted.add(freight);
-        this.total = applyProfitMargin(beforeMargin);
+        this.total = discounted.add(freight).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Valor em R$ do desconto global efetivamente aplicado, derivado da
+     * mesma base usada em {@link #recalculateTotals(List)}: diferença entre
+     * o subtotal com margem e o subtotal já descontado. Retorna
+     * {@code BigDecimal.ZERO} quando não há desconto global configurado.
+     *
+     * <p>Exposto para que o mapper possa popular o DTO de resposta sem
+     * duplicar a lógica de cálculo.</p>
+     */
+    public BigDecimal calculateGlobalDiscountValue() {
+        BigDecimal withMargin = applyProfitMargin(this.subtotal);
+        BigDecimal discounted = applyGlobalDiscount(withMargin);
+        return withMargin.subtract(discounted).setScale(2, RoundingMode.HALF_UP);
     }
 
     /**
      * Aplica a {@link #profitMargin} como multiplicação percentual sobre
-     * o total parcial (subtotal - desconto + frete), através do fator
-     * {@code (1 + profitMargin / 100)}.
+     * o subtotal dos itens (antes do desconto global e do frete), através
+     * do fator {@code (1 + profitMargin / 100)}.
      */
     private BigDecimal applyProfitMargin(BigDecimal base) {
         if (base == null) {

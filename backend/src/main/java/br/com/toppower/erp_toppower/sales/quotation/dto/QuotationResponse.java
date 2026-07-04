@@ -99,9 +99,13 @@ public record QuotationResponse(
                 example = "1450.00", requiredMode = Schema.RequiredMode.REQUIRED)
         BigDecimal subtotal,
 
-        @Schema(description = "Total final da proposta (subtotal - desconto global + frete, multiplicado pela margem de lucro).",
+        @Schema(description = "Total final da proposta (subtotal com margem de lucro aplicada, menos o desconto global, mais o frete).",
                 example = "1590.49", requiredMode = Schema.RequiredMode.REQUIRED)
         BigDecimal total,
+
+        @Schema(description = "Valor em R$ do desconto global efetivamente aplicado (já considerando a margem de lucro sobre o subtotal).",
+                example = "50.00", requiredMode = Schema.RequiredMode.REQUIRED)
+        BigDecimal globalDiscountValue,
 
         @Schema(description = "Soma das quantidades de todos os itens (unidades comercializadas).",
                 example = "12", requiredMode = Schema.RequiredMode.REQUIRED)

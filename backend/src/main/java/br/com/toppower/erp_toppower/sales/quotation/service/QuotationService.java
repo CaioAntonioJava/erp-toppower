@@ -6,6 +6,8 @@ import br.com.toppower.erp_toppower.customer.repository.CustomerRepository;
 import br.com.toppower.erp_toppower.sales.quotation.dto.QuotationCreateRequest;
 import br.com.toppower.erp_toppower.sales.quotation.dto.QuotationItemRequest;
 import br.com.toppower.erp_toppower.sales.quotation.dto.QuotationResponse;
+import br.com.toppower.erp_toppower.sales.quotation.dto.QuotationSimulateRequest;
+import br.com.toppower.erp_toppower.sales.quotation.dto.QuotationSimulateResponse;
 import br.com.toppower.erp_toppower.sales.quotation.dto.QuotationSummaryResponse;
 import br.com.toppower.erp_toppower.sales.quotation.dto.QuotationUpdateRequest;
 import br.com.toppower.erp_toppower.sales.quotation.entity.Quotation;
@@ -249,6 +251,35 @@ public class QuotationService {
                 .findByQuotationUuidOrderByCreatedAtAsc(id);
         saved.recalculateTotals(items);
         return QuotationMapper.toResponse(saved, items);
+    }
+
+    // ---------------------------------------------------------------------
+    // Simulate (cálculo sem persistência)
+    // ---------------------------------------------------------------------
+
+    /**
+     * Calcula os totais de uma proposta comercial sem persistir nada.
+     * Usado pelo endpoint {@code POST /quotations/simulate} para que o
+     * frontend exiba um preview em tempo real — toda a lógica de cálculo
+     * permanece no backend.
+     *
+     * <p>Diferente do {@link #create(QuotationCreateRequest)}, este método
+     * <b>não</b> exige cliente/vendedor/itens preenchidos: o request é
+     * permissivo, pois o preview pode ser disparado com o formulário em
+     * estado intermediário. Itens nulos/vazios resultam em totais zero;
+     * campos numéricos nulos são tratados como zero pelo cálculo.</p>
+     */
+    @Transactional(readOnly = true)
+    public QuotationSimulateResponse simulate(QuotationSimulateRequest request) {
+        Quotation header = QuotationMapper.toEntity(request);
+        List<QuotationItem> items = (request.items() == null)
+                ? List.of()
+                : request.items().stream()
+                        .map(itemReq -> QuotationMapper.toItemEntity(itemReq, header.getUuid()))
+                        .toList();
+
+        header.recalculateTotals(items);
+        return QuotationMapper.toSimulateResponse(header, items);
     }
 
     // ---------------------------------------------------------------------
