@@ -379,7 +379,7 @@ export function RichTextEditor({
           onKeyUp={refreshActiveStates}
           onMouseUp={refreshActiveStates}
           className={[
-            'min-h-[88px] rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none',
+            'min-h-[200px] rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none',
             'dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100',
             'focus:border-focus focus:ring-2 focus:ring-focus/30',
             'transition-[border-color,box-shadow] duration-500 ease-in-out',
