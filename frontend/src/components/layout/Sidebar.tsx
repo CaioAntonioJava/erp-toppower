@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom'
 import {
   Briefcase,
   Building2,
+  ClipboardList,
   FileText,
   FileUp,
   LayoutDashboard,
@@ -27,6 +28,7 @@ const navItems: NavItem[] = [
   { to: '/sellers', label: 'Vendedores', icon: Briefcase },
   { to: '/products', label: 'Produtos', icon: Package },
   { to: '/quotations', label: 'Propostas', icon: FileText },
+  { to: '/sales-orders', label: 'Pedidos de Venda', icon: ClipboardList },
 ]
 
 /** Sidebar com os links principais. Mantida simples para um MVP. */

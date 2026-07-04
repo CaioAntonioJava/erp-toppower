@@ -17,6 +17,10 @@ import { QuotationsListPage } from './pages/QuotationsListPage'
 import { QuotationFormPage } from './pages/QuotationFormPage'
 import { QuotationDetailPage } from './pages/QuotationDetailPage'
 import { QuotationPrintPage } from './pages/QuotationPrintPage'
+import { SalesOrdersListPage } from './pages/SalesOrdersListPage'
+import { SalesOrderFormPage } from './pages/SalesOrderFormPage'
+import { SalesOrderDetailPage } from './pages/SalesOrderDetailPage'
+import { SalesOrderPrintPage } from './pages/SalesOrderPrintPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { AppLayout } from './components/layout/AppLayout'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -58,6 +62,10 @@ export default function App() {
         <Route path="/quotations/new" element={<QuotationFormPage />} />
         <Route path="/quotations/:id/edit" element={<QuotationFormPage />} />
         <Route path="/quotations/:id" element={<QuotationDetailPage />} />
+        <Route path="/sales-orders" element={<SalesOrdersListPage />} />
+        <Route path="/sales-orders/new" element={<SalesOrderFormPage />} />
+        <Route path="/sales-orders/:id/edit" element={<SalesOrderFormPage />} />
+        <Route path="/sales-orders/:id" element={<SalesOrderDetailPage />} />
       </Route>
 
       {/* Rota de impressão/PDF da proposta — sem AppLayout (sidebar/topbar),
@@ -72,6 +80,7 @@ export default function App() {
         }
       >
         <Route path="/quotations/:id/pdf" element={<QuotationPrintPage />} />
+        <Route path="/sales-orders/:id/pdf" element={<SalesOrderPrintPage />} />
       </Route>
 
       {/* Compat: rota raiz redireciona para /login se não houver auth. */}
