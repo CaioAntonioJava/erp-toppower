@@ -1,6 +1,7 @@
 package br.com.toppower.erp_toppower.common.exception;
 
 import br.com.toppower.erp_toppower.auth.exception.InvalidCredentialsException;
+import br.com.toppower.erp_toppower.carrier.exception.CarrierNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
@@ -83,6 +84,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<ApiError> handleUserNotFound(UserNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(CarrierNotFoundException.class)
+    public ResponseEntity<ApiError> handleCarrierNotFound(CarrierNotFoundException ex) {
         return build(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
