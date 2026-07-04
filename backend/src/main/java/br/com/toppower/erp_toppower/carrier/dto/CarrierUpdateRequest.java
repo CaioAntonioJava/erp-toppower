@@ -1,10 +1,10 @@
 package br.com.toppower.erp_toppower.carrier.dto;
 
+import br.com.toppower.erp_toppower.carrier.enums.CarrierName;
 import br.com.toppower.erp_toppower.carrier.enums.CarrierStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
-import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 
@@ -15,9 +15,9 @@ import java.math.BigDecimal;
 @Schema(name = "CarrierUpdateRequest", description = "Dados para atualização parcial de uma transportadora (PATCH).")
 public record CarrierUpdateRequest(
 
-        @Schema(description = "Novo nome. Será salvo em MAIÚSCULAS.", maxLength = 150)
-        @Size(max = 150, message = "Nome deve ter no máximo {max} caracteres")
-        String name,
+        @Schema(description = "Novo nome padronizado da transportadora.",
+                allowableValues = {"CORREIOS_SEDEX", "CORREIOS_PAC", "JADLOG", "OUTRAS_TRANSPORTADORAS"})
+        CarrierName carrierName,
 
         @Schema(description = "Novo valor padrão do frete. Mínimo 0.00, até 2 casas decimais.",
                 minimum = "0.0", nullable = true)

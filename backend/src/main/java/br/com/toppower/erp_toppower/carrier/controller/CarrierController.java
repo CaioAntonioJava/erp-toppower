@@ -3,6 +3,7 @@ package br.com.toppower.erp_toppower.carrier.controller;
 import br.com.toppower.erp_toppower.carrier.dto.CarrierCreateRequest;
 import br.com.toppower.erp_toppower.carrier.dto.CarrierResponse;
 import br.com.toppower.erp_toppower.carrier.dto.CarrierUpdateRequest;
+import br.com.toppower.erp_toppower.carrier.enums.CarrierName;
 import br.com.toppower.erp_toppower.carrier.enums.CarrierStatus;
 import br.com.toppower.erp_toppower.carrier.service.CarrierService;
 import br.com.toppower.erp_toppower.common.dto.PagedResponse;
@@ -74,7 +75,7 @@ public class CarrierController {
     public ResponseEntity<PagedResponse<CarrierResponse>> getAll(
             @Parameter(description = "Filtro opcional: ATIVO ou INATIVO.", example = "ATIVO", schema = @Schema(allowableValues = {"ATIVO", "INATIVO"}))
             @RequestParam(value = "status", required = false) CarrierStatus status,
-            @Parameter(hidden = true) @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
+            @Parameter(hidden = true) @PageableDefault(size = 20, sort = "carrierName", direction = Sort.Direction.ASC) Pageable pageable) {
         return ResponseEntity.ok(carrierService.getAll(status, pageable));
     }
 
@@ -144,25 +145,26 @@ public class CarrierController {
     @Operation(summary = "Buscar transportadoras (paginado)",
             description = "Busca flexível: ambos os parâmetros são opcionais. " +
                     "Filtrar apenas por status: ?status=ATIVO. " +
-                    "Filtrar por texto: ?query=rodo. " +
-                    "Combinar: ?status=ATIVO&query=rodo. " +
+                    "Filtrar por nome: ?carrierName=CORREIOS_SEDEX. " +
+                    "Combinar: ?status=ATIVO&carrierName=CORREIOS_SEDEX. " +
                     "Sem parâmetros: retorna todas (paginado). Todas as roles.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Página de transportadoras.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = PagedResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Termo inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "400", description = "Parâmetro inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<PagedResponse<CarrierResponse>> search(
-            @Parameter(description = "Termo de busca OPCIONAL (mínimo 2 caracteres quando informado). Match em name.",
-                    example = "rodo")
-            @RequestParam(value = "query", required = false) String query,
+            @Parameter(description = "Nome padronizado da transportadora (filtro exato, opcional).",
+                    example = "CORREIOS_SEDEX",
+                    schema = @Schema(allowableValues = {"CORREIOS_SEDEX", "CORREIOS_PAC", "JADLOG", "OUTRAS_TRANSPORTADORAS"}))
+            @RequestParam(value = "carrierName", required = false) CarrierName carrierName,
             @Parameter(description = "Filtro OPCIONAL: ATIVO ou INATIVO. Omitido = ambos.",
                     example = "ATIVO", schema = @Schema(allowableValues = {"ATIVO", "INATIVO"}))
             @RequestParam(value = "status", required = false) CarrierStatus status,
-            @Parameter(hidden = true) @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
-        return ResponseEntity.ok(carrierService.search(query, status, pageable));
+            @Parameter(hidden = true) @PageableDefault(size = 20, sort = "carrierName", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.ok(carrierService.search(carrierName, status, pageable));
     }
 }

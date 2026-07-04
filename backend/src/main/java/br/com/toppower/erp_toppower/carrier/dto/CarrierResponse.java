@@ -1,5 +1,6 @@
 package br.com.toppower.erp_toppower.carrier.dto;
 
+import br.com.toppower.erp_toppower.carrier.enums.CarrierName;
 import br.com.toppower.erp_toppower.carrier.enums.CarrierStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -14,8 +15,9 @@ public record CarrierResponse(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         UUID uuid,
 
-        @Schema(description = "Nome da transportadora (sempre MAIÚSCULAS).")
-        String name,
+        @Schema(description = "Nome padronizado da transportadora.",
+                allowableValues = {"CORREIOS_SEDEX", "CORREIOS_PAC", "JADLOG", "OUTRAS_TRANSPORTADORAS"})
+        CarrierName carrierName,
 
         @Schema(description = "Valor padrão do frete.")
         BigDecimal freightValue,

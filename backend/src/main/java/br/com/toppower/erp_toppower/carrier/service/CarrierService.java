@@ -4,6 +4,7 @@ import br.com.toppower.erp_toppower.carrier.dto.CarrierCreateRequest;
 import br.com.toppower.erp_toppower.carrier.dto.CarrierResponse;
 import br.com.toppower.erp_toppower.carrier.dto.CarrierUpdateRequest;
 import br.com.toppower.erp_toppower.carrier.entity.Carrier;
+import br.com.toppower.erp_toppower.carrier.enums.CarrierName;
 import br.com.toppower.erp_toppower.carrier.enums.CarrierStatus;
 import br.com.toppower.erp_toppower.carrier.exception.CarrierNotFoundException;
 import br.com.toppower.erp_toppower.carrier.mapper.CarrierMapper;
@@ -18,8 +19,6 @@ import java.util.UUID;
 
 @Service
 public class CarrierService {
-
-    private static final int MIN_SEARCH_QUERY_LENGTH = 2;
 
     private final CarrierRepository carrierRepository;
 
@@ -106,24 +105,19 @@ public class CarrierService {
     }
 
     /**
-     * Busca flexível por texto (opcional) e/ou status (opcional).
+     * Busca flexível por nome (opcional) e/ou status (opcional).
      * <ul>
      *   <li>Apenas {@code status} → lista todas as transportadoras com aquele status</li>
-     *   <li>Apenas {@code query} → lista todas as transportadoras que dão match com o texto</li>
-     *   <li>Ambos → lista as transportadoras com aquele status E que dão match</li>
+     *   <li>Apenas {@code carrierName} → lista todas as transportadoras com aquele nome</li>
+     *   <li>Ambos → lista as transportadoras com aquele status E nome</li>
      *   <li>Nenhum → lista todas as transportadoras (paginado)</li>
      * </ul>
-     * Quando {@code query} é informado, exige no mínimo 2 caracteres.
+     * Como {@code carrierName} é um enum, a comparação é por igualdade exata.
      */
     @Transactional(readOnly = true)
-    public PagedResponse<CarrierResponse> search(String query, CarrierStatus status, Pageable pageable) {
-        String trimmed = (query == null) ? null : query.trim();
-        if (trimmed != null && !trimmed.isEmpty() && trimmed.length() < MIN_SEARCH_QUERY_LENGTH) {
-            throw new IllegalArgumentException(
-                    "O termo de busca deve ter ao menos " + MIN_SEARCH_QUERY_LENGTH + " caracteres");
-        }
+    public PagedResponse<CarrierResponse> search(CarrierName carrierName, CarrierStatus status, Pageable pageable) {
         Page<CarrierResponse> mapped = carrierRepository
-                .searchByQuery(status, trimmed, pageable)
+                .searchByQuery(status, carrierName, pageable)
                 .map(CarrierMapper::toResponse);
         return PagedResponse.from(mapped);
     }

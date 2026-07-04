@@ -1,7 +1,7 @@
 package br.com.toppower.erp_toppower.carrier.entity;
 
+import br.com.toppower.erp_toppower.carrier.enums.CarrierName;
 import br.com.toppower.erp_toppower.carrier.enums.CarrierStatus;
-import br.com.toppower.erp_toppower.common.annotation.UpperCase;
 import br.com.toppower.erp_toppower.common.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -25,15 +25,13 @@ import java.math.BigDecimal;
  * </pre>
  *
  * <p>A herança de {@code BaseEntity} garante o identificador UUID e a
- * auditoria completa (createdAt, updatedAt, createdBy, updatedBy). O
- * listener {@code UpperCaseFieldListener} (registrado em {@code BaseEntity})
- * normaliza o campo {@code name} para MAIÚSCULAS em qualquer gravação,
- * independente de como o valor chegou (DTO, save direto, seed, etc.).</p>
+ * auditoria completa (createdAt, updatedAt, createdBy, updatedBy).</p>
  *
  * <p>Todos os campos de negócio são opcionais: uma transportadora pode
- * ser cadastrada apenas com o nome, apenas com o valor de frete, com
- * ambos, ou — embora não seja o uso típico — sem nenhum (caso em que
- * serve apenas como placeholder a ser complementado depois).</p>
+ * ser cadastrada apenas com o nome (enum {@link CarrierName}), apenas
+ * com o valor de frete, com ambos, ou — embora não seja o uso típico —
+ * sem nenhum (caso em que serve apenas como placeholder a ser
+ * complementado depois).</p>
  *
  * <p>O atributo {@code status} indica se a transportadora está ativa
  * (pode ser selecionada em operações) ou inativa. Default = ATIVO no
@@ -47,12 +45,12 @@ import java.math.BigDecimal;
 public class Carrier extends BaseEntity {
 
     /**
-     * Nome da transportadora. Opcional. Normalizado para MAIÚSCULAS
-     * pelo {@code UpperCaseFieldListener} no momento da gravação.
+     * Nome padronizado da transportadora. Opcional. Restrito ao conjunto
+     * de valores do enum {@link CarrierName}, persistido como STRING.
      */
-    @UpperCase
-    @Column(name = "name", length = 150)
-    private String name;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "carrier_name", length = 40)
+    private CarrierName carrierName;
 
     /**
      * Valor padrão do frete cobrado pela transportadora. Opcional.

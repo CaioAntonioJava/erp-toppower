@@ -1,10 +1,10 @@
 package br.com.toppower.erp_toppower.carrier.dto;
 
+import br.com.toppower.erp_toppower.carrier.enums.CarrierName;
 import br.com.toppower.erp_toppower.carrier.enums.CarrierStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
-import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 
@@ -12,18 +12,19 @@ import java.math.BigDecimal;
  * Dados para cadastro de uma nova transportadora.
  *
  * <p>Todos os campos são opcionais, conforme regra de negócio: uma
- * transportadora pode ser cadastrada apenas com o nome, apenas com o
- * valor de frete, ou com ambos. O {@code status}, quando omitido,
- * assume {@code ATIVO} via {@code @PrePersist} da entidade.</p>
+ * transportadora pode ser cadastrada apenas com o nome (enum
+ * {@link CarrierName}), apenas com o valor de frete, ou com ambos.
+ * O {@code status}, quando omitido, assume {@code ATIVO} via
+ * {@code @PrePersist} da entidade.</p>
  */
 @Schema(name = "CarrierCreateRequest", description = "Dados para cadastro de uma nova transportadora.")
 public record CarrierCreateRequest(
 
-        @Schema(description = "Nome da transportadora. Será salvo em MAIÚSCULAS. Opcional.",
-                example = "TRANSPORTADORA RODOVIARIA SAO PEDRO LTDA", maxLength = 150,
+        @Schema(description = "Nome padronizado da transportadora. Opcional.",
+                example = "CORREIOS_SEDEX",
+                allowableValues = {"CORREIOS_SEDEX", "CORREIOS_PAC", "JADLOG", "OUTRAS_TRANSPORTADORAS"},
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        @Size(max = 150, message = "Nome deve ter no máximo {max} caracteres")
-        String name,
+        CarrierName carrierName,
 
         @Schema(description = "Valor padrão do frete. Opcional. Mínimo 0.00, até 2 casas decimais.",
                 example = "150.00", requiredMode = Schema.RequiredMode.NOT_REQUIRED,
