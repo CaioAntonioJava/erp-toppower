@@ -172,6 +172,10 @@ export function QuotationForm({
   const [freightValue, setFreightValue] = useState<string>(
     quotation?.freightValue != null ? String(quotation.freightValue) : '',
   )
+  // Margem de lucro aplicada sobre o total da proposta (em %). Obrigatória.
+  const [profitMargin, setProfitMargin] = useState<string>(
+    quotation?.profitMargin != null ? String(quotation.profitMargin) : '',
+  )
   const [notes, setNotes] = useState<string>(quotation?.notes ?? '')
   const [discountType, setDiscountType] = useState<DiscountType | ''>(
     quotation?.discountType ?? '',
@@ -535,11 +539,18 @@ export function QuotationForm({
     () => parseNumber(freightValue) ?? 0,
     [freightValue],
   )
-  // Total final = (subtotal - desconto global) + frete.
-  // O frete nunca entra no desconto — é somado após o desconto.
+  const profitMarginNumber = useMemo(
+    () => parseNumber(profitMargin) ?? 0,
+    [profitMargin],
+  )
+  // Total final = (subtotal - desconto global) + frete, multiplicado pela
+  // margem de lucro (fator 1 + profitMargin/100). O frete nunca entra no
+  // desconto — é somado após o desconto e antes da margem.
   const total = useMemo(
-    () => Math.max(0, subtotal - globalDiscountValue) + freightValueNumber,
-    [subtotal, globalDiscountValue, freightValueNumber],
+    () =>
+      Math.max(0, (subtotal - globalDiscountValue) + freightValueNumber)
+        * (1 + profitMarginNumber / 100),
+    [subtotal, globalDiscountValue, freightValueNumber, profitMarginNumber],
   )
 
   // === validação e submit ===
@@ -617,6 +628,14 @@ export function QuotationForm({
       }
     }
 
+    // Margem de lucro é obrigatória e não pode ser negativa.
+    const margin = parseNumber(profitMargin)
+    if (margin == null) {
+      errs.profitMargin = 'Margem de lucro é obrigatória.'
+    } else if (margin < 0) {
+      errs.profitMargin = 'Margem de lucro não pode ser negativa.'
+    }
+
     setFieldErrors(errs)
     return Object.keys(errs).length === 0
   }
@@ -670,6 +689,7 @@ export function QuotationForm({
         payload.carrierUuid = carrierUuid.trim() ? carrierUuid.trim() : null
         payload.freightType = freightType === '' ? null : freightType
         payload.freightValue = parseNumber(freightValue)
+        payload.profitMargin = parseNumber(profitMargin) ?? 0
 
         // Override admin: envia `number`/`issueDate` no payload. O backend
         // atual (QuotationUpdateRequest) não inclui esses campos, então o
@@ -694,6 +714,7 @@ export function QuotationForm({
         const payload: QuotationCreateRequest = {
           sellerUuid,
           items: itemsPayload,
+          profitMargin: parseNumber(profitMargin) ?? 0,
         }
         if (clientType === 'CUSTOMER') {
           payload.customerUuid = clientUuid
@@ -899,12 +920,36 @@ export function QuotationForm({
 
       {/* Itens */}
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <div className="mb-1 flex items-center justify-between gap-2">
+        <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-base font-semibold">Itens</h3>
-          <Button type="button" size="sm" variant="primary" onClick={addItem}>
-            <Plus className="h-4 w-4" />
-            Adicionar item
-          </Button>
+          <div className="flex items-end gap-2">
+            <div>
+              <label
+                htmlFor="quotation-profit-margin"
+                className="mb-1.5 block text-sm font-medium text-red-600 dark:text-red-400"
+              >
+                Margem de lucro
+              </label>
+              <Input
+                id="quotation-profit-margin"
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                min={0}
+                placeholder="Adicionar %"
+                aria-label="Margem de lucro (%)"
+                value={profitMargin}
+                onChange={(e) => setProfitMargin(e.target.value)}
+                onBlur={getBlurHandler('profitMargin')}
+                error={shouldShowError('profitMargin', fieldErrors.profitMargin)}
+                required
+              />
+            </div>
+            <Button type="button" variant="primary" onClick={addItem} className="mb-0.5 mr-6">
+              <Plus className="h-4 w-4" />
+              Adicionar item
+            </Button>
+          </div>
         </div>
         <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
           Liste os produtos da proposta. Cada linha é um item com quantidade,

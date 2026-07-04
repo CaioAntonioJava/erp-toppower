@@ -195,9 +195,15 @@ export interface QuotationResponse {
   freightType: FreightType | null
   /** Valor do frete (manual, independente do Carrier selecionado). */
   freightValue: number | null
+  /**
+   * Margem de lucro aplicada sobre o total da proposta (em %). Ex.: 10 = 10%.
+   * Aplicada como multiplicação (fator `1 + profitMargin/100`) sobre o total
+   * parcial (subtotal - desconto global + frete).
+   */
+  profitMargin: number
   /** Soma dos totais líquidos dos itens (antes do desconto global). */
   subtotal: number
-  /** Total final (subtotal - desconto global). */
+  /** Total final (subtotal - desconto global + frete, multiplicado pela margem de lucro). */
   total: number
   /** Soma das quantidades de todos os itens. */
   totalQuantity: number
@@ -243,6 +249,11 @@ export interface QuotationCreateRequest {
   freightType?: FreightType | null
   /** Valor do frete (manual, independente do Carrier selecionado). */
   freightValue?: number | null
+  /**
+   * Margem de lucro aplicada sobre o total da proposta (em %). Obrigatória
+   * na criação. Ex.: 10 = 10%.
+   */
+  profitMargin: number
 }
 
 /** Corpo de PATCH /api/v1/quotations/{id}. Espelha QuotationUpdateRequest. */
@@ -263,6 +274,11 @@ export interface QuotationUpdateRequest {
   freightType?: FreightType | null
   /** Valor do frete (manual, independente do Carrier selecionado). */
   freightValue?: number | null
+  /**
+   * Margem de lucro aplicada sobre o total da proposta (em %). Opcional no
+   * PATCH (quando omitida, mantém o valor atual). Ex.: 10 = 10%.
+   */
+  profitMargin?: number
 }
 
 /** Resposta do endpoint /quotations/next-number. */

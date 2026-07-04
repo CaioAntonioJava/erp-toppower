@@ -61,6 +61,8 @@ interface QSeed {
   freightType?: FreightType
   /** Valor do frete (manual). Omitir = sem frete. */
   freightValue?: number
+  /** Margem de lucro aplicada sobre o total da proposta (em %). Default 0. */
+  profitMargin?: number
 }
 
 const SEEDS: QSeed[] = [
@@ -241,7 +243,10 @@ function buildQuotation(seed: QSeed, index: number): QuotationResponse {
   }
   // Frete somado após o desconto — nunca entra no desconto.
   const freight = seed.freightValue ?? 0
-  const total = Math.max(0, subtotal - globalDiscountValue) + freight
+  // Margem de lucro aplicada por último, como multiplicação (1 + margin/100).
+  const margin = seed.profitMargin ?? 0
+  const total =
+    (Math.max(0, subtotal - globalDiscountValue) + freight) * (1 + margin / 100)
   const totalQuantity = items.reduce((sum, it) => sum + it.quantity, 0)
 
   return {
@@ -263,6 +268,7 @@ function buildQuotation(seed: QSeed, index: number): QuotationResponse {
     carrierUuid: seed.carrierIndex != null ? mockCarriers[seed.carrierIndex].uuid : null,
     freightType: seed.freightType ?? null,
     freightValue: seed.freightValue ?? null,
+    profitMargin: margin,
     subtotal,
     total,
     totalQuantity,

@@ -78,6 +78,7 @@ function totalsFor(
   discountType: QuotationResponse['discountType'],
   discount: QuotationResponse['discount'],
   freightValue: number | null = null,
+  profitMargin: number | null = null,
 ) {
   const subtotal = items.reduce((s, it) => s + it.totalPrice, 0)
   let globalDiscountValue = 0
@@ -90,7 +91,10 @@ function totalsFor(
   }
   // Frete somado após o desconto — nunca entra no desconto.
   const freight = freightValue ?? 0
-  const total = Math.max(0, subtotal - globalDiscountValue) + freight
+  // Margem de lucro aplicada por último, como multiplicação (1 + margin/100).
+  const margin = profitMargin ?? 0
+  const total =
+    (Math.max(0, subtotal - globalDiscountValue) + freight) * (1 + margin / 100)
   const totalQuantity = items.reduce((s, it) => s + it.quantity, 0)
   return { subtotal, total, totalQuantity }
 }
@@ -204,6 +208,7 @@ export async function createQuotation(
     payload.discountType ?? null,
     payload.discount ?? null,
     payload.freightValue ?? null,
+    payload.profitMargin ?? null,
   )
 
   const created: QuotationResponse = {
@@ -225,6 +230,7 @@ export async function createQuotation(
     carrierUuid: payload.carrierUuid ?? null,
     freightType: payload.freightType ?? null,
     freightValue: payload.freightValue ?? null,
+    profitMargin: payload.profitMargin ?? 0,
     subtotal: t.subtotal,
     total: t.total,
     totalQuantity: t.totalQuantity,
@@ -260,6 +266,7 @@ export async function updateQuotation(
     payload.discountType !== undefined ? payload.discountType : current.discountType,
     payload.discount !== undefined ? payload.discount : current.discount,
     payload.freightValue !== undefined ? payload.freightValue : current.freightValue,
+    payload.profitMargin !== undefined ? payload.profitMargin : current.profitMargin,
   )
 
   const updated: QuotationResponse = {
@@ -292,6 +299,8 @@ export async function updateQuotation(
       payload.freightType !== undefined ? payload.freightType : current.freightType,
     freightValue:
       payload.freightValue !== undefined ? payload.freightValue : current.freightValue,
+    profitMargin:
+      payload.profitMargin !== undefined ? payload.profitMargin : current.profitMargin,
     subtotal: t.subtotal,
     total: t.total,
     totalQuantity: t.totalQuantity,
