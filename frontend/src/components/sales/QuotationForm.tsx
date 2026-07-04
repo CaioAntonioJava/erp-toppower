@@ -17,12 +17,16 @@ import { toApiError } from '../../lib/errors'
 import { useFieldTouched } from '../../hooks/useFieldTouched'
 import { getProduct, searchProducts } from '../../api/product.api'
 import { listSellers } from '../../api/seller.api'
+import { listCarriers } from '../../api/carrier.api'
 import { searchQuotationClients } from '../../api/quotation.api'
 import type { ProductResponse, UnitType } from '../../types/product'
 import type { SellerResponse } from '../../types/seller'
+import type { CarrierResponse } from '../../types/carrier'
+import { CARRIER_NAME_LABELS } from '../../types/carrier'
 import type {
   ClientSummaryResponse,
   DiscountType,
+  FreightType,
   PaymentCondition,
   QuotationClientType,
   QuotationCreateRequest,
@@ -32,6 +36,7 @@ import type {
 } from '../../types/quotation'
 import {
   DISCOUNT_TYPE_OPTIONS,
+  FREIGHT_TYPE_OPTIONS,
   PAYMENT_CONDITION_OPTIONS,
   QUOTATION_CLIENT_TYPE_LABELS,
 } from '../../types/quotation'
@@ -155,6 +160,18 @@ export function QuotationForm({
   const [paymentCondition, setPaymentCondition] = useState<PaymentCondition | ''>(
     quotation?.paymentCondition ?? '',
   )
+  // Transportadora (opcional). FK para Carrier.
+  const [carrierUuid, setCarrierUuid] = useState<string>(
+    quotation?.carrierUuid ?? '',
+  )
+  // Tipo de frete (CIF/FOB).
+  const [freightType, setFreightType] = useState<FreightType | ''>(
+    quotation?.freightType ?? '',
+  )
+  // Valor do frete (manual, independente do Carrier selecionado).
+  const [freightValue, setFreightValue] = useState<string>(
+    quotation?.freightValue != null ? String(quotation.freightValue) : '',
+  )
   const [notes, setNotes] = useState<string>(quotation?.notes ?? '')
   const [discountType, setDiscountType] = useState<DiscountType | ''>(
     quotation?.discountType ?? '',
@@ -223,6 +240,8 @@ export function QuotationForm({
   // === coleções auxiliares ===
   const [sellers, setSellers] = useState<SellerResponse[]>([])
   const [sellersLoading, setSellersLoading] = useState(false)
+  const [carriers, setCarriers] = useState<CarrierResponse[]>([])
+  const [carriersLoading, setCarriersLoading] = useState(false)
   const [clientOptions, setClientOptions] = useState<ClientSummaryResponse[]>([])
   const [clientSearching, setClientSearching] = useState(false)
   const [productOptions, setProductOptions] = useState<ProductResponse[]>([])
@@ -251,6 +270,27 @@ export function QuotationForm({
       })
       .finally(() => {
         if (!cancelled) setSellersLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // Carrega lista de transportadoras ativas uma vez.
+  useEffect(() => {
+    let cancelled = false
+    setCarriersLoading(true)
+    listCarriers({ status: 'ATIVO', size: 100, page: 0 })
+      .then((p) => {
+        if (cancelled) return
+        setCarriers(p.content)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setCarriers([])
+      })
+      .finally(() => {
+        if (!cancelled) setCarriersLoading(false)
       })
     return () => {
       cancelled = true
@@ -491,9 +531,15 @@ export function QuotationForm({
       ),
     [subtotal, discountType, discount],
   )
+  const freightValueNumber = useMemo(
+    () => parseNumber(freightValue) ?? 0,
+    [freightValue],
+  )
+  // Total final = (subtotal - desconto global) + frete.
+  // O frete nunca entra no desconto — é somado após o desconto.
   const total = useMemo(
-    () => Math.max(0, subtotal - globalDiscountValue),
-    [subtotal, globalDiscountValue],
+    () => Math.max(0, subtotal - globalDiscountValue) + freightValueNumber,
+    [subtotal, globalDiscountValue, freightValueNumber],
   )
 
   // === validação e submit ===
@@ -564,6 +610,13 @@ export function QuotationForm({
       errs.notes = 'Observações devem ter no máximo 2000 caracteres.'
     }
 
+    if (freightValue.trim() !== '') {
+      const f = parseNumber(freightValue)
+      if (f == null || f < 0) {
+        errs.freightValue = 'Valor do frete não pode ser negativo.'
+      }
+    }
+
     setFieldErrors(errs)
     return Object.keys(errs).length === 0
   }
@@ -614,6 +667,9 @@ export function QuotationForm({
         }
         payload.paymentCondition = paymentCondition === '' ? null : paymentCondition
         payload.notes = notes.trim() ? notes.trim() : null
+        payload.carrierUuid = carrierUuid.trim() ? carrierUuid.trim() : null
+        payload.freightType = freightType === '' ? null : freightType
+        payload.freightValue = parseNumber(freightValue)
 
         // Override admin: envia `number`/`issueDate` no payload. O backend
         // atual (QuotationUpdateRequest) não inclui esses campos, então o
@@ -656,6 +712,11 @@ export function QuotationForm({
           payload.paymentCondition = paymentCondition
         }
         if (notes.trim()) payload.notes = notes.trim()
+        if (carrierUuid.trim()) payload.carrierUuid = carrierUuid.trim()
+        if (freightType !== '') payload.freightType = freightType
+        if (freightValue.trim()) {
+          payload.freightValue = parseNumber(freightValue)
+        }
 
         // Override admin (mesma observação do bloco de update acima).
         if (isAdmin) {
@@ -887,8 +948,8 @@ export function QuotationForm({
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <h3 className="mb-1 text-base font-semibold">Condições</h3>
         <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
-          Desconto global, prazo de validade, condição de pagamento e
-          observações da proposta.
+          Desconto global, prazo de validade, condição de pagamento, frete
+          (tipo, transportadora e valor) e observações da proposta.
         </p>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -972,6 +1033,69 @@ export function QuotationForm({
               aria-label="Condição de pagamento"
             />
           </div>
+          <div className="sm:col-span-2 lg:col-span-3">
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Select
+                label="Tipo de frete"
+                value={freightType}
+                onChange={(e) =>
+                  setFreightType(e.target.value as FreightType | '')
+                }
+                options={[
+                  { value: '', label: 'Selecione…' },
+                  ...FREIGHT_TYPE_OPTIONS,
+                ]}
+                aria-label="Tipo de frete"
+                hint="CIF = por conta do remetente; FOB = por conta do destinatário."
+              />
+              <Select
+                label="Transportadora"
+                value={carrierUuid}
+                onChange={(e) => setCarrierUuid(e.target.value)}
+                hint={
+                  carriers.length === 0 && !carriersLoading
+                    ? 'Nenhuma transportadora ativa cadastrada.'
+                    : 'Transportadora responsável pelo frete (opcional).'
+                }
+                options={[
+                  {
+                    value: '',
+                    label: carriersLoading ? 'Carregando…' : 'Selecione…',
+                  },
+                  ...carriers
+                    .filter((c) => c.carrierName != null)
+                    .map((c) => ({
+                      value: c.uuid,
+                      label: CARRIER_NAME_LABELS[c.carrierName!],
+                    })),
+                ]}
+                aria-label="Transportadora"
+              />
+              <Input
+                label="Valor do frete (R$)"
+                type="text"
+                inputMode="decimal"
+                placeholder="0,00"
+                value={freightValue}
+                onChange={(e) => setFreightValue(e.target.value)}
+                onBlur={() => {
+                  // Normaliza para 2 casas decimais no formato brasileiro
+                  // (vírgula). Se o usuário digitar "45" vira "45,00"; se
+                  // digitar "45,9" vira "45,90". Campos vazios são mantidos.
+                  const n = parseNumber(freightValue)
+                  if (freightValue.trim() !== '' && n != null && n >= 0) {
+                    setFreightValue(n.toFixed(2).replace('.', ','))
+                  }
+                  getBlurHandler('freightValue')()
+                }}
+                error={shouldShowError(
+                  'freightValue',
+                  fieldErrors.freightValue,
+                )}
+                hint="Valor de frete informado manualmente."
+              />
+            </div>
+          </div>
         </div>
 
         <div className="mt-4">
@@ -1004,7 +1128,7 @@ export function QuotationForm({
       {/* Totais */}
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <h3 className="mb-4 text-base font-semibold">Totais</h3>
-        <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+        <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-5">
           <div>
             <dt className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Itens
@@ -1031,6 +1155,14 @@ export function QuotationForm({
           </div>
           <div>
             <dt className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Frete
+            </dt>
+            <dd className="mt-1 text-lg font-semibold text-slate-900 dark:text-slate-100">
+              {brlFormatter.format(freightValueNumber)}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Total
             </dt>
             <dd className="mt-1 text-lg font-semibold text-primary-700 dark:text-primary-200">
@@ -1040,10 +1172,17 @@ export function QuotationForm({
         </dl>
         {globalDiscountValue > 0 ? (
           <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-            Desconto global aplicado:{' '}
+            Desconto global aplicado sobre o subtotal:{' '}
             {brlFormatter.format(globalDiscountValue)}
+            {freightValueNumber > 0 ? ' • Frete somado ao total (não descontado).' : ''}
           </p>
-        ) : null}
+        ) : (
+          freightValueNumber > 0 ? (
+            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+              Frete somado ao total (não descontado).
+            </p>
+          ) : null
+        )}
       </section>
     </form>
   )

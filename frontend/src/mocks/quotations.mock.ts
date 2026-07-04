@@ -15,6 +15,7 @@
 
 import type {
   DiscountType,
+  FreightType,
   PaymentCondition,
   QuotationClientType,
   QuotationItemResponse,
@@ -25,6 +26,7 @@ import { mockCompanies } from './companies.mock'
 import { mockCustomers } from './customers.mock'
 import { mockProducts } from './products.mock'
 import { mockSellers } from './sellers.mock'
+import { mockCarriers } from './carriers.mock'
 import { SEED_AUTHOR, SEED_TIMESTAMP } from './helpers'
 
 /** Número inicial — backend define 1500 como primeira proposta do sistema. */
@@ -53,6 +55,12 @@ interface QSeed {
   validityDays?: number
   paymentCondition?: PaymentCondition
   notes?: string
+  /** Índice 0-based em `mockCarriers`. Omitir = sem transportadora. */
+  carrierIndex?: number
+  /** Tipo de frete (CIF/FOB). Omitir = sem tipo. */
+  freightType?: FreightType
+  /** Valor do frete (manual). Omitir = sem frete. */
+  freightValue?: number
 }
 
 const SEEDS: QSeed[] = [
@@ -71,6 +79,9 @@ const SEEDS: QSeed[] = [
     validityDays: 15,
     paymentCondition: 'PIX',
     notes: 'Entrega em 5 dias úteis. Garantia de 1 ano.',
+    carrierIndex: 0, // Correios SEDEX
+    freightType: 'CIF',
+    freightValue: 45.9,
   },
   {
     clientType: 'COMPANY',
@@ -88,6 +99,9 @@ const SEEDS: QSeed[] = [
     validityDays: 30,
     paymentCondition: 'BOLETO_30_DIAS',
     notes: 'Instalação industrial — volumes fracionados conforme cronograma.',
+    carrierIndex: 2, // JadLog
+    freightType: 'CIF',
+    freightValue: 58.0,
   },
   {
     clientType: 'CUSTOMER',
@@ -174,6 +188,9 @@ const SEEDS: QSeed[] = [
     validityDays: 45,
     paymentCondition: 'FATURADO_45_DIAS',
     notes: 'Atendimento a obra no interior — frete CIF.',
+    carrierIndex: 1, // Correios PAC
+    freightType: 'FOB',
+    freightValue: 32.5,
   },
 ]
 
@@ -222,7 +239,9 @@ function buildQuotation(seed: QSeed, index: number): QuotationResponse {
       globalDiscountValue = Math.min(subtotal, seed.globalDiscount.value)
     }
   }
-  const total = Math.max(0, subtotal - globalDiscountValue)
+  // Frete somado após o desconto — nunca entra no desconto.
+  const freight = seed.freightValue ?? 0
+  const total = Math.max(0, subtotal - globalDiscountValue) + freight
   const totalQuantity = items.reduce((sum, it) => sum + it.quantity, 0)
 
   return {
@@ -241,6 +260,9 @@ function buildQuotation(seed: QSeed, index: number): QuotationResponse {
     paymentCondition: seed.paymentCondition ?? null,
     notes: seed.notes ?? null,
     status: seed.status,
+    carrierUuid: seed.carrierIndex != null ? mockCarriers[seed.carrierIndex].uuid : null,
+    freightType: seed.freightType ?? null,
+    freightValue: seed.freightValue ?? null,
     subtotal,
     total,
     totalQuantity,

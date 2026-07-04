@@ -18,6 +18,22 @@ export const QUOTATION_STATUS_LABELS: Record<QuotationStatus, string> = {
 /** Tipo de aplicação do desconto (valor fixo ou percentual). */
 export type DiscountType = 'AMOUNT' | 'PERCENT'
 
+/** Tipo de frete. CIF = por conta do remetente; FOB = por conta do destinatário. */
+export type FreightType = 'CIF' | 'FOB'
+
+export const FREIGHT_TYPE_LABELS: Record<FreightType, string> = {
+  CIF: 'CIF — Por conta do remetente',
+  FOB: 'FOB — Por conta do destinatário',
+}
+
+export const FREIGHT_TYPE_OPTIONS: ReadonlyArray<{
+  value: FreightType
+  label: string
+}> = (Object.keys(FREIGHT_TYPE_LABELS) as FreightType[]).map((value) => ({
+  value,
+  label: FREIGHT_TYPE_LABELS[value],
+}))
+
 export const DISCOUNT_TYPE_LABELS: Record<DiscountType, string> = {
   AMOUNT: 'R$ (valor fixo)',
   PERCENT: '% (percentual)',
@@ -173,6 +189,12 @@ export interface QuotationResponse {
   paymentCondition: PaymentCondition | null
   notes: string | null
   status: QuotationStatus
+  /** Transportadora selecionada (opcional). FK para Carrier. */
+  carrierUuid: string | null
+  /** Tipo de frete (CIF/FOB). */
+  freightType: FreightType | null
+  /** Valor do frete (manual, independente do Carrier selecionado). */
+  freightValue: number | null
   /** Soma dos totais líquidos dos itens (antes do desconto global). */
   subtotal: number
   /** Total final (subtotal - desconto global). */
@@ -215,6 +237,12 @@ export interface QuotationCreateRequest {
   validityDays?: number | null
   paymentCondition?: PaymentCondition | null
   notes?: string | null
+  /** Transportadora selecionada (opcional). FK para Carrier. */
+  carrierUuid?: string | null
+  /** Tipo de frete (CIF/FOB). */
+  freightType?: FreightType | null
+  /** Valor do frete (manual, independente do Carrier selecionado). */
+  freightValue?: number | null
 }
 
 /** Corpo de PATCH /api/v1/quotations/{id}. Espelha QuotationUpdateRequest. */
@@ -229,6 +257,12 @@ export interface QuotationUpdateRequest {
   validityDays?: number | null
   paymentCondition?: PaymentCondition | null
   notes?: string | null
+  /** Transportadora selecionada (opcional). FK para Carrier. */
+  carrierUuid?: string | null
+  /** Tipo de frete (CIF/FOB). */
+  freightType?: FreightType | null
+  /** Valor do frete (manual, independente do Carrier selecionado). */
+  freightValue?: number | null
 }
 
 /** Resposta do endpoint /quotations/next-number. */

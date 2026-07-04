@@ -73,7 +73,12 @@ function buildItem(req: QuotationItemRequest, itemUuid: string): QuotationItemRe
   }
 }
 
-function totalsFor(items: QuotationItemResponse[], discountType: QuotationResponse['discountType'], discount: QuotationResponse['discount']) {
+function totalsFor(
+  items: QuotationItemResponse[],
+  discountType: QuotationResponse['discountType'],
+  discount: QuotationResponse['discount'],
+  freightValue: number | null = null,
+) {
   const subtotal = items.reduce((s, it) => s + it.totalPrice, 0)
   let globalDiscountValue = 0
   if (discount != null && discountType != null) {
@@ -83,7 +88,9 @@ function totalsFor(items: QuotationItemResponse[], discountType: QuotationRespon
       globalDiscountValue = Math.min(subtotal, discount)
     }
   }
-  const total = Math.max(0, subtotal - globalDiscountValue)
+  // Frete somado após o desconto — nunca entra no desconto.
+  const freight = freightValue ?? 0
+  const total = Math.max(0, subtotal - globalDiscountValue) + freight
   const totalQuantity = items.reduce((s, it) => s + it.quantity, 0)
   return { subtotal, total, totalQuantity }
 }
@@ -192,7 +199,12 @@ export async function createQuotation(
   const items: QuotationItemResponse[] = payload.items.map((it) =>
     buildItem(it, makeUuid()),
   )
-  const t = totalsFor(items, payload.discountType ?? null, payload.discount ?? null)
+  const t = totalsFor(
+    items,
+    payload.discountType ?? null,
+    payload.discount ?? null,
+    payload.freightValue ?? null,
+  )
 
   const created: QuotationResponse = {
     uuid: makeUuid(),
@@ -210,6 +222,9 @@ export async function createQuotation(
     paymentCondition: payload.paymentCondition ?? null,
     notes: payload.notes ?? null,
     status: 'ATIVA',
+    carrierUuid: payload.carrierUuid ?? null,
+    freightType: payload.freightType ?? null,
+    freightValue: payload.freightValue ?? null,
     subtotal: t.subtotal,
     total: t.total,
     totalQuantity: t.totalQuantity,
@@ -244,6 +259,7 @@ export async function updateQuotation(
     items,
     payload.discountType !== undefined ? payload.discountType : current.discountType,
     payload.discount !== undefined ? payload.discount : current.discount,
+    payload.freightValue !== undefined ? payload.freightValue : current.freightValue,
   )
 
   const updated: QuotationResponse = {
@@ -270,6 +286,12 @@ export async function updateQuotation(
         ? payload.paymentCondition
         : current.paymentCondition,
     notes: payload.notes !== undefined ? payload.notes : current.notes,
+    carrierUuid:
+      payload.carrierUuid !== undefined ? payload.carrierUuid : current.carrierUuid,
+    freightType:
+      payload.freightType !== undefined ? payload.freightType : current.freightType,
+    freightValue:
+      payload.freightValue !== undefined ? payload.freightValue : current.freightValue,
     subtotal: t.subtotal,
     total: t.total,
     totalQuantity: t.totalQuantity,
