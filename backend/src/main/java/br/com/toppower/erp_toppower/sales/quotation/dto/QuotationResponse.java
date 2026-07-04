@@ -85,6 +85,11 @@ public record QuotationResponse(
                 example = "45.90", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         BigDecimal freightValue,
 
+        @Schema(description = "Margem de lucro aplicada sobre o total da proposta (em %). "
+                + "Ex.: 10.00 = 10% aplicado como multiplicação sobre o total parcial.",
+                example = "10.00", requiredMode = Schema.RequiredMode.REQUIRED)
+        BigDecimal profitMargin,
+
         @Schema(description = "Status atual da proposta.",
                 allowableValues = {"ATIVA", "CONVERTIDA", "CANCELADA", "EXPIRADA"},
                 requiredMode = Schema.RequiredMode.REQUIRED)
@@ -94,8 +99,8 @@ public record QuotationResponse(
                 example = "1450.00", requiredMode = Schema.RequiredMode.REQUIRED)
         BigDecimal subtotal,
 
-        @Schema(description = "Total final da proposta (subtotal - desconto global + frete).",
-                example = "1445.90", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "Total final da proposta (subtotal - desconto global + frete, multiplicado pela margem de lucro).",
+                example = "1590.49", requiredMode = Schema.RequiredMode.REQUIRED)
         BigDecimal total,
 
         @Schema(description = "Soma das quantidades de todos os itens (unidades comercializadas).",

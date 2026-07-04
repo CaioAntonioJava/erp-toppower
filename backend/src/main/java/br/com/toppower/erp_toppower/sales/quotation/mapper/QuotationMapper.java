@@ -112,7 +112,8 @@ public final class QuotationMapper {
         applyHeader(q, request.customerUuid(), request.companyUuid(), request.attention(),
                 request.sellerUuid(), request.discountType(), request.discount(),
                 request.validityDays(), request.paymentCondition(), request.notes(),
-                request.carrierUuid(), request.freightType(), request.freightValue());
+                request.carrierUuid(), request.freightType(), request.freightValue(),
+                request.profitMargin());
         return q;
     }
 
@@ -161,6 +162,9 @@ public final class QuotationMapper {
         if (request.freightValue() != null) {
             quotation.setFreightValue(request.freightValue());
         }
+        if (request.profitMargin() != null) {
+            quotation.setProfitMargin(request.profitMargin());
+        }
     }
 
     private static void applyHeader(Quotation q, UUID customerUuid, UUID companyUuid,
@@ -168,7 +172,8 @@ public final class QuotationMapper {
                                     DiscountType discountType, BigDecimal discount,
                                     Integer validityDays, br.com.toppower.erp_toppower.sales.quotation.enums.PaymentCondition paymentCondition,
                                     String notes, UUID carrierUuid,
-                                    FreightType freightType, BigDecimal freightValue) {
+                                    FreightType freightType, BigDecimal freightValue,
+                                    BigDecimal profitMargin) {
         q.setCustomerUuid(customerUuid);
         q.setCompanyUuid(companyUuid);
         q.setAttention(attention);
@@ -181,6 +186,7 @@ public final class QuotationMapper {
         q.setCarrierUuid(carrierUuid);
         q.setFreightType(freightType);
         q.setFreightValue(freightValue);
+        q.setProfitMargin(profitMargin);
     }
 
     /**
@@ -212,6 +218,7 @@ public final class QuotationMapper {
                 quotation.getCarrierUuid(),
                 quotation.getFreightType(),
                 quotation.getFreightValue(),
+                quotation.getProfitMargin(),
                 quotation.getStatus(),
                 quotation.getSubtotal(),
                 quotation.getTotal(),

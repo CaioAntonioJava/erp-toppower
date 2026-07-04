@@ -87,6 +87,13 @@ public record QuotationUpdateRequest(
                 example = "45.90", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         @DecimalMin(value = "0.00", message = "Frete não pode ser negativo")
         @Digits(integer = 8, fraction = 2, message = "Frete inválido")
-        BigDecimal freightValue
+        BigDecimal freightValue,
+
+        @Schema(description = "Nova margem de lucro aplicada sobre o total da proposta (em %). "
+                + "Ex.: 10.00 = 10%.",
+                example = "10.00", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        @DecimalMin(value = "0.00", message = "Margem de lucro não pode ser negativa")
+        @Digits(integer = 3, fraction = 2, message = "Margem de lucro inválida")
+        BigDecimal profitMargin
 ) {
 }

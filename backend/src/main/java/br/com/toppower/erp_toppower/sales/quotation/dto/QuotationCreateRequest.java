@@ -95,6 +95,14 @@ public record QuotationCreateRequest(
                 example = "45.90", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         @DecimalMin(value = "0.00", message = "Frete não pode ser negativo")
         @Digits(integer = 8, fraction = 2, message = "Frete inválido")
-        BigDecimal freightValue
+        BigDecimal freightValue,
+
+        @Schema(description = "Margem de lucro aplicada sobre o total da proposta (em %). "
+                + "Ex.: 10.00 = 10% aplicado como multiplicação sobre o total parcial.",
+                example = "10.00", requiredMode = Schema.RequiredMode.REQUIRED)
+        @NotNull(message = "Margem de lucro é obrigatória")
+        @DecimalMin(value = "0.00", message = "Margem de lucro não pode ser negativa")
+        @Digits(integer = 3, fraction = 2, message = "Margem de lucro inválida")
+        BigDecimal profitMargin
 ) {
 }

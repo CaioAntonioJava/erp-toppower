@@ -49,8 +49,10 @@ import java.util.UUID;
      * O desconto por item <b>já está</b> subtraído em
      * {@code item.totalPrice}, de modo que o {@code subtotal} reflete o
      * total líquido dos itens. O desconto global é então subtraído do
-     * subtotal e o {@link #freightValue} é somado ao resultado para chegar
-     * ao {@code total} — o frete nunca participa do desconto.</p>
+     * subtotal, o {@link #freightValue} é somado ao resultado e, por
+     * fim, a {@link #profitMargin} é aplicada como multiplicação
+     * percentual para chegar ao {@code total} — o frete nunca participa
+     * do desconto.</p>
  */
 @Entity
 @Table(
@@ -198,6 +200,18 @@ public class Quotation extends BaseEntity {
     @Column(name = "freight_value", precision = 10, scale = 2)
     private BigDecimal freightValue;
 
+    /**
+     * Margem de lucro aplicada sobre o total da proposta, expressa em
+     * porcentagem (ex.: {@code 10.00} = 10%). Obrigatória.
+     *
+     * <p>Aplicada como multiplicação sobre o total parcial (subtotal
+     * menos o desconto global, mais o frete), através do fator
+     * {@code (1 + profitMargin / 100)}. É o último ajuste realizado na
+     * composição do {@link #total}.</p>
+     */
+    @Column(name = "profit_margin", nullable = false, precision = 5, scale = 2)
+    private BigDecimal profitMargin;
+
     // ---------------------------------------------------------------------
     // Campos calculados (não persistidos)
     // ---------------------------------------------------------------------
@@ -212,8 +226,10 @@ public class Quotation extends BaseEntity {
 
     /**
      * Total final da proposta (subtotal menos o desconto global, mais o
-     * frete). Preenchido em memória por {@link #recalculateTotals(List)}.
-     * O frete é somado após o desconto e nunca é descontado.
+     * frete, multiplicado pela margem de lucro). Preenchido em memória
+     * por {@link #recalculateTotals(List)}. O frete é somado após o
+     * desconto e nunca é descontado; a margem de lucro é aplicada por
+     * último sobre o total parcial.
      */
     @Transient
     private BigDecimal total = BigDecimal.ZERO;
@@ -239,9 +255,10 @@ public class Quotation extends BaseEntity {
      *       item (já líquido do desconto por item, que é deduzido na
      *       criação/atualização do item);</li>
      *   <li>{@code total} = ({@code subtotal} − desconto global
-     *       (valor ou percentual)) + {@code freightValue}.
+     *       (valor ou percentual)) + {@code freightValue}, multiplicado
+     *       pela {@link #profitMargin} (fator {@code 1 + profitMargin/100}).
      *       O frete é somado após o desconto e nunca participa do
-     *       desconto global;</li>
+     *       desconto global; a margem de lucro é aplicada por último;</li>
      *   <li>{@code totalQuantity} = soma de {@code item.quantity}.</li>
      * </ul>
      *
@@ -263,11 +280,30 @@ public class Quotation extends BaseEntity {
                     .reduce(BigDecimal.ZERO, BigDecimal::add)
                     .intValue();
         }
-        // total = (subtotal - desconto global) + frete. O frete nunca
-        // entra no desconto — é somado ao subtotal já descontado.
+        // total = (subtotal - desconto global) + frete, aplicada a margem
+        // de lucro por último. O frete nunca entra no desconto — é somado
+        // ao subtotal já descontado antes da margem.
         BigDecimal discounted = applyGlobalDiscount(this.subtotal);
         BigDecimal freight = (freightValue != null) ? freightValue : BigDecimal.ZERO;
-        this.total = discounted.add(freight);
+        BigDecimal beforeMargin = discounted.add(freight);
+        this.total = applyProfitMargin(beforeMargin);
+    }
+
+    /**
+     * Aplica a {@link #profitMargin} como multiplicação percentual sobre
+     * o total parcial (subtotal - desconto + frete), através do fator
+     * {@code (1 + profitMargin / 100)}.
+     */
+    private BigDecimal applyProfitMargin(BigDecimal base) {
+        if (base == null) {
+            return BigDecimal.ZERO;
+        }
+        if (profitMargin == null || profitMargin.signum() == 0) {
+            return base;
+        }
+        BigDecimal factor = BigDecimal.ONE.add(
+                profitMargin.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP));
+        return base.multiply(factor).setScale(2, RoundingMode.HALF_UP);
     }
 
     private BigDecimal applyGlobalDiscount(BigDecimal base) {
