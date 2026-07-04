@@ -1,6 +1,7 @@
 package br.com.toppower.erp_toppower.sales.quotation.dto;
 
 import br.com.toppower.erp_toppower.sales.quotation.enums.DiscountType;
+import br.com.toppower.erp_toppower.sales.quotation.enums.FreightType;
 import br.com.toppower.erp_toppower.sales.quotation.enums.PaymentCondition;
 import br.com.toppower.erp_toppower.sales.quotation.enums.QuotationStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -71,6 +72,19 @@ public record QuotationResponse(
         @Schema(description = "Observações livres.", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         String notes,
 
+        @Schema(description = "UUID da transportadora responsável pelo frete (opcional).",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        UUID carrierUuid,
+
+        @Schema(description = "Tipo de frete.",
+                allowableValues = {"CIF", "FOB"},
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        FreightType freightType,
+
+        @Schema(description = "Valor do frete (somado ao total após o desconto global).",
+                example = "45.90", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        BigDecimal freightValue,
+
         @Schema(description = "Status atual da proposta.",
                 allowableValues = {"ATIVA", "CONVERTIDA", "CANCELADA", "EXPIRADA"},
                 requiredMode = Schema.RequiredMode.REQUIRED)
@@ -80,8 +94,8 @@ public record QuotationResponse(
                 example = "1450.00", requiredMode = Schema.RequiredMode.REQUIRED)
         BigDecimal subtotal,
 
-        @Schema(description = "Total final da proposta (subtotal - desconto global).",
-                example = "1400.00", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "Total final da proposta (subtotal - desconto global + frete).",
+                example = "1445.90", requiredMode = Schema.RequiredMode.REQUIRED)
         BigDecimal total,
 
         @Schema(description = "Soma das quantidades de todos os itens (unidades comercializadas).",

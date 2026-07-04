@@ -3,6 +3,7 @@ package br.com.toppower.erp_toppower.sales.quotation.entity;
 import br.com.toppower.erp_toppower.common.annotation.UpperCase;
 import br.com.toppower.erp_toppower.common.entity.BaseEntity;
 import br.com.toppower.erp_toppower.sales.quotation.enums.DiscountType;
+import br.com.toppower.erp_toppower.sales.quotation.enums.FreightType;
 import br.com.toppower.erp_toppower.sales.quotation.enums.PaymentCondition;
 import br.com.toppower.erp_toppower.sales.quotation.enums.QuotationStatus;
 import jakarta.persistence.Column;
@@ -42,13 +43,14 @@ import java.util.UUID;
  * agregado <b>não</b> declara relacionamento JPA com os itens, em
  * consonância com o restante do projeto.</p>
  *
- * <p>Os campos calculados {@link #subtotal}, {@link #total} e
- * {@link #totalQuantity} são preenchidos em memória pelo serviço
- * após carregar os itens, através de {@link #recalculateTotals(List)}.
- * O desconto por item <b>já está</b> subtraído em
- * {@code item.totalPrice}, de modo que o {@code subtotal} reflete o
- * total líquido dos itens. O desconto global é então subtraído para
- * chegar ao {@code total}.</p>
+     * <p>Os campos calculados {@link #subtotal}, {@link #total} e
+     * {@link #totalQuantity} são preenchidos em memória pelo serviço
+     * após carregar os itens, através de {@link #recalculateTotals(List)}.
+     * O desconto por item <b>já está</b> subtraído em
+     * {@code item.totalPrice}, de modo que o {@code subtotal} reflete o
+     * total líquido dos itens. O desconto global é então subtraído do
+     * subtotal e o {@link #freightValue} é somado ao resultado para chegar
+     * ao {@code total} — o frete nunca participa do desconto.</p>
  */
 @Entity
 @Table(
@@ -175,6 +177,27 @@ public class Quotation extends BaseEntity {
     @Column(name = "status", nullable = false, length = 20)
     private QuotationStatus status;
 
+    /**
+     * Referência à {@code Carrier} (transportadora) responsável pelo frete.
+     * Opcional.
+     */
+    @Column(name = "carrier_uuid")
+    private UUID carrierUuid;
+
+    /**
+     * Tipo de frete (CIF/FOB). Opcional.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "freight_type", length = 10)
+    private FreightType freightType;
+
+    /**
+     * Valor do frete informado manualmente. É somado ao total da proposta
+     * após o desconto global — nunca participa do desconto. Opcional.
+     */
+    @Column(name = "freight_value", precision = 10, scale = 2)
+    private BigDecimal freightValue;
+
     // ---------------------------------------------------------------------
     // Campos calculados (não persistidos)
     // ---------------------------------------------------------------------
@@ -188,8 +211,9 @@ public class Quotation extends BaseEntity {
     private BigDecimal subtotal = BigDecimal.ZERO;
 
     /**
-     * Total final da proposta (subtotal menos o desconto global).
-     * Preenchido em memória por {@link #recalculateTotals(List)}.
+     * Total final da proposta (subtotal menos o desconto global, mais o
+     * frete). Preenchido em memória por {@link #recalculateTotals(List)}.
+     * O frete é somado após o desconto e nunca é descontado.
      */
     @Transient
     private BigDecimal total = BigDecimal.ZERO;
@@ -214,8 +238,10 @@ public class Quotation extends BaseEntity {
      *   <li>{@code subtotal} = soma de {@code item.totalPrice} de cada
      *       item (já líquido do desconto por item, que é deduzido na
      *       criação/atualização do item);</li>
-     *   <li>{@code total} = {@code subtotal} − desconto global
-     *       (valor ou percentual);</li>
+     *   <li>{@code total} = ({@code subtotal} − desconto global
+     *       (valor ou percentual)) + {@code freightValue}.
+     *       O frete é somado após o desconto e nunca participa do
+     *       desconto global;</li>
      *   <li>{@code totalQuantity} = soma de {@code item.quantity}.</li>
      * </ul>
      *
@@ -237,7 +263,11 @@ public class Quotation extends BaseEntity {
                     .reduce(BigDecimal.ZERO, BigDecimal::add)
                     .intValue();
         }
-        this.total = applyGlobalDiscount(this.subtotal);
+        // total = (subtotal - desconto global) + frete. O frete nunca
+        // entra no desconto — é somado ao subtotal já descontado.
+        BigDecimal discounted = applyGlobalDiscount(this.subtotal);
+        BigDecimal freight = (freightValue != null) ? freightValue : BigDecimal.ZERO;
+        this.total = discounted.add(freight);
     }
 
     private BigDecimal applyGlobalDiscount(BigDecimal base) {

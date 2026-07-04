@@ -9,6 +9,7 @@ import br.com.toppower.erp_toppower.sales.quotation.dto.QuotationUpdateRequest;
 import br.com.toppower.erp_toppower.sales.quotation.entity.Quotation;
 import br.com.toppower.erp_toppower.sales.quotation.entity.QuotationItem;
 import br.com.toppower.erp_toppower.sales.quotation.enums.DiscountType;
+import br.com.toppower.erp_toppower.sales.quotation.enums.FreightType;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -110,7 +111,8 @@ public final class QuotationMapper {
         Quotation q = new Quotation();
         applyHeader(q, request.customerUuid(), request.companyUuid(), request.attention(),
                 request.sellerUuid(), request.discountType(), request.discount(),
-                request.validityDays(), request.paymentCondition(), request.notes());
+                request.validityDays(), request.paymentCondition(), request.notes(),
+                request.carrierUuid(), request.freightType(), request.freightValue());
         return q;
     }
 
@@ -150,13 +152,23 @@ public final class QuotationMapper {
         if (request.notes() != null) {
             quotation.setNotes(request.notes());
         }
+        if (request.carrierUuid() != null) {
+            quotation.setCarrierUuid(request.carrierUuid());
+        }
+        if (request.freightType() != null) {
+            quotation.setFreightType(request.freightType());
+        }
+        if (request.freightValue() != null) {
+            quotation.setFreightValue(request.freightValue());
+        }
     }
 
     private static void applyHeader(Quotation q, UUID customerUuid, UUID companyUuid,
                                     String attention, UUID sellerUuid,
                                     DiscountType discountType, BigDecimal discount,
                                     Integer validityDays, br.com.toppower.erp_toppower.sales.quotation.enums.PaymentCondition paymentCondition,
-                                    String notes) {
+                                    String notes, UUID carrierUuid,
+                                    FreightType freightType, BigDecimal freightValue) {
         q.setCustomerUuid(customerUuid);
         q.setCompanyUuid(companyUuid);
         q.setAttention(attention);
@@ -166,6 +178,9 @@ public final class QuotationMapper {
         q.setValidityDays(validityDays);
         q.setPaymentCondition(paymentCondition);
         q.setNotes(notes);
+        q.setCarrierUuid(carrierUuid);
+        q.setFreightType(freightType);
+        q.setFreightValue(freightValue);
     }
 
     /**
@@ -194,6 +209,9 @@ public final class QuotationMapper {
                 quotation.getValidityDays(),
                 quotation.getPaymentCondition(),
                 quotation.getNotes(),
+                quotation.getCarrierUuid(),
+                quotation.getFreightType(),
+                quotation.getFreightValue(),
                 quotation.getStatus(),
                 quotation.getSubtotal(),
                 quotation.getTotal(),

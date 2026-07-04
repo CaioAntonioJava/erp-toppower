@@ -1,6 +1,7 @@
 package br.com.toppower.erp_toppower.sales.quotation.dto;
 
 import br.com.toppower.erp_toppower.sales.quotation.enums.DiscountType;
+import br.com.toppower.erp_toppower.sales.quotation.enums.FreightType;
 import br.com.toppower.erp_toppower.sales.quotation.enums.PaymentCondition;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
@@ -79,6 +80,21 @@ public record QuotationCreateRequest(
                 example = "Entrega em até 5 dias úteis.", maxLength = 2000,
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         @Size(max = 2000, message = "Observações devem ter no máximo {max} caracteres")
-        String notes
+        String notes,
+
+        @Schema(description = "UUID da transportadora responsável pelo frete (opcional).",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        UUID carrierUuid,
+
+        @Schema(description = "Tipo de frete (CIF = por conta do remetente, FOB = por conta do destinatário).",
+                allowableValues = {"CIF", "FOB"},
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        FreightType freightType,
+
+        @Schema(description = "Valor do frete informado manualmente. Somado ao total após o desconto global.",
+                example = "45.90", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        @DecimalMin(value = "0.00", message = "Frete não pode ser negativo")
+        @Digits(integer = 8, fraction = 2, message = "Frete inválido")
+        BigDecimal freightValue
 ) {
 }
