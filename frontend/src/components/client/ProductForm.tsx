@@ -232,7 +232,7 @@ export function ProductForm({
             onBlur={getBlurHandler('price')}
             error={shouldShowError('price', fieldErrors.price)}
             required
-            hint="Preço de venda por unidade."
+            hint="Preço de custo por unidade."
           />
           <Input
             label="Estoque"
@@ -248,7 +248,6 @@ export function ProductForm({
               fieldErrors.stockQuantity,
             )}
             required
-            hint="Permite fracionamento (4 casas) para METROS/BOBINA."
           />
         </div>
       </section>
