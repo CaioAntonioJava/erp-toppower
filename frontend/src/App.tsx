@@ -21,6 +21,9 @@ import { SalesOrdersListPage } from './pages/SalesOrdersListPage'
 import { SalesOrderFormPage } from './pages/SalesOrderFormPage'
 import { SalesOrderDetailPage } from './pages/SalesOrderDetailPage'
 import { SalesOrderPrintPage } from './pages/SalesOrderPrintPage'
+import { TechnicalProposalsListPage } from './pages/TechnicalProposalsListPage'
+import { TechnicalProposalFormPage } from './pages/TechnicalProposalFormPage'
+import { TechnicalProposalDetailPage } from './pages/TechnicalProposalDetailPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { AppLayout } from './components/layout/AppLayout'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -66,6 +69,10 @@ export default function App() {
         <Route path="/sales-orders/new" element={<SalesOrderFormPage />} />
         <Route path="/sales-orders/:id/edit" element={<SalesOrderFormPage />} />
         <Route path="/sales-orders/:id" element={<SalesOrderDetailPage />} />
+        <Route path="/technical-proposals" element={<TechnicalProposalsListPage />} />
+        <Route path="/technical-proposals/new" element={<TechnicalProposalFormPage />} />
+        <Route path="/technical-proposals/:id/edit" element={<TechnicalProposalFormPage />} />
+        <Route path="/technical-proposals/:id" element={<TechnicalProposalDetailPage />} />
       </Route>
 
       {/* Rota de impressão/PDF da proposta — sem AppLayout (sidebar/topbar),

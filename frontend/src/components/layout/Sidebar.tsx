@@ -11,6 +11,7 @@ import {
   Truck,
   User,
   Users,
+  Wrench,
 } from 'lucide-react'
 import { Button } from '../ui/Button'
 
@@ -28,6 +29,7 @@ const navItems: NavItem[] = [
   { to: '/sellers', label: 'Vendedores', icon: Briefcase },
   { to: '/products', label: 'Produtos', icon: Package },
   { to: '/quotations', label: 'Propostas Comerciais', icon: FileText },
+  { to: '/technical-proposals', label: 'Propostas Técnicas', icon: Wrench },
   { to: '/sales-orders', label: 'Pedidos de Venda', icon: ClipboardList },
 ]
 
