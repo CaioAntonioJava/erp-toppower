@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Power } from 'lucide-react'
+import { Power, Save, X } from 'lucide-react'
 import { Button } from '../components/ui/Button'
 import { BackButton } from '../components/ui/BackButton'
 import { Spinner } from '../components/ui/Spinner'
@@ -140,18 +140,43 @@ export function CustomerFormPage() {
           ) : null}
         </div>
 
-        {mode === 'view' && customer ? (
-          <Button
-            variant={customer.status === 'ATIVO' ? 'secondary' : 'primary'}
-            onClick={() => {
-              setToggleError(null)
-              setConfirmToggle(true)
-            }}
-          >
-            <Power className="h-4 w-4" />
-            {customer.status === 'ATIVO' ? 'Inativar' : 'Reativar'}
-          </Button>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-2">
+          {mode === 'view' && customer ? (
+            <Button
+              variant={customer.status === 'ATIVO' ? 'secondary' : 'primary'}
+              onClick={() => {
+                setToggleError(null)
+                setConfirmToggle(true)
+              }}
+            >
+              <Power className="h-4 w-4" />
+              {customer.status === 'ATIVO' ? 'Inativar' : 'Reativar'}
+            </Button>
+          ) : null}
+
+          {mode !== 'loading' ? (
+            <>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => navigate('/customers')}
+                size="md"
+              >
+                <X className="h-4 w-4" />
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                form="customer-form"
+                isLoading={saving}
+                size="md"
+              >
+                <Save className="h-4 w-4" />
+                {mode === 'view' ? 'Salvar alterações' : 'Cadastrar cliente'}
+              </Button>
+            </>
+          ) : null}
+        </div>
       </div>
 
       {loadError ? (
@@ -177,7 +202,6 @@ export function CustomerFormPage() {
       ) : (
         <CustomerForm
           customer={mode === 'view' ? customer ?? undefined : undefined}
-          isLoading={saving}
           onSaveCreate={handleCreate}
           onSaveUpdate={handleUpdate}
         />
