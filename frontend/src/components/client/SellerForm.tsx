@@ -1,5 +1,4 @@
 import { useState, type FormEvent } from 'react'
-import { Save } from 'lucide-react'
 import type {
   RegistrationStatus,
   SellerCreateRequest,
@@ -7,7 +6,6 @@ import type {
   SellerUpdateRequest,
 } from '../../types/seller'
 import { Input } from '../ui/Input'
-import { Button } from '../ui/Button'
 import { Alert } from '../ui/Alert'
 import { toApiError } from '../../lib/errors'
 import { isValidCpf, maskCpf, maskPhone } from '../../lib/documents'
@@ -16,7 +14,6 @@ import { useFieldTouched } from '../../hooks/useFieldTouched'
 interface SellerFormProps {
   /** Vendedor existente (modo edição). Quando omitido, é cadastro novo. */
   seller?: SellerResponse
-  isLoading?: boolean
   onSaveCreate: (payload: SellerCreateRequest) => Promise<void>
   onSaveUpdate: (payload: SellerUpdateRequest) => Promise<void>
 }
@@ -33,7 +30,6 @@ function parseCommission(value: string): number | null {
 
 export function SellerForm({
   seller,
-  isLoading = false,
   onSaveCreate,
   onSaveUpdate,
 }: SellerFormProps) {
@@ -147,7 +143,12 @@ export function SellerForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6" noValidate>
+    <form
+      id="seller-form"
+      onSubmit={handleSubmit}
+      className="flex flex-col gap-6"
+      noValidate
+    >
       {formError ? <Alert variant="error">{formError}</Alert> : null}
       {success ? <Alert variant="success">{success}</Alert> : null}
 
@@ -239,13 +240,6 @@ export function SellerForm({
           ))}
         </div>
       </section>
-
-      <div className="flex justify-end">
-        <Button type="submit" isLoading={isLoading} size="lg">
-          <Save className="h-4 w-4" />
-          {isEdit ? 'Salvar alterações' : 'Cadastrar vendedor'}
-        </Button>
-      </div>
     </form>
   )
 }

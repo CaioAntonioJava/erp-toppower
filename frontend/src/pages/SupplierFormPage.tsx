@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Power } from 'lucide-react'
+import { Power, Save, X } from 'lucide-react'
 import { Button } from '../components/ui/Button'
 import { BackButton } from '../components/ui/BackButton'
 import { Spinner } from '../components/ui/Spinner'
@@ -140,18 +140,43 @@ export function SupplierFormPage() {
           ) : null}
         </div>
 
-        {mode === 'view' && supplier ? (
-          <Button
-            variant={supplier.status === 'ATIVO' ? 'secondary' : 'primary'}
-            onClick={() => {
-              setToggleError(null)
-              setConfirmToggle(true)
-            }}
-          >
-            <Power className="h-4 w-4" />
-            {supplier.status === 'ATIVO' ? 'Inativar' : 'Reativar'}
-          </Button>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-2">
+          {mode === 'view' && supplier ? (
+            <Button
+              variant={supplier.status === 'ATIVO' ? 'secondary' : 'primary'}
+              onClick={() => {
+                setToggleError(null)
+                setConfirmToggle(true)
+              }}
+            >
+              <Power className="h-4 w-4" />
+              {supplier.status === 'ATIVO' ? 'Inativar' : 'Reativar'}
+            </Button>
+          ) : null}
+
+          {mode !== 'loading' ? (
+            <>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => navigate('/suppliers')}
+                size="md"
+              >
+                <X className="h-4 w-4" />
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                form="supplier-form"
+                isLoading={saving}
+                size="md"
+              >
+                <Save className="h-4 w-4" />
+                {mode === 'view' ? 'Salvar alterações' : 'Cadastrar fornecedor'}
+              </Button>
+            </>
+          ) : null}
+        </div>
       </div>
 
       {loadError ? (
@@ -177,7 +202,6 @@ export function SupplierFormPage() {
       ) : (
         <SupplierForm
           supplier={mode === 'view' ? supplier ?? undefined : undefined}
-          isLoading={saving}
           onSaveCreate={handleCreate}
           onSaveUpdate={handleUpdate}
         />

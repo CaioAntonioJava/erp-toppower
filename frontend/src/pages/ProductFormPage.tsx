@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Power } from 'lucide-react'
+import { Power, Save, X } from 'lucide-react'
 import { Button } from '../components/ui/Button'
 import { BackButton } from '../components/ui/BackButton'
 import { Spinner } from '../components/ui/Spinner'
@@ -142,18 +142,43 @@ export function ProductFormPage() {
           ) : null}
         </div>
 
-        {mode === 'view' && product ? (
-          <Button
-            variant={product.status === 'ATIVO' ? 'secondary' : 'primary'}
-            onClick={() => {
-              setToggleError(null)
-              setConfirmToggle(true)
-            }}
-          >
-            <Power className="h-4 w-4" />
-            {product.status === 'ATIVO' ? 'Inativar' : 'Reativar'}
-          </Button>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-2">
+          {mode === 'view' && product ? (
+            <Button
+              variant={product.status === 'ATIVO' ? 'secondary' : 'primary'}
+              onClick={() => {
+                setToggleError(null)
+                setConfirmToggle(true)
+              }}
+            >
+              <Power className="h-4 w-4" />
+              {product.status === 'ATIVO' ? 'Inativar' : 'Reativar'}
+            </Button>
+          ) : null}
+
+          {mode !== 'loading' ? (
+            <>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => navigate('/products')}
+                size="md"
+              >
+                <X className="h-4 w-4" />
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                form="product-form"
+                isLoading={saving}
+                size="md"
+              >
+                <Save className="h-4 w-4" />
+                {mode === 'view' ? 'Salvar alterações' : 'Cadastrar produto'}
+              </Button>
+            </>
+          ) : null}
+        </div>
       </div>
 
       {loadError ? (
@@ -179,7 +204,6 @@ export function ProductFormPage() {
       ) : (
         <ProductForm
           product={mode === 'view' ? product ?? undefined : undefined}
-          isLoading={saving}
           onSaveCreate={handleCreate}
           onSaveUpdate={handleUpdate}
         />

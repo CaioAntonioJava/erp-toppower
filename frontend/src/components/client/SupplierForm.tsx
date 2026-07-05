@@ -1,5 +1,4 @@
 import { useMemo, useState, type FormEvent } from 'react'
-import { Save } from 'lucide-react'
 import type {
   Address,
   RegistrationStatus,
@@ -8,7 +7,6 @@ import type {
   SupplierUpdateRequest,
 } from '../../types/supplier'
 import { Input } from '../ui/Input'
-import { Button } from '../ui/Button'
 import { Alert } from '../ui/Alert'
 import { AddressFields } from './AddressFields'
 import { toApiError } from '../../lib/errors'
@@ -29,7 +27,6 @@ const EMPTY_ADDRESS: Address = {
 interface SupplierFormProps {
   /** Fornecedor existente (modo edição). Quando omitido, é cadastro novo. */
   supplier?: SupplierResponse
-  isLoading?: boolean
   onSaveCreate: (payload: SupplierCreateRequest) => Promise<void>
   onSaveUpdate: (payload: SupplierUpdateRequest) => Promise<void>
 }
@@ -54,7 +51,6 @@ function validateAddress(a: Address): Partial<Record<keyof Address, string>> {
 
 export function SupplierForm({
   supplier,
-  isLoading = false,
   onSaveCreate,
   onSaveUpdate,
 }: SupplierFormProps) {
@@ -189,7 +185,12 @@ export function SupplierForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6" noValidate>
+    <form
+      id="supplier-form"
+      onSubmit={handleSubmit}
+      className="flex flex-col gap-6"
+      noValidate
+    >
       {formError ? <Alert variant="error">{formError}</Alert> : null}
       {success ? <Alert variant="success">{success}</Alert> : null}
 
@@ -326,13 +327,6 @@ export function SupplierForm({
           ))}
         </div>
       </section>
-
-      <div className="flex justify-end">
-        <Button type="submit" isLoading={isLoading} size="lg">
-          <Save className="h-4 w-4" />
-          {isEdit ? 'Salvar alterações' : 'Cadastrar fornecedor'}
-        </Button>
-      </div>
     </form>
   )
 }
