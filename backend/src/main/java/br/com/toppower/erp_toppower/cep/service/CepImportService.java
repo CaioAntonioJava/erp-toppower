@@ -36,7 +36,7 @@ import java.util.regex.Pattern;
  *
  * <p><strong>Suporta dois formatos (deteccao automatica):</strong></p>
  * <ol>
- *   <li><strong>TSV sem header</strong> — {@code cep<TAB>uf<TAB>cidade<TAB>bairro<TAB>logradouro}.
+ *   <li><strong>TSV sem header</strong> — {@code cep<TAB>state<TAB>city<TAB>neighborhood<TAB>street}.
  *       Formato do arquivo embarcado {@code cep/ceps_brasil.csv} (base
  *       utfcepos, UTF-8). Detectado quando a 1a linha nao contem nomes de
  *       coluna mapeaveis (ex.: o 1o campo ja e um CEP de 8 digitos).</li>
@@ -65,16 +65,16 @@ public class CepImportService {
     /** Sinonimos de colunas aceitos no header do CSV (formato 2). */
     private static final Map<String, String> COLUMN_ALIASES = Map.ofEntries(
             Map.entry("cep", "cep"),
-            Map.entry("logradouro", "logradouro"),
-            Map.entry("rua", "logradouro"),
-            Map.entry("street", "logradouro"),
-            Map.entry("bairro", "bairro"),
-            Map.entry("neighborhood", "bairro"),
-            Map.entry("cidade", "cidade"),
-            Map.entry("city", "cidade"),
-            Map.entry("uf", "uf"),
-            Map.entry("estado", "uf"),
-            Map.entry("state", "uf"),
+            Map.entry("logradouro", "street"),
+            Map.entry("rua", "street"),
+            Map.entry("street", "street"),
+            Map.entry("bairro", "neighborhood"),
+            Map.entry("neighborhood", "neighborhood"),
+            Map.entry("cidade", "city"),
+            Map.entry("city", "city"),
+            Map.entry("uf", "state"),
+            Map.entry("estado", "state"),
+            Map.entry("state", "state"),
             Map.entry("latitude", "latitude"),
             Map.entry("lat", "latitude"),
             Map.entry("longitude", "longitude"),
@@ -124,12 +124,12 @@ public class CepImportService {
         }
 
         long start = System.currentTimeMillis();
-        long totalLinhas = 0;
-        long importados = 0;
-        long erros = 0;
-        long duplicadosIgnorados = 0;
+        long totalLines = 0;
+        long imported = 0;
+        long errors = 0;
+        long duplicatesIgnored = 0;
 
-        String sql = "INSERT IGNORE INTO ceps (cep, logradouro, bairro, cidade, uf, latitude, longitude) "
+        String sql = "INSERT IGNORE INTO ceps (cep, street, neighborhood, city, state, latitude, longitude) "
                 + "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
         try (BufferedReader reader = openReader(csvPath)) {
@@ -144,7 +144,7 @@ public class CepImportService {
 
             Map<String, Integer> colIndex = hasHeader
                     ? mapHeader(firstLine, separator)
-                    : Map.of("cep", 0, "uf", 1, "cidade", 2, "bairro", 3, "logradouro", 4);
+                    : Map.of("cep", 0, "state", 1, "city", 2, "neighborhood", 3, "street", 4);
             requireColumn(colIndex, "cep");
 
             List<Object[]> batch = new ArrayList<>(batchSize);
@@ -153,17 +153,17 @@ public class CepImportService {
             String line = hasHeader ? reader.readLine() : firstLine;
             while (line != null) {
                 if (!line.isBlank()) {
-                    totalLinhas++;
+                    totalLines++;
                     Object[] row = parseLine(line, separator, colIndex);
                     if (row == null) {
-                        erros++;
+                        errors++;
                     } else {
                         batch.add(row);
                         if (batch.size() >= batchSize) {
                             int[] results = jdbcTemplate.batchUpdate(sql, batch);
                             int inserted = countInserted(results);
-                            importados += inserted;
-                            duplicadosIgnorados += batch.size() - inserted;
+                            imported += inserted;
+                            duplicatesIgnored += batch.size() - inserted;
                             batch.clear();
                         }
                     }
@@ -173,17 +173,17 @@ public class CepImportService {
             if (!batch.isEmpty()) {
                 int[] results = jdbcTemplate.batchUpdate(sql, batch);
                 int inserted = countInserted(results);
-                importados += inserted;
-                duplicadosIgnorados += batch.size() - inserted;
+                imported += inserted;
+                duplicatesIgnored += batch.size() - inserted;
             }
         } catch (IOException e) {
             throw new IllegalStateException("Erro ao ler o CSV: " + e.getMessage(), e);
         }
 
-        long duracaoMs = System.currentTimeMillis() - start;
+        long durationMs = System.currentTimeMillis() - start;
         log.info("Importacao de CEPs concluida: {} lidos, {} inseridos, {} duplicados, {} erros, {} ms.",
-                totalLinhas, importados, duplicadosIgnorados, erros, duracaoMs);
-        return new CepImportResult(totalLinhas, importados, duplicadosIgnorados, erros, duracaoMs);
+                totalLines, imported, duplicatesIgnored, errors, durationMs);
+        return new CepImportResult(totalLines, imported, duplicatesIgnored, errors, durationMs);
     }
 
     /**
@@ -249,27 +249,27 @@ public class CepImportService {
         if (cep == null) {
             return null;
         }
-        String logradouro = valueOrNull(fields, colIndex.get("logradouro"));
-        String bairro = valueOrNull(fields, colIndex.get("bairro"));
-        String cidade = valueOrNull(fields, colIndex.get("cidade"));
-        String uf = valueOrNull(fields, colIndex.get("uf"));
-        if (uf != null) {
-            uf = uf.trim().toUpperCase();
-            if (uf.length() != 2) {
-                uf = null;
+        String street = valueOrNull(fields, colIndex.get("street"));
+        String neighborhood = valueOrNull(fields, colIndex.get("neighborhood"));
+        String city = valueOrNull(fields, colIndex.get("city"));
+        String state = valueOrNull(fields, colIndex.get("state"));
+        if (state != null) {
+            state = state.trim().toUpperCase();
+            if (state.length() != 2) {
+                state = null;
             }
         }
-        if (cidade == null || cidade.isBlank()) {
-            return null; // cidade e NOT NULL na entidade
+        if (city == null || city.isBlank()) {
+            return null; // city e NOT NULL na entidade
         }
         BigDecimal lat = toBigDecimal(valueOrNull(fields, colIndex.get("latitude")));
         BigDecimal lng = toBigDecimal(valueOrNull(fields, colIndex.get("longitude")));
-        return new Object[]{cep, logradouro, bairro, cidade, uf, lat, lng};
+        return new Object[]{cep, street, neighborhood, city, state, lat, lng};
     }
 
     /**
-     * Mapeia o header do CSV para os nomes canonicos (cep, logradouro,
-     * bairro, cidade, uf, latitude, longitude), aceitando sinonimos.
+     * Mapeia o header do CSV para os nomes canonicos (cep, street,
+     * neighborhood, city, state, latitude, longitude), aceitando sinonimos.
      */
     private Map<String, Integer> mapHeader(String headerLine, char separator) {
         String[] headers = splitCsv(headerLine, separator);

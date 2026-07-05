@@ -27,7 +27,7 @@ import java.math.BigDecimal;
  */
 @Entity
 @Table(name = "ceps", indexes = {
-        @Index(name = "idx_ceps_uf_cidade", columnList = "uf, cidade")
+        @Index(name = "idx_ceps_state_city", columnList = "state, city")
 })
 @Getter
 @Setter
@@ -46,26 +46,26 @@ public class Cep {
      * Logradouro (rua, avenida, etc.). Pode ser nulo quando o CEP e
      * generico da cidade/bairro (sem logradouro especifico).
      */
-    @Column(name = "logradouro", length = 200)
-    private String logradouro;
+    @Column(name = "street", length = 200)
+    private String street;
 
     /**
      * Bairro. Opcional (alguns CEPs nao tem bairro associado).
      */
-    @Column(name = "bairro", length = 100)
-    private String bairro;
+    @Column(name = "neighborhood", length = 100)
+    private String neighborhood;
 
     /**
      * Cidade. Obrigatorio.
      */
-    @Column(name = "cidade", length = 100, nullable = false)
-    private String cidade;
+    @Column(name = "city", length = 100, nullable = false)
+    private String city;
 
     /**
      * Unidade Federativa (UF) - 2 letras (ex.: {@code "SP"}).
      */
-    @Column(name = "uf", length = 2, nullable = false)
-    private String uf;
+    @Column(name = "state", length = 2, nullable = false)
+    private String state;
 
     /**
      * Latitude (decimal). Opcional — presente na base CEP Aberto.

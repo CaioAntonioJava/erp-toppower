@@ -23,5 +23,5 @@ public interface CepRepository extends JpaRepository<Cep, String>, JpaSpecificat
      * Lista CEPs de uma cidade, ordenados por logradouro. Util para
      * autocomplete de enderecos quando o usuario ainda nao digitou o CEP.
      */
-    List<Cep> findByUfAndCidadeOrderByLogradouro(String uf, String cidade);
+    List<Cep> findByStateAndCityOrderByStreet(String state, String city);
 }

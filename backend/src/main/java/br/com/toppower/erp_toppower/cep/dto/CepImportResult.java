@@ -11,21 +11,21 @@ public record CepImportResult(
 
         @Schema(description = "Total de linhas lidas do CSV (excluindo o header).",
                 example = "900123")
-        long totalLinhas,
+        long totalLines,
 
         @Schema(description = "Registros efetivamente inseridos (INSERT IGNORE).",
                 example = "898540")
-        long importados,
+        long imported,
 
         @Schema(description = "Linhas com CEP duplicado ignoradas pela PK.",
                 example = "1583")
-        long duplicadosIgnorados,
+        long duplicatesIgnored,
 
         @Schema(description = "Linhas invalidas/descartadas (CEP fora do formato, etc.).",
                 example = "0")
-        long erros,
+        long errors,
 
         @Schema(description = "Duracao da importacao em milissegundos.", example = "41200")
-        long duracaoMs
+        long durationMs
 ) {
 }

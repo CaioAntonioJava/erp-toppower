@@ -25,10 +25,10 @@ public final class CepMapper {
         String formatted = formatZipCode(cep.getCep());
         return new CepResponse(
                 formatted,
-                cep.getLogradouro(),
-                cep.getBairro(),
-                cep.getCidade(),
-                cep.getUf(),
+                cep.getStreet(),
+                cep.getNeighborhood(),
+                cep.getCity(),
+                cep.getState(),
                 cep.getLatitude(),
                 cep.getLongitude()
         );
