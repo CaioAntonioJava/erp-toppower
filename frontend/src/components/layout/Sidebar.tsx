@@ -27,7 +27,7 @@ const navItems: NavItem[] = [
   { to: '/suppliers', label: 'Fornecedores', icon: Truck },
   { to: '/sellers', label: 'Vendedores', icon: Briefcase },
   { to: '/products', label: 'Produtos', icon: Package },
-  { to: '/quotations', label: 'Propostas', icon: FileText },
+  { to: '/quotations', label: 'Propostas Comerciais', icon: FileText },
   { to: '/sales-orders', label: 'Pedidos de Venda', icon: ClipboardList },
 ]
 
