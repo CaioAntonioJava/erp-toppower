@@ -111,7 +111,8 @@ export function QuotationFormPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <BackButton label="Voltar para a lista" fallback="/quotations" />
+          <h1 className="mt-4 text-2xl font-semibold tracking-tight">
             Proposta Comercial
           </h1>
           {mode === 'create' ? (
