@@ -49,7 +49,7 @@ public class Address {
      * Bairro.
      * Opcional.
      */
-    @Column(name = "neighborhood",nullable = false, length = 100)
+    @Column(name = "neighborhood", length = 100)
     private String neighborhood;
 
     /**
