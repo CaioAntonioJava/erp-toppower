@@ -30,7 +30,7 @@ type Mode = 'loading' | 'create' | 'view'
  * - /sales-orders/new    → modo create (pode pré-visualizar o próximo número)
  * - /sales-orders/:id    → modo view (carrega GET /sales-orders/{id})
  *
- * <p>Pedidos FATURADO, ENTREGUE ou CANCELADO são somente leitura — o
+ * <p>Pedidos FINALIZADO ou CANCELADO são somente leitura — o
  * backend rejeita PATCH nesses estados (409).</p>
  */
 export function SalesOrderFormPage() {
@@ -109,8 +109,7 @@ export function SalesOrderFormPage() {
   // Pedidos em estado terminal não podem ser editados (backend rejeita 409).
   const readOnly =
     mode === 'view' &&
-    (salesOrder?.status === 'FATURADO' ||
-      salesOrder?.status === 'ENTREGUE' ||
+    (salesOrder?.status === 'FINALIZADO' ||
       salesOrder?.status === 'CANCELADO')
   const canEdit = mode === 'view' && !readOnly
 
@@ -205,7 +204,7 @@ export function SalesOrderFormPage() {
           {readOnly ? (
             <div className="mb-4">
               <Alert variant="info">
-                Pedidos {salesOrder?.status === 'FATURADO' ? 'faturados' : salesOrder?.status === 'ENTREGUE' ? 'entregues' : 'cancelados'} não podem ser editados. Use a tela de listagem para visualizar.
+                Pedidos {salesOrder?.status === 'FINALIZADO' ? 'finalizados' : 'cancelados'} não podem ser editados. Use a tela de listagem para visualizar.
               </Alert>
             </div>
           ) : null}

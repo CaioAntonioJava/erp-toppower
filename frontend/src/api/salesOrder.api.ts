@@ -97,7 +97,7 @@ export async function updateSalesOrder(
 
 /**
  * PATCH /sales-orders/{id}/advance-status — avança o status do pedido para
- * o próximo estado do ciclo (ABERTO → EM_SEPARACAO → FATURADO → ENTREGUE).
+ * o próximo estado do ciclo (ABERTO → FINALIZADO).
  */
 export async function advanceSalesOrderStatus(
   id: string,

@@ -54,7 +54,7 @@ import java.util.UUID;
  *       resposta;</li>
  *   <li>Listar com filtros (status, intervalo de datas, número, cliente,
  *       vendedor, número da proposta de origem);</li>
- *   <li>Avançar o status (ABERTO → EM_SEPARACAO → FATURADO → ENTREGUE)
+ *   <li>Avançar o status (ABERTO → FINALIZADO)
  *       e cancelar (soft via status).</li>
  * </ul>
  *
@@ -323,8 +323,8 @@ public class SalesOrderService {
 
     /**
      * Avança o status do pedido para o próximo estado do ciclo:
-     * {@code ABERTO → EM_SEPARACAO → FATURADO → ENTREGUE}. Pular etapas
-     * ou avançar a partir de estado terminal lança 409.
+     * {@code ABERTO → FINALIZADO}. Pular etapas ou avançar a partir de
+     * estado terminal lança 409.
      */
     @Transactional
     public SalesOrderResponse advanceStatus(UUID id) {
@@ -359,8 +359,7 @@ public class SalesOrderService {
         if (o.getStatus() == SalesOrderStatus.CANCELADO) {
             throw new SalesOrderBusinessException("Pedido já está cancelado.");
         }
-        if (o.getStatus() == SalesOrderStatus.FATURADO
-                || o.getStatus() == SalesOrderStatus.ENTREGUE) {
+        if (o.getStatus() == SalesOrderStatus.FINALIZADO) {
             throw new SalesOrderBusinessException(
                     "Pedido " + o.getStatus() + " não pode ser cancelado.");
         }
@@ -498,8 +497,7 @@ public class SalesOrderService {
      * Estados terminais/imutáveis: não podem ser editados via PATCH.
      */
     private boolean isImmutable(SalesOrderStatus status) {
-        return status == SalesOrderStatus.FATURADO
-                || status == SalesOrderStatus.ENTREGUE
+        return status == SalesOrderStatus.FINALIZADO
                 || status == SalesOrderStatus.CANCELADO;
     }
 
@@ -512,10 +510,8 @@ public class SalesOrderService {
             return null;
         }
         return switch (current) {
-            case ABERTO -> SalesOrderStatus.EM_SEPARACAO;
-            case EM_SEPARACAO -> SalesOrderStatus.FATURADO;
-            case FATURADO -> SalesOrderStatus.ENTREGUE;
-            case ENTREGUE, CANCELADO -> null;
+            case ABERTO -> SalesOrderStatus.FINALIZADO;
+            case FINALIZADO, CANCELADO -> null;
         };
     }
 }

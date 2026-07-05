@@ -151,7 +151,7 @@ public class SalesOrderController {
     })
     public ResponseEntity<PagedResponse<SalesOrderSummaryResponse>> search(
             @Parameter(description = "Filtro por status.", schema = @Schema(allowableValues = {
-                    "ABERTO", "EM_SEPARACAO", "FATURADO", "ENTREGUE", "CANCELADO"}))
+                    "ABERTO", "FINALIZADO", "CANCELADO"}))
             @RequestParam(value = "status", required = false) SalesOrderStatus status,
 
             @Parameter(description = "Data de emissão a partir de (inclusive). Formato ISO: yyyy-MM-dd.",
@@ -231,8 +231,8 @@ public class SalesOrderController {
             produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Atualizar pedido (parcial)",
             description = "Atualiza apenas os campos enviados. Ao enviar a lista de itens, "
-                    + "os anteriores são removidos e os novos criados. Pedidos FATURADO, "
-                    + "ENTREGUE ou CANCELADO não podem ser alterados. O número, a data de "
+                    + "os anteriores são removidos e os novos criados. Pedidos FINALIZADO "
+                    + "ou CANCELADO não podem ser alterados. O número, a data de "
                     + "emissão, o status e a origem (quotationUuid/quotationNumber) não "
                     + "podem ser alterados por este endpoint.")
     @SecurityRequirement(name = "bearerAuth")
@@ -263,8 +263,8 @@ public class SalesOrderController {
             produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Avançar status do pedido",
             description = "Avança o status do pedido para o próximo estado do ciclo: "
-                    + "ABERTO → EM_SEPARACAO → FATURADO → ENTREGUE. Pular etapas ou avançar "
-                    + "a partir de estado terminal (ENTREGUE/CANCELADO) retorna 409.")
+                    + "ABERTO → FINALIZADO. Avançar a partir de estado terminal "
+                    + "(FINALIZADO/CANCELADO) retorna 409.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
     @ApiResponses({
@@ -285,7 +285,7 @@ public class SalesOrderController {
     @DeleteMapping(value = "/{id:" + UUID_REGEX + "}", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Cancelar pedido (soft)",
             description = "Define o status do pedido como CANCELADO. Não remove fisicamente o "
-                    + "registro. Pedidos FATURADO ou ENTREGUE não podem ser cancelados por este "
+                    + "registro. Pedidos FINALIZADO não podem ser cancelados por este "
                     + "endpoint.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")

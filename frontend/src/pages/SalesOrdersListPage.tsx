@@ -33,9 +33,7 @@ import { useAuth } from '../context/AuthContext'
 const STATUS_OPTIONS = [
   { value: 'ALL', label: 'Todos os status' },
   { value: 'ABERTO', label: SALES_ORDER_STATUS_LABELS.ABERTO },
-  { value: 'EM_SEPARACAO', label: SALES_ORDER_STATUS_LABELS.EM_SEPARACAO },
-  { value: 'FATURADO', label: SALES_ORDER_STATUS_LABELS.FATURADO },
-  { value: 'ENTREGUE', label: SALES_ORDER_STATUS_LABELS.ENTREGUE },
+  { value: 'FINALIZADO', label: SALES_ORDER_STATUS_LABELS.FINALIZADO },
   { value: 'CANCELADO', label: SALES_ORDER_STATUS_LABELS.CANCELADO },
 ]
 
@@ -138,9 +136,8 @@ export function SalesOrdersListPage() {
     }
   }
 
-  // Pedidos FATURADO ou ENTREGUE não podem ser cancelados (regra do backend).
-  const canCancel = (o: SalesOrderSummaryResponse) =>
-    o.status === 'ABERTO' || o.status === 'EM_SEPARACAO'
+  // Pedidos FINALIZADO não podem ser cancelados (regra do backend).
+  const canCancel = (o: SalesOrderSummaryResponse) => o.status === 'ABERTO'
 
   return (
     <div className="space-y-6">

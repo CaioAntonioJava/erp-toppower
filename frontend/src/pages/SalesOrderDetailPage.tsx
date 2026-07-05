@@ -72,16 +72,12 @@ function formatDiscount(
 
 /**
  * Próximo status no ciclo do pedido, espelhando `nextStatus` do backend.
- * Retorna null quando não há avanço possível (ENTREGUE ou CANCELADO).
+ * Retorna null quando não há avanço possível (FINALIZADO ou CANCELADO).
  */
 function nextStatus(status: SalesOrderStatus): SalesOrderStatus | null {
   switch (status) {
     case 'ABERTO':
-      return 'EM_SEPARACAO'
-    case 'EM_SEPARACAO':
-      return 'FATURADO'
-    case 'FATURADO':
-      return 'ENTREGUE'
+      return 'FINALIZADO'
     default:
       return null
   }
@@ -233,9 +229,8 @@ export function SalesOrderDetailPage() {
   }
 
   // Edição permitida apenas enquanto o pedido não está em estado terminal.
-  const canEdit =
-    salesOrder.status === 'ABERTO' || salesOrder.status === 'EM_SEPARACAO'
-  // Cancelamento permitido apenas antes do faturamento.
+  const canEdit = salesOrder.status === 'ABERTO'
+  // Cancelamento permitido apenas antes da finalização.
   const canCancel = canEdit
   // Avanço de status permitido enquanto houver próximo estado.
   const next = nextStatus(salesOrder.status)

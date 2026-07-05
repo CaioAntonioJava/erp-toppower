@@ -52,7 +52,7 @@ public record SalesOrderSummaryResponse(
         String sellerName,
 
         @Schema(description = "Status atual.",
-                allowableValues = {"ABERTO", "EM_SEPARACAO", "FATURADO", "ENTREGUE", "CANCELADO"},
+                allowableValues = {"ABERTO", "FINALIZADO", "CANCELADO"},
                 requiredMode = Schema.RequiredMode.REQUIRED)
         SalesOrderStatus status,
 

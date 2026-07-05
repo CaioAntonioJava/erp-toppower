@@ -7,25 +7,21 @@ import io.swagger.v3.oas.annotations.media.Schema;
  *
  * <p>Transições válidas (controladas pelo serviço):</p>
  * <ul>
- *   <li>{@link #ABERTO} → {@link #EM_SEPARACAO} → {@link #FATURADO} → {@link #ENTREGUE};</li>
+ *   <li>{@link #ABERTO} → {@link #FINALIZADO};</li>
  *   <li>{@link #CANCELADO} é terminal e só pode ser alcançado a partir de
- *       {@link #ABERTO} ou {@link #EM_SEPARACAO} (antes do faturamento).</li>
+ *       {@link #ABERTO} (antes da finalização).</li>
  * </ul>
  *
  * <ul>
- *   <li>{@link #ABERTO} — pedido registrado, aguardando separação no estoque. Estado inicial.</li>
- *   <li>{@link #EM_SEPARACAO} — separação/emissão de nota em andamento.</li>
- *   <li>{@link #FATURADO} — nota fiscal emitida, aguardando entrega.</li>
- *   <li>{@link #ENTREGUE} — mercadoria entregue. Estado terminal de sucesso.</li>
+ *   <li>{@link #ABERTO} — pedido registrado, em andamento. Estado inicial.</li>
+ *   <li>{@link #FINALIZADO} — pedido concluído. Estado terminal de sucesso.</li>
  *   <li>{@link #CANCELADO} — pedido cancelado (soft via status).</li>
  * </ul>
  */
 @Schema(name = "SalesOrderStatus", description = "Situação atual do pedido de venda.",
-        allowableValues = {"ABERTO", "EM_SEPARACAO", "FATURADO", "ENTREGUE", "CANCELADO"})
+        allowableValues = {"ABERTO", "FINALIZADO", "CANCELADO"})
 public enum SalesOrderStatus {
     ABERTO,
-    EM_SEPARACAO,
-    FATURADO,
-    ENTREGUE,
+    FINALIZADO,
     CANCELADO
 }

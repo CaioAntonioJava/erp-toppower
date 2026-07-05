@@ -24,22 +24,18 @@ export {
 /**
  * Ciclo de vida do pedido de venda. Espelha SalesOrderStatus no backend.
  *
- * Transições: ABERTO → EM_SEPARACAO → FATURADO → ENTREGUE.
- * CANCELADO é terminal, alcançável apenas antes do faturamento.
+ * Transições: ABERTO → FINALIZADO.
+ * CANCELADO é terminal, alcançável apenas antes da finalização.
  */
 export type SalesOrderStatus =
   | 'ABERTO'
-  | 'EM_SEPARACAO'
-  | 'FATURADO'
-  | 'ENTREGUE'
+  | 'FINALIZADO'
   | 'CANCELADO'
 
 /** Rótulos em português para cada `SalesOrderStatus`. */
 export const SALES_ORDER_STATUS_LABELS: Record<SalesOrderStatus, string> = {
   ABERTO: 'Aberto',
-  EM_SEPARACAO: 'Em Separação',
-  FATURADO: 'Faturado',
-  ENTREGUE: 'Entregue',
+  FINALIZADO: 'Finalizado',
   CANCELADO: 'Cancelado',
 }
 

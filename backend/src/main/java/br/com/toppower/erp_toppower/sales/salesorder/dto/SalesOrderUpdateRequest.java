@@ -26,7 +26,7 @@ import java.util.UUID;
  * alterados por este request. Use os endpoints dedicados para
  * transição de status e cancelamento.</p>
  *
- * <p>Pedidos {@code FATURADO}, {@code ENTREGUE} ou {@code CANCELADO}
+ * <p>Pedidos {@code FINALIZADO} ou {@code CANCELADO}
  * não podem ser editados (lança 409).</p>
  */
 @Schema(name = "SalesOrderUpdateRequest", description = "Dados para atualização parcial de um pedido (PATCH).")

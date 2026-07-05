@@ -100,7 +100,7 @@ public record SalesOrderResponse(
         BigDecimal freightValue,
 
         @Schema(description = "Status atual do pedido.",
-                allowableValues = {"ABERTO", "EM_SEPARACAO", "FATURADO", "ENTREGUE", "CANCELADO"},
+                allowableValues = {"ABERTO", "FINALIZADO", "CANCELADO"},
                 requiredMode = Schema.RequiredMode.REQUIRED)
         SalesOrderStatus status,
 

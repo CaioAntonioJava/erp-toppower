@@ -12,15 +12,13 @@ interface SalesOrderStatusBadgeProps {
 
 const toneByStatus: Record<SalesOrderStatus, Tone> = {
   ABERTO: 'info',
-  EM_SEPARACAO: 'warning',
-  FATURADO: 'success',
-  ENTREGUE: 'success',
+  FINALIZADO: 'success',
   CANCELADO: 'danger',
 }
 
 /**
  * Badge de status do pedido de venda.
- * ABERTO=azul, EM_SEPARACAO=âmbar, FATURADO/ENTREGUE=verde, CANCELADO=vermelho.
+ * ABERTO=azul, FINALIZADO=verde, CANCELADO=vermelho.
  */
 export function SalesOrderStatusBadge({
   status,
