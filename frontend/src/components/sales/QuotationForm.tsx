@@ -20,6 +20,7 @@ import { listCarriers } from '../../api/carrier.api'
 import { searchQuotationClients, simulateQuotation } from '../../api/quotation.api'
 import type { ProductResponse, UnitType } from '../../types/product'
 import type { SellerResponse } from '../../types/seller'
+import type { RegistrationStatus } from '../../types/registration'
 import type { CarrierResponse } from '../../types/carrier'
 import { CARRIER_NAME_LABELS } from '../../types/carrier'
 import type {
@@ -264,6 +265,33 @@ export function QuotationForm({
       cancelled = true
     }
   }, [])
+
+  // Em modo edição, garante que o vendedor atual sempre apareça como opção
+  // do <select>, mesmo que tenha sido inativado após a criação da proposta.
+  // Sem isto, o select cairia no placeholder "Selecione…" quando o vendedor
+  // não retorna no filtro de ATIVO, dando a impressão de que foi removido.
+  useEffect(() => {
+    if (!quotation?.sellerUuid || !quotation?.sellerName) return
+    setSellers((prev) => {
+      if (prev.some((s) => s.uuid === quotation.sellerUuid)) return prev
+      return [
+        ...prev,
+        {
+          uuid: quotation.sellerUuid!,
+          name: quotation.sellerName!,
+          email: '',
+          phone: '',
+          cpf: '',
+          commissionRate: null,
+          status: 'INATIVO' as RegistrationStatus,
+          createdAt: '',
+          updatedAt: '',
+          createdBy: null,
+          updatedBy: null,
+        },
+      ]
+    })
+  }, [quotation?.sellerUuid, quotation?.sellerName])
 
   // Carrega lista de transportadoras ativas uma vez.
   useEffect(() => {
@@ -956,6 +984,7 @@ export function QuotationForm({
                 onChange={(e) => setProfitMargin(e.target.value)}
                 onBlur={getBlurHandler('profitMargin')}
                 error={shouldShowError('profitMargin', fieldErrors.profitMargin)}
+                rightAdornment={<span aria-hidden>%</span>}
                 required
               />
             </div>

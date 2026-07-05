@@ -7,6 +7,7 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string | null
   hint?: string
   leftAdornment?: ReactNode
+  rightAdornment?: ReactNode
 }
 
 /**
@@ -14,7 +15,7 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
  * (quando type="password"). Encapsula o estado do toggle internamente.
  */
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
-  { label, error, hint, leftAdornment, required, type = 'text', className = '', id, ...rest },
+  { label, error, hint, leftAdornment, rightAdornment, required, type = 'text', className = '', id, ...rest },
   ref,
 ) {
   const generatedId = useId()
@@ -84,6 +85,12 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           >
             {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
+        ) : null}
+
+        {rightAdornment ? (
+          <span className="flex items-center px-3 text-slate-500 dark:text-slate-400">
+            {rightAdornment}
+          </span>
         ) : null}
       </div>
 
