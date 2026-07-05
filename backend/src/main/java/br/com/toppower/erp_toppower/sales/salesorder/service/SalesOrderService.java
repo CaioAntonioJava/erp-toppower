@@ -120,8 +120,9 @@ public class SalesOrderService {
      * Converte uma {@code Quotation} ATIVA em pedido de venda. Copia
      * cliente, vendedor, itens (snapshot), descontos, frete, condição
      * de pagamento e observações; aplica sobrescritas opcionais.
-     * <b>Não copia margem de lucro</b>. Marca a proposta como
-     * {@code CONVERTIDA}.
+     * <b>Embuti a margem de lucro</b> da proposta nos preços dos itens,
+     * de modo que o total do pedido reflita o valor com margem cobrado
+     * do cliente. Marca a proposta como {@code CONVERTIDA}.
      *
      * @param quotationId UUID da proposta a converter
      * @param override    campos opcionais a sobrescrever (nulo para
@@ -155,7 +156,8 @@ public class SalesOrderService {
         List<SalesOrderItem> items = new ArrayList<>(quotationItems.size());
         for (QuotationItem qItem : quotationItems) {
             items.add(salesOrderItemRepository.save(
-                    SalesOrderMapper.fromQuotationItem(qItem, savedHeader.getUuid())));
+                    SalesOrderMapper.fromQuotationItem(qItem, savedHeader.getUuid(),
+                            quotation.getProfitMargin())));
         }
 
         // Marca a proposta como CONVERTIDA — não pode ser reconvertida.

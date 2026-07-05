@@ -27,9 +27,13 @@ import java.util.UUID;
  * considerando o desconto por item) que afeta o total final do
  * pedido.</p>
  *
- * <p><b>Não transporta margem de lucro</b> da {@code Quotation} para o
- * {@code SalesOrder} — o pedido é o documento externo enviado ao
- * cliente, e a margem é informação interna mantida apenas na proposta.</p>
+ * <p><b>Embuti a margem de lucro</b> da {@code Quotation} nos preços
+ * dos itens do {@code SalesOrder} durante a conversão
+ * ({@link #fromQuotationItem(QuotationItem, UUID, BigDecimal)}),
+ * majorando {@code unitPrice}, {@code totalPrice} e o desconto por
+ * valor fixo pelo fator {@code (1 + profitMargin/100)}. Assim o
+ * total do pedido reflete o valor com margem cobrado do cliente,
+ * sem expor a margem como campo separado.</p>
  */
 public final class SalesOrderMapper {
 
@@ -61,22 +65,74 @@ public final class SalesOrderMapper {
         return item;
     }
 
-    /**
-     * Cria uma entidade {@link SalesOrderItem} a partir de um item de
-     * proposta (snapshot na conversão). Copia produto, quantidade,
-     * preço, desconto e total líquido — <b>não</b> copia margem.
-     */
-    public static SalesOrderItem fromQuotationItem(QuotationItem source, UUID salesOrderUuid) {
-        SalesOrderItem item = new SalesOrderItem();
-        item.setSalesOrderUuid(salesOrderUuid);
-        item.setProductUuid(source.getProductUuid());
-        item.setQuantity(source.getQuantity());
-        item.setUnitPrice(source.getUnitPrice());
-        item.setDiscountType(source.getDiscountType());
-        item.setDiscount(source.getDiscount());
-        item.setTotalPrice(source.getTotalPrice());
-        return item;
+/**
+ * Cria uma entidade {@link SalesOrderItem} a partir de um item de
+ * proposta (snapshot na conversão). Copia produto, quantidade, tipo
+ * de desconto e <b>embuti a margem de lucro</b> da proposta nos
+ * preços ({@code unitPrice}, {@code totalPrice} e, quando o desconto
+ * é por valor fixo, também no {@code discount}), de modo que o
+ * total do pedido reflita o valor já com margem cobrado do cliente.
+ *
+ * <p>O fator aplicado é {@code (1 + profitMargin / 100)}. Para
+ * desconto percentual o valor {@code discount} é preservado (a
+ * porcentagem incide sobre o novo preço base já majorado); para
+ * desconto em valor fixo o {@code discount} é igualmente majorado
+ * pelo mesmo fator, mantendo a identidade
+ * {@code unitPrice * quantity - discount = totalPrice}.</p>
+ */
+public static SalesOrderItem fromQuotationItem(QuotationItem source, UUID salesOrderUuid,
+                                                BigDecimal profitMargin) {
+    BigDecimal factor = profitFactor(profitMargin);
+    SalesOrderItem item = new SalesOrderItem();
+    item.setSalesOrderUuid(salesOrderUuid);
+    item.setProductUuid(source.getProductUuid());
+    item.setQuantity(source.getQuantity());
+    item.setUnitPrice(scale(source.getUnitPrice(), factor));
+    item.setDiscountType(source.getDiscountType());
+    item.setDiscount(scaleDiscount(source.getDiscount(), source.getDiscountType(), factor));
+    item.setTotalPrice(scale(source.getTotalPrice(), factor));
+    return item;
+}
+
+/**
+ * Fator multiplicativo {@code (1 + profitMargin / 100)} usado para
+ * embutir a margem de lucro nos preços do pedido. Retorna
+ * {@code 1} quando a margem é nula ou zero.
+ */
+private static BigDecimal profitFactor(BigDecimal profitMargin) {
+    if (profitMargin == null || profitMargin.signum() == 0) {
+        return BigDecimal.ONE;
     }
+    return BigDecimal.ONE.add(
+            profitMargin.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP));
+}
+
+/**
+ * Multiplica {@code value} por {@code factor} com 2 casas. Retorna
+ * zero quando {@code value} é nulo.
+ */
+private static BigDecimal scale(BigDecimal value, BigDecimal factor) {
+    if (value == null) {
+        return BigDecimal.ZERO;
+    }
+    return value.multiply(factor).setScale(2, RoundingMode.HALF_UP);
+}
+
+/**
+ * Majora o desconto da linha pelo fator de margem apenas quando for
+ * valor fixo ({@code AMOUNT}); desconto percentual é preservado
+ * (a porcentagem incide sobre o novo preço base já majorado).
+ */
+private static BigDecimal scaleDiscount(BigDecimal discount, DiscountType discountType,
+                                         BigDecimal factor) {
+    if (discount == null || discount.signum() == 0) {
+        return discount;
+    }
+    if (discountType == DiscountType.AMOUNT) {
+        return scale(discount, factor);
+    }
+    return discount;
+}
 
     public static SalesOrderItemResponse toItemResponse(SalesOrderItem item) {
         return new SalesOrderItemResponse(
@@ -147,7 +203,8 @@ public final class SalesOrderMapper {
      * frete, condição de pagamento e observações; preenche
      * {@code quotationUuid} e {@code quotationNumber} para
      * rastreabilidade. Aplica sobrescritas opcionais vindas do request
-     * de conversão. <b>Não copia margem de lucro</b>.
+     * de conversão. A margem de lucro é embutida nos preços dos itens
+     * pelo mapper de itens, não no header.
      */
     public static SalesOrder fromQuotation(Quotation source,
                                             List<QuotationItem> sourceItems,
