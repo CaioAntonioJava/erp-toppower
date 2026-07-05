@@ -42,6 +42,10 @@ public record QuotationSummaryResponse(
         @Schema(description = "UUID do vendedor.", requiredMode = Schema.RequiredMode.REQUIRED)
         UUID sellerUuid,
 
+        @Schema(description = "Nome do vendedor (resolvido no backend).",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        String sellerName,
+
         @Schema(description = "Status atual.", allowableValues = {"ATIVA", "CONVERTIDA", "CANCELADA", "EXPIRADA"},
                 requiredMode = Schema.RequiredMode.REQUIRED)
         QuotationStatus status,

@@ -3,6 +3,7 @@ package br.com.toppower.erp_toppower.sales.quotation.service;
 import br.com.toppower.erp_toppower.common.dto.PagedResponse;
 import br.com.toppower.erp_toppower.company.repository.CompanyRepository;
 import br.com.toppower.erp_toppower.customer.repository.CustomerRepository;
+import br.com.toppower.erp_toppower.seller.repository.SellerRepository;
 import br.com.toppower.erp_toppower.sales.quotation.dto.QuotationCreateRequest;
 import br.com.toppower.erp_toppower.sales.quotation.dto.QuotationItemRequest;
 import br.com.toppower.erp_toppower.sales.quotation.dto.QuotationResponse;
@@ -57,15 +58,18 @@ public class QuotationService {
     private final QuotationItemRepository quotationItemRepository;
     private final CustomerRepository customerRepository;
     private final CompanyRepository companyRepository;
+    private final SellerRepository sellerRepository;
 
     public QuotationService(QuotationRepository quotationRepository,
                             QuotationItemRepository quotationItemRepository,
                             CustomerRepository customerRepository,
-                            CompanyRepository companyRepository) {
+                            CompanyRepository companyRepository,
+                            SellerRepository sellerRepository) {
         this.quotationRepository = quotationRepository;
         this.quotationItemRepository = quotationItemRepository;
         this.customerRepository = customerRepository;
         this.companyRepository = companyRepository;
+        this.sellerRepository = sellerRepository;
     }
 
     // ---------------------------------------------------------------------
@@ -93,7 +97,7 @@ public class QuotationService {
         // Recalcula e aplica os totais na entidade em memória (somente para a resposta)
         savedHeader.recalculateTotals(items);
 
-        return QuotationMapper.toResponse(savedHeader, items);
+        return QuotationMapper.toResponse(savedHeader, items, resolveSellerName(savedHeader));
     }
 
     // ---------------------------------------------------------------------
@@ -107,7 +111,7 @@ public class QuotationService {
         List<QuotationItem> items = quotationItemRepository
                 .findByQuotationUuidOrderByCreatedAtAsc(id);
         q.recalculateTotals(items);
-        return QuotationMapper.toResponse(q, items);
+        return QuotationMapper.toResponse(q, items, resolveSellerName(q));
     }
 
     @Transactional(readOnly = true)
@@ -117,7 +121,7 @@ public class QuotationService {
         List<QuotationItem> items = quotationItemRepository
                 .findByQuotationUuidOrderByCreatedAtAsc(q.getUuid());
         q.recalculateTotals(items);
-        return QuotationMapper.toResponse(q, items);
+        return QuotationMapper.toResponse(q, items, resolveSellerName(q));
     }
 
     /**
@@ -177,7 +181,8 @@ public class QuotationService {
                     .findByQuotationUuidOrderByCreatedAtAsc(q.getUuid());
             q.recalculateTotals(items);
             String clientName = resolveClientName(q);
-            return QuotationMapper.toSummary(q, clientName);
+            String sellerName = resolveSellerName(q);
+            return QuotationMapper.toSummary(q, clientName, sellerName);
         });
         return PagedResponse.from(mapped);
     }
@@ -226,7 +231,7 @@ public class QuotationService {
         }
 
         saved.recalculateTotals(items);
-        return QuotationMapper.toResponse(saved, items);
+        return QuotationMapper.toResponse(saved, items, resolveSellerName(saved));
     }
 
     // ---------------------------------------------------------------------
@@ -250,7 +255,7 @@ public class QuotationService {
         List<QuotationItem> items = quotationItemRepository
                 .findByQuotationUuidOrderByCreatedAtAsc(id);
         saved.recalculateTotals(items);
-        return QuotationMapper.toResponse(saved, items);
+        return QuotationMapper.toResponse(saved, items, resolveSellerName(saved));
     }
 
     // ---------------------------------------------------------------------
@@ -377,5 +382,19 @@ public class QuotationService {
                     .orElse(null);
         }
         return null;
+    }
+
+    /**
+     * Resolve o nome do vendedor referenciado pela proposta. Retorna
+     * {@code null} quando o vendedor não existe mais (inativado/removido),
+     * mantendo o UUID como referência no DTO.
+     */
+    private String resolveSellerName(Quotation q) {
+        if (q.getSellerUuid() == null) {
+            return null;
+        }
+        return sellerRepository.findById(q.getSellerUuid())
+                .map(s -> s.getName())
+                .orElse(null);
     }
 }

@@ -182,6 +182,8 @@ export interface QuotationResponse {
   clientType: QuotationClientType
   attention: string | null
   sellerUuid: string
+  /** Nome do vendedor (resolvido no backend). */
+  sellerName: string | null
   items: QuotationItemResponse[]
   discountType: DiscountType | null
   discount: number | null
@@ -236,6 +238,8 @@ export interface QuotationSummaryResponse {
   clientUuid: string
   clientName: string
   sellerUuid: string
+  /** Nome do vendedor (resolvido no backend). */
+  sellerName: string | null
   status: QuotationStatus
   totalQuantity: number
   total: number

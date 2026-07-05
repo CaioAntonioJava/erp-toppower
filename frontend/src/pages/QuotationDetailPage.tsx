@@ -12,7 +12,6 @@ import { cancelQuotation, getQuotation } from '../api/quotation.api'
 import { createSalesOrderFromQuotation } from '../api/salesOrder.api'
 import { getCustomer } from '../api/customer.api'
 import { getCompany } from '../api/company.api'
-import { getSeller } from '../api/seller.api'
 import { getProduct } from '../api/product.api'
 import { toApiError } from '../lib/errors'
 import type { QuotationResponse } from '../types/quotation'
@@ -100,13 +99,13 @@ export function QuotationDetailPage() {
     }
   }, [id])
 
-  // === resolução de nomes (cliente, vendedor e produtos) ===
-  // O `QuotationResponse` traz apenas UUIDs; para exibir o nome real no
-  // resumo, buscamos cliente/vendedor/produtos em paralelo após a
-  // proposta carregar. Mantemos o UUID curto como fallback caso a
+  // === resolução de nomes (cliente e produtos) ===
+  // O `QuotationResponse` traz apenas UUIDs de cliente/produtos; o nome do
+  // vendedor já vem resolvido no payload (`sellerName`). Para exibir o nome
+  // real do cliente e dos produtos no resumo, buscamos ambos em paralelo
+  // após a proposta carregar. Mantemos o UUID curto como fallback caso a
   // resolução falhe (registro inativado, removido, ou erro de rede).
   const [clientName, setClientName] = useState<string | null>(null)
-  const [sellerName, setSellerName] = useState<string | null>(null)
   const [productNames, setProductNames] = useState<Record<string, string>>({})
 
   useEffect(() => {
@@ -129,12 +128,8 @@ export function QuotationDetailPage() {
               .catch(() => null)
         : Promise.resolve(null)
 
-    // Vendedor — sempre presente no payload.
-    const sellerPromise = quotation.sellerUuid
-      ? getSeller(quotation.sellerUuid)
-          .then((s) => s.name)
-          .catch(() => null)
-      : Promise.resolve(null)
+    // Vendedor — o nome já vem resolvido no payload (`sellerName`), então
+    // não precisamos de um round-trip adicional a GET /sellers/{id}.
 
     // Produtos — dedupe por UUID para não buscar o mesmo item duas vezes.
     const uniqueProductUuids = Array.from(
@@ -158,11 +153,10 @@ export function QuotationDetailPage() {
       return map
     })
 
-    Promise.all([clientPromise, sellerPromise, productEntriesPromise])
-      .then(([client, seller, products]) => {
+    Promise.all([clientPromise, productEntriesPromise])
+      .then(([client, products]) => {
         if (cancelled) return
         setClientName(client)
-        setSellerName(seller)
         setProductNames(products)
       })
       .catch(() => {
@@ -333,7 +327,7 @@ export function QuotationDetailPage() {
               Vendedor
             </dt>
             <dd className="mt-1 text-sm text-slate-800 dark:text-slate-200">
-              {sellerName ?? `${quotation.sellerUuid.slice(0, 8)}…`}
+              {quotation.sellerName ?? 'Vendedor não encontrado'}
             </dd>
           </div>
           <div>

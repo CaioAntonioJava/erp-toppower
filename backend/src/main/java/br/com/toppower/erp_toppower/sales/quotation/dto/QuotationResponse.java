@@ -50,6 +50,10 @@ public record QuotationResponse(
         @Schema(description = "UUID do vendedor.", requiredMode = Schema.RequiredMode.REQUIRED)
         UUID sellerUuid,
 
+        @Schema(description = "Nome do vendedor (resolvido no backend).",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        String sellerName,
+
         @Schema(description = "Itens da proposta.", requiredMode = Schema.RequiredMode.REQUIRED)
         List<QuotationItemResponse> items,
 

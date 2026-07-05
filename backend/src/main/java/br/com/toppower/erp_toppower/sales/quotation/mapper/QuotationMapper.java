@@ -233,9 +233,11 @@ public final class QuotationMapper {
     /**
      * Constrói a resposta completa a partir da entidade já com
      * totais calculados (via {@code recalculateTotals}) e da lista
-     * de itens.
+     * de itens. O nome do vendedor é resolvido pelo service e injetado
+     * aqui, evitando um round-trip adicional no frontend (que antes
+     * exigia ROLE_ADMIN/MANAGER para chamar {@code GET /sellers/{id}}).
      */
-    public static QuotationResponse toResponse(Quotation quotation, List<QuotationItem> items) {
+    public static QuotationResponse toResponse(Quotation quotation, List<QuotationItem> items, String sellerName) {
         QuotationResponse.ClientType clientType =
                 (quotation.getCustomerUuid() != null)
                         ? QuotationResponse.ClientType.CUSTOMER
@@ -250,6 +252,7 @@ public final class QuotationMapper {
                 clientType,
                 quotation.getAttention(),
                 quotation.getSellerUuid(),
+                sellerName,
                 items.stream().map(QuotationMapper::toItemResponse).toList(),
                 quotation.getDiscountType(),
                 quotation.getDiscount(),
@@ -286,10 +289,10 @@ public final class QuotationMapper {
     }
 
     /**
-     * Constrói o resumo a partir da entidade. O nome do cliente é
-     * resolvido pelo service e injetado neste ponto.
+     * Constrói o resumo a partir da entidade. Os nomes do cliente e do
+     * vendedor são resolvidos pelo service e injetados neste ponto.
      */
-    public static QuotationSummaryResponse toSummary(Quotation quotation, String clientName) {
+    public static QuotationSummaryResponse toSummary(Quotation quotation, String clientName, String sellerName) {
         QuotationResponse.ClientType clientType =
                 (quotation.getCustomerUuid() != null)
                         ? QuotationResponse.ClientType.CUSTOMER
@@ -306,6 +309,7 @@ public final class QuotationMapper {
                 clientUuid,
                 clientName,
                 quotation.getSellerUuid(),
+                sellerName,
                 quotation.getStatus(),
                 quotation.getTotalQuantity(),
                 quotation.getTotal(),
