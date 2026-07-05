@@ -240,7 +240,7 @@ export function SalesOrdersListPage() {
                   <tr
                     key={o.uuid}
                     className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40"
-                    onClick={() => navigate(`/sales-orders/${o.uuid}`)}
+                    onClick={() => navigate(`/sales-orders/${o.uuid}/edit`)}
                   >
                     <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-slate-700 dark:text-slate-200">
                       {o.number}
@@ -274,8 +274,8 @@ export function SalesOrdersListPage() {
                           size="sm"
                           variant="ghost"
                           onClick={() => navigate(`/sales-orders/${o.uuid}`)}
-                          title="Ver detalhe"
-                          aria-label="Ver detalhe"
+                          title="Ver resumo"
+                          aria-label="Ver resumo"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>

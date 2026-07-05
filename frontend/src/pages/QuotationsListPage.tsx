@@ -264,7 +264,7 @@ export function QuotationsListPage() {
                   <tr
                     key={q.uuid}
                     className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40"
-                    onClick={() => navigate(`/quotations/${q.uuid}`)}
+                    onClick={() => navigate(`/quotations/${q.uuid}/edit`)}
                   >
                     <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-slate-700 dark:text-slate-200">
                       {q.number}
@@ -298,8 +298,8 @@ export function QuotationsListPage() {
                           size="sm"
                           variant="ghost"
                           onClick={() => navigate(`/quotations/${q.uuid}`)}
-                          title="Ver detalhe"
-                          aria-label="Ver detalhe"
+                          title="Ver resumo"
+                          aria-label="Ver resumo"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
