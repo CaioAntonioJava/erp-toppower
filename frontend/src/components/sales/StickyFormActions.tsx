@@ -1,5 +1,5 @@
 import { useEffect, useState, type RefObject } from 'react'
-import { Save, X } from 'lucide-react'
+import { ClipboardList, Save, X } from 'lucide-react'
 import { Button } from '../ui/Button'
 
 interface StickyFormActionsProps {
@@ -20,6 +20,12 @@ interface StickyFormActionsProps {
   readOnly: boolean
   /** `true` quando estamos editando uma proposta existente. */
   canEdit: boolean
+  /** `true` quando a proposta pode ser convertida em pedido (status ATIVA). */
+  canConvert?: boolean
+  /** Estado de loading da conversão em pedido de venda. */
+  converting?: boolean
+  /** Handler do botão "Converter em pedido". */
+  onConvert?: () => void
   /** Handler do botão "Cancelar". */
   onCancel: () => void
   /** Rótulo curto exibido à esquerda do menu (ex.: "Proposta Comercial"). */
@@ -55,6 +61,9 @@ export function StickyFormActions({
   saving,
   readOnly,
   canEdit,
+  canConvert,
+  converting,
+  onConvert,
   onCancel,
   title = 'PROPOSTA COMERCIAL',
 }: StickyFormActionsProps) {
@@ -110,6 +119,18 @@ export function StickyFormActions({
                   <X className="h-4 w-4" />
                   Cancelar
                 </Button>
+                {canConvert && onConvert ? (
+                  <Button
+                    type="button"
+                    variant="danger"
+                    size="sm"
+                    isLoading={converting}
+                    onClick={onConvert}
+                  >
+                    <ClipboardList className="h-4 w-4" />
+                    Converter em pedido
+                  </Button>
+                ) : null}
                 <Button
                   type="submit"
                   form={formId}

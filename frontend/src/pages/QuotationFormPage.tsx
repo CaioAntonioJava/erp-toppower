@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Save, X } from 'lucide-react'
+import { ClipboardList, Save, X } from 'lucide-react'
 import { Button } from '../components/ui/Button'
 import { BackButton } from '../components/ui/BackButton'
 import { Spinner } from '../components/ui/Spinner'
 import { Alert } from '../components/ui/Alert'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { QuotationForm } from '../components/sales/QuotationForm'
 import { QuotationStatusBadge } from '../components/sales/QuotationStatusBadge'
 import { StickyFormActions } from '../components/sales/StickyFormActions'
@@ -15,6 +16,7 @@ import {
   getQuotation,
   updateQuotation,
 } from '../api/quotation.api'
+import { createSalesOrderFromQuotation } from '../api/salesOrder.api'
 import type {
   QuotationCreateRequest,
   QuotationResponse,
@@ -41,6 +43,9 @@ export function QuotationFormPage() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [nextNumber, setNextNumber] = useState<number | null>(null)
+  const [confirmConvert, setConfirmConvert] = useState(false)
+  const [converting, setConverting] = useState(false)
+  const [convertError, setConvertError] = useState<string | null>(null)
 
   // Ref do contêiner de ações no cabeçalho. O `StickyFormActions`
   // observa esse elemento: quando ele sai do viewport, o menu sticky
@@ -103,9 +108,26 @@ export function QuotationFormPage() {
     navigate('/quotations')
   }
 
+  /** Converte a proposta ATIVA em pedido de venda e navega para o pedido. */
+  async function handleConvert() {
+    if (!quotation) return
+    setConverting(true)
+    setConvertError(null)
+    try {
+      const order = await createSalesOrderFromQuotation(quotation.uuid)
+      navigate(`/sales-orders/${order.uuid}`)
+    } catch (err) {
+      setConvertError(toApiError(err).message)
+    } finally {
+      setConverting(false)
+    }
+  }
+
   // Propostas CONVERTIDAS não podem ser editadas.
   const readOnly = mode === 'view' && quotation?.status === 'CONVERTIDA'
   const canEdit = mode === 'view' && !readOnly
+  // A conversão só faz sentido para propostas ATIVAS em modo de edição.
+  const canConvert = mode === 'view' && quotation?.status === 'ATIVA'
 
   return (
     <div className="space-y-6">
@@ -147,6 +169,17 @@ export function QuotationFormPage() {
                 <X className="h-4 w-4" />
                 Cancelar
               </Button>
+              {canConvert ? (
+                <Button
+                  type="button"
+                  variant="danger"
+                  onClick={() => { setConvertError(null); setConfirmConvert(true) }}
+                  size="md"
+                >
+                  <ClipboardList className="h-4 w-4" />
+                  Converter em pedido
+                </Button>
+              ) : null}
               <Button
                 type="submit"
                 form="quotation-form"
@@ -169,6 +202,9 @@ export function QuotationFormPage() {
           saving={saving}
           readOnly={readOnly}
           canEdit={canEdit}
+          canConvert={canConvert}
+          converting={converting}
+          onConvert={() => { setConvertError(null); setConfirmConvert(true) }}
           onCancel={handleCancel}
         />
       ) : null}
@@ -213,6 +249,25 @@ export function QuotationFormPage() {
           </fieldset>
         </div>
       )}
+
+      {convertError ? (
+        <Alert variant="error">{convertError}</Alert>
+      ) : null}
+
+      {quotation ? (
+        <ConfirmDialog
+          open={confirmConvert}
+          title="Converter em pedido de venda?"
+          description={`A proposta ${quotation.number} será convertida em um novo pedido de venda (status ABERTO). A proposta passará a constar como CONVERTIDA.`}
+          confirmText="Converter em pedido"
+          confirmVariant="primary"
+          isLoading={converting}
+          onConfirm={handleConvert}
+          onClose={() => {
+            if (!converting) setConfirmConvert(false)
+          }}
+        />
+      ) : null}
     </div>
   )
 }
