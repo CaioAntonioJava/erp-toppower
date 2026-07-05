@@ -41,3 +41,9 @@ build/
 ### Postman ###
 postman/erp-toppower.postman_collection.json
 
+### Logs / artefatos temporários de execução local ###
+*.log
+build.log
+spring.log
+spring-err.log
+
