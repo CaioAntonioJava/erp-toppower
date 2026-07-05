@@ -3,6 +3,7 @@ package br.com.toppower.erp_toppower.sales.salesorder.service;
 import br.com.toppower.erp_toppower.common.dto.PagedResponse;
 import br.com.toppower.erp_toppower.company.repository.CompanyRepository;
 import br.com.toppower.erp_toppower.customer.repository.CustomerRepository;
+import br.com.toppower.erp_toppower.seller.repository.SellerRepository;
 import br.com.toppower.erp_toppower.sales.quotation.entity.Quotation;
 import br.com.toppower.erp_toppower.sales.quotation.entity.QuotationItem;
 import br.com.toppower.erp_toppower.sales.quotation.enums.QuotationStatus;
@@ -73,19 +74,22 @@ public class SalesOrderService {
     private final QuotationItemRepository quotationItemRepository;
     private final CustomerRepository customerRepository;
     private final CompanyRepository companyRepository;
+    private final SellerRepository sellerRepository;
 
     public SalesOrderService(SalesOrderRepository salesOrderRepository,
                              SalesOrderItemRepository salesOrderItemRepository,
                              QuotationRepository quotationRepository,
                              QuotationItemRepository quotationItemRepository,
                              CustomerRepository customerRepository,
-                             CompanyRepository companyRepository) {
+                             CompanyRepository companyRepository,
+                             SellerRepository sellerRepository) {
         this.salesOrderRepository = salesOrderRepository;
         this.salesOrderItemRepository = salesOrderItemRepository;
         this.quotationRepository = quotationRepository;
         this.quotationItemRepository = quotationItemRepository;
         this.customerRepository = customerRepository;
         this.companyRepository = companyRepository;
+        this.sellerRepository = sellerRepository;
     }
 
     // ---------------------------------------------------------------------
@@ -109,7 +113,9 @@ public class SalesOrderService {
         }
 
         savedHeader.recalculateTotals(items);
-        return SalesOrderMapper.toResponse(savedHeader, items);
+        ClientResolved client = resolveClient(savedHeader);
+        return SalesOrderMapper.toResponse(savedHeader, items, resolveSellerName(savedHeader),
+                client.name(), client.code());
     }
 
     // ---------------------------------------------------------------------
@@ -165,7 +171,9 @@ public class SalesOrderService {
         quotationRepository.save(quotation);
 
         savedHeader.recalculateTotals(items);
-        return SalesOrderMapper.toResponse(savedHeader, items);
+        ClientResolved client = resolveClient(savedHeader);
+        return SalesOrderMapper.toResponse(savedHeader, items, resolveSellerName(savedHeader),
+                client.name(), client.code());
     }
 
     // ---------------------------------------------------------------------
@@ -179,7 +187,9 @@ public class SalesOrderService {
         List<SalesOrderItem> items = salesOrderItemRepository
                 .findBySalesOrderUuidOrderByCreatedAtAsc(id);
         o.recalculateTotals(items);
-        return SalesOrderMapper.toResponse(o, items);
+        ClientResolved client = resolveClient(o);
+        return SalesOrderMapper.toResponse(o, items, resolveSellerName(o),
+                client.name(), client.code());
     }
 
     @Transactional(readOnly = true)
@@ -189,7 +199,9 @@ public class SalesOrderService {
         List<SalesOrderItem> items = salesOrderItemRepository
                 .findBySalesOrderUuidOrderByCreatedAtAsc(o.getUuid());
         o.recalculateTotals(items);
-        return SalesOrderMapper.toResponse(o, items);
+        ClientResolved client = resolveClient(o);
+        return SalesOrderMapper.toResponse(o, items, resolveSellerName(o),
+                client.name(), client.code());
     }
 
     /**
@@ -252,8 +264,9 @@ public class SalesOrderService {
             List<SalesOrderItem> items = salesOrderItemRepository
                     .findBySalesOrderUuidOrderByCreatedAtAsc(o.getUuid());
             o.recalculateTotals(items);
-            String clientName = resolveClientName(o);
-            return SalesOrderMapper.toSummary(o, clientName);
+            ClientResolved client = resolveClient(o);
+            String sellerName = resolveSellerName(o);
+            return SalesOrderMapper.toSummary(o, client.name(), client.code(), sellerName);
         });
         return PagedResponse.from(mapped);
     }
@@ -299,7 +312,9 @@ public class SalesOrderService {
         }
 
         saved.recalculateTotals(items);
-        return SalesOrderMapper.toResponse(saved, items);
+        ClientResolved client = resolveClient(saved);
+        return SalesOrderMapper.toResponse(saved, items, resolveSellerName(saved),
+                client.name(), client.code());
     }
 
     // ---------------------------------------------------------------------
@@ -327,7 +342,9 @@ public class SalesOrderService {
         List<SalesOrderItem> items = salesOrderItemRepository
                 .findBySalesOrderUuidOrderByCreatedAtAsc(id);
         saved.recalculateTotals(items);
-        return SalesOrderMapper.toResponse(saved, items);
+        ClientResolved client = resolveClient(saved);
+        return SalesOrderMapper.toResponse(saved, items, resolveSellerName(saved),
+                client.name(), client.code());
     }
 
     // ---------------------------------------------------------------------
@@ -353,7 +370,9 @@ public class SalesOrderService {
         List<SalesOrderItem> items = salesOrderItemRepository
                 .findBySalesOrderUuidOrderByCreatedAtAsc(id);
         saved.recalculateTotals(items);
-        return SalesOrderMapper.toResponse(saved, items);
+        ClientResolved client = resolveClient(saved);
+        return SalesOrderMapper.toResponse(saved, items, resolveSellerName(saved),
+                client.name(), client.code());
     }
 
     // ---------------------------------------------------------------------
@@ -428,23 +447,51 @@ public class SalesOrderService {
     }
 
     /**
-     * Resolve o nome de exibição do cliente referenciado pelo pedido
-     * (PF: nome; PJ: nome fantasia se houver, senão razão social).
+     * Resolve o nome e o código de exibição do cliente referenciado pelo
+     * pedido (PF: nome; PJ: nome fantasia se houver, senão razão social).
+     * Retorna {@code null} em ambos os campos quando o registro não existe
+     * mais (inativado/removido), mantendo o UUID como referência no DTO —
+     * mesmo tratamento dado a {@link #resolveSellerName(SalesOrder)}.
      */
-    private String resolveClientName(SalesOrder o) {
+    private ClientResolved resolveClient(SalesOrder o) {
         if (o.getCustomerUuid() != null) {
             return customerRepository.findById(o.getCustomerUuid())
-                    .map(c -> c.getName())
-                    .orElse(null);
+                    .map(c -> new ClientResolved(c.getName(), c.getCode()))
+                    .orElse(ClientResolved.EMPTY);
         }
         if (o.getCompanyUuid() != null) {
             return companyRepository.findById(o.getCompanyUuid())
-                    .map(c -> c.getTradeName() != null && !c.getTradeName().isBlank()
-                            ? c.getTradeName()
-                            : c.getLegalName())
-                    .orElse(null);
+                    .map(c -> new ClientResolved(
+                            c.getTradeName() != null && !c.getTradeName().isBlank()
+                                    ? c.getTradeName()
+                                    : c.getLegalName(),
+                            c.getCode()))
+                    .orElse(ClientResolved.EMPTY);
         }
-        return null;
+        return ClientResolved.EMPTY;
+    }
+
+    /**
+     * Par (nome, código) resolvido a partir do cliente referenciado pelo
+     * pedido. Usado para popular {@code clientName} e {@code clientCode}
+     * no {@link SalesOrderResponse} e {@link SalesOrderSummaryResponse}.
+     */
+    private record ClientResolved(String name, String code) {
+        static final ClientResolved EMPTY = new ClientResolved(null, null);
+    }
+
+    /**
+     * Resolve o nome do vendedor referenciado pelo pedido. Retorna
+     * {@code null} quando o vendedor não existe mais (inativado/removido),
+     * mantendo o UUID como referência no DTO.
+     */
+    private String resolveSellerName(SalesOrder o) {
+        if (o.getSellerUuid() == null) {
+            return null;
+        }
+        return sellerRepository.findById(o.getSellerUuid())
+                .map(s -> s.getName())
+                .orElse(null);
     }
 
     /**

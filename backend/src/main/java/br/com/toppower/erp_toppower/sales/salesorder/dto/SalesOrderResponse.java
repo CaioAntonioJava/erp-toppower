@@ -47,12 +47,26 @@ public record SalesOrderResponse(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         ClientType clientType,
 
+        @Schema(description = "Nome de exibição do cliente (PF: nome; PJ: nome fantasia se houver, senão razão social). "
+                + "Resolvido no backend a partir do UUID referenciado.",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        String clientName,
+
+        @Schema(description = "Código interno do cliente (ex.: \"CLI000001\", \"EMP000001\"). "
+                + "Resolvido no backend a partir do UUID referenciado.",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        String clientCode,
+
         @Schema(description = "Aos cuidados de.", example = "Sr. João Silva",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         String attention,
 
         @Schema(description = "UUID do vendedor.", requiredMode = Schema.RequiredMode.REQUIRED)
         UUID sellerUuid,
+
+        @Schema(description = "Nome do vendedor (resolvido no backend).",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        String sellerName,
 
         @Schema(description = "Itens do pedido.", requiredMode = Schema.RequiredMode.REQUIRED)
         List<SalesOrderItemResponse> items,

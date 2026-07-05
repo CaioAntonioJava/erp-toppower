@@ -293,9 +293,14 @@ private static BigDecimal scaleDiscount(BigDecimal discount, DiscountType discou
     /**
      * Constrói a resposta completa a partir da entidade já com
      * totais calculados (via {@code recalculateTotals}) e da lista
-     * de itens.
+     * de itens. O nome do vendedor e os dados do cliente (nome e código)
+     * são resolvidos pelo service e injetados aqui, evitando um
+     * round-trip adicional no frontend (que antes exigia
+     * ROLE_ADMIN/MANAGER para chamar {@code GET /sellers/{id}} e um
+     * typeahead de query vazia para hidratar o cliente).
      */
-    public static SalesOrderResponse toResponse(SalesOrder order, List<SalesOrderItem> items) {
+    public static SalesOrderResponse toResponse(SalesOrder order, List<SalesOrderItem> items,
+                                                String sellerName, String clientName, String clientCode) {
         SalesOrderResponse.ClientType clientType =
                 (order.getCustomerUuid() != null)
                         ? SalesOrderResponse.ClientType.CUSTOMER
@@ -308,8 +313,11 @@ private static BigDecimal scaleDiscount(BigDecimal discount, DiscountType discou
                 order.getCustomerUuid(),
                 order.getCompanyUuid(),
                 clientType,
+                clientName,
+                clientCode,
                 order.getAttention(),
                 order.getSellerUuid(),
+                sellerName,
                 items.stream().map(SalesOrderMapper::toItemResponse).toList(),
                 order.getDiscountType(),
                 order.getDiscount(),
@@ -332,10 +340,12 @@ private static BigDecimal scaleDiscount(BigDecimal discount, DiscountType discou
     }
 
     /**
-     * Constrói o resumo a partir da entidade. O nome do cliente é
-     * resolvido pelo service e injetado neste ponto.
+     * Constrói o resumo a partir da entidade. Os dados do cliente (nome e
+     * código) e o nome do vendedor são resolvidos pelo service e injetados
+     * neste ponto.
      */
-    public static SalesOrderSummaryResponse toSummary(SalesOrder order, String clientName) {
+    public static SalesOrderSummaryResponse toSummary(SalesOrder order, String clientName,
+                                                      String clientCode, String sellerName) {
         SalesOrderResponse.ClientType clientType =
                 (order.getCustomerUuid() != null)
                         ? SalesOrderResponse.ClientType.CUSTOMER
@@ -351,7 +361,9 @@ private static BigDecimal scaleDiscount(BigDecimal discount, DiscountType discou
                 clientType,
                 clientUuid,
                 clientName,
+                clientCode,
                 order.getSellerUuid(),
+                sellerName,
                 order.getStatus(),
                 order.getTotalQuantity(),
                 order.getTotal(),

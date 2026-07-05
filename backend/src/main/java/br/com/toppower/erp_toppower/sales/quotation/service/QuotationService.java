@@ -97,7 +97,9 @@ public class QuotationService {
         // Recalcula e aplica os totais na entidade em memória (somente para a resposta)
         savedHeader.recalculateTotals(items);
 
-        return QuotationMapper.toResponse(savedHeader, items, resolveSellerName(savedHeader));
+        ClientResolved client = resolveClient(savedHeader);
+        return QuotationMapper.toResponse(savedHeader, items, resolveSellerName(savedHeader),
+                client.name(), client.code());
     }
 
     // ---------------------------------------------------------------------
@@ -111,7 +113,9 @@ public class QuotationService {
         List<QuotationItem> items = quotationItemRepository
                 .findByQuotationUuidOrderByCreatedAtAsc(id);
         q.recalculateTotals(items);
-        return QuotationMapper.toResponse(q, items, resolveSellerName(q));
+        ClientResolved client = resolveClient(q);
+        return QuotationMapper.toResponse(q, items, resolveSellerName(q),
+                client.name(), client.code());
     }
 
     @Transactional(readOnly = true)
@@ -121,7 +125,9 @@ public class QuotationService {
         List<QuotationItem> items = quotationItemRepository
                 .findByQuotationUuidOrderByCreatedAtAsc(q.getUuid());
         q.recalculateTotals(items);
-        return QuotationMapper.toResponse(q, items, resolveSellerName(q));
+        ClientResolved client = resolveClient(q);
+        return QuotationMapper.toResponse(q, items, resolveSellerName(q),
+                client.name(), client.code());
     }
 
     /**
@@ -180,9 +186,9 @@ public class QuotationService {
             List<QuotationItem> items = quotationItemRepository
                     .findByQuotationUuidOrderByCreatedAtAsc(q.getUuid());
             q.recalculateTotals(items);
-            String clientName = resolveClientName(q);
+            ClientResolved client = resolveClient(q);
             String sellerName = resolveSellerName(q);
-            return QuotationMapper.toSummary(q, clientName, sellerName);
+            return QuotationMapper.toSummary(q, client.name(), client.code(), sellerName);
         });
         return PagedResponse.from(mapped);
     }
@@ -231,7 +237,9 @@ public class QuotationService {
         }
 
         saved.recalculateTotals(items);
-        return QuotationMapper.toResponse(saved, items, resolveSellerName(saved));
+        ClientResolved client = resolveClient(saved);
+        return QuotationMapper.toResponse(saved, items, resolveSellerName(saved),
+                client.name(), client.code());
     }
 
     // ---------------------------------------------------------------------
@@ -255,7 +263,9 @@ public class QuotationService {
         List<QuotationItem> items = quotationItemRepository
                 .findByQuotationUuidOrderByCreatedAtAsc(id);
         saved.recalculateTotals(items);
-        return QuotationMapper.toResponse(saved, items, resolveSellerName(saved));
+        ClientResolved client = resolveClient(saved);
+        return QuotationMapper.toResponse(saved, items, resolveSellerName(saved),
+                client.name(), client.code());
     }
 
     // ---------------------------------------------------------------------
@@ -365,23 +375,37 @@ public class QuotationService {
     }
 
     /**
-     * Resolve o nome de exibição do cliente referenciado pela proposta
-     * (PF: nome; PJ: nome fantasia se houver, senão razão social).
+     * Resolve o nome e o código de exibição do cliente referenciado pela
+     * proposta (PF: nome; PJ: nome fantasia se houver, senão razão social).
+     * Retorna {@code null} em ambos os campos quando o registro não existe
+     * mais (inativado/removido), mantendo o UUID como referência no DTO —
+     * mesmo tratamento dado a {@link #resolveSellerName(Quotation)}.
      */
-    private String resolveClientName(Quotation q) {
+    private ClientResolved resolveClient(Quotation q) {
         if (q.getCustomerUuid() != null) {
             return customerRepository.findById(q.getCustomerUuid())
-                    .map(c -> c.getName())
-                    .orElse(null);
+                    .map(c -> new ClientResolved(c.getName(), c.getCode()))
+                    .orElse(ClientResolved.EMPTY);
         }
         if (q.getCompanyUuid() != null) {
             return companyRepository.findById(q.getCompanyUuid())
-                    .map(c -> c.getTradeName() != null && !c.getTradeName().isBlank()
-                            ? c.getTradeName()
-                            : c.getLegalName())
-                    .orElse(null);
+                    .map(c -> new ClientResolved(
+                            c.getTradeName() != null && !c.getTradeName().isBlank()
+                                    ? c.getTradeName()
+                                    : c.getLegalName(),
+                            c.getCode()))
+                    .orElse(ClientResolved.EMPTY);
         }
-        return null;
+        return ClientResolved.EMPTY;
+    }
+
+    /**
+     * Par (nome, código) resolvido a partir do cliente referenciado pela
+     * proposta. Usado para popular {@code clientName} e {@code clientCode}
+     * no {@link QuotationResponse} e {@link QuotationSummaryResponse}.
+     */
+    private record ClientResolved(String name, String code) {
+        static final ClientResolved EMPTY = new ClientResolved(null, null);
     }
 
     /**

@@ -10,8 +10,6 @@ import { QuotationStatusBadge } from '../components/sales/QuotationStatusBadge'
 import { RegistrationAuditCard } from '../components/client/RegistrationAuditCard'
 import { cancelQuotation, getQuotation } from '../api/quotation.api'
 import { createSalesOrderFromQuotation } from '../api/salesOrder.api'
-import { getCustomer } from '../api/customer.api'
-import { getCompany } from '../api/company.api'
 import { getProduct } from '../api/product.api'
 import { toApiError } from '../lib/errors'
 import type { QuotationResponse } from '../types/quotation'
@@ -99,37 +97,17 @@ export function QuotationDetailPage() {
     }
   }, [id])
 
-  // === resolução de nomes (cliente e produtos) ===
-  // O `QuotationResponse` traz apenas UUIDs de cliente/produtos; o nome do
-  // vendedor já vem resolvido no payload (`sellerName`). Para exibir o nome
-  // real do cliente e dos produtos no resumo, buscamos ambos em paralelo
-  // após a proposta carregar. Mantemos o UUID curto como fallback caso a
+  // === resolução de nomes (produtos) ===
+  // O `QuotationResponse` já traz o nome do cliente (`clientName`/`clientCode`)
+  // e do vendedor (`sellerName`) resolvidos no backend. Apenas os nomes de
+  // produtos ainda precisam ser hidratados no frontend, pois cada item traz
+  // apenas o `productUuid`. Mantemos o UUID curto como fallback caso a
   // resolução falhe (registro inativado, removido, ou erro de rede).
-  const [clientName, setClientName] = useState<string | null>(null)
   const [productNames, setProductNames] = useState<Record<string, string>>({})
 
   useEffect(() => {
     if (!quotation) return
     let cancelled = false
-
-    // Cliente (PF ou PJ) — busca conforme o tipo persistido.
-    const clientUuid =
-      quotation.clientType === 'CUSTOMER'
-        ? quotation.customerUuid
-        : quotation.companyUuid
-    const clientPromise =
-      clientUuid != null
-        ? quotation.clientType === 'CUSTOMER'
-          ? getCustomer(clientUuid)
-              .then((c) => `${c.code} — ${c.name}`)
-              .catch(() => null)
-          : getCompany(clientUuid)
-              .then((c) => `${c.code} — ${c.legalName}`)
-              .catch(() => null)
-        : Promise.resolve(null)
-
-    // Vendedor — o nome já vem resolvido no payload (`sellerName`), então
-    // não precisamos de um round-trip adicional a GET /sellers/{id}.
 
     // Produtos — dedupe por UUID para não buscar o mesmo item duas vezes.
     const uniqueProductUuids = Array.from(
@@ -153,10 +131,9 @@ export function QuotationDetailPage() {
       return map
     })
 
-    Promise.all([clientPromise, productEntriesPromise])
-      .then(([client, products]) => {
+    productEntriesPromise
+      .then((products) => {
         if (cancelled) return
-        setClientName(client)
         setProductNames(products)
       })
       .catch(() => {
@@ -227,13 +204,17 @@ export function QuotationDetailPage() {
   // Apenas propostas ATIVAS podem ser convertidas em pedido (regra do backend).
   const canConvert = quotation.status === 'ATIVA'
 
-  // UUIDs "curtos" usados como fallback visual enquanto os nomes reais
-  // não chegam (ou quando a resolução falha).
+  // UUID "curto" usado como fallback visual quando o nome real não está
+  // disponível no payload (cliente inativado/removido após a criação).
   const clientUuid =
     quotation.clientType === 'CUSTOMER'
       ? quotation.customerUuid
       : quotation.companyUuid
-  const clientDisplay = clientName ?? (clientUuid ? `${clientUuid.slice(0, 8)}…` : '—')
+  const clientDisplay = quotation.clientName
+    ? (quotation.clientCode
+        ? `${quotation.clientCode} — ${quotation.clientName}`
+        : quotation.clientName)
+    : (clientUuid ? `${clientUuid.slice(0, 8)}…` : '—')
 
   return (
     <div className="space-y-6">

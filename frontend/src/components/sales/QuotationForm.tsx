@@ -327,12 +327,12 @@ export function QuotationForm({
 
   // Pré-preenche o rótulo do cliente no modo edição.
   //
-  // O `QuotationResponse` carrega apenas o UUID do cliente (sem nome), então
-  // a forma mais robusta de popular o campo é fazer um lookup via
-  // `searchQuotationClients` e encontrar pelo UUID. Funciona no mock
-  // (lista todos os ativos com query vazia) e em backends que aceitam
-  // query vazia/curta; caso contrário, exibe um fallback com o UUID curto
-  // para que o campo não fique visualmente vazio.
+  // O `QuotationResponse` já traz o nome e o código do cliente resolvidos
+  // no backend (`clientName`/`clientCode`), como acontece com `sellerName`.
+  // Basta montar o rótulo `${code} — ${name}` espelhando o formato do
+  // typeahead. Se o cliente foi inativado/removido, ambos chegam nulos e
+  // mantemos o UUID curto como fallback visual (mesmo critério do
+  // `QuotationDetailPage`).
   useEffect(() => {
     if (!quotation) return
     const targetUuid =
@@ -341,27 +341,16 @@ export function QuotationForm({
         : quotation.companyUuid
     if (!targetUuid) return
 
-    // Fallback imediato: mostra o UUID curto para o usuário ter referência.
-    setClientLabel(`${targetUuid.slice(0, 8)}…`)
-    setClientOptions([])
-
-    let cancelled = false
-    searchQuotationClients('', 200, quotation.clientType)
-      .then((clients) => {
-        if (cancelled) return
-        const found = clients.find((c) => c.uuid === targetUuid)
-        if (found) {
-          setClientLabel(`${found.code} — ${found.name}`)
-          setClientOptions([found])
-        }
-      })
-      .catch(() => {
-        /* mantém fallback UUID curto */
-      })
-
-    return () => {
-      cancelled = true
+    if (quotation.clientName) {
+      setClientLabel(
+        quotation.clientCode
+          ? `${quotation.clientCode} — ${quotation.clientName}`
+          : quotation.clientName,
+      )
+    } else {
+      setClientLabel(`${targetUuid.slice(0, 8)}…`)
     }
+    setClientOptions([])
   }, [quotation])
 
   // Hidrata o nome e a unidade de medida dos itens no modo edição.

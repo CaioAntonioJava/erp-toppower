@@ -110,8 +110,14 @@ export interface SalesOrderResponse {
   customerUuid: string | null
   companyUuid: string | null
   clientType: SalesOrderClientType
+  /** Nome de exibição do cliente (PF: nome; PJ: nome fantasia/razão social). Resolvido no backend. */
+  clientName: string | null
+  /** Código interno do cliente (ex.: "CLI000001", "EMP000001"). Resolvido no backend. */
+  clientCode: string | null
   attention: string | null
   sellerUuid: string
+  /** Nome do vendedor (resolvido no backend). */
+  sellerName: string | null
   items: SalesOrderItemResponse[]
   discountType: import('./quotation').DiscountType | null
   discount: number | null
@@ -156,7 +162,11 @@ export interface SalesOrderSummaryResponse {
   clientType: SalesOrderClientType
   clientUuid: string
   clientName: string
+  /** Código interno do cliente (ex.: "CLI000001", "EMP000001"). Resolvido no backend. */
+  clientCode: string | null
   sellerUuid: string
+  /** Nome do vendedor (resolvido no backend). */
+  sellerName: string | null
   status: SalesOrderStatus
   totalQuantity: number
   total: number

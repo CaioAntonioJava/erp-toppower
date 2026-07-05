@@ -39,6 +39,11 @@ public record QuotationSummaryResponse(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         String clientName,
 
+        @Schema(description = "Código interno do cliente (ex.: \"CLI000001\", \"EMP000001\"). "
+                + "Resolvido no backend a partir do UUID referenciado.",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        String clientCode,
+
         @Schema(description = "UUID do vendedor.", requiredMode = Schema.RequiredMode.REQUIRED)
         UUID sellerUuid,
 

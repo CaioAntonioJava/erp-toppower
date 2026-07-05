@@ -291,11 +291,12 @@ export function SalesOrderForm({
 
   // Pré-preenche o rótulo do cliente no modo edição.
   //
-  // O `SalesOrderResponse` carrega apenas o UUID do cliente (sem nome),
-  // então a forma mais robusta de popular o campo é fazer um lookup via
-  // `searchQuotationClients` (typeahead compartilhado com propostas) e
-  // encontrar pelo UUID. Caso contrário, exibe um fallback com o UUID
-  // curto para que o campo não fique visualmente vazio.
+  // O `SalesOrderResponse` já traz o nome e o código do cliente resolvidos
+  // no backend (`clientName`/`clientCode`), como acontece com `sellerName`.
+  // Basta montar o rótulo `${code} — ${name}` espelhando o formato do
+  // typeahead. Se o cliente foi inativado/removido, ambos chegam nulos e
+  // mantemos o UUID curto como fallback visual (mesmo critério do
+  // `SalesOrderDetailPage`).
   useEffect(() => {
     if (!salesOrder) return
     const targetUuid =
@@ -304,30 +305,16 @@ export function SalesOrderForm({
         : salesOrder.companyUuid
     if (!targetUuid) return
 
-    // Fallback imediato: mostra o UUID curto para o usuário ter referência.
-    setClientLabel(`${targetUuid.slice(0, 8)}…`)
-    setClientOptions([])
-
-    let cancelled = false
-    // O typeahead de clientes vive no módulo de propostas e aceita filtro
-    // por tipo (PF/PJ). Reaproveitamos o mesmo endpoint para hidratar o
-    // rótulo no modo edição — o pedido não tem um endpoint próprio.
-    searchQuotationClients('', 200, salesOrder.clientType as QuotationClientType)
-      .then((clients) => {
-        if (cancelled) return
-        const found = clients.find((c) => c.uuid === targetUuid)
-        if (found) {
-          setClientLabel(`${found.code} — ${found.name}`)
-          setClientOptions([found])
-        }
-      })
-      .catch(() => {
-        /* mantém fallback UUID curto */
-      })
-
-    return () => {
-      cancelled = true
+    if (salesOrder.clientName) {
+      setClientLabel(
+        salesOrder.clientCode
+          ? `${salesOrder.clientCode} — ${salesOrder.clientName}`
+          : salesOrder.clientName,
+      )
+    } else {
+      setClientLabel(`${targetUuid.slice(0, 8)}…`)
     }
+    setClientOptions([])
   }, [salesOrder])
 
   // Hidrata o nome e a unidade de medida dos itens no modo edição.

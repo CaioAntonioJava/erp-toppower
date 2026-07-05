@@ -43,6 +43,16 @@ public record QuotationResponse(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         ClientType clientType,
 
+        @Schema(description = "Nome de exibição do cliente (PF: nome; PJ: nome fantasia se houver, senão razão social). "
+                + "Resolvido no backend a partir do UUID referenciado.",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        String clientName,
+
+        @Schema(description = "Código interno do cliente (ex.: \"CLI000001\", \"EMP000001\"). "
+                + "Resolvido no backend a partir do UUID referenciado.",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        String clientCode,
+
         @Schema(description = "Aos cuidados de.", example = "Sr. João Silva",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         String attention,

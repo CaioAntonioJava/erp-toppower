@@ -6,9 +6,6 @@ import { Spinner } from '../components/ui/Spinner'
 import { Alert } from '../components/ui/Alert'
 import { LogoTopPower } from '../components/ui/LogoTopPower'
 import { getSalesOrder } from '../api/salesOrder.api'
-import { getCustomer } from '../api/customer.api'
-import { getCompany } from '../api/company.api'
-import { getSeller } from '../api/seller.api'
 import { getProduct } from '../api/product.api'
 import { getCarrier } from '../api/carrier.api'
 import { toApiError } from '../lib/errors'
@@ -75,12 +72,11 @@ export function SalesOrderPrintPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // === resolução de nomes (cliente, vendedor, produtos e transportadora) ===
-  // O `SalesOrderResponse` traz apenas UUIDs; para o PDF buscamos os nomes
-  // reais em paralelo. Mantemos o UUID curto como fallback caso a resolução
-  // falhe (registro inativado, removido, ou erro de rede).
-  const [clientName, setClientName] = useState<string | null>(null)
-  const [sellerName, setSellerName] = useState<string | null>(null)
+  // === resolução de nomes (produtos e transportadora) ===
+  // O `SalesOrderResponse` já traz o nome do cliente (`clientName`/`clientCode`)
+  // e do vendedor (`sellerName`) resolvidos no backend. Apenas os nomes de
+  // produtos e da transportadora ainda precisam ser hidratados no frontend.
+  // Mantemos o UUID curto como fallback caso a resolução falhe.
   const [carrierName, setCarrierName] = useState<string | null>(null)
   const [productNames, setProductNames] = useState<Record<string, string>>({})
   const [namesResolved, setNamesResolved] = useState(false)
@@ -114,29 +110,6 @@ export function SalesOrderPrintPage() {
     if (!salesOrder) return
     let cancelled = false
 
-    // Cliente (PF ou PJ) — busca conforme o tipo persistido.
-    const clientUuid =
-      salesOrder.clientType === 'CUSTOMER'
-        ? salesOrder.customerUuid
-        : salesOrder.companyUuid
-    const clientPromise =
-      clientUuid != null
-        ? salesOrder.clientType === 'CUSTOMER'
-          ? getCustomer(clientUuid)
-              .then((c) => `${c.code} — ${c.name}`)
-              .catch(() => null)
-          : getCompany(clientUuid)
-              .then((c) => `${c.code} — ${c.legalName}`)
-              .catch(() => null)
-        : Promise.resolve(null)
-
-    // Vendedor — sempre presente no payload.
-    const sellerPromise = salesOrder.sellerUuid
-      ? getSeller(salesOrder.sellerUuid)
-          .then((s) => s.name)
-          .catch(() => null)
-      : Promise.resolve(null)
-
     // Transportadora — opcional; só busca se houver FK.
     const carrierPromise = salesOrder.carrierUuid
       ? getCarrier(salesOrder.carrierUuid)
@@ -166,11 +139,9 @@ export function SalesOrderPrintPage() {
       return map
     })
 
-    Promise.all([clientPromise, sellerPromise, carrierPromise, productEntriesPromise])
-      .then(([client, seller, carrier, products]) => {
+    Promise.all([carrierPromise, productEntriesPromise])
+      .then(([carrier, products]) => {
         if (cancelled) return
-        setClientName(client)
-        setSellerName(seller)
         setCarrierName(carrier)
         setProductNames(products)
         setNamesResolved(true)
@@ -221,14 +192,18 @@ export function SalesOrderPrintPage() {
     )
   }
 
-  // UUIDs "curtos" usados como fallback visual enquanto os nomes reais
-  // não chegam (ou quando a resolução falha).
+  // UUID "curto" usado como fallback visual quando o nome real não está
+  // disponível no payload (cliente inativado/removido após a criação).
   const clientUuid =
     salesOrder.clientType === 'CUSTOMER'
       ? salesOrder.customerUuid
       : salesOrder.companyUuid
-  const clientDisplay = clientName ?? (clientUuid ? `${clientUuid.slice(0, 8)}…` : '—')
-  const sellerDisplay = sellerName ?? `${salesOrder.sellerUuid.slice(0, 8)}…`
+  const clientDisplay = salesOrder.clientName
+    ? (salesOrder.clientCode
+        ? `${salesOrder.clientCode} — ${salesOrder.clientName}`
+        : salesOrder.clientName)
+    : (clientUuid ? `${clientUuid.slice(0, 8)}…` : '—')
+  const sellerDisplay = salesOrder.sellerName ?? 'Vendedor não encontrado'
 
   return (
     <div className="min-h-screen bg-white px-8 py-10 text-slate-900 print:bg-white">

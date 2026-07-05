@@ -6,8 +6,6 @@ import { Spinner } from '../components/ui/Spinner'
 import { Alert } from '../components/ui/Alert'
 import { LogoTopPower } from '../components/ui/LogoTopPower'
 import { getQuotation } from '../api/quotation.api'
-import { getCustomer } from '../api/customer.api'
-import { getCompany } from '../api/company.api'
 import { getProduct } from '../api/product.api'
 import { getCarrier } from '../api/carrier.api'
 import { toApiError } from '../lib/errors'
@@ -74,12 +72,11 @@ export function QuotationPrintPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // === resolução de nomes (cliente, produtos e transportadora) ===
-  // O `QuotationResponse` traz apenas UUIDs de cliente/produtos/transportadora;
-  // o nome do vendedor já vem resolvido no payload (`sellerName`). Para o PDF
-  // buscamos os nomes reais em paralelo. Mantemos o UUID curto como fallback
-  // caso a resolução falhe (registro inativado, removido, ou erro de rede).
-  const [clientName, setClientName] = useState<string | null>(null)
+  // === resolução de nomes (produtos e transportadora) ===
+  // O `QuotationResponse` já traz o nome do cliente (`clientName`/`clientCode`)
+  // e do vendedor (`sellerName`) resolvidos no backend. Apenas os nomes de
+  // produtos e da transportadora ainda precisam ser hidratados no frontend.
+  // Mantemos o UUID curto como fallback caso a resolução falhe.
   const [carrierName, setCarrierName] = useState<string | null>(null)
   const [productNames, setProductNames] = useState<Record<string, string>>({})
   const [namesResolved, setNamesResolved] = useState(false)
@@ -113,22 +110,6 @@ export function QuotationPrintPage() {
     if (!quotation) return
     let cancelled = false
 
-    // Cliente (PF ou PJ) — busca conforme o tipo persistido.
-    const clientUuid =
-      quotation.clientType === 'CUSTOMER'
-        ? quotation.customerUuid
-        : quotation.companyUuid
-    const clientPromise =
-      clientUuid != null
-        ? quotation.clientType === 'CUSTOMER'
-          ? getCustomer(clientUuid)
-              .then((c) => `${c.code} — ${c.name}`)
-              .catch(() => null)
-          : getCompany(clientUuid)
-              .then((c) => `${c.code} — ${c.legalName}`)
-              .catch(() => null)
-        : Promise.resolve(null)
-
     // Vendedor — o nome já vem resolvido no payload (`sellerName`), então
     // não precisamos de um round-trip adicional a GET /sellers/{id}.
 
@@ -161,10 +142,9 @@ export function QuotationPrintPage() {
       return map
     })
 
-    Promise.all([clientPromise, carrierPromise, productEntriesPromise])
-      .then(([client, carrier, products]) => {
+    Promise.all([carrierPromise, productEntriesPromise])
+      .then(([carrier, products]) => {
         if (cancelled) return
-        setClientName(client)
         setCarrierName(carrier)
         setProductNames(products)
         setNamesResolved(true)
@@ -215,13 +195,17 @@ export function QuotationPrintPage() {
     )
   }
 
-  // UUIDs "curtos" usados como fallback visual enquanto os nomes reais
-  // não chegam (ou quando a resolução falha).
+  // UUID "curto" usado como fallback visual quando o nome real não está
+  // disponível no payload (cliente inativado/removido após a criação).
   const clientUuid =
     quotation.clientType === 'CUSTOMER'
       ? quotation.customerUuid
       : quotation.companyUuid
-  const clientDisplay = clientName ?? (clientUuid ? `${clientUuid.slice(0, 8)}…` : '—')
+  const clientDisplay = quotation.clientName
+    ? (quotation.clientCode
+        ? `${quotation.clientCode} — ${quotation.clientName}`
+        : quotation.clientName)
+    : (clientUuid ? `${clientUuid.slice(0, 8)}…` : '—')
   const sellerDisplay = quotation.sellerName ?? 'Vendedor não encontrado'
 
   // Desconto global em valor monetário (calculado pelo backend). Usado

@@ -233,11 +233,14 @@ public final class QuotationMapper {
     /**
      * Constrói a resposta completa a partir da entidade já com
      * totais calculados (via {@code recalculateTotals}) e da lista
-     * de itens. O nome do vendedor é resolvido pelo service e injetado
-     * aqui, evitando um round-trip adicional no frontend (que antes
-     * exigia ROLE_ADMIN/MANAGER para chamar {@code GET /sellers/{id}}).
+     * de itens. O nome do vendedor e os dados do cliente (nome e código)
+     * são resolvidos pelo service e injetados aqui, evitando um
+     * round-trip adicional no frontend (que antes exigia
+     * ROLE_ADMIN/MANAGER para chamar {@code GET /sellers/{id}} e um
+     * typeahead de query vazia para hidratar o cliente).
      */
-    public static QuotationResponse toResponse(Quotation quotation, List<QuotationItem> items, String sellerName) {
+    public static QuotationResponse toResponse(Quotation quotation, List<QuotationItem> items,
+                                               String sellerName, String clientName, String clientCode) {
         QuotationResponse.ClientType clientType =
                 (quotation.getCustomerUuid() != null)
                         ? QuotationResponse.ClientType.CUSTOMER
@@ -250,6 +253,8 @@ public final class QuotationMapper {
                 quotation.getCustomerUuid(),
                 quotation.getCompanyUuid(),
                 clientType,
+                clientName,
+                clientCode,
                 quotation.getAttention(),
                 quotation.getSellerUuid(),
                 sellerName,
@@ -289,10 +294,12 @@ public final class QuotationMapper {
     }
 
     /**
-     * Constrói o resumo a partir da entidade. Os nomes do cliente e do
-     * vendedor são resolvidos pelo service e injetados neste ponto.
+     * Constrói o resumo a partir da entidade. Os dados do cliente (nome e
+     * código) e o nome do vendedor são resolvidos pelo service e injetados
+     * neste ponto.
      */
-    public static QuotationSummaryResponse toSummary(Quotation quotation, String clientName, String sellerName) {
+    public static QuotationSummaryResponse toSummary(Quotation quotation, String clientName,
+                                                     String clientCode, String sellerName) {
         QuotationResponse.ClientType clientType =
                 (quotation.getCustomerUuid() != null)
                         ? QuotationResponse.ClientType.CUSTOMER
@@ -308,6 +315,7 @@ public final class QuotationMapper {
                 clientType,
                 clientUuid,
                 clientName,
+                clientCode,
                 quotation.getSellerUuid(),
                 sellerName,
                 quotation.getStatus(),
