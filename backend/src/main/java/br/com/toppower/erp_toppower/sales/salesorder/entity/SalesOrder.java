@@ -2,6 +2,7 @@ package br.com.toppower.erp_toppower.sales.salesorder.entity;
 
 import br.com.toppower.erp_toppower.common.annotation.UpperCase;
 import br.com.toppower.erp_toppower.common.entity.BaseEntity;
+import br.com.toppower.erp_toppower.common.util.PricingMath;
 import br.com.toppower.erp_toppower.sales.quotation.enums.DiscountType;
 import br.com.toppower.erp_toppower.sales.quotation.enums.FreightType;
 import br.com.toppower.erp_toppower.sales.quotation.enums.PaymentCondition;
@@ -310,18 +311,7 @@ public class SalesOrder extends BaseEntity {
     }
 
     private BigDecimal applyGlobalDiscount(BigDecimal base) {
-        if (base == null) {
-            return BigDecimal.ZERO;
-        }
-        if (discount == null || discountType == null) {
-            return base;
-        }
-        return switch (discountType) {
-            case AMOUNT -> base.subtract(discount);
-            case PERCENT -> base.subtract(
-                    base.multiply(discount)
-                            .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP));
-        };
+        return PricingMath.applyGlobalDiscount(base, this.discount, this.discountType);
     }
 
     /**

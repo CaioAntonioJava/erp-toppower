@@ -2,6 +2,7 @@ package br.com.toppower.erp_toppower.sales.quotation.entity;
 
 import br.com.toppower.erp_toppower.common.annotation.UpperCase;
 import br.com.toppower.erp_toppower.common.entity.BaseEntity;
+import br.com.toppower.erp_toppower.common.util.PricingMath;
 import br.com.toppower.erp_toppower.sales.quotation.enums.DiscountType;
 import br.com.toppower.erp_toppower.sales.quotation.enums.FreightType;
 import br.com.toppower.erp_toppower.sales.quotation.enums.PaymentCondition;
@@ -313,33 +314,16 @@ public class Quotation extends BaseEntity {
     /**
      * Aplica a {@link #profitMargin} como multiplicação percentual sobre
      * o subtotal dos itens (antes do desconto global e do frete), através
-     * do fator {@code (1 + profitMargin / 100)}.
+     * do fator {@code (1 + profitMargin / 100)}. Delegado a
+     * {@link PricingMath#applyProfitMargin} para reaproveitamento entre
+     * documentos comerciais.
      */
     private BigDecimal applyProfitMargin(BigDecimal base) {
-        if (base == null) {
-            return BigDecimal.ZERO;
-        }
-        if (profitMargin == null || profitMargin.signum() == 0) {
-            return base;
-        }
-        BigDecimal factor = BigDecimal.ONE.add(
-                profitMargin.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP));
-        return base.multiply(factor).setScale(2, RoundingMode.HALF_UP);
+        return PricingMath.applyProfitMargin(base, this.profitMargin);
     }
 
     private BigDecimal applyGlobalDiscount(BigDecimal base) {
-        if (base == null) {
-            return BigDecimal.ZERO;
-        }
-        if (discount == null || discountType == null) {
-            return base;
-        }
-        return switch (discountType) {
-            case AMOUNT -> base.subtract(discount);
-            case PERCENT -> base.subtract(
-                    base.multiply(discount)
-                            .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP));
-        };
+        return PricingMath.applyGlobalDiscount(base, this.discount, this.discountType);
     }
 
     /**

@@ -1,5 +1,6 @@
 package br.com.toppower.erp_toppower.sales.salesorder.mapper;
 
+import br.com.toppower.erp_toppower.common.util.PricingMath;
 import br.com.toppower.erp_toppower.sales.quotation.entity.Quotation;
 import br.com.toppower.erp_toppower.sales.quotation.entity.QuotationItem;
 import br.com.toppower.erp_toppower.sales.quotation.enums.DiscountType;
@@ -82,7 +83,7 @@ public final class SalesOrderMapper {
  */
 public static SalesOrderItem fromQuotationItem(QuotationItem source, UUID salesOrderUuid,
                                                 BigDecimal profitMargin) {
-    BigDecimal factor = profitFactor(profitMargin);
+    BigDecimal factor = PricingMath.profitFactor(profitMargin);
     SalesOrderItem item = new SalesOrderItem();
     item.setSalesOrderUuid(salesOrderUuid);
     item.setProductUuid(source.getProductUuid());
@@ -92,19 +93,6 @@ public static SalesOrderItem fromQuotationItem(QuotationItem source, UUID salesO
     item.setDiscount(scaleDiscount(source.getDiscount(), source.getDiscountType(), factor));
     item.setTotalPrice(scale(source.getTotalPrice(), factor));
     return item;
-}
-
-/**
- * Fator multiplicativo {@code (1 + profitMargin / 100)} usado para
- * embutir a margem de lucro nos preços do pedido. Retorna
- * {@code 1} quando a margem é nula ou zero.
- */
-private static BigDecimal profitFactor(BigDecimal profitMargin) {
-    if (profitMargin == null || profitMargin.signum() == 0) {
-        return BigDecimal.ONE;
-    }
-    return BigDecimal.ONE.add(
-            profitMargin.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP));
 }
 
 /**
