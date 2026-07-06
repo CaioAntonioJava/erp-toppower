@@ -4,7 +4,6 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
-  Download,
   Eye,
   Plus,
   Power,
@@ -27,34 +26,12 @@ import {
 import type { CompanyResponse } from '../types/company'
 import type { RegistrationStatus } from '../types/registration'
 import { useAuth } from '../context/AuthContext'
-import { defaultCsvFilename, downloadCsv, toCsv } from '../lib/csv'
 import { useEntityList } from '../hooks/useEntityList'
 
 const STATUS_OPTIONS = [
   { value: 'ALL', label: 'Todos' },
   { value: 'ATIVO', label: 'Ativos' },
   { value: 'INATIVO', label: 'Inativos' },
-]
-
-const CSV_HEADERS = [
-  'Código',
-  'Razão Social',
-  'Nome Fantasia',
-  'CNPJ',
-  'IE',
-  'IM',
-  'CEP',
-  'Logradouro',
-  'Número',
-  'Complemento',
-  'Bairro',
-  'Cidade',
-  'UF',
-  'Status',
-  'Criado em',
-  'Criado por',
-  'Atualizado em',
-  'Atualizado por',
 ]
 
 function formatDate(iso: string | null | undefined): string {
@@ -65,20 +42,6 @@ function formatDate(iso: string | null | undefined): string {
     day: '2-digit', month: '2-digit', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
   })
-}
-
-function companyToCsvRow(c: CompanyResponse): unknown[] {
-  return [
-    c.code, c.legalName, c.tradeName ?? '',
-    c.cnpj,
-    c.stateRegistration ?? '', c.municipalRegistration ?? '',
-    c.address.zipCode, c.address.street, c.address.number,
-    c.address.complement ?? '', c.address.neighborhood ?? '',
-    c.address.city, c.address.state,
-    c.status,
-    formatDate(c.createdAt), c.createdBy ?? '',
-    formatDate(c.updatedAt), c.updatedBy ?? '',
-  ]
 }
 
 export function CompaniesListPage() {
@@ -94,12 +57,6 @@ export function CompaniesListPage() {
       activate: activateCompany,
     },
   })
-
-  function handleExportCsv() {
-    if (!list.data) return
-    const csv = toCsv(CSV_HEADERS, list.data.content.map(companyToCsvRow))
-    downloadCsv(defaultCsvFilename('erp-empresas'), csv)
-  }
 
   return (
     <div className="space-y-6">
@@ -117,16 +74,6 @@ export function CompaniesListPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {isAdmin ? (
-            <Button
-              variant="secondary"
-              onClick={handleExportCsv}
-              disabled={list.loading || list.items.length === 0}
-            >
-              <Download className="h-4 w-4" />
-              Exportar CSV
-            </Button>
-          ) : null}
           <Link to="/companies/new">
             <Button>
               <Plus className="h-4 w-4" />

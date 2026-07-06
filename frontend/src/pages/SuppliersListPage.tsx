@@ -3,7 +3,6 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
-  Download,
   Eye,
   Plus,
   Power,
@@ -27,36 +26,12 @@ import {
 import type { SupplierResponse } from '../types/supplier'
 import type { RegistrationStatus } from '../types/registration'
 import { useAuth } from '../context/AuthContext'
-import { defaultCsvFilename, downloadCsv, toCsv } from '../lib/csv'
 import { useEntityList } from '../hooks/useEntityList'
 
 const STATUS_OPTIONS = [
   { value: 'ALL', label: 'Todos' },
   { value: 'ATIVO', label: 'Ativos' },
   { value: 'INATIVO', label: 'Inativos' },
-]
-
-const CSV_HEADERS = [
-  'Razão Social',
-  'Nome Fantasia',
-  'CNPJ',
-  'IE',
-  'IM',
-  'E-mail',
-  'Telefone',
-  'Contato',
-  'CEP',
-  'Logradouro',
-  'Número',
-  'Complemento',
-  'Bairro',
-  'Cidade',
-  'UF',
-  'Status',
-  'Criado em',
-  'Criado por',
-  'Atualizado em',
-  'Atualizado por',
 ]
 
 function formatDate(iso: string | null | undefined): string {
@@ -67,21 +42,6 @@ function formatDate(iso: string | null | undefined): string {
     day: '2-digit', month: '2-digit', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
   })
-}
-
-function supplierToCsvRow(s: SupplierResponse): unknown[] {
-  return [
-    s.legalName, s.tradeName ?? '',
-    s.taxId,
-    s.stateRegistration ?? '', s.municipalRegistration ?? '',
-    s.email, s.phone ?? '', s.contactName ?? '',
-    s.address.zipCode, s.address.street, s.address.number,
-    s.address.complement ?? '', s.address.neighborhood ?? '',
-    s.address.city, s.address.state,
-    s.status,
-    formatDate(s.createdAt), s.createdBy ?? '',
-    formatDate(s.updatedAt), s.updatedBy ?? '',
-  ]
 }
 
 export function SuppliersListPage() {
@@ -97,12 +57,6 @@ export function SuppliersListPage() {
       activate: activateSupplier,
     },
   })
-
-  function handleExportCsv() {
-    if (!list.data) return
-    const csv = toCsv(CSV_HEADERS, list.data.content.map(supplierToCsvRow))
-    downloadCsv(defaultCsvFilename('erp-fornecedores'), csv)
-  }
 
   return (
     <div className="space-y-6">
@@ -120,16 +74,6 @@ export function SuppliersListPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {isAdmin ? (
-            <Button
-              variant="secondary"
-              onClick={handleExportCsv}
-              disabled={list.loading || list.items.length === 0}
-            >
-              <Download className="h-4 w-4" />
-              Exportar CSV
-            </Button>
-          ) : null}
           <Link to="/suppliers/new">
             <Button>
               <Plus className="h-4 w-4" />

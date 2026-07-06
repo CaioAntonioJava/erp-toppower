@@ -4,7 +4,6 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
-  Download,
   Eye,
   Plus,
   Power,
@@ -25,26 +24,12 @@ import {
 import type { SellerResponse } from '../types/seller'
 import type { RegistrationStatus } from '../types/registration'
 import { useAuth } from '../context/AuthContext'
-import { defaultCsvFilename, downloadCsv, toCsv } from '../lib/csv'
 import { useEntityList } from '../hooks/useEntityList'
 
 const STATUS_OPTIONS = [
   { value: 'ALL', label: 'Todos' },
   { value: 'ATIVO', label: 'Ativos' },
   { value: 'INATIVO', label: 'Inativos' },
-]
-
-const CSV_HEADERS = [
-  'Nome',
-  'E-mail',
-  'Telefone',
-  'CPF',
-  'Comissão (%)',
-  'Status',
-  'Criado em',
-  'Criado por',
-  'Atualizado em',
-  'Atualizado por',
 ]
 
 function formatDate(iso: string | null | undefined): string {
@@ -61,16 +46,6 @@ function formatDate(iso: string | null | undefined): string {
 function formatCommission(rate: number | null | undefined): string {
   if (rate == null) return ''
   return `${rate.toFixed(2).replace('.', ',')}%`
-}
-
-function sellerToCsvRow(s: SellerResponse): unknown[] {
-  return [
-    s.name, s.email, s.phone, s.cpf,
-    s.commissionRate != null ? formatCommission(s.commissionRate) : '',
-    s.status,
-    formatDate(s.createdAt), s.createdBy ?? '',
-    formatDate(s.updatedAt), s.updatedBy ?? '',
-  ]
 }
 
 export function SellersListPage() {
@@ -90,12 +65,6 @@ export function SellersListPage() {
     },
   })
 
-  function handleExportCsv() {
-    if (!list.data) return
-    const csv = toCsv(CSV_HEADERS, list.data.content.map(sellerToCsvRow))
-    downloadCsv(defaultCsvFilename('erp-vendedores'), csv)
-  }
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -112,16 +81,6 @@ export function SellersListPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {isAdmin ? (
-            <Button
-              variant="secondary"
-              onClick={handleExportCsv}
-              disabled={list.loading || list.items.length === 0}
-            >
-              <Download className="h-4 w-4" />
-              Exportar CSV
-            </Button>
-          ) : null}
           <Link to="/sellers/new">
             <Button>
               <Plus className="h-4 w-4" />

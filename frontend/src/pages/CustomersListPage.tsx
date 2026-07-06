@@ -3,7 +3,6 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
-  Download,
   Eye,
   Plus,
   Power,
@@ -27,33 +26,12 @@ import {
 import type { CustomerResponse } from '../types/customer'
 import type { RegistrationStatus } from '../types/registration'
 import { useAuth } from '../context/AuthContext'
-import { defaultCsvFilename, downloadCsv, toCsv } from '../lib/csv'
 import { useEntityList } from '../hooks/useEntityList'
 
 const STATUS_OPTIONS = [
   { value: 'ALL', label: 'Todos' },
   { value: 'ATIVO', label: 'Ativos' },
   { value: 'INATIVO', label: 'Inativos' },
-]
-
-const CSV_HEADERS = [
-  'Código',
-  'Nome',
-  'E-mail',
-  'Telefone',
-  'CPF',
-  'CEP',
-  'Logradouro',
-  'Número',
-  'Complemento',
-  'Bairro',
-  'Cidade',
-  'UF',
-  'Status',
-  'Criado em',
-  'Criado por',
-  'Atualizado em',
-  'Atualizado por',
 ]
 
 function formatDate(iso: string | null | undefined): string {
@@ -64,18 +42,6 @@ function formatDate(iso: string | null | undefined): string {
     day: '2-digit', month: '2-digit', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
   })
-}
-
-function customerToCsvRow(c: CustomerResponse): unknown[] {
-  return [
-    c.code, c.name, c.email, c.phone, c.cpf,
-    c.address.zipCode, c.address.street, c.address.number,
-    c.address.complement ?? '', c.address.neighborhood ?? '',
-    c.address.city, c.address.state,
-    c.status,
-    formatDate(c.createdAt), c.createdBy ?? '',
-    formatDate(c.updatedAt), c.updatedBy ?? '',
-  ]
 }
 
 export function CustomersListPage() {
@@ -91,12 +57,6 @@ export function CustomersListPage() {
       activate: activateCustomer,
     },
   })
-
-  function handleExportCsv() {
-    if (!list.data) return
-    const csv = toCsv(CSV_HEADERS, list.data.content.map(customerToCsvRow))
-    downloadCsv(defaultCsvFilename('erp-clientes-pf'), csv)
-  }
 
   return (
     <div className="space-y-6">
@@ -115,16 +75,6 @@ export function CustomersListPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {isAdmin ? (
-            <Button
-              variant="secondary"
-              onClick={handleExportCsv}
-              disabled={list.loading || list.items.length === 0}
-            >
-              <Download className="h-4 w-4" />
-              Exportar CSV
-            </Button>
-          ) : null}
           <Link to="/customers/new">
             <Button>
               <Plus className="h-4 w-4" />

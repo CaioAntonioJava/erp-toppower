@@ -3,7 +3,6 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
-  Download,
   Eye,
   Package,
   Plus,
@@ -28,7 +27,6 @@ import type { ProductResponse, UnitType } from '../types/product'
 import { UNIT_TYPE_LABELS } from '../types/product'
 import type { RegistrationStatus } from '../types/registration'
 import { useAuth } from '../context/AuthContext'
-import { defaultCsvFilename, downloadCsv, toCsv } from '../lib/csv'
 import { useEntityList } from '../hooks/useEntityList'
 
 const STATUS_OPTIONS = [
@@ -37,20 +35,7 @@ const STATUS_OPTIONS = [
   { value: 'INATIVO', label: 'Inativos' },
 ]
 
-const CSV_HEADERS = [
-  'Código',
-  'Nome',
-  'Unidade',
-  'Preço',
-  'Estoque',
-  'Status',
-  'Criado em',
-  'Criado por',
-  'Atualizado em',
-  'Atualizado por',
-]
-
-/** Formatador de moeda BRL compartilhado pela tabela e pelo CSV. */
+/** Formatador de moeda BRL para a tabela. */
 const brlFormatter = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
   currency: 'BRL',
@@ -84,16 +69,6 @@ function formatDate(iso: string | null | undefined): string {
   })
 }
 
-function productToCsvRow(p: ProductResponse): unknown[] {
-  return [
-    p.code, p.name, formatUnitType(p.unitType),
-    formatPrice(p.price), formatStock(p.stockQuantity),
-    p.status,
-    formatDate(p.createdAt), p.createdBy ?? '',
-    formatDate(p.updatedAt), p.updatedBy ?? '',
-  ]
-}
-
 export function ProductsListPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
@@ -112,12 +87,6 @@ export function ProductsListPage() {
     },
   })
 
-  function handleExportCsv() {
-    if (!list.data) return
-    const csv = toCsv(CSV_HEADERS, list.data.content.map(productToCsvRow))
-    downloadCsv(defaultCsvFilename('erp-produtos'), csv)
-  }
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -134,16 +103,6 @@ export function ProductsListPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {isAdmin ? (
-            <Button
-              variant="secondary"
-              onClick={handleExportCsv}
-              disabled={list.loading || list.items.length === 0}
-            >
-              <Download className="h-4 w-4" />
-              Exportar CSV
-            </Button>
-          ) : null}
           <Link to="/products/new">
             <Button>
               <Plus className="h-4 w-4" />
