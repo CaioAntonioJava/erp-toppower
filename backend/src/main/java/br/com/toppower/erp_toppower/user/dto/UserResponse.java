@@ -1,8 +1,10 @@
 package br.com.toppower.erp_toppower.user.dto;
 
+import br.com.toppower.erp_toppower.tenant.dto.TenantSummary;
 import br.com.toppower.erp_toppower.user.enums.Role;
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.util.List;
 import java.util.UUID;
 
 @Schema(name = "UserResponse", description = "Representação pública de um usuário retornado pela API.")
@@ -22,6 +24,10 @@ public record UserResponse(
                 example = "ROLE_MANAGER",
                 allowableValues = {"ROLE_ADMIN", "ROLE_MANAGER"},
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        Role role
+        Role role,
+
+        @Schema(description = "Empresas (tenants) às quais o usuário possui acesso.",
+                requiredMode = Schema.RequiredMode.REQUIRED)
+        List<TenantSummary> tenants
 ) {
 }

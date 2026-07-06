@@ -4,10 +4,15 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 
+import java.util.List;
+import java.util.UUID;
+
 @Schema(name = "UserCreateRequest", description = "Dados para cadastro de novo usuário. " +
-        "A role é definida automaticamente como ROLE_MANAGER no cadastro.")
+        "A role é definida automaticamente como ROLE_MANAGER no cadastro. O admin seleciona " +
+        "a quais empresas (tenants) o usuário terá acesso — ao menos uma é obrigatória.")
 public record UserCreateRequest(
 
         @Schema(description = "E-mail único do usuário. Será usado como credencial de login.",
@@ -29,7 +34,13 @@ public record UserCreateRequest(
                 example = "S3nh@Forte!", requiredMode = Schema.RequiredMode.REQUIRED,
                 minLength = 8, maxLength = 200, format = "password")
         @NotBlank(message = "Confirmação de senha é obrigatória")
-        String passwordConfirmation
+        String passwordConfirmation,
+
+        @Schema(description = "Lista de UUIDs das empresas (tenants) às quais o usuário terá acesso. " +
+                "Ao menos uma deve ser informada.",
+                requiredMode = Schema.RequiredMode.REQUIRED)
+        @NotEmpty(message = "Selecione ao menos uma empresa")
+        List<UUID> tenantUuids
 ) {
 
     /**

@@ -2,6 +2,9 @@ package br.com.toppower.erp_toppower.user.repository;
 
 import br.com.toppower.erp_toppower.user.entity.UserTenant;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -21,4 +24,14 @@ public interface UserTenantRepository extends JpaRepository<UserTenant, UUID> {
      * empresas da tela de login (via email→userUuid) e o switcher pós-login.
      */
     List<UserTenant> findAllByUserUuid(UUID userUuid);
+
+    /**
+     * Remove todos os vínculos de um usuário via DML direto (executa
+     * imediatamente, sem carregar as entidades). Usado antes de excluir o
+     * usuário (hard delete), já que não há FK física entre {@code user_tenants}
+     * e {@code users}, mas limpamos para não deixar vínculos órfãos.
+     */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("delete from UserTenant ut where ut.userUuid = :userUuid")
+    void deleteAllByUserUuid(@Param("userUuid") UUID userUuid);
 }

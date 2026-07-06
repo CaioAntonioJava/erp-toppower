@@ -36,10 +36,10 @@ public class UserController {
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(
             summary = "Cadastrar novo usuário",
-            description = "Cria um novo usuário no sistema e o vincula automaticamente ao tenant "
-                    + "(empresa) da sessão corrente do admin autenticado. O usuário criado só "
-                    + "terá acesso aos dados daquele tenant. Acesso restrito a administradores "
-                    + "(ROLE_ADMIN). O e-mail deve ser único no sistema."
+            description = "Cria um novo usuário no sistema e o vincula a cada uma das empresas "
+                    + "(tenants) selecionadas no corpo da requisição. O usuário poderá acessar "
+                    + "todas as empresas informadas — ao menos uma é obrigatória. Acesso restrito "
+                    + "a administradores (ROLE_ADMIN). O e-mail deve ser único no sistema."
     )
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasRole('ADMIN')")
@@ -56,9 +56,8 @@ public class UserController {
             @ApiResponse(responseCode = "409", description = "Já existe um usuário com o e-mail informado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<UserResponse> create(@AuthenticationPrincipal UserDetailsImpl principal,
-                                               @Valid @RequestBody UserCreateRequest request) {
-        UserResponse response = userService.create(request, principal.tenantUuid());
+    public ResponseEntity<UserResponse> create(@Valid @RequestBody UserCreateRequest request) {
+        UserResponse response = userService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -152,6 +151,30 @@ public class UserController {
     public ResponseEntity<Void> resetPassword(@PathVariable UUID id,
                                                @Valid @RequestBody ResetPasswordRequest request) {
         userService.resetPassword(id, request);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping(value = "/{id}")
+    @Operation(
+            summary = "Excluir usuário",
+            description = "Exclui permanentemente um usuário e seus vínculos com empresas (tenants). "
+                    + "Bloqueia a auto-exclusão: o admin não pode excluir a própria conta. Acesso "
+                    + "restrito a administradores (ROLE_ADMIN)."
+    )
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasRole('ADMIN')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Usuário excluído com sucesso."),
+            @ApiResponse(responseCode = "401", description = "Token ausente, inválido ou expirado.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "403", description = "Tentativa de excluir a própria conta ou falta de ROLE_ADMIN.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+    })
+    public ResponseEntity<Void> delete(@AuthenticationPrincipal UserDetailsImpl principal,
+                                       @PathVariable UUID id) {
+        userService.delete(id, principal.uuid());
         return ResponseEntity.noContent().build();
     }
 
