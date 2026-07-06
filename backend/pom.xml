@@ -47,6 +47,9 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
+		<!-- AOP: habilita @Aspect para o TenantFilterAspect (filtro de tenant por requisição).
+		     O starter-security já traz spring-aop transitivamente; a API @Aspect (AspectJ)
+		     está disponível via spring-context (gerenciado pelo parent). -->
 
 		<!-- JWT (JJWT 0.12.x) -->
 		<dependency>
