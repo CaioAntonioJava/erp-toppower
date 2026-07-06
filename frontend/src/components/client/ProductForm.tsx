@@ -33,6 +33,20 @@ function parseNumber(value: string): number | null {
   return Number.isFinite(n) ? n : null
 }
 
+/**
+ * Completa os centavos de um valor monetário digitado: se o usuário não
+ * informou a parte decimal, anexa ",00" (ex.: "5" → "5,00"). Caso termine
+ * com um separador sem casas (ex.: "5,"), anexa "00". Os demais casos são
+ * devolvidos inalterados, respeitando o que o usuário digitou.
+ */
+function fillCents(value: string): string {
+  const trimmed = value.trim()
+  if (!trimmed) return trimmed
+  if (!/[.,]/.test(trimmed)) return `${trimmed},00`
+  if (/[.,]$/.test(trimmed)) return `${trimmed}00`
+  return trimmed
+}
+
 export function ProductForm({
   product,
   onSaveCreate,
@@ -61,7 +75,7 @@ export function ProductForm({
     product?.unitType ?? 'UNIDADE',
   )
   const [price, setPrice] = useState<string>(
-    product?.price != null ? String(product.price) : '',
+    product?.price != null ? fillCents(String(product.price)) : '',
   )
   const [stockQuantity, setStockQuantity] = useState<string>(
     product?.stockQuantity != null ? String(product.stockQuantity) : '',
@@ -223,16 +237,17 @@ export function ProductForm({
           />
           <Input
             label="Preço (R$)"
-            type="number"
+            type="text"
             inputMode="decimal"
-            step="0.01"
-            min={0.01}
             value={price}
             onChange={(e) => setPrice(e.target.value)}
-            onBlur={getBlurHandler('price')}
+            onBlur={() => {
+              getBlurHandler('price')()
+              setPrice((prev) => fillCents(prev))
+            }}
             error={shouldShowError('price', fieldErrors.price)}
             required
-            hint="Preço de custo por unidade."
+            hint="Preço de custo por unidade. Use vírgula para os centavos."
           />
           <Input
             label="Estoque"
