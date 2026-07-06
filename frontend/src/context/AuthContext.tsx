@@ -7,7 +7,11 @@ import {
   useState,
 } from 'react'
 import type { ReactNode } from 'react'
-import { login as apiLogin, me as apiMe } from '../api/auth.api'
+import {
+  login as apiLogin,
+  me as apiMe,
+  switchTenant as apiSwitchTenant,
+} from '../api/auth.api'
 import { getProfileByUserId } from '../api/profile.api'
 import { TOKEN_KEY } from '../api/client'
 import { toApiError } from '../lib/errors'
@@ -29,6 +33,8 @@ interface AuthContextValue {
   hasProfile: boolean | null
   signIn: (payload: LoginRequest) => Promise<AuthenticatedUser>
   signOut: () => void
+  /** Troca o tenant da sessão corrente (reemite o JWT). */
+  switchTenant: (tenantUuid: string) => Promise<AuthenticatedUser>
   /** Força a releitura do usuário a partir do /me. */
   refresh: () => Promise<AuthenticatedUser | null>
   /** Re-checa se o usuário autenticado possui perfil cadastrado. */
@@ -166,6 +172,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setHasProfile(null)
   }, [])
 
+  const switchTenant = useCallback(
+    async (tenantUuid: string): Promise<AuthenticatedUser> => {
+      const response = await apiSwitchTenant({ tenantUuid })
+      localStorage.setItem(TOKEN_KEY, response.accessToken)
+      setUser(response.user)
+      // Admins não precisam completar perfil — pula a checagem.
+      if (adminBypassesProfile(response.user.role)) {
+        setHasProfile(true)
+        return response.user
+      }
+      setHasProfile(null)
+      try {
+        const ok = await checkHasProfile(response.user.uuid)
+        setHasProfile(ok)
+      } catch {
+        setHasProfile(null)
+      }
+      return response.user
+    },
+    [],
+  )
+
   const refresh = useCallback(async () => {
     const u = await loadUserFromToken()
     setUser(u)
@@ -180,10 +208,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       hasProfile,
       signIn,
       signOut,
+      switchTenant,
       refresh,
       refreshProfileStatus,
     }),
-    [user, isLoading, hasProfile, signIn, signOut, refresh, refreshProfileStatus],
+    [user, isLoading, hasProfile, signIn, signOut, switchTenant, refresh, refreshProfileStatus],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
