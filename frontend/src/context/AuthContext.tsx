@@ -14,9 +14,7 @@ import { toApiError } from '../lib/errors'
 import type {
   AuthenticatedUser,
   LoginRequest,
-  RegisterRequest,
 } from '../types/api'
-import { register as apiRegister } from '../api/user.api'
 
 interface AuthContextValue {
   user: AuthenticatedUser | null
@@ -30,7 +28,6 @@ interface AuthContextValue {
    */
   hasProfile: boolean | null
   signIn: (payload: LoginRequest) => Promise<AuthenticatedUser>
-  signUp: (payload: RegisterRequest) => Promise<AuthenticatedUser>
   signOut: () => void
   /** Força a releitura do usuário a partir do /me. */
   refresh: () => Promise<AuthenticatedUser | null>
@@ -163,26 +160,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [],
   )
 
-  const signUp = useCallback(
-    async (payload: RegisterRequest): Promise<AuthenticatedUser> => {
-      // Cria o usuário e, em seguida, autentica automaticamente com as
-      // mesmas credenciais. Assim o usuário recém-cadastrado já entra no
-      // sistema sem precisar passar pela tela de login.
-      await apiRegister(payload)
-      const response = await apiLogin({
-        email: payload.email,
-        password: payload.password,
-      })
-      localStorage.setItem(TOKEN_KEY, response.accessToken)
-      setUser(response.user)
-      // Usuário recém-criado não tem perfil — exceto admins, que pulam
-      // essa etapa por papel.
-      setHasProfile(adminBypassesProfile(response.user.role))
-      return response.user
-    },
-    [],
-  )
-
   const signOut = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY)
     setUser(null)
@@ -202,12 +179,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isLoading,
       hasProfile,
       signIn,
-      signUp,
       signOut,
       refresh,
       refreshProfileStatus,
     }),
-    [user, isLoading, hasProfile, signIn, signUp, signOut, refresh, refreshProfileStatus],
+    [user, isLoading, hasProfile, signIn, signOut, refresh, refreshProfileStatus],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

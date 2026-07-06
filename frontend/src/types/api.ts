@@ -4,11 +4,21 @@ export type Role = 'ROLE_ADMIN' | 'ROLE_MANAGER'
 
 export type ProfileStatus = 'ATIVO' | 'INATIVO'
 
+/** Resumo de um tenant (empresa operadora) para seleção/troca. */
+export interface TenantSummary {
+  uuid: string
+  displayName: string
+  code: string
+  cnpj?: string
+}
+
 /** Usuário autenticado (retornado em /auth/login e /me). Espelha LoginResponse.AuthenticatedUser. */
 export interface AuthenticatedUser {
   uuid: string
   email: string
   role: Role
+  tenantUuid: string | null
+  tenants: TenantSummary[]
 }
 
 /** Resposta de POST /api/v1/auth/login. */
@@ -23,6 +33,12 @@ export interface LoginResponse {
 export interface LoginRequest {
   email: string
   password: string
+  tenantUuid: string
+}
+
+/** Corpo de POST /api/v1/auth/switch-tenant. */
+export interface SwitchTenantRequest {
+  tenantUuid: string
 }
 
 /** Corpo de POST /api/v1/users (cadastro público). */

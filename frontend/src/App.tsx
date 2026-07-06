@@ -1,6 +1,5 @@
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { LoginPage } from './pages/LoginPage'
-import { RegisterPage } from './pages/RegisterPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { CompaniesListPage } from './pages/CompaniesListPage'
@@ -34,7 +33,6 @@ export default function App() {
     <Routes>
       {/* Rotas públicas */}
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
 
       {/* Rotas protegidas — compartilham o AppLayout (sidebar + topbar) */}
       <Route
@@ -92,6 +90,8 @@ export default function App() {
 
       {/* Compat: rota raiz redireciona para /login se não houver auth. */}
       <Route path="/index.html" element={<Navigate to="/" replace />} />
+      {/* Compat: /register não existe mais — cadastro de usuários agora é via admin. */}
+      <Route path="/register" element={<Navigate to="/login" replace />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   )
