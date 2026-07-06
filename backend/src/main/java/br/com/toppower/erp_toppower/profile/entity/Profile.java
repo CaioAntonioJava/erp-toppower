@@ -1,6 +1,8 @@
 package br.com.toppower.erp_toppower.profile.entity;
 
-import br.com.toppower.erp_toppower.person.entity.BasePerson;
+import br.com.toppower.erp_toppower.common.annotation.UpperCase;
+import br.com.toppower.erp_toppower.common.entity.BaseEntity;
+import br.com.toppower.erp_toppower.common.validation.ValidCpf;
 import br.com.toppower.erp_toppower.profile.enums.ProfileStatus;
 import br.com.toppower.erp_toppower.user.entity.User;
 import jakarta.persistence.Column;
@@ -22,17 +24,30 @@ import lombok.Setter;
  * {@link User} — aquele que o cadastrou — por meio de um relacionamento
  * 1:1 unidirecional.
  *
- * <p>Herdar {@link BasePerson} garante os campos compartilhados
- * (name, email, phone, cpf). A herança em cadeia inclui também
- * {@code BaseEntity}, que fornece identificador UUID e auditoria
- * (createdAt, updatedAt, createdBy, updatedBy).</p>
+ * <p><b>Entidade global (não tenant-scoped).</b> Diferente de Customer,
+ * Seller e demais entidades de negócio, o perfil pertence ao <i>usuário</i>,
+ * não à empresa (tenant) em que ele está operando no momento. Um usuário
+ * vinculado a múltiplas empresas preenche o perfil uma única vez; ao
+ * alternar entre tenants via switch-tenant, o mesmo perfil continua
+ * visível — sem duplicidade de CPF/dados pessoais.</p>
+ *
+ * <p>Por isso {@link Profile} herda diretamente de {@link BaseEntity}
+ * (UUID + auditoria) e <strong>não</strong> de {@code TenantScopedEntity}:
+ * não há coluna {@code tenant_uuid} nem filtro Hibernate por tenant. Os
+ * campos de pessoa (name, email, phone, cpf) são declarados localmente,
+ * espelhando {@code BasePerson}, mas sem o vínculo de tenant.</p>
+ *
+ * <p>O campo {@code cpf} é validado por {@link ValidCpf} (incluindo
+ * dígitos verificadores) e o {@code name} é normalizado para MAIÚSCULAS
+ * pelo {@code UpperCaseFieldListener} (registrado em {@link BaseEntity})
+ * antes de cada persistência/atualização.</p>
  */
 @Entity
 @Table(name = "profiles")
 @Getter
 @Setter
 @NoArgsConstructor
-public class Profile extends BasePerson {
+public class Profile extends BaseEntity {
 
     /**
      * Usuário responsável pelo cadastro deste perfil.
@@ -42,6 +57,20 @@ public class Profile extends BasePerson {
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", unique = true, nullable = false)
     private User user;
+
+    @UpperCase
+    @Column(name = "name", nullable = false, length = 150)
+    private String name;
+
+    @Column(name = "email", nullable = false, length = 150)
+    private String email;
+
+    @Column(name = "phone", length = 20)
+    private String phone;
+
+    @ValidCpf(message = "CPF inválido (dígitos verificadores incorretos ou formato incorreto)")
+    @Column(name = "cpf", nullable = false, length = 14, unique = true)
+    private String cpf;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)

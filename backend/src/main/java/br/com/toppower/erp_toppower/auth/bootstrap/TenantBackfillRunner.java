@@ -42,7 +42,7 @@ public class TenantBackfillRunner implements CommandLineRunner {
 
     /** Tabelas de negócio que herdam TenantScopedEntity (precisam de tenant_uuid). */
     private static final List<String> TENANT_TABLES = List.of(
-            "companies", "customers", "sellers", "profiles", "products",
+            "companies", "customers", "sellers", "products",
             "carriers", "suppliers", "quotations", "quotation_items",
             "sales_orders", "sales_order_items", "technical_proposals",
             "technical_proposal_objectives", "technical_proposal_product_items",

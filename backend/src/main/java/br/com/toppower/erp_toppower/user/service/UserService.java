@@ -122,13 +122,10 @@ public class UserService {
      * referenciam o usuário antes de excluí-lo:
      * <ol>
      *   <li>{@code profiles} — FK física não-nulável para {@code users.uuid}.
-     *       Deletado via {@link JdbcTemplate} (SQL nativo) para contornar o
-     *       {@code tenantFilter} do Hibernate: o admin pode estar logado em
-     *       um tenant diferente daquele do profile do usuário excluído, e o
-     *       filtro JPQL adicionaria {@code WHERE tenant_uuid = ?} — o que
-     *       poderia afetar zero linhas e deixar o profile órfão. SQL nativo
-     *       via JdbcTemplate não passa pelo filtro (mesmo padrão do
-     *       {@code TenantBackfillRunner}).</li>
+     *       Deletado via {@link JdbcTemplate} (SQL nativo). O {@code Profile}
+     *       é global (não tenant-scoped), mas mantemos o SQL nativo por
+     *       consistência com o padrão do projeto (UUID como BINARY(16)
+     *       requer UNHEX).</li>
      *   <li>{@code user_tenants} — vínculos lógicos (sem FK física), via
      *       bulk delete JPQL ({@code UserTenant} não é tenant-scoped).</li>
      * </ol>
@@ -147,7 +144,7 @@ public class UserService {
 
         // Profile: FK física profiles.user_id → users.uuid. O profile é
         // opcional (admin pode não ter perfil); o SQL nativo é no-op quando
-        // não há linha. Bypass do tenantFilter via JdbcTemplate.
+        // não há linha.
         //
         // O UUID é persistido como BINARY(16); passá-lo como java.util.UUID
         // ao JdbcTemplate pode não converter corretamente, então usamos

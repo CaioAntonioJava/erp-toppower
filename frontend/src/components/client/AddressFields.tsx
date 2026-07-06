@@ -100,11 +100,11 @@ export function AddressFields({
       onChange({
         ...value,
         // Só sobrescreve se a base local retornou valor (CEPs
-        // genéricos podem trazer logradouro/bairro null).
+        // genéricos podem trazer logradouro/bairro/cidade/UF null).
         street: cep.street ?? value.street,
         neighborhood: cep.neighborhood ?? value.neighborhood,
-        city: cep.city,
-        state: cep.state,
+        city: cep.city ?? value.city,
+        state: cep.state ?? value.state,
         zipCode: cep.zipCode,
       })
     } catch (err) {
