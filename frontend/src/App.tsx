@@ -12,6 +12,8 @@ import { SellersListPage } from './pages/SellersListPage'
 import { SellerFormPage } from './pages/SellerFormPage'
 import { ProductsListPage } from './pages/ProductsListPage'
 import { ProductFormPage } from './pages/ProductFormPage'
+import { CarriersListPage } from './pages/CarriersListPage'
+import { CarrierFormPage } from './pages/CarrierFormPage'
 import { QuotationsListPage } from './pages/QuotationsListPage'
 import { QuotationFormPage } from './pages/QuotationFormPage'
 import { QuotationDetailPage } from './pages/QuotationDetailPage'
@@ -62,6 +64,10 @@ export default function App() {
         <Route path="/products" element={<ProductsListPage />} />
         <Route path="/products/new" element={<ProductFormPage />} />
         <Route path="/products/:id" element={<ProductFormPage />} />
+        {/* Gestão de transportadoras — exclusiva de administradores. */}
+        <Route path="/carriers" element={<AdminRoute><CarriersListPage /></AdminRoute>} />
+        <Route path="/carriers/new" element={<AdminRoute><CarrierFormPage /></AdminRoute>} />
+        <Route path="/carriers/:id" element={<AdminRoute><CarrierFormPage /></AdminRoute>} />
         <Route path="/quotations" element={<QuotationsListPage />} />
         <Route path="/quotations/new" element={<QuotationFormPage />} />
         <Route path="/quotations/:id/edit" element={<QuotationFormPage />} />

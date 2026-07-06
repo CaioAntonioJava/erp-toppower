@@ -18,6 +18,13 @@ public interface CarrierRepository extends JpaRepository<Carrier, UUID> {
     Page<Carrier> findByStatus(CarrierStatus status, Pageable pageable);
 
     /**
+     * Verifica se já existe uma transportadora com o nome informado para o
+     * tenant dado. Usado pelo seed de transportadoras para garantir
+     * idempotência a cada boot (a migration V10 purgea a tabela).
+     */
+    boolean existsByCarrierNameAndTenantUuid(CarrierName carrierName, UUID tenantUuid);
+
+    /**
      * Busca flexível por nome (opcional) e/ou status (opcional).
      * <ul>
      *   <li>{@code carrierName} nulo → ignora o filtro de nome</li>

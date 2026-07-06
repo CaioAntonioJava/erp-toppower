@@ -4,6 +4,7 @@ import {
   Briefcase,
   Building2,
   ClipboardList,
+  Factory,
   FileText,
   FileUp,
   LayoutDashboard,
@@ -27,7 +28,7 @@ const navItems: NavItem[] = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/companies', label: 'Empresas (PJ)', icon: Building2 },
   { to: '/customers', label: 'Clientes (PF)', icon: User },
-  { to: '/suppliers', label: 'Fornecedores', icon: Truck },
+  { to: '/suppliers', label: 'Fornecedores', icon: Factory },
   { to: '/sellers', label: 'Vendedores', icon: Briefcase },
   { to: '/products', label: 'Produtos', icon: Package },
   { to: '/quotations', label: 'Propostas Comerciais', icon: FileText },
@@ -35,14 +36,23 @@ const navItems: NavItem[] = [
   { to: '/sales-orders', label: 'Pedidos de Venda', icon: ClipboardList },
 ]
 
+/** Item de menu exclusivo de administradores — gestão de transportadoras.
+ *  Exibido logo após Produtos, dentro do bloco de cadastros. */
+const carriersItem: NavItem = { to: '/carriers', label: 'Transportadoras', icon: Truck }
+
 /** Item de menu exclusivo de administradores — gestão de usuários do sistema. */
-const adminItem: NavItem = { to: '/users', label: 'Usuários', icon: UserCog }
+const usersItem: NavItem = { to: '/users', label: 'Usuários', icon: UserCog }
 
 /** Sidebar com os links principais. Mantida simples para um MVP. */
 export function Sidebar() {
   const { user } = useAuth()
   const isAdmin = user?.role === 'ROLE_ADMIN'
-  const items = isAdmin ? [...navItems, adminItem] : navItems
+  // Admin vê o item Transportadoras dentro do bloco de cadastros (logo
+  // após Produtos) e o item Usuários ao final. Gestores não veem nenhum
+  // dos dois.
+  const items = isAdmin
+    ? [...navItems.slice(0, 6), carriersItem, ...navItems.slice(6), usersItem]
+    : navItems
 
   return (
     <aside className="hidden w-60 shrink-0 border-r border-slate-200 bg-white px-4 py-6 md:flex md:flex-col dark:border-slate-800 dark:bg-slate-900">
@@ -87,8 +97,9 @@ export function Sidebar() {
                 </Button>
               ) : null}
 
-              {/* Separador entre o bloco de cadastros e os próximos módulos. */}
-              {item.to === '/products' ? (
+              {/* Separador entre o bloco de cadastros e os próximos módulos.
+                  Para admin, vem após Transportadoras; para gestor, após Produtos. */}
+              {(item.to === '/carriers' || (item.to === '/products' && !isAdmin)) ? (
                 <div
                   aria-hidden
                   className="mt-[18px] mb-3 h-px bg-slate-300/70 dark:bg-slate-700/70"
