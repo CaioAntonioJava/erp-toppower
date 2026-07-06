@@ -23,9 +23,12 @@ import { SalesOrderPrintPage } from './pages/SalesOrderPrintPage'
 import { TechnicalProposalsListPage } from './pages/TechnicalProposalsListPage'
 import { TechnicalProposalFormPage } from './pages/TechnicalProposalFormPage'
 import { TechnicalProposalDetailPage } from './pages/TechnicalProposalDetailPage'
+import { UsersListPage } from './pages/UsersListPage'
+import { UserFormPage } from './pages/UserFormPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { AppLayout } from './components/layout/AppLayout'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { AdminRoute } from './components/AdminRoute'
 
 /** Definição central das rotas da aplicação. */
 export default function App() {
@@ -71,6 +74,10 @@ export default function App() {
         <Route path="/technical-proposals/new" element={<TechnicalProposalFormPage />} />
         <Route path="/technical-proposals/:id/edit" element={<TechnicalProposalFormPage />} />
         <Route path="/technical-proposals/:id" element={<TechnicalProposalDetailPage />} />
+
+        {/* Rotas administrativas — gestão de usuários (ROLE_ADMIN). */}
+        <Route path="/users" element={<AdminRoute><UsersListPage /></AdminRoute>} />
+        <Route path="/users/new" element={<AdminRoute><UserFormPage /></AdminRoute>} />
       </Route>
 
       {/* Rota de impressão/PDF da proposta — sem AppLayout (sidebar/topbar),

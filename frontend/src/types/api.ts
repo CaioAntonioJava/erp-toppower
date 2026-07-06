@@ -41,7 +41,7 @@ export interface SwitchTenantRequest {
   tenantUuid: string
 }
 
-/** Corpo de POST /api/v1/users (cadastro público). */
+/** Corpo de POST /api/v1/users (cadastro de usuário pelo admin). */
 export interface RegisterRequest {
   email: string
   password: string
@@ -51,6 +51,11 @@ export interface RegisterRequest {
 /** Corpo de PATCH /api/v1/users/{id}/password. */
 export interface ChangePasswordRequest {
   currentPassword: string
+  newPassword: string
+}
+
+/** Corpo de PATCH /api/v1/users/{id}/reset-password (admin redefine senha). */
+export interface ResetPasswordRequest {
   newPassword: string
 }
 

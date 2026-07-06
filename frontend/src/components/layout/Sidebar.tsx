@@ -10,10 +10,12 @@ import {
   Package,
   Truck,
   User,
+  UserCog,
   Users,
   Wrench,
 } from 'lucide-react'
 import { Button } from '../ui/Button'
+import { useAuth } from '../../context/AuthContext'
 
 interface NavItem {
   to: string
@@ -33,8 +35,15 @@ const navItems: NavItem[] = [
   { to: '/sales-orders', label: 'Pedidos de Venda', icon: ClipboardList },
 ]
 
+/** Item de menu exclusivo de administradores — gestão de usuários do sistema. */
+const adminItem: NavItem = { to: '/users', label: 'Usuários', icon: UserCog }
+
 /** Sidebar com os links principais. Mantida simples para um MVP. */
 export function Sidebar() {
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'ROLE_ADMIN'
+  const items = isAdmin ? [...navItems, adminItem] : navItems
+
   return (
     <aside className="hidden w-60 shrink-0 border-r border-slate-200 bg-white px-4 py-6 md:flex md:flex-col dark:border-slate-800 dark:bg-slate-900">
       <div className="mb-8 flex items-center gap-2 px-2">
@@ -45,7 +54,7 @@ export function Sidebar() {
       </div>
 
       <nav className="flex flex-col gap-1">
-        {navItems.map((item) => {
+        {items.map((item) => {
           const Icon = item.icon
           return (
             <Fragment key={item.to}>
@@ -80,6 +89,14 @@ export function Sidebar() {
 
               {/* Separador entre o bloco de cadastros e os próximos módulos. */}
               {item.to === '/products' ? (
+                <div
+                  aria-hidden
+                  className="mt-[18px] mb-3 h-px bg-slate-300/70 dark:bg-slate-700/70"
+                />
+              ) : null}
+
+              {/* Separador antes do bloco administrativo (Usuários). */}
+              {item.to === '/sales-orders' && isAdmin ? (
                 <div
                   aria-hidden
                   className="mt-[18px] mb-3 h-px bg-slate-300/70 dark:bg-slate-700/70"
