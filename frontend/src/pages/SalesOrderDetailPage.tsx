@@ -228,10 +228,13 @@ export function SalesOrderDetailPage() {
     )
   }
 
-  // Edição permitida apenas enquanto o pedido não está em estado terminal.
+  // Edição permitida apenas enquanto o pedido está ABERTO.
   const canEdit = salesOrder.status === 'ABERTO'
-  // Cancelamento permitido apenas antes da finalização.
-  const canCancel = canEdit
+  // Cancelamento permitido para ABERTO e FINALIZADO. Cancelar um
+  // FINALIZADO estorna automaticamente o estoque (backend). CANCELADO é
+  // terminal.
+  const canCancel =
+    salesOrder.status === 'ABERTO' || salesOrder.status === 'FINALIZADO'
   // Avanço de status permitido enquanto houver próximo estado.
   const next = nextStatus(salesOrder.status)
   const canAdvance = next != null
@@ -520,7 +523,11 @@ export function SalesOrderDetailPage() {
       <ConfirmDialog
         open={confirmCancel}
         title="Cancelar pedido?"
-        description={`O pedido ${salesOrder.number} será marcado como CANCELADO. O registro não é apagado. Pedidos CANCELADOS não podem ser revertidos por este endpoint.`}
+        description={
+          salesOrder.status === 'FINALIZADO'
+            ? `O pedido ${salesOrder.number} será marcado como CANCELADO. Como já estava finalizado, as saídas de estoque serão estornadas automaticamente, devolvendo o saldo dos itens aos produtos. O registro não é apagado.`
+            : `O pedido ${salesOrder.number} será marcado como CANCELADO. O registro não é apagado. Pedidos CANCELADOS não podem ser revertidos.`
+        }
         confirmText="Cancelar pedido"
         confirmVariant="danger"
         isLoading={canceling}

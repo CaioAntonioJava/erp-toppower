@@ -136,8 +136,11 @@ export function SalesOrdersListPage() {
     }
   }
 
-  // Pedidos FINALIZADO não podem ser cancelados (regra do backend).
-  const canCancel = (o: SalesOrderSummaryResponse) => o.status === 'ABERTO'
+  // Pedidos ABERTO e FINALIZADO podem ser cancelados. Cancelar um
+  // FINALIZADO estorna automaticamente o estoque (backend). CANCELADO é
+  // terminal.
+  const canCancel = (o: SalesOrderSummaryResponse) =>
+    o.status === 'ABERTO' || o.status === 'FINALIZADO'
 
   return (
     <div className="space-y-6">
@@ -342,7 +345,11 @@ export function SalesOrdersListPage() {
       <ConfirmDialog
         open={!!confirmCancel}
         title="Cancelar pedido?"
-        description={`O pedido ${confirmCancel?.number} será marcado como CANCELADO. O registro não é apagado.`}
+        description={
+          confirmCancel?.status === 'FINALIZADO'
+            ? `O pedido ${confirmCancel?.number} será marcado como CANCELADO. Como já estava finalizado, as saídas de estoque serão estornadas automaticamente, devolvendo o saldo dos itens aos produtos. O registro não é apagado.`
+            : `O pedido ${confirmCancel?.number} será marcado como CANCELADO. O registro não é apagado.`
+        }
         confirmText="Cancelar pedido"
         confirmVariant="danger"
         isLoading={canceling}
