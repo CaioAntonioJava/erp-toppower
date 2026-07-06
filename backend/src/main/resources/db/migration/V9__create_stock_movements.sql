@@ -29,7 +29,7 @@
 --
 -- Convenções do projeto:
 --   * UUIDs são armazenados como BINARY(16) (mesmo formato das demais
---     tabelas — ver V5__seed_initial_data.sql).
+--     tabelas; a antiga V5__seed_initial_data.sql foi removida).
 --   * Auditoria (created_at, updated_at, created_by, updated_by) segue
 --     o mesmo padrão das demais tabelas (Hibernate @AuditingEntityListener).
 --   * As FKs lógicas (product_uuid, source_uuid, reversal_of_uuid) NÃO
