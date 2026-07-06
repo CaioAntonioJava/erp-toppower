@@ -19,11 +19,12 @@ import java.util.List;
 /**
  * Seed das transportadoras padrão do sistema.
  *
- * <p>A migration V10 purgea a tabela {@code carriers} a cada boot
- * ({@code spring.sql.init.mode=always}), o que esvaziaria o dropdown de
- * transportadoras em cotações/pedidos. Este runner recria, de forma
- * idempotente, um registro ATIVO para cada valor do enum
- * {@link CarrierName} em todos os tenants existentes.</p>
+ * <p>Cria, de forma idempotente, um registro ATIVO para cada valor do
+ * enum {@link CarrierName} em todos os tenants existentes. A unique
+ * constraint {@code uk_carrier_name_tenant} (adicionada pela migration
+ * V13) garante a nível de banco que não haja duplicatas por
+ * (carrier_name, tenant_uuid), de modo que este runner é no-op em boots
+ * subsequentes para tenants já semeados.</p>
  *
  * <p>Roda após {@code BootstrapRunner} (0), {@code TenantBackfillRunner}
  * (10) e {@code CepBootstrapRunner} (20), garantindo que os tenants já

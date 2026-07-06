@@ -20,7 +20,8 @@ public interface CarrierRepository extends JpaRepository<Carrier, UUID> {
     /**
      * Verifica se já existe uma transportadora com o nome informado para o
      * tenant dado. Usado pelo seed de transportadoras para garantir
-     * idempotência a cada boot (a migration V10 purgea a tabela).
+     * idempotência a cada boot. Reforçado pela unique constraint
+     * {@code uk_carrier_name_tenant} (migration V13).
      */
     boolean existsByCarrierNameAndTenantUuid(CarrierName carrierName, UUID tenantUuid);
 

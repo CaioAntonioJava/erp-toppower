@@ -9,6 +9,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -40,7 +41,13 @@ import java.math.BigDecimal;
  * momento da persistência inicial.</p>
  */
 @Entity
-@Table(name = "carriers")
+@Table(
+    name = "carriers",
+    uniqueConstraints = @UniqueConstraint(
+        name = "uk_carrier_name_tenant",
+        columnNames = {"carrier_name", "tenant_uuid"}
+    )
+)
 @Getter
 @Setter
 @NoArgsConstructor
