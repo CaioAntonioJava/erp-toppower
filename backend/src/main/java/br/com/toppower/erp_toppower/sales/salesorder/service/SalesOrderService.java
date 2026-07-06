@@ -27,6 +27,8 @@ import br.com.toppower.erp_toppower.sales.salesorder.exception.SalesOrderNotFoun
 import br.com.toppower.erp_toppower.sales.salesorder.mapper.SalesOrderMapper;
 import br.com.toppower.erp_toppower.sales.salesorder.repository.SalesOrderItemRepository;
 import br.com.toppower.erp_toppower.sales.salesorder.repository.SalesOrderRepository;
+import br.com.toppower.erp_toppower.stock.enums.MovementSource;
+import br.com.toppower.erp_toppower.stock.service.StockService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -55,7 +57,10 @@ import java.util.UUID;
  *   <li>Listar com filtros (status, intervalo de datas, número, cliente,
  *       vendedor, número da proposta de origem);</li>
  *   <li>Avançar o status (ABERTO → FINALIZADO)
- *       e cancelar (soft via status).</li>
+ *       — baixa o estoque dos itens via {@code StockService} (saída
+ *       registrada no diário {@code stock_movements});</li>
+ *   <li>Cancelar (soft via status) — pedidos FINALIZADOS têm o
+ *       estoque estornado automaticamente.</li>
  * </ul>
  *
  * <p><b>Sem margem de lucro</b> — o pedido é o documento externo enviado
@@ -75,6 +80,7 @@ public class SalesOrderService {
     private final CustomerRepository customerRepository;
     private final CompanyRepository companyRepository;
     private final SellerRepository sellerRepository;
+    private final StockService stockService;
 
     public SalesOrderService(SalesOrderRepository salesOrderRepository,
                              SalesOrderItemRepository salesOrderItemRepository,
@@ -82,7 +88,8 @@ public class SalesOrderService {
                              QuotationItemRepository quotationItemRepository,
                              CustomerRepository customerRepository,
                              CompanyRepository companyRepository,
-                             SellerRepository sellerRepository) {
+                             SellerRepository sellerRepository,
+                             StockService stockService) {
         this.salesOrderRepository = salesOrderRepository;
         this.salesOrderItemRepository = salesOrderItemRepository;
         this.quotationRepository = quotationRepository;
@@ -90,6 +97,7 @@ public class SalesOrderService {
         this.customerRepository = customerRepository;
         this.companyRepository = companyRepository;
         this.sellerRepository = sellerRepository;
+        this.stockService = stockService;
     }
 
     // ---------------------------------------------------------------------
@@ -325,6 +333,14 @@ public class SalesOrderService {
      * Avança o status do pedido para o próximo estado do ciclo:
      * {@code ABERTO → FINALIZADO}. Pular etapas ou avançar a partir de
      * estado terminal lança 409.
+     *
+     * <p>Ao concluir ({@code → FINALIZADO}), baixa o estoque de cada
+     * item via {@link StockService#registrarSaidaEmLote}. A baixa é
+     * idempotente: se já existirem saídas registradas para este pedido
+     * (ex.: retomada após falha parcial), apenas avança o status sem
+     * baixar de novo. Se o saldo de qualquer item for insuficiente,
+     * {@code InsufficientStockException} é lançada e a transação inteira
+     * sofre rollback — o status não avança e nada é baixado.</p>
      */
     @Transactional
     public SalesOrderResponse advanceStatus(UUID id) {
@@ -336,6 +352,23 @@ public class SalesOrderService {
             throw new SalesOrderBusinessException(
                     "Não há próximo status a partir de " + o.getStatus() + ".");
         }
+
+        // Baixa de estoque apenas na transição ABERTO → FINALIZADO.
+        // Idempotente: não re-baixa se já houver saídas primárias para
+        // este pedido (proteção contra duplo-clique/retomada).
+        if (next == SalesOrderStatus.FINALIZADO
+                && !stockService.existeSaidaNaoEstornada(o.getUuid(), MovementSource.SALES_ORDER)) {
+            List<SalesOrderItem> items = salesOrderItemRepository
+                    .findBySalesOrderUuidOrderByCreatedAtAsc(id);
+            List<StockService.SaidaItem> saidas = items.stream()
+                    .map(it -> new StockService.SaidaItem(it.getProductUuid(), it.getQuantity()))
+                    .toList();
+            stockService.registrarSaidaEmLote(
+                    saidas, MovementSource.SALES_ORDER,
+                    o.getUuid(), o.getNumber(),
+                    "Pedido de venda " + o.getNumber());
+        }
+
         o.setStatus(next);
         SalesOrder saved = salesOrderRepository.save(o);
 
@@ -351,6 +384,20 @@ public class SalesOrderService {
     // Cancel (soft via status)
     // ---------------------------------------------------------------------
 
+    /**
+     * Cancela o pedido (soft via status).
+     *
+     * <p>Comportamento por status de origem:</p>
+     * <ul>
+     *   <li>{@code ABERTO} — apenas cancela (não houve baixa de estoque);</li>
+     *   <li>{@code FINALIZADO} — estorna todas as saídas de estoque do
+     *       pedido via {@link StockService#estornarSaidasPorOrigem}
+     *       (devolve o saldo) e então marca como {@code CANCELADO}.
+     *       Idempotente: se as saídas já foram estornadas, apenas
+     *       cancela;</li>
+     *   <li>{@code CANCELADO} — lança 409 (já cancelado).</li>
+     * </ul>
+     */
     @Transactional
     public SalesOrderResponse cancel(UUID id) {
         SalesOrder o = salesOrderRepository.findById(id)
@@ -360,8 +407,10 @@ public class SalesOrderService {
             throw new SalesOrderBusinessException("Pedido já está cancelado.");
         }
         if (o.getStatus() == SalesOrderStatus.FINALIZADO) {
-            throw new SalesOrderBusinessException(
-                    "Pedido " + o.getStatus() + " não pode ser cancelado.");
+            // Devolve o estoque das saídas ainda não estornadas deste pedido.
+            stockService.estornarSaidasPorOrigem(
+                    o.getUuid(), MovementSource.SALES_ORDER,
+                    "Cancelamento do pedido de venda " + o.getNumber());
         }
         o.setStatus(SalesOrderStatus.CANCELADO);
         SalesOrder saved = salesOrderRepository.save(o);

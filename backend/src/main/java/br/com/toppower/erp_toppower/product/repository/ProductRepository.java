@@ -2,9 +2,11 @@ package br.com.toppower.erp_toppower.product.repository;
 
 import br.com.toppower.erp_toppower.product.entity.Product;
 import br.com.toppower.erp_toppower.product.enums.ProductStatus;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -40,4 +42,14 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
     Page<Product> searchByQuery(@Param("status") ProductStatus status,
                                 @Param("query") String query,
                                 Pageable pageable);
+
+    /**
+     * Carrega um produto aplicando lock pessimista de escrita
+     * ({@code PESSIMISTIC_WRITE}). Usado pelo {@code StockService} antes de
+     * alterar o saldo, serializando vendas simultâneas do mesmo produto e
+     * evitando conditions de race nos testes do saldo.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT p FROM Product p WHERE p.uuid = :uuid")
+    Optional<Product> findByUuidForUpdate(@Param("uuid") UUID uuid);
 }

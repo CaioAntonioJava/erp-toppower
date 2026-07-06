@@ -27,6 +27,8 @@ import br.com.toppower.erp_toppower.sales.salesorder.exception.SalesOrderBusines
 import br.com.toppower.erp_toppower.sales.salesorder.exception.SalesOrderClientNotFoundException;
 import br.com.toppower.erp_toppower.sales.salesorder.exception.SalesOrderNotFoundException;
 import br.com.toppower.erp_toppower.seller.exception.DuplicateSellerCpfException;
+import br.com.toppower.erp_toppower.stock.exception.InsufficientStockException;
+import br.com.toppower.erp_toppower.stock.exception.StockMovementNotFoundException;
 import br.com.toppower.erp_toppower.seller.exception.DuplicateSellerEmailException;
 import br.com.toppower.erp_toppower.seller.exception.SellerNotFoundException;
 import br.com.toppower.erp_toppower.supplier.exception.DuplicateSupplierCnpjException;
@@ -229,6 +231,27 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(QuotationAlreadyConvertedException.class)
     public ResponseEntity<ApiError> handleQuotationAlreadyConverted(QuotationAlreadyConvertedException ex) {
         return build(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    // =====================================================================
+    // Estoque (Stock)
+    // =====================================================================
+
+    /**
+     * Saldo insuficiente para concluir uma saída de estoque (ex.: ao
+     * finalizar um pedido de venda). Usa 422 UNPROCESSABLE_ENTITY: a
+     * requisição é sintaticamente válida, mas a regra de negócio impede
+     * a execução. Distinto de 409 (conflito de estado) e 400 (entrada
+     * malformada).
+     */
+    @ExceptionHandler(InsufficientStockException.class)
+    public ResponseEntity<ApiError> handleInsufficientStock(InsufficientStockException ex) {
+        return build(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
+    }
+
+    @ExceptionHandler(StockMovementNotFoundException.class)
+    public ResponseEntity<ApiError> handleStockMovementNotFound(StockMovementNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
     @ExceptionHandler(SupplierNotFoundException.class)

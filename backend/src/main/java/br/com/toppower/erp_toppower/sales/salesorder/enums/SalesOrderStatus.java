@@ -8,13 +8,17 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * <p>Transições válidas (controladas pelo serviço):</p>
  * <ul>
  *   <li>{@link #ABERTO} → {@link #FINALIZADO};</li>
- *   <li>{@link #CANCELADO} é terminal e só pode ser alcançado a partir de
- *       {@link #ABERTO} (antes da finalização).</li>
+ *   <li>{@link #ABERTO} → {@link #CANCELADO} (antes da finalização —
+ *       sem efeito sobre o estoque);</li>
+ *   <li>{@link #FINALIZADO} → {@link #CANCELADO} (cancelamento com
+ *       estorno automático das saídas de estoque registradas no
+ *       finalizar).</li>
  * </ul>
  *
  * <ul>
  *   <li>{@link #ABERTO} — pedido registrado, em andamento. Estado inicial.</li>
- *   <li>{@link #FINALIZADO} — pedido concluído. Estado terminal de sucesso.</li>
+ *   <li>{@link #FINALIZADO} — pedido concluído; o estoque dos itens foi
+ *       baixado. Ainda pode ser cancelado (com estorno do estoque).</li>
  *   <li>{@link #CANCELADO} — pedido cancelado (soft via status).</li>
  * </ul>
  */

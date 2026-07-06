@@ -263,7 +263,10 @@ public class SalesOrderController {
             produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Avançar status do pedido",
             description = "Avança o status do pedido para o próximo estado do ciclo: "
-                    + "ABERTO → FINALIZADO. Avançar a partir de estado terminal "
+                    + "ABERTO → FINALIZADO. Ao finalizar, baixa o estoque dos itens "
+                    + "(saídas registradas no diário de movimentações). Se o saldo de "
+                    + "algum item for insuficiente, retorna 422 e o status não é "
+                    + "alterado. Avançar a partir de estado terminal "
                     + "(FINALIZADO/CANCELADO) retorna 409.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
@@ -285,8 +288,10 @@ public class SalesOrderController {
     @DeleteMapping(value = "/{id:" + UUID_REGEX + "}", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Cancelar pedido (soft)",
             description = "Define o status do pedido como CANCELADO. Não remove fisicamente o "
-                    + "registro. Pedidos FINALIZADO não podem ser cancelados por este "
-                    + "endpoint.")
+                    + "registro. Cancelar um pedido FINALIZADO estorna automaticamente as "
+                    + "saídas de estoque registradas no finalizar, devolvendo o saldo dos "
+                    + "itens ao estoque. Pedidos ABERTO são apenas cancelados (sem efeito "
+                    + "sobre o estoque). Pedidos já CANCELADO retornam 409.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
     @ApiResponses({
