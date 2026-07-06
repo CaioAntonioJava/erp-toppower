@@ -13,6 +13,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class JwtService {
@@ -50,20 +51,27 @@ public class JwtService {
         }
     }
 
-    /**
-     * Gera um JWT assinado (HS256) contendo subject (e-mail) e role.
-     */
-    public String generateToken(UserDetailsImpl user) {
-        Instant now = Instant.now();
-        Instant exp = now.plus(expiration);
-        return Jwts.builder()
-                .subject(user.email())
-                .claim("role", user.role())
-                .issuedAt(Date.from(now))
-                .expiration(Date.from(exp))
-                .signWith(signingKey)
-                .compact();
+/**
+ * Gera um JWT assinado (HS256) contendo subject (e-mail), role e o tenant
+ * da sessão (UUID da empresa selecionada no login). O claim {@code tenant}
+ * é lido pelo {@code JwtAuthenticationFilter} para popular o
+ * {@code TenantContext}, que habilita o filtro de isolamento por tenant.
+ */
+public String generateToken(UserDetailsImpl user) {
+    Instant now = Instant.now();
+    Instant exp = now.plus(expiration);
+    var builder = Jwts.builder()
+            .subject(user.email())
+            .claim("role", user.role());
+    if (user.tenantUuid() != null) {
+        builder.claim("tenant", user.tenantUuid().toString());
     }
+    return builder
+            .issuedAt(Date.from(now))
+            .expiration(Date.from(exp))
+            .signWith(signingKey)
+            .compact();
+}
 
     /**
      * Extrai o subject (e-mail) do token, validando assinatura e expiração.
@@ -71,15 +79,37 @@ public class JwtService {
      */
     public Optional<String> extractEmail(String token) {
         try {
-            Claims claims = Jwts.parser()
-                    .verifyWith(signingKey)
-                    .build()
-                    .parseSignedClaims(token)
-                    .getPayload();
+            Claims claims = parseClaims(token);
             return Optional.of(claims.getSubject());
         } catch (JwtException | IllegalArgumentException e) {
             return Optional.empty();
         }
+    }
+
+    /**
+     * Extrai o claim {@code tenant} (UUID do tenant da sessão) do token.
+     * Retorna vazio se o token for inválido/expirado ou se não houver
+     * claim de tenant (tokens legados, pré-multi-tenancy).
+     */
+    public Optional<UUID> extractTenant(String token) {
+        try {
+            Claims claims = parseClaims(token);
+            String tenant = claims.get("tenant", String.class);
+            if (tenant == null || tenant.isBlank()) {
+                return Optional.empty();
+            }
+            return Optional.of(UUID.fromString(tenant));
+        } catch (JwtException | IllegalArgumentException e) {
+            return Optional.empty();
+        }
+    }
+
+    private Claims parseClaims(String token) {
+        return Jwts.parser()
+                .verifyWith(signingKey)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
     }
 
     public long getExpirationSeconds() {

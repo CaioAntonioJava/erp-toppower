@@ -12,11 +12,31 @@ import java.util.UUID;
 /**
  * Adapter que expõe a entidade {@link User} para o Spring Security,
  * mantendo a entidade JPA desacoplada de {@link UserDetails}.
+ *
+ * <p>Carrega também o {@code tenantUuid} da sessão corrente — o tenant
+ * selecionado no login (ou via switch-tenant). Esse UUID é:</p>
+ * <ul>
+ *   <li>gravado no JWT como claim {@code tenant} por {@code JwtService};</li>
+ *   <li>lido no filtro e populado no {@code TenantContext}, que habilita o
+ *       filtro Hibernate {@code tenantFilter} e alimenta o
+ *       {@code TenantEntityListener} no persist.</li>
+ * </ul>
  */
-public record UserDetailsImpl(UUID uuid, String email, String password, String role) implements UserDetails {
+public record UserDetailsImpl(UUID uuid, String email, String password, String role, UUID tenantUuid) implements UserDetails {
 
     public static UserDetailsImpl from(User user) {
-        return new UserDetailsImpl(user.getUuid(), user.getEmail(), user.getPassword(), user.getRole().name());
+        return new UserDetailsImpl(user.getUuid(), user.getEmail(), user.getPassword(),
+                user.getRole().name(), null);
+    }
+
+    /**
+     * Constroi o adapter com o tenant da sessão corrente (selecionado no
+     * login ou no switch-tenant). O {@code tenantUuid} é o que será gravado
+     * no JWT e usado para isolar as queries da sessão.
+     */
+    public static UserDetailsImpl from(User user, UUID tenantUuid) {
+        return new UserDetailsImpl(user.getUuid(), user.getEmail(), user.getPassword(),
+                user.getRole().name(), tenantUuid);
     }
 
     @Override
