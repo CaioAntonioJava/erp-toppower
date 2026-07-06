@@ -12,7 +12,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -37,21 +36,29 @@ public class UserController {
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(
             summary = "Cadastrar novo usuário",
-            description = "Cria um novo usuário no sistema. Endpoint público (não exige token JWT) "
-                    + "para permitir o bootstrap do primeiro usuário administrador. O e-mail deve ser único."
+            description = "Cria um novo usuário no sistema e o vincula automaticamente ao tenant "
+                    + "(empresa) da sessão corrente do admin autenticado. O usuário criado só "
+                    + "terá acesso aos dados daquele tenant. Acesso restrito a administradores "
+                    + "(ROLE_ADMIN). O e-mail deve ser único no sistema."
     )
-    @SecurityRequirements
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasRole('ADMIN')")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Usuário criado com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = UserResponse.class))),
             @ApiResponse(responseCode = "400", description = "Erro de validação nos campos enviados.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "401", description = "Token ausente, inválido ou expirado.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "403", description = "Usuário não possui ROLE_ADMIN.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "409", description = "Já existe um usuário com o e-mail informado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<UserResponse> create(@Valid @RequestBody UserCreateRequest request) {
-        UserResponse response = userService.create(request);
+    public ResponseEntity<UserResponse> create(@AuthenticationPrincipal UserDetailsImpl principal,
+                                               @Valid @RequestBody UserCreateRequest request) {
+        UserResponse response = userService.create(request, principal.tenantUuid());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -145,6 +152,31 @@ public class UserController {
     public ResponseEntity<Void> resetPassword(@PathVariable UUID id,
                                                @Valid @RequestBody ResetPasswordRequest request) {
         userService.resetPassword(id, request);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping(value = "/{id}/tenants/{tenantId}")
+    @Operation(
+            summary = "Vincular usuário a um tenant (empresa)",
+            description = "Permite que um administrador dê a um usuário acesso a um tenant "
+                    + "adicional. O usuário poderá então alternar entre seus tenants via "
+                    + "switch-tenant no login. Acesso restrito a administradores (ROLE_ADMIN)."
+    )
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasRole('ADMIN')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Vínculo criado com sucesso."),
+            @ApiResponse(responseCode = "401", description = "Token ausente, inválido ou expirado.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "403", description = "Usuário não possui ROLE_ADMIN.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "404", description = "Usuário ou tenant não encontrado.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "409", description = "Usuário já vinculado ao tenant.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+    })
+    public ResponseEntity<Void> linkTenant(@PathVariable UUID id, @PathVariable UUID tenantId) {
+        userService.linkTenant(id, tenantId);
         return ResponseEntity.noContent().build();
     }
 }
