@@ -2,7 +2,7 @@ package br.com.toppower.erp_toppower.supplier.entity;
 
 import br.com.toppower.erp_toppower.common.annotation.UpperCase;
 import br.com.toppower.erp_toppower.common.embeddable.Address;
-import br.com.toppower.erp_toppower.common.entity.BaseEntity;
+import br.com.toppower.erp_toppower.common.entity.TenantScopedEntity;
 import br.com.toppower.erp_toppower.common.validation.ValidCnpj;
 import br.com.toppower.erp_toppower.supplier.enums.SupplierStatus;
 import jakarta.persistence.AttributeOverride;
@@ -21,8 +21,10 @@ import lombok.Setter;
 /**
  * Entidade que representa um fornecedor do sistema.
  *
- * <p>Herdar {@link BaseEntity} fornece o identificador UUID e a auditoria
- * completa (createdAt, updatedAt, createdBy, updatedBy).</p>
+ * <p>Herdar {@link TenantScopedEntity} fornece o identificador UUID, a auditoria
+ * completa (createdAt, updatedAt, createdBy, updatedBy) e o discriminador de
+ * tenant ({@code tenant_uuid}) — fornecedores são dados de negócio isolados
+ * por empresa.</p>
  *
  * <p>Fornecedores são tipicamente pessoas jurídicas (CNPJ). O campo
  * {@code taxId} é validado por {@link ValidCnpj} (incluindo dígitos
@@ -33,7 +35,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class Supplier extends BaseEntity {
+public class Supplier extends TenantScopedEntity {
 
     /**
      * Razão social — nome oficial/registrado do fornecedor.

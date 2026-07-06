@@ -1,6 +1,6 @@
 package br.com.toppower.erp_toppower.sales.technicalproposal.entity;
 
-import br.com.toppower.erp_toppower.common.entity.BaseEntity;
+import br.com.toppower.erp_toppower.common.entity.TenantScopedEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Index;
@@ -33,7 +33,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @NoArgsConstructor
-public class TechnicalProposalObjective extends BaseEntity {
+public class TechnicalProposalObjective extends TenantScopedEntity {
 
     /**
      * UUID da {@link TechnicalProposal} à qual este objetivo pertence.

@@ -1,6 +1,6 @@
 package br.com.toppower.erp_toppower.sales.quotation.entity;
 
-import br.com.toppower.erp_toppower.common.entity.BaseEntity;
+import br.com.toppower.erp_toppower.common.entity.TenantScopedEntity;
 import br.com.toppower.erp_toppower.sales.quotation.enums.DiscountType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -41,7 +41,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @NoArgsConstructor
-public class QuotationItem extends BaseEntity {
+public class QuotationItem extends TenantScopedEntity {
 
     /**
      * UUID da {@link Quotation} à qual este item pertence.

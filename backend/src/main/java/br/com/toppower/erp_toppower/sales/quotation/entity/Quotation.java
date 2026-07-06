@@ -1,7 +1,7 @@
 package br.com.toppower.erp_toppower.sales.quotation.entity;
 
 import br.com.toppower.erp_toppower.common.annotation.UpperCase;
-import br.com.toppower.erp_toppower.common.entity.BaseEntity;
+import br.com.toppower.erp_toppower.common.entity.TenantScopedEntity;
 import br.com.toppower.erp_toppower.common.util.PricingMath;
 import br.com.toppower.erp_toppower.sales.quotation.enums.DiscountType;
 import br.com.toppower.erp_toppower.sales.quotation.enums.FreightType;
@@ -67,7 +67,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @NoArgsConstructor
-public class Quotation extends BaseEntity {
+public class Quotation extends TenantScopedEntity {
 
     /**
      * Número sequencial da proposta, sem prefixo. Ex.: {@code 1500},

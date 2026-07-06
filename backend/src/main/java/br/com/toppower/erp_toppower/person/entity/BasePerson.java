@@ -1,7 +1,7 @@
 package br.com.toppower.erp_toppower.person.entity;
 
 import br.com.toppower.erp_toppower.common.annotation.UpperCase;
-import br.com.toppower.erp_toppower.common.entity.BaseEntity;
+import br.com.toppower.erp_toppower.common.entity.TenantScopedEntity;
 import br.com.toppower.erp_toppower.common.validation.ValidCpf;
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
@@ -13,8 +13,10 @@ import lombok.Setter;
  * Entidade base com os campos compartilhados por entidades que representam
  * pessoas (físicas ou jurídicas) no sistema: nome, e-mail, telefone e CPF.
  *
- * <p>Herdar {@link BaseEntity} garante também o identificador UUID e a
- * auditoria completa (timestamps + autor).</p>
+ * <p>Herdar {@link TenantScopedEntity} garante também o identificador UUID,
+ * a auditoria completa (timestamps + autor) e o discriminador de tenant
+ * ({@code tenant_uuid}), já que pessoas (Customer, Seller, Profile) são
+ * dados de negócio pertencentes a um tenant.</p>
  *
  * <p>O campo {@code cpf} é validado por {@link ValidCpf} (incluindo
  * dígitos verificadores), portanto todas as entidades que herdam desta
@@ -30,7 +32,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public abstract class BasePerson extends BaseEntity {
+public abstract class BasePerson extends TenantScopedEntity {
 
     @UpperCase
     @Column(name = "name", nullable = false, length = 150)

@@ -2,7 +2,7 @@ package br.com.toppower.erp_toppower.company.entity;
 
 import br.com.toppower.erp_toppower.common.annotation.UpperCase;
 import br.com.toppower.erp_toppower.common.embeddable.Address;
-import br.com.toppower.erp_toppower.common.entity.BaseEntity;
+import br.com.toppower.erp_toppower.common.entity.TenantScopedEntity;
 import br.com.toppower.erp_toppower.common.enums.RegistrationStatus;
 import br.com.toppower.erp_toppower.common.validation.ValidCnpj;
 import jakarta.persistence.AttributeOverride;
@@ -21,8 +21,10 @@ import lombok.Setter;
 /**
  * Entidade que representa uma empresa (pessoa jurídica) cliente do sistema.
  *
- * <p>Herdar {@link BaseEntity} fornece o identificador UUID e a auditoria
- * completa (createdAt, updatedAt, createdBy, updatedBy).</p>
+ * <p>Herdar {@link TenantScopedEntity} fornece o identificador UUID, a auditoria
+ * completa (createdAt, updatedAt, createdBy, updatedBy) e o discriminador de
+ * tenant ({@code tenant_uuid}), já que empresas-cliente são dados de negócio
+ * pertencentes a um tenant.</p>
  *
  * <p>O tipo de pessoa é implicitamente JURÍDICA (CNPJ). Para pessoa física,
  * use a entidade {@code Customer}.</p>
@@ -32,7 +34,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class Company extends BaseEntity {
+public class Company extends TenantScopedEntity {
 
     /**
      * Razão social — nome oficial/registrado da empresa.

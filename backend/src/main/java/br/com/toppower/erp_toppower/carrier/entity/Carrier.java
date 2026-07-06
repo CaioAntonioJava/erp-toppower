@@ -2,7 +2,7 @@ package br.com.toppower.erp_toppower.carrier.entity;
 
 import br.com.toppower.erp_toppower.carrier.enums.CarrierName;
 import br.com.toppower.erp_toppower.carrier.enums.CarrierStatus;
-import br.com.toppower.erp_toppower.common.entity.BaseEntity;
+import br.com.toppower.erp_toppower.common.entity.TenantScopedEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -21,11 +21,13 @@ import java.math.BigDecimal;
  * <p><b>Cadeia de herança:</b></p>
  * <pre>
  *   Carrier
- *     └─ extends BaseEntity  (campos: uuid, createdAt, updatedAt, createdBy, updatedBy)
+ *     └─ extends TenantScopedEntity  (uuid, auditoria, tenant_uuid)
  * </pre>
  *
- * <p>A herança de {@code BaseEntity} garante o identificador UUID e a
- * auditoria completa (createdAt, updatedAt, createdBy, updatedBy).</p>
+ * <p>A herança de {@code TenantScopedEntity} garante o identificador UUID,
+ * a auditoria completa (createdAt, updatedAt, createdBy, updatedBy) e o
+ * discriminador de tenant ({@code tenant_uuid}) — transportadoras são dados
+ * de negócio isolados por empresa.</p>
  *
  * <p>Todos os campos de negócio são opcionais: uma transportadora pode
  * ser cadastrada apenas com o nome (enum {@link CarrierName}), apenas
@@ -42,7 +44,7 @@ import java.math.BigDecimal;
 @Getter
 @Setter
 @NoArgsConstructor
-public class Carrier extends BaseEntity {
+public class Carrier extends TenantScopedEntity {
 
     /**
      * Nome padronizado da transportadora. Opcional. Restrito ao conjunto
