@@ -39,3 +39,8 @@ export async function resetUserPassword(
 ): Promise<void> {
   await api.patch(`${BASE}/${userId}/reset-password`, payload)
 }
+
+/** DELETE /users/{id} — exclui um usuário e seus vínculos (hard delete). Admin only. */
+export async function deleteUser(userId: string): Promise<void> {
+  await api.delete(`${BASE}/${userId}`)
+}

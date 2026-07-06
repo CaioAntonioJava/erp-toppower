@@ -12,6 +12,24 @@ export interface TenantSummary {
   cnpj?: string
 }
 
+/** Resposta de GET /api/v1/tenants (lista admin). Espelha br.com.toppower...tenant.dto.TenantResponse. */
+export interface TenantResponse {
+  uuid: string
+  legalName: string
+  tradeName?: string
+  code: string
+  cnpj: string
+  stateRegistration?: string
+  stateRegistrationExempt: boolean
+  municipalRegistration?: string
+  address: unknown
+  status: 'ATIVO' | 'INATIVO'
+  createdAt: string
+  updatedAt: string
+  createdBy?: string
+  updatedBy?: string
+}
+
 /** Usuário autenticado (retornado em /auth/login e /me). Espelha LoginResponse.AuthenticatedUser. */
 export interface AuthenticatedUser {
   uuid: string
@@ -46,6 +64,7 @@ export interface RegisterRequest {
   email: string
   password: string
   passwordConfirmation: string
+  tenantUuids: string[]
 }
 
 /** Corpo de PATCH /api/v1/users/{id}/password. */
@@ -64,6 +83,7 @@ export interface UserResponse {
   uuid: string
   email: string
   role: Role
+  tenants: TenantSummary[]
 }
 
 /** Resposta de perfil. Espelha br.com.toppower...profile.dto.ProfileResponse. */

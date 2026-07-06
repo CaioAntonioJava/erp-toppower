@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
+  Building2,
   KeyRound,
   Plus,
   Search,
+  Trash2,
   UserPlus,
   Users as UsersIcon,
   X,
@@ -13,7 +15,9 @@ import { Input } from '../components/ui/Input'
 import { Spinner } from '../components/ui/Spinner'
 import { Alert } from '../components/ui/Alert'
 import { Badge } from '../components/ui/Badge'
-import { listUsers, resetUserPassword } from '../api/user.api'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
+import { listUsers, resetUserPassword, deleteUser } from '../api/user.api'
+import { useAuth } from '../context/AuthContext'
 import type { UserResponse } from '../types/api'
 import { toApiError } from '../lib/errors'
 
@@ -113,6 +117,7 @@ function ResetPasswordDialog({
 }
 
 export function UsersListPage() {
+  const { user: currentUser } = useAuth()
   const [users, setUsers] = useState<UserResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -121,6 +126,9 @@ export function UsersListPage() {
   const [resetTarget, setResetTarget] = useState<UserResponse | null>(null)
   const [resetting, setResetting] = useState(false)
   const [resetError, setResetError] = useState<string | null>(null)
+
+  const [deleteTarget, setDeleteTarget] = useState<UserResponse | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const [feedback, setFeedback] = useState<string | null>(null)
 
@@ -160,6 +168,22 @@ export function UsersListPage() {
       setResetError(toApiError(err).message)
     } finally {
       setResetting(false)
+    }
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      await deleteUser(deleteTarget.uuid)
+      setFeedback(`Usuário "${deleteTarget.email}" excluído com sucesso.`)
+      setDeleteTarget(null)
+      await load()
+    } catch (err) {
+      setError(toApiError(err).message)
+      setDeleteTarget(null)
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -207,6 +231,7 @@ export function UsersListPage() {
             <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-950/40 dark:text-slate-400">
               <tr>
                 <th className="px-4 py-3 font-medium">E-mail</th>
+                <th className="px-4 py-3 font-medium">Empresas</th>
                 <th className="px-4 py-3 font-medium">Papel</th>
                 <th className="px-4 py-3 text-right font-medium">Ações</th>
               </tr>
@@ -214,7 +239,7 @@ export function UsersListPage() {
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {loading ? (
                 <tr>
-                  <td colSpan={3} className="px-4 py-12 text-center">
+                  <td colSpan={4} className="px-4 py-12 text-center">
                     <div className="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400">
                       <Spinner size="sm" /> Carregando…
                     </div>
@@ -222,7 +247,7 @@ export function UsersListPage() {
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="px-4 py-12 text-center">
+                  <td colSpan={4} className="px-4 py-12 text-center">
                     <div className="flex flex-col items-center gap-2 text-slate-500 dark:text-slate-400">
                       <UserPlus className="h-8 w-8 opacity-60" />
                       <p className="text-sm">
@@ -250,6 +275,23 @@ export function UsersListPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
+                      {u.tenants && u.tenants.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {u.tenants.map((t) => (
+                            <span
+                              key={t.uuid}
+                              className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                            >
+                              <Building2 className="h-3 w-3 text-slate-400" />
+                              {t.displayName}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-400">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
                       {u.role === 'ROLE_ADMIN' ? (
                         <Badge tone="info">Administrador</Badge>
                       ) : (
@@ -270,6 +312,21 @@ export function UsersListPage() {
                         >
                           <KeyRound className="h-4 w-4" />
                           Redefinir senha
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          onClick={() => setDeleteTarget(u)}
+                          disabled={currentUser?.uuid === u.uuid}
+                          title={
+                            currentUser?.uuid === u.uuid
+                              ? 'Você não pode excluir sua própria conta'
+                              : 'Excluir usuário'
+                          }
+                          aria-label="Excluir usuário"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Excluir
                         </Button>
                       </div>
                     </td>
@@ -303,6 +360,23 @@ export function UsersListPage() {
           }}
         />
       ) : null}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Excluir usuário"
+        description={
+          deleteTarget
+            ? `Tem certeza que deseja excluir "${deleteTarget.email}"? Esta ação remove o usuário e todos os seus vínculos com empresas, e não pode ser desfeita.`
+            : ''
+        }
+        confirmText="Excluir"
+        confirmVariant="danger"
+        isLoading={deleting}
+        onConfirm={handleDelete}
+        onClose={() => {
+          if (!deleting) setDeleteTarget(null)
+        }}
+      />
     </div>
   )
 }
