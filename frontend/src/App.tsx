@@ -1,5 +1,6 @@
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { LoginPage } from './pages/LoginPage'
+import { SelectOrganizationPage } from './pages/SelectOrganizationPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { CompaniesListPage } from './pages/CompaniesListPage'
@@ -12,8 +13,6 @@ import { SellersListPage } from './pages/SellersListPage'
 import { SellerFormPage } from './pages/SellerFormPage'
 import { ProductsListPage } from './pages/ProductsListPage'
 import { ProductFormPage } from './pages/ProductFormPage'
-import { CarriersListPage } from './pages/CarriersListPage'
-import { CarrierFormPage } from './pages/CarrierFormPage'
 import { QuotationsListPage } from './pages/QuotationsListPage'
 import { QuotationFormPage } from './pages/QuotationFormPage'
 import { QuotationDetailPage } from './pages/QuotationDetailPage'
@@ -27,6 +26,8 @@ import { TechnicalProposalFormPage } from './pages/TechnicalProposalFormPage'
 import { TechnicalProposalDetailPage } from './pages/TechnicalProposalDetailPage'
 import { UsersListPage } from './pages/UsersListPage'
 import { UserFormPage } from './pages/UserFormPage'
+import { CarriersListPage } from './pages/CarriersListPage'
+import { CarrierFormPage } from './pages/CarrierFormPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { AppLayout } from './components/layout/AppLayout'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -38,6 +39,7 @@ export default function App() {
     <Routes>
       {/* Rotas públicas */}
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/select-organization" element={<SelectOrganizationPage />} />
 
       {/* Rotas protegidas — compartilham o AppLayout (sidebar + topbar) */}
       <Route
@@ -64,10 +66,6 @@ export default function App() {
         <Route path="/products" element={<ProductsListPage />} />
         <Route path="/products/new" element={<ProductFormPage />} />
         <Route path="/products/:id" element={<ProductFormPage />} />
-        {/* Gestão de transportadoras — exclusiva de administradores. */}
-        <Route path="/carriers" element={<AdminRoute><CarriersListPage /></AdminRoute>} />
-        <Route path="/carriers/new" element={<AdminRoute><CarrierFormPage /></AdminRoute>} />
-        <Route path="/carriers/:id" element={<AdminRoute><CarrierFormPage /></AdminRoute>} />
         <Route path="/quotations" element={<QuotationsListPage />} />
         <Route path="/quotations/new" element={<QuotationFormPage />} />
         <Route path="/quotations/:id/edit" element={<QuotationFormPage />} />
@@ -84,6 +82,11 @@ export default function App() {
         {/* Rotas administrativas — gestão de usuários (ROLE_ADMIN). */}
         <Route path="/users" element={<AdminRoute><UsersListPage /></AdminRoute>} />
         <Route path="/users/new" element={<AdminRoute><UserFormPage /></AdminRoute>} />
+
+        {/* Rotas administrativas — gestão de transportadoras (ROLE_ADMIN). */}
+        <Route path="/carriers" element={<AdminRoute><CarriersListPage /></AdminRoute>} />
+        <Route path="/carriers/new" element={<AdminRoute><CarrierFormPage /></AdminRoute>} />
+        <Route path="/carriers/:id" element={<AdminRoute><CarrierFormPage /></AdminRoute>} />
       </Route>
 
       {/* Rota de impressão/PDF da proposta — sem AppLayout (sidebar/topbar),

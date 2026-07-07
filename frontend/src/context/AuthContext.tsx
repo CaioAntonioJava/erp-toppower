@@ -10,10 +10,9 @@ import type { ReactNode } from 'react'
 import {
   login as apiLogin,
   me as apiMe,
-  switchTenant as apiSwitchTenant,
 } from '../api/auth.api'
 import { getProfileByUserId } from '../api/profile.api'
-import { TOKEN_KEY } from '../api/client'
+import { TOKEN_KEY, ORGANIZATION_KEY } from '../api/client'
 import { toApiError } from '../lib/errors'
 import type {
   AuthenticatedUser,
@@ -31,10 +30,18 @@ interface AuthContextValue {
    * - `false` → perfil NÃO existe, usuário deve completar o cadastro
    */
   hasProfile: boolean | null
+  /**
+   * Indica se o usuário já escolheu a Organization ativa nesta sessão.
+   * - `true`  → seleção concluída (ou sessão persistida no boot, que pula a tela)
+   * - `false` → login recém-realizado, usuário deve passar pela tela de seleção
+   *   de empresa antes de acessar o restante do sistema.
+   * Flag em memória — não persistida, só existe para forçar a seleção após login novo.
+   */
+  hasSelectedOrganization: boolean
+  /** Marca a seleção de Organization como concluída (libera navegação). */
+  markOrganizationSelected: () => void
   signIn: (payload: LoginRequest) => Promise<AuthenticatedUser>
   signOut: () => void
-  /** Troca o tenant da sessão corrente (reemite o JWT). */
-  switchTenant: (tenantUuid: string) => Promise<AuthenticatedUser>
   /** Força a releitura do usuário a partir do /me. */
   refresh: () => Promise<AuthenticatedUser | null>
   /** Re-checa se o usuário autenticado possui perfil cadastrado. */
@@ -86,6 +93,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthenticatedUser | null>(null)
   const [isLoading, setLoading] = useState<boolean>(true)
   const [hasProfile, setHasProfile] = useState<boolean | null>(null)
+  // Default `true`: no boot com token persistido a seleção já existe no localStorage,
+  // então não exigimos nova escolha. Vira `false` apenas após um login novo.
+  const [hasSelectedOrganization, setHasSelectedOrganization] = useState<boolean>(true)
 
   // Verifica, na inicialização, se há um token válido em localStorage
   // e, em caso positivo, também checa se o perfil está preenchido.
@@ -147,6 +157,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await apiLogin(payload)
       localStorage.setItem(TOKEN_KEY, response.accessToken)
       setUser(response.user)
+      // Login recém-realizado: força passagem pela tela de seleção de empresa.
+      setHasSelectedOrganization(false)
+      // Pré-seleciona a Organization default do usuário (ou limpa se nenhuma).
+      // O OrganizationContext lê essa chave no refresh para definir a ativa.
+      if (response.defaultOrganizationId) {
+        localStorage.setItem(ORGANIZATION_KEY, response.defaultOrganizationId)
+      } else {
+        localStorage.removeItem(ORGANIZATION_KEY)
+      }
       // Admins não precisam completar perfil — pula a checagem e a
       // chamada ao backend, liberando navegação imediatamente.
       if (adminBypassesProfile(response.user.role)) {
@@ -168,31 +187,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(ORGANIZATION_KEY)
     setUser(null)
     setHasProfile(null)
+    setHasSelectedOrganization(true)
   }, [])
 
-  const switchTenant = useCallback(
-    async (tenantUuid: string): Promise<AuthenticatedUser> => {
-      const response = await apiSwitchTenant({ tenantUuid })
-      localStorage.setItem(TOKEN_KEY, response.accessToken)
-      setUser(response.user)
-      // Admins não precisam completar perfil — pula a checagem.
-      if (adminBypassesProfile(response.user.role)) {
-        setHasProfile(true)
-        return response.user
-      }
-      setHasProfile(null)
-      try {
-        const ok = await checkHasProfile(response.user.uuid)
-        setHasProfile(ok)
-      } catch {
-        setHasProfile(null)
-      }
-      return response.user
-    },
-    [],
-  )
+  /** Marca a seleção de Organization como concluída (libera navegação). */
+  const markOrganizationSelected = useCallback(() => {
+    setHasSelectedOrganization(true)
+  }, [])
 
   const refresh = useCallback(async () => {
     const u = await loadUserFromToken()
@@ -206,13 +210,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: !!user,
       isLoading,
       hasProfile,
+      hasSelectedOrganization,
+      markOrganizationSelected,
       signIn,
       signOut,
-      switchTenant,
       refresh,
       refreshProfileStatus,
     }),
-    [user, isLoading, hasProfile, signIn, signOut, switchTenant, refresh, refreshProfileStatus],
+    [
+      user,
+      isLoading,
+      hasProfile,
+      hasSelectedOrganization,
+      markOrganizationSelected,
+      signIn,
+      signOut,
+      refresh,
+      refreshProfileStatus,
+    ],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

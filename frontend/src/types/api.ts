@@ -4,30 +4,19 @@ export type Role = 'ROLE_ADMIN' | 'ROLE_MANAGER'
 
 export type ProfileStatus = 'ATIVO' | 'INATIVO'
 
-/** Resumo de um tenant (empresa operadora) para seleção/troca. */
-export interface TenantSummary {
-  uuid: string
-  displayName: string
-  code: string
-  cnpj?: string
-}
+export type OrganizationStatus = 'ATIVO' | 'INATIVO'
 
-/** Resposta de GET /api/v1/tenants (lista admin). Espelha br.com.toppower...tenant.dto.TenantResponse. */
-export interface TenantResponse {
+/** Resumo de uma Organization (usado no seletor e na resposta de login). */
+export interface OrganizationSummary {
   uuid: string
-  legalName: string
-  tradeName?: string
-  code: string
+  corporateName: string
+  tradeName: string
   cnpj: string
-  stateRegistration?: string
-  stateRegistrationExempt: boolean
-  municipalRegistration?: string
-  address: unknown
-  status: 'ATIVO' | 'INATIVO'
-  createdAt: string
-  updatedAt: string
-  createdBy?: string
-  updatedBy?: string
+  status: OrganizationStatus
+  /** Papel do usuário nesta Organization (quando aplicável). */
+  role?: Role | null
+  /** Indica se esta é a Organization default do usuário. */
+  isDefault?: boolean
 }
 
 /** Usuário autenticado (retornado em /auth/login e /me). Espelha LoginResponse.AuthenticatedUser. */
@@ -35,8 +24,6 @@ export interface AuthenticatedUser {
   uuid: string
   email: string
   role: Role
-  tenantUuid: string | null
-  tenants: TenantSummary[]
 }
 
 /** Resposta de POST /api/v1/auth/login. */
@@ -45,18 +32,16 @@ export interface LoginResponse {
   tokenType: string
   expiresIn: number
   user: AuthenticatedUser
+  /** Organizations acessíveis ao usuário (para o seletor). */
+  organizations: OrganizationSummary[]
+  /** UUID da Organization default (pré-selecionada após o login). Pode ser null. */
+  defaultOrganizationId: string | null
 }
 
 /** Corpo de POST /api/v1/auth/login. */
 export interface LoginRequest {
   email: string
   password: string
-  tenantUuid: string
-}
-
-/** Corpo de POST /api/v1/auth/switch-tenant. */
-export interface SwitchTenantRequest {
-  tenantUuid: string
 }
 
 /** Corpo de POST /api/v1/users (cadastro de usuário pelo admin). */
@@ -64,7 +49,6 @@ export interface RegisterRequest {
   email: string
   password: string
   passwordConfirmation: string
-  tenantUuids: string[]
 }
 
 /** Corpo de PATCH /api/v1/users/{id}/password. */
@@ -83,7 +67,27 @@ export interface UserResponse {
   uuid: string
   email: string
   role: Role
-  tenants: TenantSummary[]
+}
+
+/** Corpo de POST /api/v1/user-organizations (vincular usuário a Organization). */
+export interface UserOrganizationAssignRequest {
+  userId: string
+  organizationId: string
+  /** Apenas ROLE_MANAGER no fluxo de criação; ADMIN não se auto-vincula. */
+  role: Role
+  isDefault?: boolean
+}
+
+/** Resposta de vínculos usuário↔Organization. Espelha UserOrganizationResponse (backend). */
+export interface UserOrganizationResponse {
+  uuid: string
+  userUuid: string
+  userEmail: string
+  organizationUuid: string
+  organizationCorporateName: string
+  role: Role
+  isDefault: boolean
+  createdAt: string
 }
 
 /** Resposta de perfil. Espelha br.com.toppower...profile.dto.ProfileResponse. */

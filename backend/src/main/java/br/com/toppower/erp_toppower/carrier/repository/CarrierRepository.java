@@ -1,7 +1,6 @@
 package br.com.toppower.erp_toppower.carrier.repository;
 
 import br.com.toppower.erp_toppower.carrier.entity.Carrier;
-import br.com.toppower.erp_toppower.carrier.enums.CarrierName;
 import br.com.toppower.erp_toppower.carrier.enums.CarrierStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,30 +16,12 @@ public interface CarrierRepository extends JpaRepository<Carrier, UUID> {
 
     Page<Carrier> findByStatus(CarrierStatus status, Pageable pageable);
 
-    /**
-     * Verifica se já existe uma transportadora com o nome informado para o
-     * tenant dado. Usado pelo seed de transportadoras para garantir
-     * idempotência a cada boot. Reforçado pela unique constraint
-     * {@code uk_carrier_name_tenant} (migration V13).
-     */
-    boolean existsByCarrierNameAndTenantUuid(CarrierName carrierName, UUID tenantUuid);
-
-    /**
-     * Busca flexível por nome (opcional) e/ou status (opcional).
-     * <ul>
-     *   <li>{@code carrierName} nulo → ignora o filtro de nome</li>
-     *   <li>{@code status} nulo → ignora o filtro de status</li>
-     *   <li>Ambos nulos → retorna todas as transportadoras (paginado)</li>
-     * </ul>
-     * Como {@code carrierName} é um enum, a comparação é por igualdade
-     * exata (não há sentido para match parcial de texto).
-     */
     @Query("""
             SELECT c FROM Carrier c
             WHERE (:status IS NULL OR c.status = :status)
-              AND (:carrierName IS NULL OR c.carrierName = :carrierName)
+              AND (:query IS NULL OR LOWER(c.name) LIKE LOWER(CONCAT('%', :query, '%')))
             """)
     Page<Carrier> searchByQuery(@Param("status") CarrierStatus status,
-                                @Param("carrierName") CarrierName carrierName,
+                                @Param("query") String query,
                                 Pageable pageable);
 }

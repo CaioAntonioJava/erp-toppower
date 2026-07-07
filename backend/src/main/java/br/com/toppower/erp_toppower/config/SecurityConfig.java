@@ -1,6 +1,7 @@
 package br.com.toppower.erp_toppower.config;
 
 import br.com.toppower.erp_toppower.security.JwtAuthenticationFilter;
+import br.com.toppower.erp_toppower.security.OrganizationContextFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -21,7 +22,6 @@ public class SecurityConfig {
 
     private static final String[] PUBLIC_PATHS = {
             "/api/v1/auth/login",
-            "/api/v1/auth/tenants",
             // SpringDoc OpenAPI / Swagger UI
             "/v3/api-docs",
             "/v3/api-docs/**",
@@ -33,9 +33,12 @@ public class SecurityConfig {
     };
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final OrganizationContextFilter organizationContextFilter;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
+                          OrganizationContextFilter organizationContextFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.organizationContextFilter = organizationContextFilter;
     }
 
     @Bean
@@ -68,7 +71,10 @@ public class SecurityConfig {
                         .requestMatchers(PUBLIC_PATHS).permitAll()
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                // OrganizationContextFilter roda DEPOIS do JWT, pois precisa do
+                // principal resolvido para validar acesso à Organization ativa.
+                .addFilterAfter(organizationContextFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }

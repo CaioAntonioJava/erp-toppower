@@ -1,7 +1,7 @@
 package br.com.toppower.erp_toppower.sales.quotation.entity;
 
 import br.com.toppower.erp_toppower.common.annotation.UpperCase;
-import br.com.toppower.erp_toppower.common.entity.TenantScopedEntity;
+import br.com.toppower.erp_toppower.common.entity.OrganizationScopedEntity;
 import br.com.toppower.erp_toppower.common.util.PricingMath;
 import br.com.toppower.erp_toppower.sales.quotation.enums.DiscountType;
 import br.com.toppower.erp_toppower.sales.quotation.enums.FreightType;
@@ -67,7 +67,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @NoArgsConstructor
-public class Quotation extends TenantScopedEntity {
+public class Quotation extends OrganizationScopedEntity {
 
     /**
      * Número sequencial da proposta, sem prefixo. Ex.: {@code 1500},
@@ -181,13 +181,6 @@ public class Quotation extends TenantScopedEntity {
     private QuotationStatus status;
 
     /**
-     * Referência à {@code Carrier} (transportadora) responsável pelo frete.
-     * Opcional.
-     */
-    @Column(name = "carrier_uuid")
-    private UUID carrierUuid;
-
-    /**
      * Tipo de frete (CIF/FOB). Opcional.
      */
     @Enumerated(EnumType.STRING)
@@ -200,6 +193,16 @@ public class Quotation extends TenantScopedEntity {
      */
     @Column(name = "freight_value", precision = 10, scale = 2)
     private BigDecimal freightValue;
+
+    /**
+     * Referência à {@code Carrier} (transportadora) responsável pelo
+     * frete da proposta. Opcional — documentos sem frete/transportadora
+     * permanecem com este campo nulo. Não há FK física (referência por
+     * UUID, padrão do projeto); a validação de existência é feita no
+     * service quando o campo é informado.
+     */
+    @Column(name = "carrier_uuid")
+    private UUID carrierUuid;
 
     /**
      * Margem de lucro aplicada sobre o total da proposta, expressa em

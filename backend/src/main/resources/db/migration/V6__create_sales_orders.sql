@@ -35,7 +35,7 @@
 --   * Auditoria (created_at, updated_at, created_by, updated_by) segue
 --     o mesmo padrão das demais tabelas (Hibernate @AuditingEntityListener).
 --   * As FKs lógicas (customer_uuid, company_uuid, seller_uuid,
---     carrier_uuid, product_uuid, quotation_uuid) NÃO são FKs físicas
+--     product_uuid, quotation_uuid) NÃO são FKs físicas
 --     — o projeto não declara relacionamentos JPA, apenas referências
 --     por UUID.
 -- =============================================================================
@@ -52,7 +52,6 @@ CREATE TABLE IF NOT EXISTS sales_orders (
     discount            DECIMAL(10, 2)  NULL,
     payment_condition   VARCHAR(50)     NULL,
     notes               VARCHAR(2000)   NULL,
-    carrier_uuid        BINARY(16)      NULL,
     freight_type        VARCHAR(10)     NULL,
     freight_value       DECIMAL(10, 2)  NULL,
     status              VARCHAR(20)     NOT NULL,

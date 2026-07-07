@@ -3,6 +3,12 @@ package br.com.toppower.erp_toppower.common.exception;
 import br.com.toppower.erp_toppower.auth.exception.InvalidCredentialsException;
 import br.com.toppower.erp_toppower.carrier.exception.CarrierNotFoundException;
 import br.com.toppower.erp_toppower.cep.exception.CepNotFoundException;
+import br.com.toppower.erp_toppower.organization.exception.DuplicateOrganizationCnpjException;
+import br.com.toppower.erp_toppower.organization.exception.InvalidOrganizationHeaderException;
+import br.com.toppower.erp_toppower.organization.exception.OrganizationAccessDeniedException;
+import br.com.toppower.erp_toppower.organization.exception.OrganizationContextRequiredException;
+import br.com.toppower.erp_toppower.organization.exception.OrganizationInactiveException;
+import br.com.toppower.erp_toppower.organization.exception.OrganizationNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
@@ -36,6 +42,8 @@ import br.com.toppower.erp_toppower.supplier.exception.SupplierNotFoundException
 import br.com.toppower.erp_toppower.user.exception.EmailAlreadyExistsException;
 import br.com.toppower.erp_toppower.user.exception.IncorrectPasswordException;
 import br.com.toppower.erp_toppower.user.exception.UserNotFoundException;
+import br.com.toppower.erp_toppower.userorganization.exception.DuplicateUserOrganizationException;
+import br.com.toppower.erp_toppower.userorganization.exception.UserOrganizationNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authorization.AuthorizationDeniedException;
@@ -92,11 +100,6 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<ApiError> handleUserNotFound(UserNotFoundException ex) {
-        return build(HttpStatus.NOT_FOUND, ex.getMessage());
-    }
-
-    @ExceptionHandler(CarrierNotFoundException.class)
-    public ResponseEntity<ApiError> handleCarrierNotFound(CarrierNotFoundException ex) {
         return build(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
@@ -262,6 +265,55 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DuplicateSupplierCnpjException.class)
     public ResponseEntity<ApiError> handleDuplicateSupplierCnpj(DuplicateSupplierCnpjException ex) {
         return build(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(CarrierNotFoundException.class)
+    public ResponseEntity<ApiError> handleCarrierNotFound(CarrierNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    // =====================================================================
+    // Organization (multiempresa)
+    // =====================================================================
+
+    @ExceptionHandler(OrganizationNotFoundException.class)
+    public ResponseEntity<ApiError> handleOrganizationNotFound(OrganizationNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(DuplicateOrganizationCnpjException.class)
+    public ResponseEntity<ApiError> handleDuplicateOrganizationCnpj(DuplicateOrganizationCnpjException ex) {
+        return build(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(OrganizationInactiveException.class)
+    public ResponseEntity<ApiError> handleOrganizationInactive(OrganizationInactiveException ex) {
+        return build(HttpStatus.FORBIDDEN, ex.getMessage());
+    }
+
+    @ExceptionHandler(OrganizationAccessDeniedException.class)
+    public ResponseEntity<ApiError> handleOrganizationAccessDenied(OrganizationAccessDeniedException ex) {
+        return build(HttpStatus.FORBIDDEN, ex.getMessage());
+    }
+
+    @ExceptionHandler(OrganizationContextRequiredException.class)
+    public ResponseEntity<ApiError> handleOrganizationContextRequired(OrganizationContextRequiredException ex) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidOrganizationHeaderException.class)
+    public ResponseEntity<ApiError> handleInvalidOrganizationHeader(InvalidOrganizationHeaderException ex) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(DuplicateUserOrganizationException.class)
+    public ResponseEntity<ApiError> handleDuplicateUserOrganization(DuplicateUserOrganizationException ex) {
+        return build(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(UserOrganizationNotFoundException.class)
+    public ResponseEntity<ApiError> handleUserOrganizationNotFound(UserOrganizationNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

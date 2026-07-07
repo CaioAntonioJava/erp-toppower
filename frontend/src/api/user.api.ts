@@ -10,8 +10,7 @@ const BASE = '/api/v1/users'
 
 /**
  * POST /users — cadastra um novo usuário (acesso restrito a ROLE_ADMIN).
- * O backend vincula o usuário ao tenant da sessão do admin e define o papel
- * como ROLE_MANAGER automaticamente.
+ * O backend define o papel como ROLE_MANAGER automaticamente.
  */
 export async function createUser(payload: RegisterRequest): Promise<UserResponse> {
   const { data } = await api.post<UserResponse>(BASE, payload)

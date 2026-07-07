@@ -1,6 +1,7 @@
 package br.com.toppower.erp_toppower.sales.technicalproposal.service;
 
 import br.com.toppower.erp_toppower.common.dto.PagedResponse;
+import br.com.toppower.erp_toppower.carrier.repository.CarrierRepository;
 import br.com.toppower.erp_toppower.company.repository.CompanyRepository;
 import br.com.toppower.erp_toppower.customer.repository.CustomerRepository;
 import br.com.toppower.erp_toppower.product.repository.ProductRepository;
@@ -69,6 +70,7 @@ public class TechnicalProposalService {
     private final CustomerRepository customerRepository;
     private final CompanyRepository companyRepository;
     private final ProductRepository productRepository;
+    private final CarrierRepository carrierRepository;
 
     public TechnicalProposalService(TechnicalProposalRepository repository,
                                     TechnicalProposalObjectiveRepository objectiveRepository,
@@ -76,7 +78,8 @@ public class TechnicalProposalService {
                                     TechnicalProposalProductItemRepository productItemRepository,
                                     CustomerRepository customerRepository,
                                     CompanyRepository companyRepository,
-                                    ProductRepository productRepository) {
+                                    ProductRepository productRepository,
+                                    CarrierRepository carrierRepository) {
         this.repository = repository;
         this.objectiveRepository = objectiveRepository;
         this.serviceItemRepository = serviceItemRepository;
@@ -84,6 +87,7 @@ public class TechnicalProposalService {
         this.customerRepository = customerRepository;
         this.companyRepository = companyRepository;
         this.productRepository = productRepository;
+        this.carrierRepository = carrierRepository;
     }
 
     // ---------------------------------------------------------------------
@@ -93,6 +97,7 @@ public class TechnicalProposalService {
     @Transactional
     public TechnicalProposalResponse create(TechnicalProposalCreateRequest request) {
         validateClientReference(request.customerUuid(), request.companyUuid(), true);
+        validateCarrierReference(request.carrierUuid(), true);
         validateObjectives(request.objectives());
         validateItemsPresence(request.serviceItems(), request.productItems());
         validateProductItems(request.productItems(), true);
@@ -112,8 +117,10 @@ public class TechnicalProposalService {
         savedHeader.recalculateTotals(serviceItems, productItems);
 
         ClientResolved client = resolveClient(savedHeader);
+        CarrierResolved carrier = resolveCarrier(savedHeader);
         return TechnicalProposalMapper.toResponse(savedHeader, objectives,
-                serviceItems, productItems, client.name(), client.code());
+                serviceItems, productItems, client.name(), client.code(),
+                carrier.name());
     }
 
     // ---------------------------------------------------------------------
@@ -249,6 +256,11 @@ public class TechnicalProposalService {
                 ? request.companyUuid() : tp.getCompanyUuid();
         validateClientReference(effectiveCustomer, effectiveCompany, false);
 
+        // Valida a carrier apenas quando explicitamente informada.
+        if (request.carrierUuid() != null) {
+            validateCarrierReference(request.carrierUuid(), false);
+        }
+
         boolean objectivesSent = request.objectives() != null;
         boolean servicesSent = request.serviceItems() != null;
         boolean productsSent = request.productItems() != null;
@@ -299,8 +311,10 @@ public class TechnicalProposalService {
 
         saved.recalculateTotals(serviceItems, productItems);
         ClientResolved client = resolveClient(saved);
+        CarrierResolved carrier = resolveCarrier(saved);
         return TechnicalProposalMapper.toResponse(saved, objectives,
-                serviceItems, productItems, client.name(), client.code());
+                serviceItems, productItems, client.name(), client.code(),
+                carrier.name());
     }
 
     // ---------------------------------------------------------------------
@@ -425,8 +439,10 @@ public class TechnicalProposalService {
                 .findByTechnicalProposalUuidOrderByCreatedAtAsc(tp.getUuid());
         tp.recalculateTotals(serviceItems, productItems);
         ClientResolved client = resolveClient(tp);
+        CarrierResolved carrier = resolveCarrier(tp);
         return TechnicalProposalMapper.toResponse(tp, objectives,
-                serviceItems, productItems, client.name(), client.code());
+                serviceItems, productItems, client.name(), client.code(),
+                carrier.name());
     }
 
     private void applyNextCode(TechnicalProposal tp) {
@@ -601,6 +617,42 @@ public class TechnicalProposalService {
                     .orElse(ClientResolved.EMPTY);
         }
         return ClientResolved.EMPTY;
+    }
+
+    /**
+     * Valida a referência à transportadora (carrier): se não for nula,
+     * verifica a existência no cadastro.
+     */
+    private void validateCarrierReference(UUID carrierUuid, boolean verifyExists) {
+        if (carrierUuid == null) {
+            return;
+        }
+        if (verifyExists && !carrierRepository.existsById(carrierUuid)) {
+            throw new TechnicalProposalBusinessException(
+                    "Transportadora não encontrada: " + carrierUuid);
+        }
+    }
+
+    /**
+     * Resolve o nome da transportadora referenciada pela proposta
+     * técnica. Retorna {@code null} quando a carrier não existe mais,
+     * mantendo o UUID como referência no DTO.
+     */
+    private CarrierResolved resolveCarrier(TechnicalProposal tp) {
+        if (tp.getCarrierUuid() == null) {
+            return CarrierResolved.EMPTY;
+        }
+        return carrierRepository.findById(tp.getCarrierUuid())
+                .map(c -> new CarrierResolved(c.getName()))
+                .orElse(CarrierResolved.EMPTY);
+    }
+
+    /**
+     * Nome resolvido a partir da transportadora referenciada pela
+     * proposta técnica.
+     */
+    private record CarrierResolved(String name) {
+        static final CarrierResolved EMPTY = new CarrierResolved(null);
     }
 
     /**

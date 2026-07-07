@@ -129,6 +129,10 @@ public record TechnicalProposalCreateRequest(
         @Schema(description = "Observações livres da proposta.", maxLength = 2000,
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         @Size(max = 2000, message = "Observações devem ter no máximo {max} caracteres")
-        String notes
+        String notes,
+
+        @Schema(description = "UUID da transportadora (Carrier) responsável pelo frete. Opcional.",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        UUID carrierUuid
 ) {
 }

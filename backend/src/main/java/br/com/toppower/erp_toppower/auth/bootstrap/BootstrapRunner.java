@@ -1,12 +1,13 @@
 package br.com.toppower.erp_toppower.auth.bootstrap;
 
+import br.com.toppower.erp_toppower.organization.entity.Organization;
+import br.com.toppower.erp_toppower.organization.enums.OrganizationStatus;
+import br.com.toppower.erp_toppower.organization.repository.OrganizationRepository;
 import br.com.toppower.erp_toppower.user.enums.Role;
 import br.com.toppower.erp_toppower.user.entity.User;
-import br.com.toppower.erp_toppower.user.entity.UserTenant;
 import br.com.toppower.erp_toppower.user.repository.UserRepository;
-import br.com.toppower.erp_toppower.user.repository.UserTenantRepository;
-import br.com.toppower.erp_toppower.tenant.entity.Tenant;
-import br.com.toppower.erp_toppower.tenant.repository.TenantRepository;
+import br.com.toppower.erp_toppower.userorganization.entity.UserOrganization;
+import br.com.toppower.erp_toppower.userorganization.repository.UserOrganizationRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,14 +17,23 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
-
 /**
- * Bootstrap inicial: garante que exista ao menos um tenant (empresa operadora)
- * default e um usuário ADMIN vinculado a ele, para o primeiro login.
+ * Bootstrap inicial: garante que exista ao menos um usuário ADMIN e as
+ * Organizations padrão para o primeiro login.
  *
- * <p>Idempotente: só cria quando as tabelas estão vazias. Em produção, defina
- * as variáveis de ambiente {@code APP_BOOTSTRAP_*} antes de subir.</p>
+ * <p>Idempotente: só cria quando as tabelas estão vazias. Em produção,
+ * defina as variáveis de ambiente {@code APP_BOOTSTRAP_ADMIN_*} antes de subir.</p>
+ *
+ * <p>Cria, quando vazio:</p>
+ * <ol>
+ *   <li>As duas Organizations default ({@code TOP POWER ENGENHARIA} e
+ *       {@code TOP POWER MATERIAIS}) com status ATIVO;</li>
+ *   <li>O usuário ADMIN global ({@code ROLE_ADMIN}), que acessa todas as
+ *       Organizations pelo role global — sem precisar de {@code UserOrganization};</li>
+ *   <li>Um vínculo {@code UserOrganization} admin↔primeira org com
+ *       {@code isDefault=true}, apenas para que haja uma Organization
+ *       default pré-selecionada no login.</li>
+ * </ol>
  */
 @Component
 @Order(0)
@@ -31,41 +41,29 @@ public class BootstrapRunner implements CommandLineRunner {
 
     private static final Logger log = LoggerFactory.getLogger(BootstrapRunner.class);
 
-    /** UUID fixo do tenant default criado pelo bootstrap (determinístico para a migration V11 referenciar). */
-    static final UUID DEFAULT_TENANT_UUID = UUID.fromString("00000000-0000-4000-8000-0000000000a1");
-
     private final UserRepository userRepository;
-    private final UserTenantRepository userTenantRepository;
-    private final TenantRepository tenantRepository;
+    private final OrganizationRepository organizationRepository;
+    private final UserOrganizationRepository userOrganizationRepository;
     private final PasswordEncoder passwordEncoder;
 
     private final String adminEmail;
     private final String adminPassword;
     private final boolean bootstrapEnabled;
-    private final String tenantLegalName;
-    private final String tenantTradeName;
-    private final String tenantCnpj;
 
     public BootstrapRunner(UserRepository userRepository,
-                           UserTenantRepository userTenantRepository,
-                           TenantRepository tenantRepository,
+                           OrganizationRepository organizationRepository,
+                           UserOrganizationRepository userOrganizationRepository,
                            PasswordEncoder passwordEncoder,
                            @Value("${app.bootstrap.admin.email:admin@toppower.com.br}") String adminEmail,
                            @Value("${app.bootstrap.admin.password:Admin@123}") String adminPassword,
-                           @Value("${app.bootstrap.enabled:true}") boolean bootstrapEnabled,
-                           @Value("${app.bootstrap.tenant.legal-name:TOPPOWER ENGENHARIA LTDA}") String tenantLegalName,
-                           @Value("${app.bootstrap.tenant.trade-name:TOPPOWER}") String tenantTradeName,
-                           @Value("${app.bootstrap.tenant.cnpj:00.000.000/0001-00}") String tenantCnpj) {
+                           @Value("${app.bootstrap.enabled:true}") boolean bootstrapEnabled) {
         this.userRepository = userRepository;
-        this.userTenantRepository = userTenantRepository;
-        this.tenantRepository = tenantRepository;
+        this.organizationRepository = organizationRepository;
+        this.userOrganizationRepository = userOrganizationRepository;
         this.passwordEncoder = passwordEncoder;
         this.adminEmail = adminEmail;
         this.adminPassword = adminPassword;
         this.bootstrapEnabled = bootstrapEnabled;
-        this.tenantLegalName = tenantLegalName;
-        this.tenantTradeName = tenantTradeName;
-        this.tenantCnpj = tenantCnpj;
     }
 
     @Override
@@ -76,38 +74,52 @@ public class BootstrapRunner implements CommandLineRunner {
             return;
         }
 
-        // 1) Garante o tenant default.
-        Tenant defaultTenant = tenantRepository.findById(DEFAULT_TENANT_UUID).orElseGet(() -> {
+        // 1) Organizations padrão (se a tabela estiver vazia).
+        if (organizationRepository.count() == 0) {
             log.warn("=================================================================");
-            log.warn(" TENANT DEFAULT AUSENTE: criando tenant padrão.");
-            log.warn("   Razão social: {}", tenantLegalName);
-            log.warn("   CNPJ:         {}", tenantCnpj);
-            log.warn("   -> Sobrescreva via APP_BOOTSTRAP_TENANT_* no .env em produção.");
+            log.warn(" TABELA DE ORGANIZATIONS VAZIA: criando Organizations padrão.");
+            log.warn("   -> TOP POWER ENGENHARIA");
+            log.warn("   -> TOP POWER MATERIAIS");
             log.warn("=================================================================");
-            Tenant t = new Tenant();
-            t.setUuid(DEFAULT_TENANT_UUID);
-            t.setLegalName(tenantLegalName);
-            t.setTradeName(tenantTradeName);
-            t.setCnpj(tenantCnpj);
-            t.setCode("TEN000001");
-            // Endereço placeholder (obrigatório na entidade). O tenant default
-            // é um placeholder para o primeiro login; será substituído/inativado
-            // pelos tenants reais cadastrados via API.
-            br.com.toppower.erp_toppower.common.embeddable.Address addr =
-                    new br.com.toppower.erp_toppower.common.embeddable.Address();
-            addr.setStreet("ENDEREÇO PLACEHOLDER");
-            addr.setNumber("S/N");
-            addr.setCity("São Paulo");
-            addr.setState("SP");
-            addr.setZipCode("00000-000");
-            t.setAddress(addr);
-            return tenantRepository.save(t);
-        });
 
-        // 2) Garante o ADMIN default (se ainda não houver usuários).
+            Organization engenharia = new Organization();
+            engenharia.setCorporateName("TOP POWER ENGENHARIA LTDA ME");
+            engenharia.setTradeName("TOP POWER ENGENHARIA");
+            engenharia.setCnpj("13.433.616/0001-06");
+            engenharia.setStateRegistration("671.137.811.110");
+            engenharia.setMunicipalRegistration("29764.01-6");
+            engenharia.setZipCode("13170-700");
+            engenharia.setStreet("AVENIDA REBOUCAS");
+            engenharia.setNumber("4465");
+            engenharia.setDistrict("RES. VECCON");
+            engenharia.setCity("SUMARE");
+            engenharia.setState("SP");
+            engenharia.setStatus(OrganizationStatus.ATIVO);
+            organizationRepository.save(engenharia);
+
+            Organization materiais = new Organization();
+            materiais.setCorporateName("TOP POWER MATERIAIS LTDA ME");
+            materiais.setTradeName("TOP POWER MATERIAIS");
+            materiais.setCnpj("59.530.698/0001-08");
+            materiais.setStateRegistration("671.700.534.116");
+            materiais.setMunicipalRegistration("62965010");
+            materiais.setZipCode("13171-456");
+            materiais.setStreet("RUA JOAO RAVAGNANI");
+            materiais.setNumber("36");
+            materiais.setDistrict("JARDIM RESIDENCIAL RAVAGNANI");
+            materiais.setCity("SUMARE");
+            materiais.setState("SP");
+            materiais.setStatus(OrganizationStatus.ATIVO);
+            organizationRepository.save(materiais);
+
+            log.info("Organizations padrão criadas (2).");
+        } else {
+            log.info("Tabela 'organizations' já possui registros. Bootstrap de Organizations não necessário.");
+        }
+
+        // 2) ADMIN default (se a tabela de usuários estiver vazia).
         if (userRepository.count() > 0) {
             log.info("Tabela 'users' já possui registros. Bootstrap de admin não necessário.");
-            ensureAdminTenantLink(defaultTenant);
             return;
         }
 
@@ -115,8 +127,6 @@ public class BootstrapRunner implements CommandLineRunner {
         log.warn(" TABELA DE USUÁRIOS VAZIA: criando administrador padrão.");
         log.warn("   E-mail:  {}", adminEmail);
         log.warn("   Senha:   {}", adminPassword);
-        log.warn("   Tenant:  {} ({})", defaultTenant.getCode(), defaultTenant.getLegalName());
-        log.warn("   -> Use esta credencial + o tenant acima para o primeiro login.");
         log.warn("   -> Defina APP_BOOTSTRAP_ADMIN_PASSWORD=<outra-senha> no .env antes de subir para produção.");
         log.warn("=================================================================");
 
@@ -126,26 +136,21 @@ public class BootstrapRunner implements CommandLineRunner {
         admin.setRole(Role.ROLE_ADMIN);
         userRepository.save(admin);
 
-        UserTenant link = new UserTenant(admin.getUuid(), defaultTenant.getUuid());
-        userTenantRepository.save(link);
-
-        log.info("Administrador padrão criado e vinculado ao tenant default: {}", adminEmail);
-    }
-
-    /**
-     * Cenário: usuários já existem, mas o admin default pode não estar vinculado
-     * ao tenant default (ex: banco legado pré-multi-tenancy). Garante o vínculo
-     * se faltar, para o admin não ficar sem acesso a nenhum tenant.
-     */
-    private void ensureAdminTenantLink(Tenant defaultTenant) {
-        userRepository.findByEmail(adminEmail).ifPresent(admin -> {
-            boolean alreadyLinked = userTenantRepository
-                    .existsByUserUuidAndTenantUuid(admin.getUuid(), defaultTenant.getUuid());
-            if (!alreadyLinked) {
-                userTenantRepository.save(new UserTenant(admin.getUuid(), defaultTenant.getUuid()));
-                log.info("Vínculo do admin '{}' com o tenant default criado (ausência de vínculo detectada).",
-                        adminEmail);
+        // 3) Vínculo default admin↔primeira Organization (para pré-selecionar
+        //    a org ativa no login). O ADMIN acessa todas as orgs pelo role
+        //    global; este vínculo existe apenas para satisfazer a default.
+        organizationRepository.findAll().stream().findFirst().ifPresent(firstOrg -> {
+            if (!userOrganizationRepository.existsByUserUuidAndOrganizationUuid(admin.getUuid(), firstOrg.getUuid())) {
+                UserOrganization link = new UserOrganization();
+                link.setUser(admin);
+                link.setOrganization(firstOrg);
+                link.setRole(Role.ROLE_ADMIN);
+                link.setDefault(true);
+                userOrganizationRepository.save(link);
+                log.info("Vínculo default admin↔Organization criado para '{}'.", firstOrg.getTradeName());
             }
         });
+
+        log.info("Administrador padrão criado: {}", adminEmail);
     }
 }

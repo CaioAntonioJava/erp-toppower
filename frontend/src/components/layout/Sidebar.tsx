@@ -36,23 +36,18 @@ const navItems: NavItem[] = [
   { to: '/sales-orders', label: 'Pedidos de Venda', icon: ClipboardList },
 ]
 
-/** Item de menu exclusivo de administradores — gestão de transportadoras.
- *  Exibido logo após Produtos, dentro do bloco de cadastros. */
-const carriersItem: NavItem = { to: '/carriers', label: 'Transportadoras', icon: Truck }
-
 /** Item de menu exclusivo de administradores — gestão de usuários do sistema. */
 const usersItem: NavItem = { to: '/users', label: 'Usuários', icon: UserCog }
+
+/** Item de menu exclusivo de administradores — gestão de transportadoras. */
+const carriersItem: NavItem = { to: '/carriers', label: 'Transportadoras', icon: Truck }
 
 /** Sidebar com os links principais. Mantida simples para um MVP. */
 export function Sidebar() {
   const { user } = useAuth()
   const isAdmin = user?.role === 'ROLE_ADMIN'
-  // Admin vê o item Transportadoras dentro do bloco de cadastros (logo
-  // após Produtos) e o item Usuários ao final. Gestores não veem nenhum
-  // dos dois.
-  const items = isAdmin
-    ? [...navItems.slice(0, 6), carriersItem, ...navItems.slice(6), usersItem]
-    : navItems
+  // Admin vê os itens Transportadoras e Usuários ao final. Gestores não os veem.
+  const items = isAdmin ? [...navItems, carriersItem, usersItem] : navItems
 
   return (
     <aside className="hidden w-60 shrink-0 border-r border-slate-200 bg-white px-4 py-6 md:flex md:flex-col dark:border-slate-800 dark:bg-slate-900">
@@ -97,16 +92,17 @@ export function Sidebar() {
                 </Button>
               ) : null}
 
-              {/* Separador entre o bloco de cadastros e os próximos módulos.
-                  Para admin, vem após Transportadoras; para gestor, após Produtos. */}
-              {(item.to === '/carriers' || (item.to === '/products' && !isAdmin)) ? (
+              {/* Separador entre o bloco de cadastros e os próximos módulos,
+                  posicionado após Produtos. */}
+              {item.to === '/products' ? (
                 <div
                   aria-hidden
                   className="mt-[18px] mb-3 h-px bg-slate-300/70 dark:bg-slate-700/70"
                 />
               ) : null}
 
-              {/* Separador antes do bloco administrativo (Usuários). */}
+              {/* Separador antes do bloco administrativo
+                  (Transportadoras e Usuários). */}
               {item.to === '/sales-orders' && isAdmin ? (
                 <div
                   aria-hidden

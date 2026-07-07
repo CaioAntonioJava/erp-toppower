@@ -1,6 +1,6 @@
 package br.com.toppower.erp_toppower.stock.entity;
 
-import br.com.toppower.erp_toppower.common.entity.TenantScopedEntity;
+import br.com.toppower.erp_toppower.common.entity.OrganizationScopedEntity;
 import br.com.toppower.erp_toppower.stock.enums.MovementSource;
 import br.com.toppower.erp_toppower.stock.enums.MovementType;
 import jakarta.persistence.Column;
@@ -42,7 +42,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @NoArgsConstructor
-public class StockMovement extends TenantScopedEntity {
+public class StockMovement extends OrganizationScopedEntity {
 
     /** Produto cujo saldo foi alterado. Referência lógica por UUID (sem FK física). */
     @Column(name = "product_uuid", nullable = false)

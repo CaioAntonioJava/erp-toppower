@@ -13,7 +13,10 @@ import { Alert } from '../ui/Alert'
 import { Spinner } from '../ui/Spinner'
 import { RichTextEditor } from '../ui/RichTextEditor'
 import { toApiError } from '../../lib/errors'
+import { parseNumber, formatBRLValue } from '../../lib/money'
 import { useFieldTouched } from '../../hooks/useFieldTouched'
+import { useActiveCarriers } from '../../hooks/useActiveCarriers'
+import { FreightConditionsFields } from './FreightConditionsFields'
 import { getProduct, searchProducts } from '../../api/product.api'
 import {
   searchTechnicalProposalClients,
@@ -30,7 +33,6 @@ import type {
 } from '../../types/quotation'
 import {
   DISCOUNT_TYPE_OPTIONS,
-  FREIGHT_TYPE_OPTIONS,
   PAYMENT_CONDITION_OPTIONS,
 } from '../../types/quotation'
 import type {
@@ -87,21 +89,6 @@ const brlFormatter = new Intl.NumberFormat('pt-BR', {
 
 function nextRowKey(): string {
   return `row_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
-}
-
-function parseNumber(value: string): number | null {
-  const trimmed = value.trim()
-  if (!trimmed) return null
-  const normalized = trimmed.replace(',', '.')
-  const n = Number(normalized)
-  return Number.isFinite(n) ? n : null
-}
-
-function formatBRLValue(value: number | string | null | undefined): string {
-  if (value == null) return ''
-  const n = typeof value === 'string' ? parseNumber(value) : value
-  if (n == null || !Number.isFinite(n)) return ''
-  return n.toFixed(2).replace('.', ',')
 }
 
 function todayIso(): string {
@@ -162,9 +149,6 @@ export function TechnicalProposalForm({
   const [discount, setDiscount] = useState<string>(
     proposal?.discount != null ? String(proposal.discount) : '',
   )
-  const [freightValue, setFreightValue] = useState<string>(
-    proposal?.freightValue != null ? String(proposal.freightValue) : '',
-  )
   const [deliveryDeadline, setDeliveryDeadline] = useState<string>(
     proposal?.deliveryDeadline ?? '',
   )
@@ -174,6 +158,14 @@ export function TechnicalProposalForm({
   const [validity, setValidity] = useState<string>(proposal?.validity ?? '')
   const [deliveryType, setDeliveryType] = useState<FreightType | ''>(
     proposal?.deliveryType ?? '',
+  )
+  // Valor do frete (manual).
+  const [freightValue, setFreightValue] = useState<string>(
+    proposal?.freightValue != null ? formatBRLValue(proposal.freightValue) : '',
+  )
+  // Transportadora (Carrier) responsável pelo frete. Opcional.
+  const [carrierUuid, setCarrierUuid] = useState<string>(
+    proposal?.carrierUuid ?? '',
   )
   const [notes, setNotes] = useState<string>(proposal?.notes ?? '')
 
@@ -248,6 +240,13 @@ export function TechnicalProposalForm({
 
   const { shouldShowError, getBlurHandler, markAllTouched, reset } =
     useFieldTouched()
+
+  // Carrega transportadoras ativas (com fallback da selecionada em edição).
+  const { carriers, carriersLoading } = useActiveCarriers(
+    proposal?.carrierUuid
+      ? { uuid: proposal.carrierUuid, name: proposal.carrierName }
+      : null,
+  )
 
   // Sincroniza o código com `initialCode` que chega assincronamente.
   useEffect(() => {
@@ -670,6 +669,7 @@ export function TechnicalProposalForm({
         payload.deliveryType = deliveryType === '' ? null : deliveryType
         payload.deliveryDeadline = deliveryDeadline.trim() || null
         payload.validity = validity.trim() || null
+        payload.carrierUuid = carrierUuid || null
 
         await onSaveUpdate(payload)
         setSuccess('Proposta atualizada com sucesso!')
@@ -700,6 +700,7 @@ export function TechnicalProposalForm({
         if (deliveryType !== '') payload.deliveryType = deliveryType
         if (deliveryDeadline.trim()) payload.deliveryDeadline = deliveryDeadline.trim()
         if (validity.trim()) payload.validity = validity.trim()
+        payload.carrierUuid = carrierUuid || null
 
         await onSaveCreate(payload)
         setSuccess('Proposta criada com sucesso!')
@@ -1153,22 +1154,6 @@ export function TechnicalProposalForm({
             }
           />
           <Input
-            label="Valor do frete (R$)"
-            type="text"
-            inputMode="decimal"
-            placeholder="0,00"
-            value={freightValue}
-            onChange={(e) => setFreightValue(e.target.value)}
-            onBlur={() => {
-              if (freightValue.trim() !== '') {
-                const formatted = formatBRLValue(freightValue)
-                if (formatted) setFreightValue(formatted)
-              }
-              getBlurHandler('freightValue')()
-            }}
-            hint="Somado ao total após margem e desconto."
-          />
-          <Input
             label="Prazo de entrega"
             value={deliveryDeadline}
             onChange={(e) => setDeliveryDeadline(e.target.value)}
@@ -1183,24 +1168,37 @@ export function TechnicalProposalForm({
             maxLength={50}
           />
           <Select
-            label="Tipo de entrega"
-            value={deliveryType}
+            label="Condição de pagamento"
+            value={paymentCondition}
             onChange={(e) =>
-              setDeliveryType(e.target.value as FreightType | '')
+              setPaymentCondition(e.target.value as PaymentCondition | '')
             }
-            options={[{ value: '', label: 'Selecione…' }, ...FREIGHT_TYPE_OPTIONS]}
-            aria-label="Tipo de entrega"
-            hint="CIF = remetente; FOB = destinatário."
+            options={[{ value: '', label: 'Selecione…' }, ...PAYMENT_CONDITION_OPTIONS]}
+            aria-label="Condição de pagamento"
           />
           <div className="sm:col-span-2 lg:col-span-3">
-            <Select
-              label="Condição de pagamento"
-              value={paymentCondition}
-              onChange={(e) =>
-                setPaymentCondition(e.target.value as PaymentCondition | '')
-              }
-              options={[{ value: '', label: 'Selecione…' }, ...PAYMENT_CONDITION_OPTIONS]}
-              aria-label="Condição de pagamento"
+            <FreightConditionsFields
+              freightType={deliveryType}
+              onFreightTypeChange={(v) => setDeliveryType(v as FreightType | '')}
+              freightValue={freightValue}
+              onFreightValueChange={setFreightValue}
+              onFreightValueBlur={() => {
+                if (freightValue.trim() !== '') {
+                  const formatted = formatBRLValue(freightValue)
+                  if (formatted) setFreightValue(formatted)
+                }
+                getBlurHandler('freightValue')()
+              }}
+              freightValueError={shouldShowError(
+                'freightValue',
+                fieldErrors.freightValue,
+              )}
+              carrierUuid={carrierUuid}
+              onCarrierUuidChange={setCarrierUuid}
+              carriers={carriers}
+              carriersLoading={carriersLoading}
+              freightTypeLabel="Tipo de entrega"
+              freightTypeHint="CIF = remetente; FOB = destinatário."
             />
           </div>
         </div>

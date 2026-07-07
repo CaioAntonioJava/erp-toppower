@@ -86,10 +86,6 @@ public record SalesOrderResponse(
         @Schema(description = "Observações livres.", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         String notes,
 
-        @Schema(description = "UUID da transportadora responsável pelo frete (opcional).",
-                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID carrierUuid,
-
         @Schema(description = "Tipo de frete.",
                 allowableValues = {"CIF", "FOB"},
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
@@ -98,6 +94,14 @@ public record SalesOrderResponse(
         @Schema(description = "Valor do frete (somado ao total após o desconto global).",
                 example = "45.90", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         BigDecimal freightValue,
+
+        @Schema(description = "UUID da transportadora (Carrier) responsável pelo frete.",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        UUID carrierUuid,
+
+        @Schema(description = "Nome da transportadora (resolvido no backend a partir de carrierUuid).",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        String carrierName,
 
         @Schema(description = "Status atual do pedido.",
                 allowableValues = {"ABERTO", "FINALIZADO", "CANCELADO"},

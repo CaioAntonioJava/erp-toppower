@@ -7,7 +7,6 @@ import { Alert } from '../components/ui/Alert'
 import { LogoTopPower } from '../components/ui/LogoTopPower'
 import { getSalesOrder } from '../api/salesOrder.api'
 import { getProduct } from '../api/product.api'
-import { getCarrier } from '../api/carrier.api'
 import { toApiError } from '../lib/errors'
 import type {
   SalesOrderResponse,
@@ -72,12 +71,11 @@ export function SalesOrderPrintPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // === resolução de nomes (produtos e transportadora) ===
+  // === resolução de nomes (produtos) ===
   // O `SalesOrderResponse` já traz o nome do cliente (`clientName`/`clientCode`)
   // e do vendedor (`sellerName`) resolvidos no backend. Apenas os nomes de
-  // produtos e da transportadora ainda precisam ser hidratados no frontend.
+  // produtos ainda precisam ser hidratados no frontend.
   // Mantemos o UUID curto como fallback caso a resolução falhe.
-  const [carrierName, setCarrierName] = useState<string | null>(null)
   const [productNames, setProductNames] = useState<Record<string, string>>({})
   const [namesResolved, setNamesResolved] = useState(false)
 
@@ -110,13 +108,6 @@ export function SalesOrderPrintPage() {
     if (!salesOrder) return
     let cancelled = false
 
-    // Transportadora — opcional; só busca se houver FK.
-    const carrierPromise = salesOrder.carrierUuid
-      ? getCarrier(salesOrder.carrierUuid)
-          .then((c) => c.carrierName)
-          .catch(() => null)
-      : Promise.resolve(null)
-
     // Produtos — dedupe por UUID para não buscar o mesmo item duas vezes.
     const uniqueProductUuids = Array.from(
       new Set(salesOrder.items.map((it) => it.productUuid)),
@@ -139,10 +130,9 @@ export function SalesOrderPrintPage() {
       return map
     })
 
-    Promise.all([carrierPromise, productEntriesPromise])
-      .then(([carrier, products]) => {
+    productEntriesPromise
+      .then((products) => {
         if (cancelled) return
-        setCarrierName(carrier)
         setProductNames(products)
         setNamesResolved(true)
       })
@@ -321,16 +311,6 @@ export function SalesOrderPrintPage() {
               <dd className="font-medium">
                 {salesOrder.freightType
                   ? FREIGHT_TYPE_LABELS[salesOrder.freightType]
-                  : '—'}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs uppercase tracking-wide text-slate-500">
-                Transportadora
-              </dt>
-              <dd className="font-medium">
-                {salesOrder.carrierUuid
-                  ? (carrierName ?? `${salesOrder.carrierUuid.slice(0, 8)}…`)
                   : '—'}
               </dd>
             </div>

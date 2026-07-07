@@ -33,8 +33,19 @@ public interface CompanyRepository extends JpaRepository<Company, UUID>,
      * sequencial (ex.: {@code EMP000001}) a partir do maior já cadastrado.
      *
      * <p>Retorna {@code null} quando ainda não houver registros com o prefixo.</p>
+     *
+     * <p><b>Consulta nativa</b> (não-JPQL): o {@code OrganizationFilterAspect}
+     * habilita o filtro Hibernate {@code organizationFilter} em toda chamada a
+     * repositório Spring Data, escopando queries JPQL/Criteria por
+     * {@code organization_uuid}. Aqui isso seria indesejado: a coluna
+     * {@code code} tem constraint UNIQUE <b>global</b>, então a sequência deve
+     * ser contínua entre todas as Organizations — caso contrário, a segunda
+     * empresa reiniciaria em {@code EMP000001} e colidiria com a primeira.
+     * Consultas nativas não recebem o filtro Hibernate, garantindo o MAX
+     * global.</p>
      */
-    @Query("SELECT MAX(c.code) FROM Company c WHERE c.code LIKE CONCAT(:prefix, '%')")
+    @Query(value = "SELECT MAX(c.code) FROM companies c WHERE c.code LIKE CONCAT(:prefix, '%')",
+            nativeQuery = true)
     String findMaxCodeByPrefix(@Param("prefix") String prefix);
 
     /**

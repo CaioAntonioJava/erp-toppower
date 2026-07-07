@@ -82,10 +82,6 @@ public record QuotationCreateRequest(
         @Size(max = 2000, message = "Observações devem ter no máximo {max} caracteres")
         String notes,
 
-        @Schema(description = "UUID da transportadora responsável pelo frete (opcional).",
-                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID carrierUuid,
-
         @Schema(description = "Tipo de frete (CIF = por conta do remetente, FOB = por conta do destinatário).",
                 allowableValues = {"CIF", "FOB"},
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
@@ -103,6 +99,10 @@ public record QuotationCreateRequest(
         @NotNull(message = "Margem de lucro é obrigatória")
         @DecimalMin(value = "0.00", message = "Margem de lucro não pode ser negativa")
         @Digits(integer = 3, fraction = 2, message = "Margem de lucro inválida")
-        BigDecimal profitMargin
+        BigDecimal profitMargin,
+
+        @Schema(description = "UUID da transportadora (Carrier) responsável pelo frete. Opcional.",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        UUID carrierUuid
 ) {
 }

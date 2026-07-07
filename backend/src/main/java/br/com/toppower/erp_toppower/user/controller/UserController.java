@@ -36,10 +36,8 @@ public class UserController {
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(
             summary = "Cadastrar novo usuário",
-            description = "Cria um novo usuário no sistema e o vincula a cada uma das empresas "
-                    + "(tenants) selecionadas no corpo da requisição. O usuário poderá acessar "
-                    + "todas as empresas informadas — ao menos uma é obrigatória. Acesso restrito "
-                    + "a administradores (ROLE_ADMIN). O e-mail deve ser único no sistema."
+            description = "Cria um novo usuário no sistema. O e-mail deve ser único. "
+                    + "Acesso restrito a administradores (ROLE_ADMIN)."
     )
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasRole('ADMIN')")
@@ -157,9 +155,8 @@ public class UserController {
     @DeleteMapping(value = "/{id}")
     @Operation(
             summary = "Excluir usuário",
-            description = "Exclui permanentemente um usuário e seus vínculos com empresas (tenants). "
-                    + "Bloqueia a auto-exclusão: o admin não pode excluir a própria conta. Acesso "
-                    + "restrito a administradores (ROLE_ADMIN)."
+            description = "Exclui permanentemente um usuário. Bloqueia a auto-exclusão: o admin "
+                    + "não pode excluir a própria conta. Acesso restrito a administradores (ROLE_ADMIN)."
     )
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasRole('ADMIN')")
@@ -175,31 +172,6 @@ public class UserController {
     public ResponseEntity<Void> delete(@AuthenticationPrincipal UserDetailsImpl principal,
                                        @PathVariable UUID id) {
         userService.delete(id, principal.uuid());
-        return ResponseEntity.noContent().build();
-    }
-
-    @PostMapping(value = "/{id}/tenants/{tenantId}")
-    @Operation(
-            summary = "Vincular usuário a um tenant (empresa)",
-            description = "Permite que um administrador dê a um usuário acesso a um tenant "
-                    + "adicional. O usuário poderá então alternar entre seus tenants via "
-                    + "switch-tenant no login. Acesso restrito a administradores (ROLE_ADMIN)."
-    )
-    @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasRole('ADMIN')")
-    @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Vínculo criado com sucesso."),
-            @ApiResponse(responseCode = "401", description = "Token ausente, inválido ou expirado.",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "403", description = "Usuário não possui ROLE_ADMIN.",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "404", description = "Usuário ou tenant não encontrado.",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "409", description = "Usuário já vinculado ao tenant.",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
-    })
-    public ResponseEntity<Void> linkTenant(@PathVariable UUID id, @PathVariable UUID tenantId) {
-        userService.linkTenant(id, tenantId);
         return ResponseEntity.noContent().build();
     }
 }

@@ -1,7 +1,7 @@
 package br.com.toppower.erp_toppower.person.entity;
 
 import br.com.toppower.erp_toppower.common.annotation.UpperCase;
-import br.com.toppower.erp_toppower.common.entity.TenantScopedEntity;
+import br.com.toppower.erp_toppower.common.entity.OrganizationScopedEntity;
 import br.com.toppower.erp_toppower.common.validation.ValidCpf;
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
@@ -13,10 +13,8 @@ import lombok.Setter;
  * Entidade base com os campos compartilhados por entidades que representam
  * pessoas (físicas ou jurídicas) no sistema: nome, e-mail, telefone e CPF.
  *
- * <p>Herdar {@link TenantScopedEntity} garante também o identificador UUID,
- * a auditoria completa (timestamps + autor) e o discriminador de tenant
- * ({@code tenant_uuid}), já que pessoas (Customer, Seller, Profile) são
- * dados de negócio pertencentes a um tenant.</p>
+ * <p>Herdar {@link BaseEntity} fornece o identificador UUID e a auditoria
+ * completa (timestamps + autor).</p>
  *
  * <p>O campo {@code cpf} é validado por {@link ValidCpf} (incluindo
  * dígitos verificadores), portanto todas as entidades que herdam desta
@@ -32,7 +30,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public abstract class BasePerson extends TenantScopedEntity {
+public abstract class BasePerson extends OrganizationScopedEntity {
 
     @UpperCase
     @Column(name = "name", nullable = false, length = 150)
@@ -45,6 +43,11 @@ public abstract class BasePerson extends TenantScopedEntity {
     private String phone;
 
     @ValidCpf(message = "CPF inválido (dígitos verificadores incorretos ou formato incorreto)")
-    @Column(name = "cpf", nullable = false, length = 14, unique = true)
+    // unique = true removido: a unicidade agora é por Organization
+    // (uk_customers_org_cpf / uk_sellers_org_cpf em V22). O Hibernate
+    // ddl-auto=update criaria um índice UNIQUE global que conflitaria com a
+    // constraint composta. Profile NÃO herda daqui (tem seu próprio cpf local),
+    // então esta mudança não afeta a unicidade global do perfil do usuário.
+    @Column(name = "cpf", nullable = false, length = 14)
     private String cpf;
 }

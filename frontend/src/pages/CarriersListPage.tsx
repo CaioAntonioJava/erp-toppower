@@ -1,14 +1,17 @@
-import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
+  Check,
   ChevronLeft,
   ChevronRight,
   Eye,
   Plus,
   Power,
+  Search,
   Truck,
+  X,
 } from 'lucide-react'
 import { Button } from '../components/ui/Button'
+import { Input } from '../components/ui/Input'
 import { Select } from '../components/ui/Select'
 import { Spinner } from '../components/ui/Spinner'
 import { Alert } from '../components/ui/Alert'
@@ -18,12 +21,11 @@ import {
   activateCarrier,
   inactivateCarrier,
   listCarriers,
+  searchCarriers,
 } from '../api/carrier.api'
-import type { CarrierResponse, CarrierStatus } from '../types/carrier'
-import { CARRIER_NAME_LABELS } from '../types/carrier'
-import type { PagedResponse } from '../types/api'
-import { toApiError } from '../lib/errors'
-import { useAuth } from '../context/AuthContext'
+import type { CarrierResponse } from '../types/carrier'
+import type { RegistrationStatus } from '../types/registration'
+import { useEntityList } from '../hooks/useEntityList'
 
 const STATUS_OPTIONS = [
   { value: 'ALL', label: 'Todos' },
@@ -31,112 +33,39 @@ const STATUS_OPTIONS = [
   { value: 'INATIVO', label: 'Inativos' },
 ]
 
-const PAGE_SIZE = 10
-
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return ''
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return ''
   return d.toLocaleString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
-function formatFreight(value: number | null | undefined): string {
-  if (value == null) return '—'
-  return value.toLocaleString('pt-BR', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
   })
 }
 
 export function CarriersListPage() {
   const navigate = useNavigate()
-  const { user } = useAuth()
-  const isAdmin = user?.role === 'ROLE_ADMIN'
 
-  const [statusFilter, setStatusFilter] = useState<'ALL' | CarrierStatus>('ALL')
-  const [page, setPage] = useState(0)
-  const [data, setData] = useState<PagedResponse<CarrierResponse> | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  // --- toggle individual ---
-  const [confirmSingle, setConfirmSingle] = useState<CarrierResponse | null>(
-    null,
-  )
-  const [toggling, setToggling] = useState(false)
-
-  const load = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const status =
-        statusFilter === 'ALL' ? undefined : (statusFilter as CarrierStatus)
-      const result = await listCarriers({
-        status,
-        page,
-        size: PAGE_SIZE,
-      })
-      setData(result)
-    } catch (err) {
-      setError(toApiError(err).message)
-      setData(null)
-    } finally {
-      setLoading(false)
-    }
-  }, [statusFilter, page])
-
-  useEffect(() => {
-    load()
-  }, [load])
-
-  // Reseta a página ao mudar o filtro de status.
-  useEffect(() => {
-    setPage(0)
-  }, [statusFilter])
-
-  async function handleToggleStatus() {
-    if (!confirmSingle) return
-    setToggling(true)
-    setError(null)
-    try {
-      if (confirmSingle.status === 'ATIVO') {
-        await inactivateCarrier(confirmSingle.uuid)
-      } else {
-        await activateCarrier(confirmSingle.uuid)
-      }
-      setConfirmSingle(null)
-      await load()
-    } catch (err) {
-      setError(toApiError(err).message)
-    } finally {
-      setToggling(false)
-    }
-  }
-
-  const items = data?.content ?? []
+  const list = useEntityList<CarrierResponse>({
+    api: {
+      fetchAll: listCarriers,
+      search: searchCarriers,
+      inactivate: inactivateCarrier,
+      activate: activateCarrier,
+    },
+  })
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Transportadoras
-          </h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Transportadoras</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Cadastro e gestão de transportadoras disponíveis para cotações e
-            pedidos.
-            {isAdmin ? (
-              <span className="ml-2 inline-flex items-center rounded-full border border-primary/30 bg-primary-50 px-2 py-0.5 text-xs font-medium text-primary-700 dark:border-primary-900 dark:bg-primary-900/30 dark:text-primary-200">
-                Visão ADMIN
-              </span>
-            ) : null}
+            Cadastro e gestão de transportadoras (carriers).
+            <span className="ml-2 inline-flex items-center rounded-full border border-primary/30 bg-primary-50 px-2 py-0.5 text-xs font-medium text-primary-700 dark:border-primary-900 dark:bg-primary-900/30 dark:text-primary-200">
+              Visão ADMIN
+            </span>
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -151,19 +80,75 @@ export function CarriersListPage() {
 
       {/* Filtros */}
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <div className="sm:max-w-[240px]">
+        <div className="grid gap-3 sm:grid-cols-[1fr_220px]">
+          <Input
+            placeholder="Buscar por nome…"
+            value={list.query}
+            onChange={(e) => list.setQuery(e.target.value)}
+            leftAdornment={<Search className="h-4 w-4" />}
+            hint={
+              list.query.trim().length > 0 &&
+              list.query.trim().length < list.minQueryLength
+                ? `Digite ao menos ${list.minQueryLength} caracteres para buscar.`
+                : undefined
+            }
+          />
           <Select
             options={STATUS_OPTIONS}
-            value={statusFilter}
+            value={list.statusFilter}
             onChange={(e) =>
-              setStatusFilter(e.target.value as 'ALL' | CarrierStatus)
+              list.setStatusFilter(e.target.value as 'ALL' | RegistrationStatus)
             }
             aria-label="Filtrar por status"
           />
         </div>
       </div>
 
-      {error ? <Alert variant="error">{error}</Alert> : null}
+      {list.bulkFeedback ? (
+        <Alert variant={list.bulkFeedback.fail > 0 ? 'error' : 'success'}>
+          {list.bulkFeedback.message}
+        </Alert>
+      ) : null}
+      {list.error ? <Alert variant="error">{list.error}</Alert> : null}
+
+      {/* Barra de ação em massa */}
+      {list.hasSelection ? (
+        <div className="flex flex-col items-stretch gap-2 rounded-xl border border-primary/30 bg-primary-50 px-4 py-3 text-sm dark:border-primary-900 dark:bg-primary-900/20 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 text-primary-800 dark:text-primary-200">
+            <Check className="h-4 w-4" />
+            <span>
+              <strong>{list.selectedIds.size}</strong> transportadora(s) selecionada(s)
+              {list.hasOffpageSelection ? ' (em outras páginas)' : ''}
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              size="sm" variant="ghost"
+              onClick={list.clearSelection}
+              disabled={list.bulkRunning}
+            >
+              <X className="h-4 w-4" />
+              Limpar
+            </Button>
+            <Button
+              size="sm" variant="secondary"
+              onClick={() => list.setConfirmBulk('ATIVO')}
+              disabled={list.bulkRunning || (list.selectedActiveCount === 0 && !list.hasOffpageSelection)}
+            >
+              <Power className="h-4 w-4" />
+              Reativar selecionados
+            </Button>
+            <Button
+              size="sm" variant="danger"
+              onClick={() => list.setConfirmBulk('INATIVO')}
+              disabled={list.bulkRunning || (list.selectedInactiveCount === 0 && !list.hasOffpageSelection)}
+            >
+              <Power className="h-4 w-4" />
+              Inativar selecionados
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       {/* Tabela */}
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -171,38 +156,37 @@ export function CarriersListPage() {
           <table className="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-800">
             <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-950/40 dark:text-slate-400">
               <tr>
-                <th className="px-4 py-3 font-medium">Transportadora</th>
-                <th className="px-4 py-3 font-medium">Valor do frete</th>
+                <th scope="col" className="w-10 px-4 py-3">
+                  <input
+                    type="checkbox"
+                    aria-label="Selecionar todos da página"
+                    className="h-4 w-4 cursor-pointer rounded border-slate-300 text-primary focus:ring-primary dark:border-slate-600 dark:bg-slate-800"
+                    checked={list.allVisibleSelected}
+                    onChange={list.toggleSelectAllVisible}
+                    disabled={list.loading || list.items.length === 0}
+                  />
+                </th>
+                <th className="px-4 py-3 font-medium">Nome</th>
                 <th className="px-4 py-3 font-medium">Status</th>
-                {isAdmin ? (
-                  <th className="px-4 py-3 font-medium">Atualizado em</th>
-                ) : null}
+                <th className="px-4 py-3 font-medium">Atualizado em</th>
                 <th className="px-4 py-3 text-right font-medium">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-              {loading ? (
+              {list.loading ? (
                 <tr>
-                  <td
-                    colSpan={isAdmin ? 5 : 4}
-                    className="px-4 py-12 text-center"
-                  >
-                    <div className="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400">
-                      <Spinner size="sm" /> Carregando…
-                    </div>
-                  </td>
+<td colSpan={5} className="px-4 py-12 text-center">
+                  <div className="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                    <Spinner size="sm" /> Carregando…
+                  </div>
+                </td>
                 </tr>
-              ) : items.length === 0 ? (
+              ) : list.items.length === 0 ? (
                 <tr>
-                  <td
-                    colSpan={isAdmin ? 5 : 4}
-                    className="px-4 py-12 text-center"
-                  >
+                  <td colSpan={5} className="px-4 py-12 text-center">
                     <div className="flex flex-col items-center gap-2 text-slate-500 dark:text-slate-400">
                       <Truck className="h-8 w-8 opacity-60" />
-                      <p className="text-sm">
-                        Nenhuma transportadora encontrada.
-                      </p>
+                      <p className="text-sm">Nenhuma transportadora encontrada.</p>
                       <Link to="/carriers/new">
                         <Button size="sm" variant="secondary">
                           <Plus className="h-4 w-4" />
@@ -213,24 +197,37 @@ export function CarriersListPage() {
                   </td>
                 </tr>
               ) : (
-                items.map((c) => (
-                  <tr
-                    key={c.uuid}
-                    className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40"
-                    onClick={() => navigate(`/carriers/${c.uuid}`)}
-                  >
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-slate-900 dark:text-slate-100">
-                        {c.carrierName ? CARRIER_NAME_LABELS[c.carrierName] : '—'}
-                      </div>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-slate-600 dark:text-slate-300">
-                      {formatFreight(c.freightValue)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <RegistrationStatusBadge status={c.status} />
-                    </td>
-                    {isAdmin ? (
+                list.items.map((c) => {
+                  const isSelected = list.selectedIds.has(c.uuid)
+                  return (
+                    <tr
+                      key={c.uuid}
+                      className={[
+                        'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40',
+                        isSelected ? 'bg-primary-50/50 dark:bg-primary-900/10' : '',
+                      ].join(' ')}
+                      onClick={() => navigate(`/carriers/${c.uuid}`)}
+                    >
+                      <td
+                        className="px-4 py-3"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <input
+                          type="checkbox"
+                          aria-label={`Selecionar ${c.name}`}
+                          className="h-4 w-4 cursor-pointer rounded border-slate-300 text-primary focus:ring-primary dark:border-slate-600 dark:bg-slate-800"
+                          checked={isSelected}
+                          onChange={() => list.toggleSelect(c.uuid)}
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="font-medium text-slate-900 dark:text-slate-100">
+                          {c.name}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <RegistrationStatusBadge status={c.status} />
+                      </td>
                       <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-500 dark:text-slate-400">
                         {formatDate(c.updatedAt)}
                         {c.updatedBy ? (
@@ -239,36 +236,32 @@ export function CarriersListPage() {
                           </div>
                         ) : null}
                       </td>
-                    ) : null}
-                    <td
-                      className="px-4 py-3"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => navigate(`/carriers/${c.uuid}`)}
-                          title="Ver / editar"
-                          aria-label="Ver / editar"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={c.status === 'ATIVO' ? 'ghost' : 'secondary'}
-                          onClick={() => setConfirmSingle(c)}
-                          title={c.status === 'ATIVO' ? 'Inativar' : 'Reativar'}
-                          aria-label={
-                            c.status === 'ATIVO' ? 'Inativar' : 'Reativar'
-                          }
-                        >
-                          <Power className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                      <td
+                        className="px-4 py-3"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            size="sm" variant="ghost"
+                            onClick={() => navigate(`/carriers/${c.uuid}`)}
+                            title="Ver / editar" aria-label="Ver / editar"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={c.status === 'ATIVO' ? 'ghost' : 'secondary'}
+                            onClick={() => list.setConfirmSingle(c)}
+                            title={c.status === 'ATIVO' ? 'Inativar' : 'Reativar'}
+                            aria-label={c.status === 'ATIVO' ? 'Inativar' : 'Reativar'}
+                          >
+                            <Power className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })
               )}
             </tbody>
           </table>
@@ -277,27 +270,30 @@ export function CarriersListPage() {
         {/* Footer com paginação */}
         <div className="flex flex-col items-center justify-between gap-3 border-t border-slate-200 px-4 py-3 text-sm sm:flex-row dark:border-slate-800">
           <span className="text-slate-500 dark:text-slate-400">
-            {data?.totalElements == null || data.totalElements === 0
+            {list.totalElements === 0
               ? 'Nenhum resultado'
-              : `${data.totalElements} transportadora(s) • Página ${
-                  data.page + 1
-                } de ${Math.max(data.totalPages, 1)}`}
+              : `${list.totalElements} transportadora(s) • Página ${
+                  list.data ? list.data.page + 1 : 0
+                } de ${Math.max(list.totalPages, 1)}`}
+            {list.selectedIds.size > 0 ? (
+              <span className="ml-2 text-primary-700 dark:text-primary-300">
+                • {list.selectedIds.size} selecionado(s)
+              </span>
+            ) : null}
           </span>
           <div className="flex items-center gap-2">
             <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-              disabled={loading || data?.first}
+              size="sm" variant="secondary"
+              onClick={() => list.setPage((p) => Math.max(0, p - 1))}
+              disabled={list.loading || list.data?.first}
             >
               <ChevronLeft className="h-4 w-4" />
               Anterior
             </Button>
             <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => setPage((p) => p + 1)}
-              disabled={loading || data?.last}
+              size="sm" variant="secondary"
+              onClick={() => list.setPage((p) => p + 1)}
+              disabled={list.loading || list.data?.last}
             >
               Próxima
               <ChevronRight className="h-4 w-4" />
@@ -308,27 +304,45 @@ export function CarriersListPage() {
 
       {/* Modal: inativar/reativar individual */}
       <ConfirmDialog
-        open={!!confirmSingle}
+        open={!!list.confirmSingle}
         title={
-          confirmSingle?.status === 'ATIVO'
+          list.confirmSingle?.status === 'ATIVO'
             ? 'Inativar transportadora?'
             : 'Reativar transportadora?'
         }
         description={
-          confirmSingle?.status === 'ATIVO'
-            ? `A transportadora "${confirmSingle?.carrierName ? CARRIER_NAME_LABELS[confirmSingle.carrierName] : ''}" será marcada como inativa. O registro não é apagado e pode ser reativado depois.`
-            : `A transportadora "${confirmSingle?.carrierName ? CARRIER_NAME_LABELS[confirmSingle.carrierName] : ''}" voltará a ficar ativa.`
+          list.confirmSingle?.status === 'ATIVO'
+            ? `A transportadora "${list.confirmSingle?.name}" será marcada como inativa. O registro não é apagado e pode ser reativado depois.`
+            : `A transportadora "${list.confirmSingle?.name}" voltará a ficar ativa.`
         }
-        confirmText={
-          confirmSingle?.status === 'ATIVO' ? 'Inativar' : 'Reativar'
-        }
-        confirmVariant={
-          confirmSingle?.status === 'ATIVO' ? 'danger' : 'primary'
-        }
-        isLoading={toggling}
-        onConfirm={handleToggleStatus}
+        confirmText={list.confirmSingle?.status === 'ATIVO' ? 'Inativar' : 'Reativar'}
+        confirmVariant={list.confirmSingle?.status === 'ATIVO' ? 'danger' : 'primary'}
+        isLoading={list.toggling}
+        onConfirm={list.handleSingleToggle}
         onClose={() => {
-          if (!toggling) setConfirmSingle(null)
+          if (!list.toggling) list.setConfirmSingle(null)
+        }}
+      />
+
+      {/* Modal: confirmar ação em massa */}
+      <ConfirmDialog
+        open={!!list.confirmBulk}
+        title={
+          list.confirmBulk === 'ATIVO'
+            ? 'Reativar transportadoras selecionadas?'
+            : 'Inativar transportadoras selecionadas?'
+        }
+        description={
+          list.confirmBulk === 'ATIVO'
+            ? `${list.selectedIds.size} transportadora(s) serão marcadas como ativas.`
+            : `${list.selectedIds.size} transportadora(s) serão marcadas como inativas. Os registros não são apagados.`
+        }
+        confirmText={list.confirmBulk === 'ATIVO' ? 'Reativar todas' : 'Inativar todas'}
+        confirmVariant={list.confirmBulk === 'INATIVO' ? 'danger' : 'primary'}
+        isLoading={list.bulkRunning}
+        onConfirm={list.handleBulkConfirm}
+        onClose={() => {
+          if (!list.bulkRunning) list.setConfirmBulk(null)
         }}
       />
     </div>

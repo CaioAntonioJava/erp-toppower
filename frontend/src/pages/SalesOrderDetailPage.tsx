@@ -19,7 +19,6 @@ import {
   getSalesOrder,
 } from '../api/salesOrder.api'
 import { getProduct } from '../api/product.api'
-import { getCarrier } from '../api/carrier.api'
 import { toApiError } from '../lib/errors'
 import type { SalesOrderResponse, SalesOrderStatus } from '../types/salesOrder'
 import { SALES_ORDER_STATUS_LABELS } from '../types/salesOrder'
@@ -120,24 +119,16 @@ export function SalesOrderDetailPage() {
     }
   }, [id])
 
-  // === resolução de nomes (produtos e transportadora) ===
+  // === resolução de nomes (produtos) ===
   // O `SalesOrderResponse` já traz o nome do cliente (`clientName`/`clientCode`)
   // e do vendedor (`sellerName`) resolvidos no backend. Apenas os nomes de
-  // produtos e da transportadora ainda precisam ser hidratados no frontend.
+  // produtos ainda precisam ser hidratados no frontend.
   // Mantemos o UUID curto como fallback caso a resolução falhe.
-  const [carrierName, setCarrierName] = useState<string | null>(null)
   const [productNames, setProductNames] = useState<Record<string, string>>({})
 
   useEffect(() => {
     if (!salesOrder) return
     let cancelled = false
-
-    // Transportadora — opcional; só busca se houver FK.
-    const carrierPromise = salesOrder.carrierUuid
-      ? getCarrier(salesOrder.carrierUuid)
-          .then((c) => c.carrierName)
-          .catch(() => null)
-      : Promise.resolve(null)
 
     // Produtos — dedupe por UUID para não buscar o mesmo item duas vezes.
     const uniqueProductUuids = Array.from(
@@ -161,10 +152,9 @@ export function SalesOrderDetailPage() {
       return map
     })
 
-    Promise.all([carrierPromise, productEntriesPromise])
-      .then(([carrier, products]) => {
+    productEntriesPromise
+      .then((products) => {
         if (cancelled) return
-        setCarrierName(carrier)
         setProductNames(products)
       })
       .catch(() => {
@@ -381,9 +371,7 @@ export function SalesOrderDetailPage() {
               Transportadora
             </dt>
             <dd className="mt-1 text-sm text-slate-800 dark:text-slate-200">
-              {salesOrder.carrierUuid
-                ? (carrierName ?? `${salesOrder.carrierUuid.slice(0, 8)}…`)
-                : '—'}
+              {salesOrder.carrierName ?? '—'}
             </dd>
           </div>
           <div>

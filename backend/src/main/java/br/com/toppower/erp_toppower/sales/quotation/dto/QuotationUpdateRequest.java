@@ -74,10 +74,6 @@ public record QuotationUpdateRequest(
         @Size(max = 2000, message = "Observações devem ter no máximo {max} caracteres")
         String notes,
 
-        @Schema(description = "Novo UUID da transportadora (enviar nulo para remover).",
-                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID carrierUuid,
-
         @Schema(description = "Novo tipo de frete (CIF/FOB).",
                 allowableValues = {"CIF", "FOB"},
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
@@ -94,6 +90,11 @@ public record QuotationUpdateRequest(
                 example = "10.00", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         @DecimalMin(value = "0.00", message = "Margem de lucro não pode ser negativa")
         @Digits(integer = 3, fraction = 2, message = "Margem de lucro inválida")
-        BigDecimal profitMargin
+        BigDecimal profitMargin,
+
+        @Schema(description = "Nova transportadora (Carrier) responsável pelo frete. "
+                + "Envie nulo para remover a transportadora vinculada.",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        UUID carrierUuid
 ) {
 }

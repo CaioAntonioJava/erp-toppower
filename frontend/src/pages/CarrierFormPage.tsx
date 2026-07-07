@@ -21,22 +21,18 @@ import type {
   CarrierResponse,
   CarrierUpdateRequest,
 } from '../types/carrier'
-import { CARRIER_NAME_LABELS } from '../types/carrier'
 import { toApiError } from '../lib/errors'
-import { useAuth } from '../context/AuthContext'
 
 type Mode = 'loading' | 'create' | 'view'
 
 /**
  * Página unificada para criar/visualizar/editar uma transportadora.
- * - /carriers/new  → modo create
- * - /carriers/:id  → modo view (carrega GET /carriers/{id})
+ * - /carriers/new        → modo create
+ * - /carriers/:id        → modo view (carrega GET /carriers/{id})
  */
 export function CarrierFormPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { user } = useAuth()
-  const isAdmin = user?.role === 'ROLE_ADMIN'
 
   const [mode, setMode] = useState<Mode>('loading')
   const [carrier, setCarrier] = useState<CarrierResponse | null>(null)
@@ -76,7 +72,8 @@ export function CarrierFormPage() {
       await createCarrier(payload)
       // Após salvar, redireciona para a lista (com `replace` para que o
       // botão Voltar do navegador não traga o usuário de volta para o
-      // formulário já enviado).
+      // formulário já enviado). O item recém-criado aparecerá na lista
+      // após a recarga automática.
       navigate('/carriers', { replace: true })
     } finally {
       setSaving(false)
@@ -119,26 +116,17 @@ export function CarrierFormPage() {
     }
   }
 
-  const titleName =
-    carrier?.carrierName != null
-      ? CARRIER_NAME_LABELS[carrier.carrierName]
-      : 'Transportadora'
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <BackButton />
           <h1 className="mt-4 text-2xl font-semibold tracking-tight">
-            {mode === 'create' ? 'Nova transportadora' : titleName}
+            {mode === 'create' ? 'Nova transportadora' : carrier?.name ?? 'Transportadora'}
           </h1>
           {mode === 'view' && carrier ? (
             <div className="mt-1 flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-              <span className="font-mono text-xs">
-                {carrier.carrierName
-                  ? CARRIER_NAME_LABELS[carrier.carrierName]
-                  : '—'}
-              </span>
+              <span>{carrier.serviceName}</span>
               <span aria-hidden>•</span>
               <RegistrationStatusBadge status={carrier.status} />
             </div>
@@ -181,9 +169,7 @@ export function CarrierFormPage() {
                 size="md"
               >
                 <Save className="h-4 w-4" />
-                {mode === 'view'
-                  ? 'Salvar alterações'
-                  : 'Cadastrar transportadora'}
+                {mode === 'view' ? 'Salvar alterações' : 'Cadastrar transportadora'}
               </Button>
             </>
           ) : null}
@@ -197,7 +183,7 @@ export function CarrierFormPage() {
         </Alert>
       ) : null}
 
-      {isAdmin && mode === 'view' && carrier ? (
+      {mode === 'view' && carrier ? (
         <RegistrationAuditCard
           createdBy={carrier.createdBy}
           createdAt={carrier.createdAt}
@@ -221,14 +207,12 @@ export function CarrierFormPage() {
       <ConfirmDialog
         open={confirmToggle}
         title={
-          carrier?.status === 'ATIVO'
-            ? 'Inativar transportadora?'
-            : 'Reativar transportadora?'
+          carrier?.status === 'ATIVO' ? 'Inativar transportadora?' : 'Reativar transportadora?'
         }
         description={
           carrier?.status === 'ATIVO'
-            ? `A transportadora "${titleName}" será marcada como inativa. O registro não é apagado e pode ser reativado depois.`
-            : `A transportadora "${titleName}" voltará a ficar ativa.`
+            ? `A transportadora "${carrier?.name}" será marcada como inativa. O registro não é apagado e pode ser reativado depois.`
+            : `A transportadora "${carrier?.name}" voltará a ficar ativa.`
         }
         confirmText={carrier?.status === 'ATIVO' ? 'Inativar' : 'Reativar'}
         confirmVariant={carrier?.status === 'ATIVO' ? 'danger' : 'primary'}

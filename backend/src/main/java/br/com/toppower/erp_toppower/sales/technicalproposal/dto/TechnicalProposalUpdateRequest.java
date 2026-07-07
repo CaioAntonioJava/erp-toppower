@@ -120,6 +120,11 @@ public record TechnicalProposalUpdateRequest(
         @Schema(description = "Novas observações livres (enviar string vazia para limpar).",
                 maxLength = 2000, requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         @Size(max = 2000, message = "Observações devem ter no máximo {max} caracteres")
-        String notes
+        String notes,
+
+        @Schema(description = "Nova transportadora (Carrier) responsável pelo frete. "
+                + "Envie nulo para remover a transportadora vinculada.",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        UUID carrierUuid
 ) {
 }

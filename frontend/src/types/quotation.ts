@@ -195,12 +195,14 @@ export interface QuotationResponse {
   paymentCondition: PaymentCondition | null
   notes: string | null
   status: QuotationStatus
-  /** Transportadora selecionada (opcional). FK para Carrier. */
-  carrierUuid: string | null
   /** Tipo de frete (CIF/FOB). */
   freightType: FreightType | null
-  /** Valor do frete (manual, independente do Carrier selecionado). */
+  /** Valor do frete (manual). */
   freightValue: number | null
+  /** UUID da transportadora (Carrier) responsável pelo frete. */
+  carrierUuid: string | null
+  /** Nome da transportadora (resolvido no backend). */
+  carrierName: string | null
   /**
    * Margem de lucro aplicada sobre o total da proposta (em %). Ex.: 10 = 10%.
    * Aplicada como multiplicação (fator `1 + profitMargin/100`) sobre o subtotal
@@ -264,17 +266,17 @@ export interface QuotationCreateRequest {
   validityDays?: number | null
   paymentCondition?: PaymentCondition | null
   notes?: string | null
-  /** Transportadora selecionada (opcional). FK para Carrier. */
-  carrierUuid?: string | null
   /** Tipo de frete (CIF/FOB). */
   freightType?: FreightType | null
-  /** Valor do frete (manual, independente do Carrier selecionado). */
+  /** Valor do frete (manual). */
   freightValue?: number | null
   /**
    * Margem de lucro aplicada sobre o total da proposta (em %). Obrigatória
    * na criação. Ex.: 10 = 10%.
    */
   profitMargin: number
+  /** UUID da transportadora (Carrier) responsável pelo frete. Opcional. */
+  carrierUuid?: string | null
 }
 
 /** Corpo de PATCH /api/v1/quotations/{id}. Espelha QuotationUpdateRequest. */
@@ -289,17 +291,17 @@ export interface QuotationUpdateRequest {
   validityDays?: number | null
   paymentCondition?: PaymentCondition | null
   notes?: string | null
-  /** Transportadora selecionada (opcional). FK para Carrier. */
-  carrierUuid?: string | null
   /** Tipo de frete (CIF/FOB). */
   freightType?: FreightType | null
-  /** Valor do frete (manual, independente do Carrier selecionado). */
+  /** Valor do frete (manual). */
   freightValue?: number | null
   /**
    * Margem de lucro aplicada sobre o total da proposta (em %). Opcional no
    * PATCH (quando omitida, mantém o valor atual). Ex.: 10 = 10%.
    */
   profitMargin?: number
+  /** UUID da transportadora (Carrier). null = remover a transportadora vinculada. */
+  carrierUuid?: string | null
 }
 
 /** Resposta do endpoint /quotations/next-number. */
@@ -354,7 +356,6 @@ export interface QuotationSimulateRequest {
   validityDays?: number | null
   paymentCondition?: PaymentCondition | null
   notes?: string | null
-  carrierUuid?: string | null
   freightType?: FreightType | null
   freightValue?: number | null
   profitMargin?: number | null

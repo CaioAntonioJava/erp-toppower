@@ -1,7 +1,7 @@
 package br.com.toppower.erp_toppower.sales.salesorder.entity;
 
 import br.com.toppower.erp_toppower.common.annotation.UpperCase;
-import br.com.toppower.erp_toppower.common.entity.TenantScopedEntity;
+import br.com.toppower.erp_toppower.common.entity.OrganizationScopedEntity;
 import br.com.toppower.erp_toppower.common.util.PricingMath;
 import br.com.toppower.erp_toppower.sales.quotation.enums.DiscountType;
 import br.com.toppower.erp_toppower.sales.quotation.enums.FreightType;
@@ -79,7 +79,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @NoArgsConstructor
-public class SalesOrder extends TenantScopedEntity {
+public class SalesOrder extends OrganizationScopedEntity {
 
     /**
      * Número sequencial do pedido, sem prefixo. Ex.: {@code 1000},
@@ -175,13 +175,6 @@ public class SalesOrder extends TenantScopedEntity {
     private String notes;
 
     /**
-     * Referência à {@code Carrier} (transportadora) responsável pelo frete.
-     * Opcional.
-     */
-    @Column(name = "carrier_uuid")
-    private UUID carrierUuid;
-
-    /**
      * Tipo de frete (CIF/FOB). Opcional.
      */
     @Enumerated(EnumType.STRING)
@@ -202,6 +195,16 @@ public class SalesOrder extends TenantScopedEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private SalesOrderStatus status;
+
+    /**
+     * Referência à {@code Carrier} (transportadora) responsável pelo
+     * frete do pedido. Opcional — documentos sem transportadora
+     * permanecem com este campo nulo. Não há FK física (referência por
+     * UUID, padrão do projeto); a validação de existência é feita no
+     * service quando o campo é informado.
+     */
+    @Column(name = "carrier_uuid")
+    private UUID carrierUuid;
 
     /**
      * UUID da {@code Quotation} que deu origem a este pedido. Nulo em

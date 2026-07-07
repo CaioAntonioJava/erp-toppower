@@ -119,12 +119,14 @@ export interface SalesOrderResponse {
   discount: number | null
   paymentCondition: import('./quotation').PaymentCondition | null
   notes: string | null
-  /** Transportadora selecionada (opcional). FK para Carrier. */
-  carrierUuid: string | null
   /** Tipo de frete (CIF/FOB). */
   freightType: import('./quotation').FreightType | null
-  /** Valor do frete (manual, independente do Carrier selecionado). */
+  /** Valor do frete (manual). */
   freightValue: number | null
+  /** UUID da transportadora (Carrier) responsável pelo frete. */
+  carrierUuid: string | null
+  /** Nome da transportadora (resolvido no backend). */
+  carrierName: string | null
   status: SalesOrderStatus
   /** UUID da proposta que deu origem ao pedido (nulo em criação direta). */
   quotationUuid: string | null
@@ -182,12 +184,12 @@ export interface SalesOrderCreateRequest {
   discount?: number | null
   paymentCondition?: import('./quotation').PaymentCondition | null
   notes?: string | null
-  /** Transportadora selecionada (opcional). FK para Carrier. */
-  carrierUuid?: string | null
   /** Tipo de frete (CIF/FOB). */
   freightType?: import('./quotation').FreightType | null
-  /** Valor do frete (manual, independente do Carrier selecionado). */
+  /** Valor do frete (manual). */
   freightValue?: number | null
+  /** UUID da transportadora (Carrier) responsável pelo frete. Opcional. */
+  carrierUuid?: string | null
 }
 
 /** Corpo de PATCH /api/v1/sales-orders/{id}. Espelha SalesOrderUpdateRequest. */
@@ -201,12 +203,12 @@ export interface SalesOrderUpdateRequest {
   discount?: number | null
   paymentCondition?: import('./quotation').PaymentCondition | null
   notes?: string | null
-  /** Transportadora selecionada (opcional). FK para Carrier. */
-  carrierUuid?: string | null
   /** Tipo de frete (CIF/FOB). */
   freightType?: import('./quotation').FreightType | null
-  /** Valor do frete (manual, independente do Carrier selecionado). */
+  /** Valor do frete (manual). */
   freightValue?: number | null
+  /** UUID da transportadora (Carrier). null = remover a transportadora vinculada. */
+  carrierUuid?: string | null
 }
 
 /**

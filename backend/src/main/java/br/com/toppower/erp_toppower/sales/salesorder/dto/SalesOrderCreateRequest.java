@@ -82,10 +82,6 @@ public record SalesOrderCreateRequest(
         @Size(max = 2000, message = "Observações devem ter no máximo {max} caracteres")
         String notes,
 
-        @Schema(description = "UUID da transportadora responsável pelo frete (opcional).",
-                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID carrierUuid,
-
         @Schema(description = "Tipo de frete (CIF = por conta do remetente, FOB = por conta do destinatário).",
                 allowableValues = {"CIF", "FOB"},
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
@@ -95,6 +91,10 @@ public record SalesOrderCreateRequest(
                 example = "45.90", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         @DecimalMin(value = "0.00", message = "Frete não pode ser negativo")
         @Digits(integer = 8, fraction = 2, message = "Frete inválido")
-        BigDecimal freightValue
+        BigDecimal freightValue,
+
+        @Schema(description = "UUID da transportadora (Carrier) responsável pelo frete. Opcional.",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        UUID carrierUuid
 ) {
 }

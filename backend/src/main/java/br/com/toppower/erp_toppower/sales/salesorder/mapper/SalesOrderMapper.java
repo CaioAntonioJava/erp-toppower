@@ -181,7 +181,7 @@ private static BigDecimal scaleDiscount(BigDecimal discount, DiscountType discou
         applyHeader(o, request.customerUuid(), request.companyUuid(), request.attention(),
                 request.sellerUuid(), request.discountType(), request.discount(),
                 request.paymentCondition(), request.notes(),
-                request.carrierUuid(), request.freightType(), request.freightValue());
+                request.freightType(), request.freightValue(), request.carrierUuid());
         return o;
     }
 
@@ -211,7 +211,8 @@ private static BigDecimal scaleDiscount(BigDecimal discount, DiscountType discou
         applyHeader(o, source.getCustomerUuid(), source.getCompanyUuid(), attention,
                 source.getSellerUuid(), source.getDiscountType(), source.getDiscount(),
                 payment, notes,
-                source.getCarrierUuid(), source.getFreightType(), source.getFreightValue());
+                source.getFreightType(), source.getFreightValue(),
+                source.getCarrierUuid());
         return o;
     }
 
@@ -248,23 +249,22 @@ private static BigDecimal scaleDiscount(BigDecimal discount, DiscountType discou
         if (request.notes() != null) {
             order.setNotes(request.notes());
         }
-        if (request.carrierUuid() != null) {
-            order.setCarrierUuid(request.carrierUuid());
-        }
         if (request.freightType() != null) {
             order.setFreightType(request.freightType());
         }
         if (request.freightValue() != null) {
             order.setFreightValue(request.freightValue());
         }
+        // carrierUuid admite null (remoção da transportadora vinculada).
+        order.setCarrierUuid(request.carrierUuid());
     }
 
     private static void applyHeader(SalesOrder o, UUID customerUuid, UUID companyUuid,
                                     String attention, UUID sellerUuid,
                                     DiscountType discountType, BigDecimal discount,
                                     PaymentCondition paymentCondition, String notes,
-                                    UUID carrierUuid, FreightType freightType,
-                                    BigDecimal freightValue) {
+                                    FreightType freightType,
+                                    BigDecimal freightValue, UUID carrierUuid) {
         o.setCustomerUuid(customerUuid);
         o.setCompanyUuid(companyUuid);
         o.setAttention(attention);
@@ -273,9 +273,9 @@ private static BigDecimal scaleDiscount(BigDecimal discount, DiscountType discou
         o.setDiscount(discount);
         o.setPaymentCondition(paymentCondition);
         o.setNotes(notes);
-        o.setCarrierUuid(carrierUuid);
         o.setFreightType(freightType);
         o.setFreightValue(freightValue);
+        o.setCarrierUuid(carrierUuid);
     }
 
     /**
@@ -288,7 +288,8 @@ private static BigDecimal scaleDiscount(BigDecimal discount, DiscountType discou
      * typeahead de query vazia para hidratar o cliente).
      */
     public static SalesOrderResponse toResponse(SalesOrder order, List<SalesOrderItem> items,
-                                                String sellerName, String clientName, String clientCode) {
+                                                String sellerName, String clientName, String clientCode,
+                                                String carrierName) {
         SalesOrderResponse.ClientType clientType =
                 (order.getCustomerUuid() != null)
                         ? SalesOrderResponse.ClientType.CUSTOMER
@@ -311,9 +312,10 @@ private static BigDecimal scaleDiscount(BigDecimal discount, DiscountType discou
                 order.getDiscount(),
                 order.getPaymentCondition(),
                 order.getNotes(),
-                order.getCarrierUuid(),
                 order.getFreightType(),
                 order.getFreightValue(),
+                order.getCarrierUuid(),
+                carrierName,
                 order.getStatus(),
                 order.getQuotationUuid(),
                 order.getQuotationNumber(),

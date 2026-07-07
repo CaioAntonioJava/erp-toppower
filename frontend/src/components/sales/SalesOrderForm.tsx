@@ -13,15 +13,15 @@ import { Alert } from '../ui/Alert'
 import { Spinner } from '../ui/Spinner'
 import { RichTextEditor } from '../ui/RichTextEditor'
 import { toApiError } from '../../lib/errors'
+import { parseNumber, formatBRLValue } from '../../lib/money'
 import { useFieldTouched } from '../../hooks/useFieldTouched'
+import { useActiveCarriers } from '../../hooks/useActiveCarriers'
+import { FreightConditionsFields } from './FreightConditionsFields'
 import { getProduct, searchProducts } from '../../api/product.api'
 import { listSellers } from '../../api/seller.api'
-import { listCarriers } from '../../api/carrier.api'
 import { searchQuotationClients } from '../../api/quotation.api'
 import type { ProductResponse, UnitType } from '../../types/product'
 import type { SellerResponse } from '../../types/seller'
-import type { CarrierResponse } from '../../types/carrier'
-import { CARRIER_NAME_LABELS } from '../../types/carrier'
 import type {
   DiscountType,
   FreightType,
@@ -44,7 +44,6 @@ import {
 } from '../../types/salesOrder'
 import {
   DISCOUNT_TYPE_OPTIONS,
-  FREIGHT_TYPE_OPTIONS,
   PAYMENT_CONDITION_OPTIONS,
 } from '../../types/quotation'
 import { QUOTATION_CLIENT_TYPE_LABELS } from '../../types/quotation'
@@ -89,27 +88,6 @@ function nextRowKey(): string {
   return `row_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
 }
 
-/** Converte string (com vírgula ou ponto) em número finito, ou null. */
-function parseNumber(value: string): number | null {
-  const trimmed = value.trim()
-  if (!trimmed) return null
-  const normalized = trimmed.replace(',', '.')
-  const n = Number(normalized)
-  return Number.isFinite(n) ? n : null
-}
-
-/**
- * Formata um valor (número ou string) para o padrão monetário brasileiro
- * com 2 casas decimais usando vírgula. Ex.: 80 → "80,00"; 45,9 → "45,90".
- * Retorna string vazia se o valor for vazio/inválido.
- */
-function formatBRLValue(value: number | string | null | undefined): string {
-  if (value == null) return ''
-  const n = typeof value === 'string' ? parseNumber(value) : value
-  if (n == null || !Number.isFinite(n)) return ''
-  return n.toFixed(2).replace('.', ',')
-}
-
 /** Retorna a data atual no formato ISO `YYYY-MM-DD` aceito por `<input type="date">`. */
 function todayIso(): string {
   const d = new Date()
@@ -142,17 +120,17 @@ export function SalesOrderForm({
   const [paymentCondition, setPaymentCondition] = useState<PaymentCondition | ''>(
     salesOrder?.paymentCondition ?? '',
   )
-  // Transportadora (opcional). FK para Carrier.
-  const [carrierUuid, setCarrierUuid] = useState<string>(
-    salesOrder?.carrierUuid ?? '',
-  )
   // Tipo de frete (CIF/FOB).
   const [freightType, setFreightType] = useState<FreightType | ''>(
     salesOrder?.freightType ?? '',
   )
-  // Valor do frete (manual, independente do Carrier selecionado).
+  // Valor do frete (manual).
   const [freightValue, setFreightValue] = useState<string>(
-    salesOrder?.freightValue != null ? String(salesOrder.freightValue) : '',
+    salesOrder?.freightValue != null ? formatBRLValue(salesOrder.freightValue) : '',
+  )
+  // Transportadora (Carrier) responsável pelo frete. Opcional.
+  const [carrierUuid, setCarrierUuid] = useState<string>(
+    salesOrder?.carrierUuid ?? '',
   )
   const [notes, setNotes] = useState<string>(salesOrder?.notes ?? '')
   const [discountType, setDiscountType] = useState<DiscountType | ''>(
@@ -221,8 +199,6 @@ export function SalesOrderForm({
   // === coleções auxiliares ===
   const [sellers, setSellers] = useState<SellerResponse[]>([])
   const [sellersLoading, setSellersLoading] = useState(false)
-  const [carriers, setCarriers] = useState<CarrierResponse[]>([])
-  const [carriersLoading, setCarriersLoading] = useState(false)
   const [clientOptions, setClientOptions] = useState<ClientSummaryResponse[]>([])
   const [clientSearching, setClientSearching] = useState(false)
   const [productOptions, setProductOptions] = useState<ProductResponse[]>([])
@@ -235,6 +211,13 @@ export function SalesOrderForm({
 
   const { shouldShowError, getBlurHandler, markAllTouched, reset } =
     useFieldTouched()
+
+  // Carrega transportadoras ativas (com fallback da selecionada em edição).
+  const { carriers, carriersLoading } = useActiveCarriers(
+    salesOrder?.carrierUuid
+      ? { uuid: salesOrder.carrierUuid, name: salesOrder.carrierName }
+      : null,
+  )
 
   // Carrega lista de vendedores ativos uma vez.
   useEffect(() => {
@@ -257,26 +240,6 @@ export function SalesOrderForm({
     }
   }, [])
 
-  // Carrega lista de transportadoras ativas uma vez.
-  useEffect(() => {
-    let cancelled = false
-    setCarriersLoading(true)
-    listCarriers({ status: 'ATIVO', size: 100, page: 0 })
-      .then((p) => {
-        if (cancelled) return
-        setCarriers(p.content)
-      })
-      .catch(() => {
-        if (cancelled) return
-        setCarriers([])
-      })
-      .finally(() => {
-        if (!cancelled) setCarriersLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
   // Sincroniza o número do pedido com o `initialNumber` que chega
   // assincronamente do endpoint `/sales-orders/next-number`. Em modo
@@ -616,9 +579,9 @@ export function SalesOrderForm({
         }
         payload.paymentCondition = paymentCondition === '' ? null : paymentCondition
         payload.notes = notes.trim() ? notes.trim() : null
-        payload.carrierUuid = carrierUuid.trim() ? carrierUuid.trim() : null
         payload.freightType = freightType === '' ? null : freightType
         payload.freightValue = parseNumber(freightValue)
+        payload.carrierUuid = carrierUuid || null
 
         await onSaveUpdate(payload)
         setSuccess('Pedido atualizado com sucesso!')
@@ -642,11 +605,11 @@ export function SalesOrderForm({
           payload.paymentCondition = paymentCondition
         }
         if (notes.trim()) payload.notes = notes.trim()
-        if (carrierUuid.trim()) payload.carrierUuid = carrierUuid.trim()
         if (freightType !== '') payload.freightType = freightType
         if (freightValue.trim()) {
           payload.freightValue = parseNumber(freightValue)
         }
+        payload.carrierUuid = carrierUuid || null
 
         await onSaveCreate(payload)
         setSuccess('Pedido criado com sucesso!')
@@ -950,67 +913,27 @@ export function SalesOrderForm({
             />
           </div>
           <div className="sm:col-span-2 lg:col-span-3">
-            <div className="grid gap-4 sm:grid-cols-3">
-              <Select
-                label="Tipo de frete"
-                value={freightType}
-                onChange={(e) =>
-                  setFreightType(e.target.value as FreightType | '')
+            <FreightConditionsFields
+              freightType={freightType}
+              onFreightTypeChange={(v) => setFreightType(v as FreightType | '')}
+              freightValue={freightValue}
+              onFreightValueChange={setFreightValue}
+              onFreightValueBlur={() => {
+                if (freightValue.trim() !== '') {
+                  const formatted = formatBRLValue(freightValue)
+                  if (formatted) setFreightValue(formatted)
                 }
-                options={[
-                  { value: '', label: 'Selecione…' },
-                  ...FREIGHT_TYPE_OPTIONS,
-                ]}
-                aria-label="Tipo de frete"
-                hint="CIF = por conta do remetente; FOB = por conta do destinatário."
-              />
-              <Select
-                label="Transportadora"
-                value={carrierUuid}
-                onChange={(e) => setCarrierUuid(e.target.value)}
-                hint={
-                  carriers.length === 0 && !carriersLoading
-                    ? 'Nenhuma transportadora ativa cadastrada.'
-                    : 'Transportadora responsável pelo frete (opcional).'
-                }
-                options={[
-                  {
-                    value: '',
-                    label: carriersLoading ? 'Carregando…' : 'Selecione…',
-                  },
-                  ...carriers
-                    .filter((c) => c.carrierName != null)
-                    .map((c) => ({
-                      value: c.uuid,
-                      label: CARRIER_NAME_LABELS[c.carrierName!],
-                    })),
-                ]}
-                aria-label="Transportadora"
-              />
-              <Input
-                label="Valor do frete (R$)"
-                type="text"
-                inputMode="decimal"
-                placeholder="0,00"
-                value={freightValue}
-                onChange={(e) => setFreightValue(e.target.value)}
-                onBlur={() => {
-                  // Normaliza para 2 casas decimais no formato brasileiro
-                  // (vírgula). Se o usuário digitar "45" vira "45,00"; se
-                  // digitar "45,9" vira "45,90". Campos vazios são mantidos.
-                  if (freightValue.trim() !== '') {
-                    const formatted = formatBRLValue(freightValue)
-                    if (formatted) setFreightValue(formatted)
-                  }
-                  getBlurHandler('freightValue')()
-                }}
-                error={shouldShowError(
-                  'freightValue',
-                  fieldErrors.freightValue,
-                )}
-                hint="Valor de frete informado manualmente."
-              />
-            </div>
+                getBlurHandler('freightValue')()
+              }}
+              freightValueError={shouldShowError(
+                'freightValue',
+                fieldErrors.freightValue,
+              )}
+              carrierUuid={carrierUuid}
+              onCarrierUuidChange={setCarrierUuid}
+              carriers={carriers}
+              carriersLoading={carriersLoading}
+            />
           </div>
         </div>
 

@@ -1,6 +1,7 @@
 package br.com.toppower.erp_toppower.sales.quotation.service;
 
 import br.com.toppower.erp_toppower.common.dto.PagedResponse;
+import br.com.toppower.erp_toppower.carrier.repository.CarrierRepository;
 import br.com.toppower.erp_toppower.company.repository.CompanyRepository;
 import br.com.toppower.erp_toppower.customer.repository.CustomerRepository;
 import br.com.toppower.erp_toppower.seller.repository.SellerRepository;
@@ -59,17 +60,20 @@ public class QuotationService {
     private final CustomerRepository customerRepository;
     private final CompanyRepository companyRepository;
     private final SellerRepository sellerRepository;
+    private final CarrierRepository carrierRepository;
 
     public QuotationService(QuotationRepository quotationRepository,
                             QuotationItemRepository quotationItemRepository,
                             CustomerRepository customerRepository,
                             CompanyRepository companyRepository,
-                            SellerRepository sellerRepository) {
+                            SellerRepository sellerRepository,
+                            CarrierRepository carrierRepository) {
         this.quotationRepository = quotationRepository;
         this.quotationItemRepository = quotationItemRepository;
         this.customerRepository = customerRepository;
         this.companyRepository = companyRepository;
         this.sellerRepository = sellerRepository;
+        this.carrierRepository = carrierRepository;
     }
 
     // ---------------------------------------------------------------------
@@ -79,6 +83,7 @@ public class QuotationService {
     @Transactional
     public QuotationResponse create(QuotationCreateRequest request) {
         validateClientReference(request.customerUuid(), request.companyUuid(), true);
+        validateCarrierReference(request.carrierUuid(), true);
         validateItemsConsistency(request.items(), null);
 
         Quotation header = QuotationMapper.toEntity(request);
@@ -98,8 +103,9 @@ public class QuotationService {
         savedHeader.recalculateTotals(items);
 
         ClientResolved client = resolveClient(savedHeader);
+        CarrierResolved carrier = resolveCarrier(savedHeader);
         return QuotationMapper.toResponse(savedHeader, items, resolveSellerName(savedHeader),
-                client.name(), client.code());
+                client.name(), client.code(), carrier.name());
     }
 
     // ---------------------------------------------------------------------
@@ -114,8 +120,9 @@ public class QuotationService {
                 .findByQuotationUuidOrderByCreatedAtAsc(id);
         q.recalculateTotals(items);
         ClientResolved client = resolveClient(q);
+        CarrierResolved carrier = resolveCarrier(q);
         return QuotationMapper.toResponse(q, items, resolveSellerName(q),
-                client.name(), client.code());
+                client.name(), client.code(), carrier.name());
     }
 
     @Transactional(readOnly = true)
@@ -126,8 +133,9 @@ public class QuotationService {
                 .findByQuotationUuidOrderByCreatedAtAsc(q.getUuid());
         q.recalculateTotals(items);
         ClientResolved client = resolveClient(q);
+        CarrierResolved carrier = resolveCarrier(q);
         return QuotationMapper.toResponse(q, items, resolveSellerName(q),
-                client.name(), client.code());
+                client.name(), client.code(), carrier.name());
     }
 
     /**
@@ -214,6 +222,13 @@ public class QuotationService {
                 ? request.companyUuid() : q.getCompanyUuid();
         validateClientReference(effectiveCustomer, effectiveCompany, false);
 
+        // Valida a carrier apenas quando o campo foi explicitamente
+        // informado (não-nulo). null no PATCH = remover a transportadora
+        // (QuotationMapper.applyUpdate grava null nesse caso).
+        if (request.carrierUuid() != null) {
+            validateCarrierReference(request.carrierUuid(), false);
+        }
+
         // Se a lista de itens foi enviada, valida e substitui por completo
         if (request.items() != null) {
             validateItemsConsistency(request.items(), null);
@@ -238,8 +253,9 @@ public class QuotationService {
 
         saved.recalculateTotals(items);
         ClientResolved client = resolveClient(saved);
+        CarrierResolved carrier = resolveCarrier(saved);
         return QuotationMapper.toResponse(saved, items, resolveSellerName(saved),
-                client.name(), client.code());
+                client.name(), client.code(), carrier.name());
     }
 
     // ---------------------------------------------------------------------
@@ -264,8 +280,9 @@ public class QuotationService {
                 .findByQuotationUuidOrderByCreatedAtAsc(id);
         saved.recalculateTotals(items);
         ClientResolved client = resolveClient(saved);
+        CarrierResolved carrier = resolveCarrier(saved);
         return QuotationMapper.toResponse(saved, items, resolveSellerName(saved),
-                client.name(), client.code());
+                client.name(), client.code(), carrier.name());
     }
 
     // ---------------------------------------------------------------------
@@ -406,6 +423,45 @@ public class QuotationService {
      */
     private record ClientResolved(String name, String code) {
         static final ClientResolved EMPTY = new ClientResolved(null, null);
+    }
+
+    /**
+     * Valida a referência à transportadora (carrier): se não for nula,
+     * verifica a existência no cadastro. Quando {@code verifyExists} é
+     * verdadeiro (criação), também exige que o registro exista — usado
+     * para dar mensagem amigável antes de chegar ao controller.
+     */
+    private void validateCarrierReference(UUID carrierUuid, boolean verifyExists) {
+        if (carrierUuid == null) {
+            return;
+        }
+        if (verifyExists && !carrierRepository.existsById(carrierUuid)) {
+            throw new QuotationBusinessException(
+                    "Transportadora não encontrada: " + carrierUuid);
+        }
+    }
+
+    /**
+     * Resolve o nome da transportadora referenciada pela proposta.
+     * Retorna {@code null} quando a carrier não existe mais
+     * (inativada/removida), mantendo o UUID como referência no DTO —
+     * mesmo tratamento dado a {@link #resolveSellerName}.
+     */
+    private CarrierResolved resolveCarrier(Quotation q) {
+        if (q.getCarrierUuid() == null) {
+            return CarrierResolved.EMPTY;
+        }
+        return carrierRepository.findById(q.getCarrierUuid())
+                .map(c -> new CarrierResolved(c.getName()))
+                .orElse(CarrierResolved.EMPTY);
+    }
+
+    /**
+     * Nome resolvido a partir da transportadora referenciada pela
+     * proposta.
+     */
+    private record CarrierResolved(String name) {
+        static final CarrierResolved EMPTY = new CarrierResolved(null);
     }
 
     /**

@@ -1,12 +1,9 @@
 package br.com.toppower.erp_toppower.user.mapper;
 
-import br.com.toppower.erp_toppower.tenant.dto.TenantSummary;
 import br.com.toppower.erp_toppower.user.enums.Role;
 import br.com.toppower.erp_toppower.user.dto.UserCreateRequest;
 import br.com.toppower.erp_toppower.user.dto.UserResponse;
 import br.com.toppower.erp_toppower.user.entity.User;
-
-import java.util.List;
 
 public final class UserMapper {
 
@@ -26,21 +23,7 @@ public final class UserMapper {
         return user;
     }
 
-    /**
-     * Resposta sem a lista de tenants. Usado pelo fluxo de auth, que resolve
-     * os tenants à parte (via {@code TenantQueryService}) ao montar o
-     * {@code LoginResponse.AuthenticatedUser}.
-     */
     public static UserResponse toResponse(User user) {
-        return new UserResponse(user.getUuid(), user.getEmail(), user.getRole(), List.of());
-    }
-
-    /**
-     * Resposta com a lista de tenants do usuário. Usado pelos endpoints admin
-     * (listar, buscar por id, criar), para que o frontend saiba a quais
-     * empresas o usuário possui acesso.
-     */
-    public static UserResponse toResponse(User user, List<TenantSummary> tenants) {
-        return new UserResponse(user.getUuid(), user.getEmail(), user.getRole(), tenants);
+        return new UserResponse(user.getUuid(), user.getEmail(), user.getRole());
     }
 }

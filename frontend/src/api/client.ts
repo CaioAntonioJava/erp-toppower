@@ -15,10 +15,20 @@ const api = axios.create({
 /** Chave usada para persistir o token no localStorage. */
 export const TOKEN_KEY = 'erp_toppower_token'
 
+/** Chave usada para persistir a Organization ativa no localStorage. */
+export const ORGANIZATION_KEY = 'erp_toppower_org'
+
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem(TOKEN_KEY)
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
+  }
+  // Injeta a Organization ativa em toda requisição autenticada.
+  // O backend valida acesso; endpoints de gestão (login, /me, /organizations)
+  // toleram o header ausente.
+  const orgId = localStorage.getItem(ORGANIZATION_KEY)
+  if (orgId) {
+    config.headers['X-Organization-Id'] = orgId
   }
   return config
 })
