@@ -1,5 +1,6 @@
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { LoginPage } from './pages/LoginPage'
+import { SelectOrganizationPage } from './pages/SelectOrganizationPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { CompaniesListPage } from './pages/CompaniesListPage'
@@ -38,6 +39,7 @@ export default function App() {
     <Routes>
       {/* Rotas públicas */}
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/select-organization" element={<SelectOrganizationPage />} />
 
       {/* Rotas protegidas — compartilham o AppLayout (sidebar + topbar) */}
       <Route
