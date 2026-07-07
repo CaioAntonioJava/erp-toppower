@@ -195,11 +195,9 @@ export interface QuotationResponse {
   paymentCondition: PaymentCondition | null
   notes: string | null
   status: QuotationStatus
-  /** Transportadora selecionada (opcional). FK para Carrier. */
-  carrierUuid: string | null
   /** Tipo de frete (CIF/FOB). */
   freightType: FreightType | null
-  /** Valor do frete (manual, independente do Carrier selecionado). */
+  /** Valor do frete (manual). */
   freightValue: number | null
   /**
    * Margem de lucro aplicada sobre o total da proposta (em %). Ex.: 10 = 10%.
@@ -264,11 +262,9 @@ export interface QuotationCreateRequest {
   validityDays?: number | null
   paymentCondition?: PaymentCondition | null
   notes?: string | null
-  /** Transportadora selecionada (opcional). FK para Carrier. */
-  carrierUuid?: string | null
   /** Tipo de frete (CIF/FOB). */
   freightType?: FreightType | null
-  /** Valor do frete (manual, independente do Carrier selecionado). */
+  /** Valor do frete (manual). */
   freightValue?: number | null
   /**
    * Margem de lucro aplicada sobre o total da proposta (em %). Obrigatória
@@ -289,11 +285,9 @@ export interface QuotationUpdateRequest {
   validityDays?: number | null
   paymentCondition?: PaymentCondition | null
   notes?: string | null
-  /** Transportadora selecionada (opcional). FK para Carrier. */
-  carrierUuid?: string | null
   /** Tipo de frete (CIF/FOB). */
   freightType?: FreightType | null
-  /** Valor do frete (manual, independente do Carrier selecionado). */
+  /** Valor do frete (manual). */
   freightValue?: number | null
   /**
    * Margem de lucro aplicada sobre o total da proposta (em %). Opcional no
@@ -354,7 +348,6 @@ export interface QuotationSimulateRequest {
   validityDays?: number | null
   paymentCondition?: PaymentCondition | null
   notes?: string | null
-  carrierUuid?: string | null
   freightType?: FreightType | null
   freightValue?: number | null
   profitMargin?: number | null

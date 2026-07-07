@@ -3,6 +3,7 @@ import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
 import { Footer } from './Footer'
 import { useAuth } from '../../context/AuthContext'
+import { useOrganization } from '../../context/OrganizationContext'
 
 /**
  * Verifica se a rota atual é uma tela de formulário/detalhe de uma
@@ -36,6 +37,7 @@ function isFullWidthRoute(pathname: string): boolean {
  */
 export function AppLayout() {
   const { hasProfile } = useAuth()
+  const { revision } = useOrganization()
   const { pathname } = useLocation()
   const fullWidth = isFullWidthRoute(pathname)
 
@@ -65,7 +67,11 @@ export function AppLayout() {
               monitores ultra-wide. Em mobile o grid interno faz fallback
               para 1 coluna automaticamente. */}
           <div className="mx-auto w-full max-w-[1600px]">
-            <Outlet />
+            {/* key={revision} força o remount do conteúdo ao trocar de
+                Organization, recarregando todos os dados da tela ativa. */}
+            <div key={revision}>
+              <Outlet />
+            </div>
           </div>
         </main>
         <Footer />
@@ -84,7 +90,11 @@ export function AppLayout() {
               para a seção de endereço (Logradouro, Cidade). Em mobile o
               grid interno faz fallback para 1 coluna automaticamente. */}
           <div className="mx-auto w-full max-w-7xl">
-            <Outlet />
+            {/* key={revision} força o remount do conteúdo ao trocar de
+                Organization, recarregando todos os dados da tela ativa. */}
+            <div key={revision}>
+              <Outlet />
+            </div>
           </div>
         </main>
         <Footer />

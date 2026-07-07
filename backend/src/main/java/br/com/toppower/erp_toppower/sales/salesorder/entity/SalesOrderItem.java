@@ -1,6 +1,6 @@
 package br.com.toppower.erp_toppower.sales.salesorder.entity;
 
-import br.com.toppower.erp_toppower.common.entity.TenantScopedEntity;
+import br.com.toppower.erp_toppower.common.entity.OrganizationScopedEntity;
 import br.com.toppower.erp_toppower.sales.quotation.enums.DiscountType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -45,7 +45,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @NoArgsConstructor
-public class SalesOrderItem extends TenantScopedEntity {
+public class SalesOrderItem extends OrganizationScopedEntity {
 
     /**
      * UUID do {@link SalesOrder} ao qual este item pertence.

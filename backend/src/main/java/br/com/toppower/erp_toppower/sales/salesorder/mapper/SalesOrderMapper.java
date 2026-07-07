@@ -181,7 +181,7 @@ private static BigDecimal scaleDiscount(BigDecimal discount, DiscountType discou
         applyHeader(o, request.customerUuid(), request.companyUuid(), request.attention(),
                 request.sellerUuid(), request.discountType(), request.discount(),
                 request.paymentCondition(), request.notes(),
-                request.carrierUuid(), request.freightType(), request.freightValue());
+                request.freightType(), request.freightValue());
         return o;
     }
 
@@ -211,7 +211,7 @@ private static BigDecimal scaleDiscount(BigDecimal discount, DiscountType discou
         applyHeader(o, source.getCustomerUuid(), source.getCompanyUuid(), attention,
                 source.getSellerUuid(), source.getDiscountType(), source.getDiscount(),
                 payment, notes,
-                source.getCarrierUuid(), source.getFreightType(), source.getFreightValue());
+                source.getFreightType(), source.getFreightValue());
         return o;
     }
 
@@ -248,9 +248,6 @@ private static BigDecimal scaleDiscount(BigDecimal discount, DiscountType discou
         if (request.notes() != null) {
             order.setNotes(request.notes());
         }
-        if (request.carrierUuid() != null) {
-            order.setCarrierUuid(request.carrierUuid());
-        }
         if (request.freightType() != null) {
             order.setFreightType(request.freightType());
         }
@@ -263,7 +260,7 @@ private static BigDecimal scaleDiscount(BigDecimal discount, DiscountType discou
                                     String attention, UUID sellerUuid,
                                     DiscountType discountType, BigDecimal discount,
                                     PaymentCondition paymentCondition, String notes,
-                                    UUID carrierUuid, FreightType freightType,
+                                    FreightType freightType,
                                     BigDecimal freightValue) {
         o.setCustomerUuid(customerUuid);
         o.setCompanyUuid(companyUuid);
@@ -273,7 +270,6 @@ private static BigDecimal scaleDiscount(BigDecimal discount, DiscountType discou
         o.setDiscount(discount);
         o.setPaymentCondition(paymentCondition);
         o.setNotes(notes);
-        o.setCarrierUuid(carrierUuid);
         o.setFreightType(freightType);
         o.setFreightValue(freightValue);
     }
@@ -311,7 +307,6 @@ private static BigDecimal scaleDiscount(BigDecimal discount, DiscountType discou
                 order.getDiscount(),
                 order.getPaymentCondition(),
                 order.getNotes(),
-                order.getCarrierUuid(),
                 order.getFreightType(),
                 order.getFreightValue(),
                 order.getStatus(),

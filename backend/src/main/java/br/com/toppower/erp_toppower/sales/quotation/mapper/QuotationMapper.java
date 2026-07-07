@@ -137,7 +137,7 @@ public final class QuotationMapper {
         applyHeader(q, request.customerUuid(), request.companyUuid(), request.attention(),
                 request.sellerUuid(), request.discountType(), request.discount(),
                 request.validityDays(), request.paymentCondition(), request.notes(),
-                request.carrierUuid(), request.freightType(), request.freightValue(),
+                request.freightType(), request.freightValue(),
                 request.profitMargin());
         return q;
     }
@@ -153,7 +153,7 @@ public final class QuotationMapper {
         applyHeader(q, request.customerUuid(), request.companyUuid(), request.attention(),
                 request.sellerUuid(), request.discountType(), request.discount(),
                 request.validityDays(), request.paymentCondition(), request.notes(),
-                request.carrierUuid(), request.freightType(), request.freightValue(),
+                request.freightType(), request.freightValue(),
                 request.profitMargin());
         return q;
     }
@@ -194,9 +194,6 @@ public final class QuotationMapper {
         if (request.notes() != null) {
             quotation.setNotes(request.notes());
         }
-        if (request.carrierUuid() != null) {
-            quotation.setCarrierUuid(request.carrierUuid());
-        }
         if (request.freightType() != null) {
             quotation.setFreightType(request.freightType());
         }
@@ -212,7 +209,7 @@ public final class QuotationMapper {
                                     String attention, UUID sellerUuid,
                                     DiscountType discountType, BigDecimal discount,
                                     Integer validityDays, br.com.toppower.erp_toppower.sales.quotation.enums.PaymentCondition paymentCondition,
-                                    String notes, UUID carrierUuid,
+                                    String notes,
                                     FreightType freightType, BigDecimal freightValue,
                                     BigDecimal profitMargin) {
         q.setCustomerUuid(customerUuid);
@@ -224,7 +221,6 @@ public final class QuotationMapper {
         q.setValidityDays(validityDays);
         q.setPaymentCondition(paymentCondition);
         q.setNotes(notes);
-        q.setCarrierUuid(carrierUuid);
         q.setFreightType(freightType);
         q.setFreightValue(freightValue);
         q.setProfitMargin(profitMargin);
@@ -264,7 +260,6 @@ public final class QuotationMapper {
                 quotation.getValidityDays(),
                 quotation.getPaymentCondition(),
                 quotation.getNotes(),
-                quotation.getCarrierUuid(),
                 quotation.getFreightType(),
                 quotation.getFreightValue(),
                 quotation.getProfitMargin(),

@@ -119,11 +119,9 @@ export interface SalesOrderResponse {
   discount: number | null
   paymentCondition: import('./quotation').PaymentCondition | null
   notes: string | null
-  /** Transportadora selecionada (opcional). FK para Carrier. */
-  carrierUuid: string | null
   /** Tipo de frete (CIF/FOB). */
   freightType: import('./quotation').FreightType | null
-  /** Valor do frete (manual, independente do Carrier selecionado). */
+  /** Valor do frete (manual). */
   freightValue: number | null
   status: SalesOrderStatus
   /** UUID da proposta que deu origem ao pedido (nulo em criação direta). */
@@ -182,11 +180,9 @@ export interface SalesOrderCreateRequest {
   discount?: number | null
   paymentCondition?: import('./quotation').PaymentCondition | null
   notes?: string | null
-  /** Transportadora selecionada (opcional). FK para Carrier. */
-  carrierUuid?: string | null
   /** Tipo de frete (CIF/FOB). */
   freightType?: import('./quotation').FreightType | null
-  /** Valor do frete (manual, independente do Carrier selecionado). */
+  /** Valor do frete (manual). */
   freightValue?: number | null
 }
 
@@ -201,11 +197,9 @@ export interface SalesOrderUpdateRequest {
   discount?: number | null
   paymentCondition?: import('./quotation').PaymentCondition | null
   notes?: string | null
-  /** Transportadora selecionada (opcional). FK para Carrier. */
-  carrierUuid?: string | null
   /** Tipo de frete (CIF/FOB). */
   freightType?: import('./quotation').FreightType | null
-  /** Valor do frete (manual, independente do Carrier selecionado). */
+  /** Valor do frete (manual). */
   freightValue?: number | null
 }
 

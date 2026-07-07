@@ -24,18 +24,9 @@ import lombok.Setter;
  * {@link User} — aquele que o cadastrou — por meio de um relacionamento
  * 1:1 unidirecional.
  *
- * <p><b>Entidade global (não tenant-scoped).</b> Diferente de Customer,
- * Seller e demais entidades de negócio, o perfil pertence ao <i>usuário</i>,
- * não à empresa (tenant) em que ele está operando no momento. Um usuário
- * vinculado a múltiplas empresas preenche o perfil uma única vez; ao
- * alternar entre tenants via switch-tenant, o mesmo perfil continua
- * visível — sem duplicidade de CPF/dados pessoais.</p>
- *
- * <p>Por isso {@link Profile} herda diretamente de {@link BaseEntity}
- * (UUID + auditoria) e <strong>não</strong> de {@code TenantScopedEntity}:
- * não há coluna {@code tenant_uuid} nem filtro Hibernate por tenant. Os
+ * <p>Por herdar diretamente de {@link BaseEntity} (UUID + auditoria), os
  * campos de pessoa (name, email, phone, cpf) são declarados localmente,
- * espelhando {@code BasePerson}, mas sem o vínculo de tenant.</p>
+ * espelhando {@code BasePerson}.</p>
  *
  * <p>O campo {@code cpf} é validado por {@link ValidCpf} (incluindo
  * dígitos verificadores) e o {@code name} é normalizado para MAIÚSCULAS

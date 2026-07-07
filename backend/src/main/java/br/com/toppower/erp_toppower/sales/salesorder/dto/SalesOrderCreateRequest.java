@@ -82,10 +82,6 @@ public record SalesOrderCreateRequest(
         @Size(max = 2000, message = "Observações devem ter no máximo {max} caracteres")
         String notes,
 
-        @Schema(description = "UUID da transportadora responsável pelo frete (opcional).",
-                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID carrierUuid,
-
         @Schema(description = "Tipo de frete (CIF = por conta do remetente, FOB = por conta do destinatário).",
                 allowableValues = {"CIF", "FOB"},
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)

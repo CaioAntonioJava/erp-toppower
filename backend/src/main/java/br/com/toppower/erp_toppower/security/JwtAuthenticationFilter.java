@@ -1,6 +1,5 @@
 package br.com.toppower.erp_toppower.security;
 
-import br.com.toppower.erp_toppower.common.context.TenantContext;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -57,35 +56,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
             try {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(email);
-                // Reconstrói o principal com o tenant do JWT, para que o
-                // @AuthenticationPrincipal (ex: MeController) exponha o tenant
-                // da sessão corrente. O UserDetailsServiceImpl carrega o User
-                // sem tenant (o vínculo é N:N via user_tenants); o tenant da
-                // sessão vem do claim "tenant" do JWT, definido no login.
-                java.util.Optional<java.util.UUID> tenantUuid = jwtService.extractTenant(token);
-                if (tenantUuid.isPresent() && userDetails instanceof UserDetailsImpl udi) {
-                    userDetails = new UserDetailsImpl(udi.uuid(), udi.email(), udi.password(),
-                            udi.role(), tenantUuid.get());
-                }
                 setAuthentication(request, userDetails);
-                // Popula o TenantContext com o claim "tenant" do JWT. O filtro
-                // Hibernate "tenantFilter" (habilitado pelo TenantFilterAspect)
-                // e o TenantEntityListener usam esse UUID para isolar queries
-                // e setar tenant_uuid no persist, respectivamente.
-                tenantUuid.ifPresent(TenantContext::set);
             } catch (UsernameNotFoundException ex) {
                 log.debug("JWT aponta para um usuário inexistente: '{}'. Ignorando token.", email);
                 SecurityContextHolder.clearContext();
             }
         });
 
-        try {
-            filterChain.doFilter(request, response);
-        } finally {
-            // Limpa o ThreadLocal ao fim da requisição para evitar vazamento
-            // de tenant entre threads reutilizadas pelo container.
-            TenantContext.clear();
-        }
+        filterChain.doFilter(request, response);
     }
 
     private void setAuthentication(HttpServletRequest request, UserDetails userDetails) {

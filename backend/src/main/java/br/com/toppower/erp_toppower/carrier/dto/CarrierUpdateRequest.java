@@ -1,31 +1,24 @@
 package br.com.toppower.erp_toppower.carrier.dto;
 
-import br.com.toppower.erp_toppower.carrier.enums.CarrierName;
 import br.com.toppower.erp_toppower.carrier.enums.CarrierStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.Digits;
-
-import java.math.BigDecimal;
+import jakarta.validation.constraints.Size;
 
 /**
- * Atualização parcial da transportadora (PATCH). Todos os campos são
- * opcionais: envie apenas os campos que deseja alterar.
+ * Atualização parcial da transportadora (PATCH). Todos os campos são opcionais.
  */
 @Schema(name = "CarrierUpdateRequest", description = "Dados para atualização parcial de uma transportadora (PATCH).")
 public record CarrierUpdateRequest(
 
-        @Schema(description = "Novo nome padronizado da transportadora.",
-                allowableValues = {"CORREIOS_SEDEX", "CORREIOS_PAC", "JADLOG", "OUTRAS_TRANSPORTADORAS"})
-        CarrierName carrierName,
+        @Schema(description = "Novo nome da transportadora.", maxLength = 200)
+        @Size(max = 200, message = "Nome deve ter no máximo {max} caracteres")
+        String name,
 
-        @Schema(description = "Novo valor padrão do frete. Mínimo 0.00, até 2 casas decimais.",
-                minimum = "0.0", nullable = true)
-        @DecimalMin(value = "0.00", message = "Valor do frete deve ser no mínimo 0")
-        @Digits(integer = 8, fraction = 2, message = "Valor do frete deve ter no máximo 2 casas decimais")
-        BigDecimal freightValue,
+        @Schema(description = "Novo nome do serviço.", maxLength = 200)
+        @Size(max = 200, message = "Nome do serviço deve ter no máximo {max} caracteres")
+        String serviceName,
 
-        @Schema(description = "Novo status da transportadora.",
+        @Schema(description = "Novo status.",
                 allowableValues = {"ATIVO", "INATIVO"})
         CarrierStatus status
 ) {

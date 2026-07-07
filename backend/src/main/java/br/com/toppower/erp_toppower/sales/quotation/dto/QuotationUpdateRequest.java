@@ -74,10 +74,6 @@ public record QuotationUpdateRequest(
         @Size(max = 2000, message = "Observações devem ter no máximo {max} caracteres")
         String notes,
 
-        @Schema(description = "Novo UUID da transportadora (enviar nulo para remover).",
-                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID carrierUuid,
-
         @Schema(description = "Novo tipo de frete (CIF/FOB).",
                 allowableValues = {"CIF", "FOB"},
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)

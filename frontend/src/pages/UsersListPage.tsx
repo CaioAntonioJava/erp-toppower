@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  Building2,
   KeyRound,
   Plus,
   Search,
@@ -231,7 +230,6 @@ export function UsersListPage() {
             <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-950/40 dark:text-slate-400">
               <tr>
                 <th className="px-4 py-3 font-medium">E-mail</th>
-                <th className="px-4 py-3 font-medium">Empresas</th>
                 <th className="px-4 py-3 font-medium">Papel</th>
                 <th className="px-4 py-3 text-right font-medium">Ações</th>
               </tr>
@@ -239,7 +237,7 @@ export function UsersListPage() {
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {loading ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-12 text-center">
+                  <td colSpan={3} className="px-4 py-12 text-center">
                     <div className="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400">
                       <Spinner size="sm" /> Carregando…
                     </div>
@@ -247,7 +245,7 @@ export function UsersListPage() {
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-12 text-center">
+                  <td colSpan={3} className="px-4 py-12 text-center">
                     <div className="flex flex-col items-center gap-2 text-slate-500 dark:text-slate-400">
                       <UserPlus className="h-8 w-8 opacity-60" />
                       <p className="text-sm">
@@ -273,23 +271,6 @@ export function UsersListPage() {
                         <UsersIcon className="h-4 w-4 text-slate-400" />
                         {u.email}
                       </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      {u.tenants && u.tenants.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {u.tenants.map((t) => (
-                            <span
-                              key={t.uuid}
-                              className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-                            >
-                              <Building2 className="h-3 w-3 text-slate-400" />
-                              {t.displayName}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-slate-400">—</span>
-                      )}
                     </td>
                     <td className="px-4 py-3">
                       {u.role === 'ROLE_ADMIN' ? (

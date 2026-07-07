@@ -8,8 +8,8 @@
 --     idempotente apenas na inserção (nunca removia o que já tinha inserido).
 --   * Eventuais registros reais cadastrados manualmente em dev.
 --
--- ESCOPO — tabelas de negócio (15):
---   carriers, companies, customers, sellers, products, suppliers,
+-- ESCOPO — tabelas de negócio (14):
+--   companies, customers, sellers, products, suppliers,
 --   quotations, quotation_items,
 --   sales_orders, sales_order_items,
 --   stock_movements,
@@ -71,7 +71,6 @@ DELETE FROM technical_proposals;
 DELETE FROM quotations;
 
 -- Cadastros base
-DELETE FROM carriers;
 DELETE FROM companies;
 DELETE FROM customers;
 DELETE FROM sellers;

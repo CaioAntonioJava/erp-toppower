@@ -16,13 +16,10 @@ import { toApiError } from '../../lib/errors'
 import { useFieldTouched } from '../../hooks/useFieldTouched'
 import { getProduct, searchProducts } from '../../api/product.api'
 import { listSellers } from '../../api/seller.api'
-import { listCarriers } from '../../api/carrier.api'
 import { searchQuotationClients, simulateQuotation } from '../../api/quotation.api'
 import type { ProductResponse, UnitType } from '../../types/product'
 import type { SellerResponse } from '../../types/seller'
 import type { RegistrationStatus } from '../../types/registration'
-import type { CarrierResponse } from '../../types/carrier'
-import { CARRIER_NAME_LABELS } from '../../types/carrier'
 import type {
   ClientSummaryResponse,
   DiscountType,
@@ -146,15 +143,11 @@ export function QuotationForm({
   const [paymentCondition, setPaymentCondition] = useState<PaymentCondition | ''>(
     quotation?.paymentCondition ?? '',
   )
-  // Transportadora (opcional). FK para Carrier.
-  const [carrierUuid, setCarrierUuid] = useState<string>(
-    quotation?.carrierUuid ?? '',
-  )
   // Tipo de frete (CIF/FOB).
   const [freightType, setFreightType] = useState<FreightType | ''>(
     quotation?.freightType ?? '',
   )
-  // Valor do frete (manual, independente do Carrier selecionado).
+  // Valor do frete (manual).
   const [freightValue, setFreightValue] = useState<string>(
     quotation?.freightValue != null ? String(quotation.freightValue) : '',
   )
@@ -230,8 +223,6 @@ export function QuotationForm({
   // === coleções auxiliares ===
   const [sellers, setSellers] = useState<SellerResponse[]>([])
   const [sellersLoading, setSellersLoading] = useState(false)
-  const [carriers, setCarriers] = useState<CarrierResponse[]>([])
-  const [carriersLoading, setCarriersLoading] = useState(false)
   const [clientOptions, setClientOptions] = useState<ClientSummaryResponse[]>([])
   const [clientSearching, setClientSearching] = useState(false)
   const [productOptions, setProductOptions] = useState<ProductResponse[]>([])
@@ -292,27 +283,6 @@ export function QuotationForm({
       ]
     })
   }, [quotation?.sellerUuid, quotation?.sellerName])
-
-  // Carrega lista de transportadoras ativas uma vez.
-  useEffect(() => {
-    let cancelled = false
-    setCarriersLoading(true)
-    listCarriers({ status: 'ATIVO', size: 100, page: 0 })
-      .then((p) => {
-        if (cancelled) return
-        setCarriers(p.content)
-      })
-      .catch(() => {
-        if (cancelled) return
-        setCarriers([])
-      })
-      .finally(() => {
-        if (!cancelled) setCarriersLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
   // Sincroniza o número da proposta com o `initialNumber` que chega
   // assincronamente do endpoint `/quotations/next-number`. Em modo create,
@@ -717,7 +687,6 @@ export function QuotationForm({
         }
         payload.paymentCondition = paymentCondition === '' ? null : paymentCondition
         payload.notes = notes.trim() ? notes.trim() : null
-        payload.carrierUuid = carrierUuid.trim() ? carrierUuid.trim() : null
         payload.freightType = freightType === '' ? null : freightType
         payload.freightValue = parseNumber(freightValue)
         payload.profitMargin = parseNumber(profitMargin) ?? 0
@@ -764,7 +733,6 @@ export function QuotationForm({
           payload.paymentCondition = paymentCondition
         }
         if (notes.trim()) payload.notes = notes.trim()
-        if (carrierUuid.trim()) payload.carrierUuid = carrierUuid.trim()
         if (freightType !== '') payload.freightType = freightType
         if (freightValue.trim()) {
           payload.freightValue = parseNumber(freightValue)
@@ -1120,7 +1088,7 @@ export function QuotationForm({
             />
           </div>
           <div className="sm:col-span-2 lg:col-span-3">
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2">
               <Select
                 label="Tipo de frete"
                 value={freightType}
@@ -1133,29 +1101,6 @@ export function QuotationForm({
                 ]}
                 aria-label="Tipo de frete"
                 hint="CIF = por conta do remetente; FOB = por conta do destinatário."
-              />
-              <Select
-                label="Transportadora"
-                value={carrierUuid}
-                onChange={(e) => setCarrierUuid(e.target.value)}
-                hint={
-                  carriers.length === 0 && !carriersLoading
-                    ? 'Nenhuma transportadora ativa cadastrada.'
-                    : 'Transportadora responsável pelo frete (opcional).'
-                }
-                options={[
-                  {
-                    value: '',
-                    label: carriersLoading ? 'Carregando…' : 'Selecione…',
-                  },
-                  ...carriers
-                    .filter((c) => c.carrierName != null)
-                    .map((c) => ({
-                      value: c.uuid,
-                      label: CARRIER_NAME_LABELS[c.carrierName!],
-                    })),
-                ]}
-                aria-label="Transportadora"
               />
               <Input
                 label="Valor do frete (R$)"

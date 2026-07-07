@@ -22,8 +22,8 @@ import org.springframework.stereotype.Component;
  *
  * <p>Comportamento:</p>
  * <ul>
- *   <li>Roda após o {@code TenantBackfillRunner} ({@link Order}(20)), pois
- *       a tabela {@code ceps} não é tenant-scoped e independe do backfill.</li>
+ *   <li>Roda após o {@code BootstrapRunner} ({@link Order}(20)), pois
+ *       a tabela {@code ceps} é global e independe do bootstrap de admin.</li>
  *   <li>Se a tabela já tiver registros, é no-op (não reimporta).</li>
  *   <li>Se a tabela estiver vazia e {@code app.cep.import.auto=true}
  *       (default), dispara {@link CepImportService#importFromCsv(boolean)}

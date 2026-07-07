@@ -1,7 +1,7 @@
 package br.com.toppower.erp_toppower.sales.technicalproposal.entity;
 
 import br.com.toppower.erp_toppower.common.embeddable.Address;
-import br.com.toppower.erp_toppower.common.entity.TenantScopedEntity;
+import br.com.toppower.erp_toppower.common.entity.OrganizationScopedEntity;
 import br.com.toppower.erp_toppower.common.util.PricingMath;
 import br.com.toppower.erp_toppower.sales.quotation.enums.DiscountType;
 import br.com.toppower.erp_toppower.sales.quotation.enums.FreightType;
@@ -85,7 +85,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @NoArgsConstructor
-public class TechnicalProposal extends TenantScopedEntity {
+public class TechnicalProposal extends OrganizationScopedEntity {
 
     /** Prefixo fixo do código de proposta técnica. Hoje sempre {@code "PL"}. */
     public static final String DEFAULT_PREFIX = "PL";

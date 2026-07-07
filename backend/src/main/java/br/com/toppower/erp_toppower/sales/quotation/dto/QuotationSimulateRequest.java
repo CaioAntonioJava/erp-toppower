@@ -75,10 +75,6 @@ public record QuotationSimulateRequest(
         @Size(max = 2000, message = "Observações devem ter no máximo {max} caracteres")
         String notes,
 
-        @Schema(description = "UUID da transportadora (opcional).",
-                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID carrierUuid,
-
         @Schema(description = "Tipo de frete.",
                 allowableValues = {"CIF", "FOB"},
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)

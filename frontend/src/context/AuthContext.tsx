@@ -10,10 +10,9 @@ import type { ReactNode } from 'react'
 import {
   login as apiLogin,
   me as apiMe,
-  switchTenant as apiSwitchTenant,
 } from '../api/auth.api'
 import { getProfileByUserId } from '../api/profile.api'
-import { TOKEN_KEY } from '../api/client'
+import { TOKEN_KEY, ORGANIZATION_KEY } from '../api/client'
 import { toApiError } from '../lib/errors'
 import type {
   AuthenticatedUser,
@@ -33,8 +32,6 @@ interface AuthContextValue {
   hasProfile: boolean | null
   signIn: (payload: LoginRequest) => Promise<AuthenticatedUser>
   signOut: () => void
-  /** Troca o tenant da sessão corrente (reemite o JWT). */
-  switchTenant: (tenantUuid: string) => Promise<AuthenticatedUser>
   /** Força a releitura do usuário a partir do /me. */
   refresh: () => Promise<AuthenticatedUser | null>
   /** Re-checa se o usuário autenticado possui perfil cadastrado. */
@@ -147,6 +144,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await apiLogin(payload)
       localStorage.setItem(TOKEN_KEY, response.accessToken)
       setUser(response.user)
+      // Pré-seleciona a Organization default do usuário (ou limpa se nenhuma).
+      // O OrganizationContext lê essa chave no refresh para definir a ativa.
+      if (response.defaultOrganizationId) {
+        localStorage.setItem(ORGANIZATION_KEY, response.defaultOrganizationId)
+      } else {
+        localStorage.removeItem(ORGANIZATION_KEY)
+      }
       // Admins não precisam completar perfil — pula a checagem e a
       // chamada ao backend, liberando navegação imediatamente.
       if (adminBypassesProfile(response.user.role)) {
@@ -168,31 +172,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(ORGANIZATION_KEY)
     setUser(null)
     setHasProfile(null)
   }, [])
-
-  const switchTenant = useCallback(
-    async (tenantUuid: string): Promise<AuthenticatedUser> => {
-      const response = await apiSwitchTenant({ tenantUuid })
-      localStorage.setItem(TOKEN_KEY, response.accessToken)
-      setUser(response.user)
-      // Admins não precisam completar perfil — pula a checagem.
-      if (adminBypassesProfile(response.user.role)) {
-        setHasProfile(true)
-        return response.user
-      }
-      setHasProfile(null)
-      try {
-        const ok = await checkHasProfile(response.user.uuid)
-        setHasProfile(ok)
-      } catch {
-        setHasProfile(null)
-      }
-      return response.user
-    },
-    [],
-  )
 
   const refresh = useCallback(async () => {
     const u = await loadUserFromToken()
@@ -208,11 +191,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       hasProfile,
       signIn,
       signOut,
-      switchTenant,
       refresh,
       refreshProfileStatus,
     }),
-    [user, isLoading, hasProfile, signIn, signOut, switchTenant, refresh, refreshProfileStatus],
+    [user, isLoading, hasProfile, signIn, signOut, refresh, refreshProfileStatus],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

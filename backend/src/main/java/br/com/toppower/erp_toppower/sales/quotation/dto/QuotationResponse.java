@@ -86,10 +86,6 @@ public record QuotationResponse(
         @Schema(description = "Observações livres.", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         String notes,
 
-        @Schema(description = "UUID da transportadora responsável pelo frete (opcional).",
-                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID carrierUuid,
-
         @Schema(description = "Tipo de frete.",
                 allowableValues = {"CIF", "FOB"},
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)

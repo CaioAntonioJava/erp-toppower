@@ -1,7 +1,7 @@
 package br.com.toppower.erp_toppower.product.entity;
 
 import br.com.toppower.erp_toppower.common.annotation.UpperCase;
-import br.com.toppower.erp_toppower.common.entity.TenantScopedEntity;
+import br.com.toppower.erp_toppower.common.entity.OrganizationScopedEntity;
 import br.com.toppower.erp_toppower.product.enums.ProductStatus;
 import br.com.toppower.erp_toppower.product.enums.UnitType;
 import jakarta.persistence.Column;
@@ -21,7 +21,7 @@ import java.math.BigDecimal;
 @Getter
 @Setter
 @NoArgsConstructor
-public class Product extends TenantScopedEntity {
+public class Product extends OrganizationScopedEntity {
 
     @UpperCase
     @Column(name = "name", nullable = false, length = 150)

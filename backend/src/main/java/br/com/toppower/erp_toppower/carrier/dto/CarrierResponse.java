@@ -1,10 +1,8 @@
 package br.com.toppower.erp_toppower.carrier.dto;
 
-import br.com.toppower.erp_toppower.carrier.enums.CarrierName;
 import br.com.toppower.erp_toppower.carrier.enums.CarrierStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -15,24 +13,20 @@ public record CarrierResponse(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         UUID uuid,
 
-        @Schema(description = "Nome padronizado da transportadora.",
-                allowableValues = {"CORREIOS_SEDEX", "CORREIOS_PAC", "JADLOG", "OUTRAS_TRANSPORTADORAS"})
-        CarrierName carrierName,
+        @Schema(description = "Nome da transportadora.", requiredMode = Schema.RequiredMode.REQUIRED)
+        String name,
 
-        @Schema(description = "Valor padrão do frete.")
-        BigDecimal freightValue,
+        @Schema(description = "Nome do serviço.", requiredMode = Schema.RequiredMode.REQUIRED)
+        String serviceName,
 
-        @Schema(description = "Status atual da transportadora.",
-                allowableValues = {"ATIVO", "INATIVO"},
+        @Schema(description = "Status atual.", allowableValues = {"ATIVO", "INATIVO"},
                 requiredMode = Schema.RequiredMode.REQUIRED)
         CarrierStatus status,
 
-        @Schema(description = "Data de criação.",
-                requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "Data de criação.", requiredMode = Schema.RequiredMode.REQUIRED)
         Instant createdAt,
 
-        @Schema(description = "Data da última atualização.",
-                requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "Data da última atualização.", requiredMode = Schema.RequiredMode.REQUIRED)
         Instant updatedAt,
 
         @Schema(description = "E-mail do usuário que criou o registro.")

@@ -1,7 +1,7 @@
 package br.com.toppower.erp_toppower.sales.quotation.entity;
 
 import br.com.toppower.erp_toppower.common.annotation.UpperCase;
-import br.com.toppower.erp_toppower.common.entity.TenantScopedEntity;
+import br.com.toppower.erp_toppower.common.entity.OrganizationScopedEntity;
 import br.com.toppower.erp_toppower.common.util.PricingMath;
 import br.com.toppower.erp_toppower.sales.quotation.enums.DiscountType;
 import br.com.toppower.erp_toppower.sales.quotation.enums.FreightType;
@@ -67,7 +67,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @NoArgsConstructor
-public class Quotation extends TenantScopedEntity {
+public class Quotation extends OrganizationScopedEntity {
 
     /**
      * Número sequencial da proposta, sem prefixo. Ex.: {@code 1500},
@@ -179,13 +179,6 @@ public class Quotation extends TenantScopedEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private QuotationStatus status;
-
-    /**
-     * Referência à {@code Carrier} (transportadora) responsável pelo frete.
-     * Opcional.
-     */
-    @Column(name = "carrier_uuid")
-    private UUID carrierUuid;
 
     /**
      * Tipo de frete (CIF/FOB). Opcional.
