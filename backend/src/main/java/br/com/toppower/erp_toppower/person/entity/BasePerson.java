@@ -43,6 +43,11 @@ public abstract class BasePerson extends OrganizationScopedEntity {
     private String phone;
 
     @ValidCpf(message = "CPF inválido (dígitos verificadores incorretos ou formato incorreto)")
-    @Column(name = "cpf", nullable = false, length = 14, unique = true)
+    // unique = true removido: a unicidade agora é por Organization
+    // (uk_customers_org_cpf / uk_sellers_org_cpf em V22). O Hibernate
+    // ddl-auto=update criaria um índice UNIQUE global que conflitaria com a
+    // constraint composta. Profile NÃO herda daqui (tem seu próprio cpf local),
+    // então esta mudança não afeta a unicidade global do perfil do usuário.
+    @Column(name = "cpf", nullable = false, length = 14)
     private String cpf;
 }

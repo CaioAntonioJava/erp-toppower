@@ -56,7 +56,10 @@ public class Supplier extends OrganizationScopedEntity {
      * Obrigatório e único. Validado por {@link ValidCnpj}.
      */
     @ValidCnpj(message = "CNPJ inválido (dígitos verificadores incorretos ou formato incorreto)")
-    @Column(name = "tax_id", nullable = false, length = 20, unique = true)
+    // unique = true removido: a unicidade agora é por Organization
+    // (uk_suppliers_org_tax_id em V22). O Hibernate ddl-auto=update criaria
+    // um índice UNIQUE global que conflitaria com a constraint composta.
+    @Column(name = "tax_id", nullable = false, length = 20)
     private String taxId;
 
     /**

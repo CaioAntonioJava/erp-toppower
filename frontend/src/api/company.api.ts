@@ -56,7 +56,7 @@ export async function searchCompanies(params: {
   return data
 }
 
-/** GET /companies/{id} — detalhe. Requer ROLE_ADMIN no backend. */
+/** GET /companies/{id} — detalhe. Disponível para ADMIN e MANAGER no backend. */
 export async function getCompany(id: string): Promise<CompanyResponse> {
   const { data } = await api.get<CompanyResponse>(`${BASE}/${id}`)
   return data

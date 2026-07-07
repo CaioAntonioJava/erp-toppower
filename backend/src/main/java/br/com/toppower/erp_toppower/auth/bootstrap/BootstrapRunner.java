@@ -83,17 +83,32 @@ public class BootstrapRunner implements CommandLineRunner {
             log.warn("=================================================================");
 
             Organization engenharia = new Organization();
-            engenharia.setCorporateName("TOP POWER ENGENHARIA LTDA");
+            engenharia.setCorporateName("TOP POWER ENGENHARIA LTDA ME");
             engenharia.setTradeName("TOP POWER ENGENHARIA");
-            // CNPJ de teste (dígitos verificadores válidos). Substitua pelos CNPJs reais em produção.
-            engenharia.setCnpj("11.222.333/0001-81");
+            engenharia.setCnpj("13.433.616/0001-06");
+            engenharia.setStateRegistration("671.137.811.110");
+            engenharia.setMunicipalRegistration("29764.01-6");
+            engenharia.setZipCode("13170-700");
+            engenharia.setStreet("AVENIDA REBOUCAS");
+            engenharia.setNumber("4465");
+            engenharia.setDistrict("RES. VECCON");
+            engenharia.setCity("SUMARE");
+            engenharia.setState("SP");
             engenharia.setStatus(OrganizationStatus.ATIVO);
             organizationRepository.save(engenharia);
 
             Organization materiais = new Organization();
-            materiais.setCorporateName("TOP POWER MATERIAIS LTDA");
+            materiais.setCorporateName("TOP POWER MATERIAIS LTDA ME");
             materiais.setTradeName("TOP POWER MATERIAIS");
-            materiais.setCnpj("11.444.777/0001-61");
+            materiais.setCnpj("59.530.698/0001-08");
+            materiais.setStateRegistration("671.700.534.116");
+            materiais.setMunicipalRegistration("62965010");
+            materiais.setZipCode("13171-456");
+            materiais.setStreet("RUA JOAO RAVAGNANI");
+            materiais.setNumber("36");
+            materiais.setDistrict("JARDIM RESIDENCIAL RAVAGNANI");
+            materiais.setCity("SUMARE");
+            materiais.setState("SP");
             materiais.setStatus(OrganizationStatus.ATIVO);
             organizationRepository.save(materiais);
 
