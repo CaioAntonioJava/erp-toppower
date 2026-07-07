@@ -25,6 +25,9 @@ export function Topbar() {
     const org = organizations.find((o) => o.uuid === uuid)
     if (org) {
       setActive(org)
+      // Redireciona sempre para o dashboard ao trocar de empresa, evitando
+      // que o usuário permaneça numa tela com dados da empresa anterior.
+      navigate('/', { replace: true })
     }
     setOrgMenuOpen(false)
   }
