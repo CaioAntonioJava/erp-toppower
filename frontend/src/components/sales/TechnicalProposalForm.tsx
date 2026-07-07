@@ -13,9 +13,11 @@ import { Alert } from '../ui/Alert'
 import { Spinner } from '../ui/Spinner'
 import { RichTextEditor } from '../ui/RichTextEditor'
 import { toApiError } from '../../lib/errors'
+import { parseNumber, formatBRLValue } from '../../lib/money'
 import { useFieldTouched } from '../../hooks/useFieldTouched'
+import { useActiveCarriers } from '../../hooks/useActiveCarriers'
+import { FreightConditionsFields } from './FreightConditionsFields'
 import { getProduct, searchProducts } from '../../api/product.api'
-import { listCarriers } from '../../api/carrier.api'
 import {
   searchTechnicalProposalClients,
   simulateTechnicalProposal,
@@ -23,8 +25,6 @@ import {
 import { BRAZILIAN_STATES } from '../../lib/brazilianStates'
 import { maskZipCode } from '../../lib/documents'
 import type { ProductResponse, UnitType } from '../../types/product'
-import type { CarrierResponse } from '../../types/carrier'
-import type { RegistrationStatus } from '../../types/registration'
 import type {
   ClientSummaryResponse,
   DiscountType,
@@ -33,7 +33,6 @@ import type {
 } from '../../types/quotation'
 import {
   DISCOUNT_TYPE_OPTIONS,
-  FREIGHT_TYPE_OPTIONS,
   PAYMENT_CONDITION_OPTIONS,
 } from '../../types/quotation'
 import type {
@@ -90,21 +89,6 @@ const brlFormatter = new Intl.NumberFormat('pt-BR', {
 
 function nextRowKey(): string {
   return `row_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
-}
-
-function parseNumber(value: string): number | null {
-  const trimmed = value.trim()
-  if (!trimmed) return null
-  const normalized = trimmed.replace(',', '.')
-  const n = Number(normalized)
-  return Number.isFinite(n) ? n : null
-}
-
-function formatBRLValue(value: number | string | null | undefined): string {
-  if (value == null) return ''
-  const n = typeof value === 'string' ? parseNumber(value) : value
-  if (n == null || !Number.isFinite(n)) return ''
-  return n.toFixed(2).replace('.', ',')
 }
 
 function todayIso(): string {
@@ -165,13 +149,6 @@ export function TechnicalProposalForm({
   const [discount, setDiscount] = useState<string>(
     proposal?.discount != null ? String(proposal.discount) : '',
   )
-  const [freightValue, setFreightValue] = useState<string>(
-    proposal?.freightValue != null ? String(proposal.freightValue) : '',
-  )
-  // Transportadora (Carrier) responsável pelo frete. Opcional.
-  const [carrierUuid, setCarrierUuid] = useState<string>(
-    proposal?.carrierUuid ?? '',
-  )
   const [deliveryDeadline, setDeliveryDeadline] = useState<string>(
     proposal?.deliveryDeadline ?? '',
   )
@@ -181,6 +158,14 @@ export function TechnicalProposalForm({
   const [validity, setValidity] = useState<string>(proposal?.validity ?? '')
   const [deliveryType, setDeliveryType] = useState<FreightType | ''>(
     proposal?.deliveryType ?? '',
+  )
+  // Valor do frete (manual).
+  const [freightValue, setFreightValue] = useState<string>(
+    proposal?.freightValue != null ? formatBRLValue(proposal.freightValue) : '',
+  )
+  // Transportadora (Carrier) responsável pelo frete. Opcional.
+  const [carrierUuid, setCarrierUuid] = useState<string>(
+    proposal?.carrierUuid ?? '',
   )
   const [notes, setNotes] = useState<string>(proposal?.notes ?? '')
 
@@ -248,8 +233,6 @@ export function TechnicalProposalForm({
   const [productOptions, setProductOptions] = useState<ProductResponse[]>([])
   const [productSearching, setProductSearching] = useState(false)
   const [activeProductRow, setActiveProductRow] = useState<string | null>(null)
-  const [carriers, setCarriers] = useState<CarrierResponse[]>([])
-  const [carriersLoading, setCarriersLoading] = useState(false)
 
   const [formError, setFormError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -258,6 +241,13 @@ export function TechnicalProposalForm({
   const { shouldShowError, getBlurHandler, markAllTouched, reset } =
     useFieldTouched()
 
+  // Carrega transportadoras ativas (com fallback da selecionada em edição).
+  const { carriers, carriersLoading } = useActiveCarriers(
+    proposal?.carrierUuid
+      ? { uuid: proposal.carrierUuid, name: proposal.carrierName }
+      : null,
+  )
+
   // Sincroniza o código com `initialCode` que chega assincronamente.
   useEffect(() => {
     if (proposal) return
@@ -265,49 +255,6 @@ export function TechnicalProposalForm({
     if (codeDirtyRef.current) return
     setCode(initialCode)
   }, [initialCode, proposal])
-
-  // Carrega lista de transportadoras ativas uma vez.
-  useEffect(() => {
-    let cancelled = false
-    setCarriersLoading(true)
-    listCarriers({ status: 'ATIVO', size: 100, page: 0 })
-      .then((p) => {
-        if (cancelled) return
-        setCarriers(p.content)
-      })
-      .catch(() => {
-        if (cancelled) return
-        setCarriers([])
-      })
-      .finally(() => {
-        if (!cancelled) setCarriersLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  // Em modo edição, garante que a transportadora atual sempre apareça como
-  // opção do <select>, mesmo que tenha sido inativada após a criação da
-  // proposta técnica.
-  useEffect(() => {
-    if (!proposal?.carrierUuid) return
-    setCarriers((prev) => {
-      if (prev.some((c) => c.uuid === proposal.carrierUuid)) return prev
-      return [
-        ...prev,
-        {
-          uuid: proposal.carrierUuid!,
-          name: proposal.carrierName ?? '(transportadora removida)',
-          status: 'INATIVO' as RegistrationStatus,
-          createdAt: '',
-          updatedAt: '',
-          createdBy: null,
-          updatedBy: null,
-        },
-      ]
-    })
-  }, [proposal?.carrierUuid, proposal?.carrierName])
 
   // Pré-preenche o rótulo do cliente no modo edição.
   useEffect(() => {
@@ -1207,22 +1154,6 @@ export function TechnicalProposalForm({
             }
           />
           <Input
-            label="Valor do frete (R$)"
-            type="text"
-            inputMode="decimal"
-            placeholder="0,00"
-            value={freightValue}
-            onChange={(e) => setFreightValue(e.target.value)}
-            onBlur={() => {
-              if (freightValue.trim() !== '') {
-                const formatted = formatBRLValue(freightValue)
-                if (formatted) setFreightValue(formatted)
-              }
-              getBlurHandler('freightValue')()
-            }}
-            hint="Somado ao total após margem e desconto."
-          />
-          <Input
             label="Prazo de entrega"
             value={deliveryDeadline}
             onChange={(e) => setDeliveryDeadline(e.target.value)}
@@ -1237,37 +1168,37 @@ export function TechnicalProposalForm({
             maxLength={50}
           />
           <Select
-            label="Tipo de entrega"
-            value={deliveryType}
+            label="Condição de pagamento"
+            value={paymentCondition}
             onChange={(e) =>
-              setDeliveryType(e.target.value as FreightType | '')
+              setPaymentCondition(e.target.value as PaymentCondition | '')
             }
-            options={[{ value: '', label: 'Selecione…' }, ...FREIGHT_TYPE_OPTIONS]}
-            aria-label="Tipo de entrega"
-            hint="CIF = remetente; FOB = destinatário."
-          />
-          <Select
-            label="Transportadora"
-            value={carrierUuid}
-            onChange={(e) => setCarrierUuid(e.target.value)}
-            options={[
-              {
-                value: '',
-                label: carriersLoading ? 'Carregando…' : 'Selecione…',
-              },
-              ...carriers.map((c) => ({ value: c.uuid, label: c.name })),
-            ]}
-            aria-label="Transportadora responsável pelo frete"
+            options={[{ value: '', label: 'Selecione…' }, ...PAYMENT_CONDITION_OPTIONS]}
+            aria-label="Condição de pagamento"
           />
           <div className="sm:col-span-2 lg:col-span-3">
-            <Select
-              label="Condição de pagamento"
-              value={paymentCondition}
-              onChange={(e) =>
-                setPaymentCondition(e.target.value as PaymentCondition | '')
-              }
-              options={[{ value: '', label: 'Selecione…' }, ...PAYMENT_CONDITION_OPTIONS]}
-              aria-label="Condição de pagamento"
+            <FreightConditionsFields
+              freightType={deliveryType}
+              onFreightTypeChange={(v) => setDeliveryType(v as FreightType | '')}
+              freightValue={freightValue}
+              onFreightValueChange={setFreightValue}
+              onFreightValueBlur={() => {
+                if (freightValue.trim() !== '') {
+                  const formatted = formatBRLValue(freightValue)
+                  if (formatted) setFreightValue(formatted)
+                }
+                getBlurHandler('freightValue')()
+              }}
+              freightValueError={shouldShowError(
+                'freightValue',
+                fieldErrors.freightValue,
+              )}
+              carrierUuid={carrierUuid}
+              onCarrierUuidChange={setCarrierUuid}
+              carriers={carriers}
+              carriersLoading={carriersLoading}
+              freightTypeLabel="Tipo de entrega"
+              freightTypeHint="CIF = remetente; FOB = destinatário."
             />
           </div>
         </div>

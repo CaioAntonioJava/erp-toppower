@@ -13,14 +13,15 @@ import { Alert } from '../ui/Alert'
 import { Spinner } from '../ui/Spinner'
 import { RichTextEditor } from '../ui/RichTextEditor'
 import { toApiError } from '../../lib/errors'
+import { parseNumber, formatBRLValue } from '../../lib/money'
 import { useFieldTouched } from '../../hooks/useFieldTouched'
+import { useActiveCarriers } from '../../hooks/useActiveCarriers'
+import { FreightConditionsFields } from './FreightConditionsFields'
 import { getProduct, searchProducts } from '../../api/product.api'
 import { listSellers } from '../../api/seller.api'
-import { listCarriers } from '../../api/carrier.api'
 import { searchQuotationClients, simulateQuotation } from '../../api/quotation.api'
 import type { ProductResponse, UnitType } from '../../types/product'
 import type { SellerResponse } from '../../types/seller'
-import type { CarrierResponse } from '../../types/carrier'
 import type { RegistrationStatus } from '../../types/registration'
 import type {
   ClientSummaryResponse,
@@ -36,7 +37,6 @@ import type {
 } from '../../types/quotation'
 import {
   DISCOUNT_TYPE_OPTIONS,
-  FREIGHT_TYPE_OPTIONS,
   PAYMENT_CONDITION_OPTIONS,
   QUOTATION_CLIENT_TYPE_LABELS,
 } from '../../types/quotation'
@@ -88,27 +88,6 @@ function nextRowKey(): string {
   return `row_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
 }
 
-/** Converte string (com vírgula ou ponto) em número finito, ou null. */
-function parseNumber(value: string): number | null {
-  const trimmed = value.trim()
-  if (!trimmed) return null
-  const normalized = trimmed.replace(',', '.')
-  const n = Number(normalized)
-  return Number.isFinite(n) ? n : null
-}
-
-/**
- * Formata um valor (número ou string) para o padrão monetário brasileiro
- * com 2 casas decimais usando vírgula. Ex.: 80 → "80,00"; 45,9 → "45,90".
- * Retorna string vazia se o valor for vazio/inválido.
- */
-function formatBRLValue(value: number | string | null | undefined): string {
-  if (value == null) return ''
-  const n = typeof value === 'string' ? parseNumber(value) : value
-  if (n == null || !Number.isFinite(n)) return ''
-  return n.toFixed(2).replace('.', ',')
-}
-
 /** Retorna a data atual no formato ISO `YYYY-MM-DD` aceito por `<input type="date">`. */
 function todayIso(): string {
   const d = new Date()
@@ -151,7 +130,7 @@ export function QuotationForm({
   )
   // Valor do frete (manual).
   const [freightValue, setFreightValue] = useState<string>(
-    quotation?.freightValue != null ? String(quotation.freightValue) : '',
+    quotation?.freightValue != null ? formatBRLValue(quotation.freightValue) : '',
   )
   // Transportadora (Carrier) responsável pelo frete. Opcional.
   const [carrierUuid, setCarrierUuid] = useState<string>(
@@ -229,8 +208,6 @@ export function QuotationForm({
   // === coleções auxiliares ===
   const [sellers, setSellers] = useState<SellerResponse[]>([])
   const [sellersLoading, setSellersLoading] = useState(false)
-  const [carriers, setCarriers] = useState<CarrierResponse[]>([])
-  const [carriersLoading, setCarriersLoading] = useState(false)
   const [clientOptions, setClientOptions] = useState<ClientSummaryResponse[]>([])
   const [clientSearching, setClientSearching] = useState(false)
   const [productOptions, setProductOptions] = useState<ProductResponse[]>([])
@@ -243,6 +220,13 @@ export function QuotationForm({
 
   const { shouldShowError, getBlurHandler, markAllTouched, reset } =
     useFieldTouched()
+
+  // Carrega transportadoras ativas (com fallback da selecionada em edição).
+  const { carriers, carriersLoading } = useActiveCarriers(
+    quotation?.carrierUuid
+      ? { uuid: quotation.carrierUuid, name: quotation.carrierName }
+      : null,
+  )
 
   // Carrega lista de vendedores ativos uma vez.
   useEffect(() => {
@@ -291,50 +275,6 @@ export function QuotationForm({
       ]
     })
   }, [quotation?.sellerUuid, quotation?.sellerName])
-
-  // Carrega lista de transportadoras ativas uma vez.
-  useEffect(() => {
-    let cancelled = false
-    setCarriersLoading(true)
-    listCarriers({ status: 'ATIVO', size: 100, page: 0 })
-      .then((p) => {
-        if (cancelled) return
-        setCarriers(p.content)
-      })
-      .catch(() => {
-        if (cancelled) return
-        setCarriers([])
-      })
-      .finally(() => {
-        if (!cancelled) setCarriersLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  // Em modo edição, garante que a transportadora atual sempre apareça como
-  // opção do <select>, mesmo que tenha sido inativada após a criação da
-  // proposta. Sem isto, o select cairia no placeholder quando a carrier
-  // não retorna no filtro de ATIVO.
-  useEffect(() => {
-    if (!quotation?.carrierUuid) return
-    setCarriers((prev) => {
-      if (prev.some((c) => c.uuid === quotation.carrierUuid)) return prev
-      return [
-        ...prev,
-        {
-          uuid: quotation.carrierUuid!,
-          name: quotation.carrierName ?? '(transportadora removida)',
-          status: 'INATIVO' as RegistrationStatus,
-          createdAt: '',
-          updatedAt: '',
-          createdBy: null,
-          updatedBy: null,
-        },
-      ]
-    })
-  }, [quotation?.carrierUuid, quotation?.carrierName])
 
   // Sincroniza o número da proposta com o `initialNumber` que chega
   // assincronamente do endpoint `/quotations/next-number`. Em modo create,
@@ -741,8 +681,8 @@ export function QuotationForm({
         payload.notes = notes.trim() ? notes.trim() : null
         payload.freightType = freightType === '' ? null : freightType
         payload.freightValue = parseNumber(freightValue)
-        payload.profitMargin = parseNumber(profitMargin) ?? 0
         payload.carrierUuid = carrierUuid || null
+        payload.profitMargin = parseNumber(profitMargin) ?? 0
 
         // Override admin: envia `number`/`issueDate` no payload. O backend
         // atual (QuotationUpdateRequest) não inclui esses campos, então o
@@ -1142,57 +1082,27 @@ export function QuotationForm({
             />
           </div>
           <div className="sm:col-span-2 lg:col-span-3">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <Select
-                label="Tipo de frete"
-                value={freightType}
-                onChange={(e) =>
-                  setFreightType(e.target.value as FreightType | '')
+            <FreightConditionsFields
+              freightType={freightType}
+              onFreightTypeChange={(v) => setFreightType(v as FreightType | '')}
+              freightValue={freightValue}
+              onFreightValueChange={setFreightValue}
+              onFreightValueBlur={() => {
+                if (freightValue.trim() !== '') {
+                  const formatted = formatBRLValue(freightValue)
+                  if (formatted) setFreightValue(formatted)
                 }
-                options={[
-                  { value: '', label: 'Selecione…' },
-                  ...FREIGHT_TYPE_OPTIONS,
-                ]}
-                aria-label="Tipo de frete"
-                hint="CIF = por conta do remetente; FOB = por conta do destinatário."
-              />
-              <Input
-                label="Valor do frete (R$)"
-                type="text"
-                inputMode="decimal"
-                placeholder="0,00"
-                value={freightValue}
-                onChange={(e) => setFreightValue(e.target.value)}
-                onBlur={() => {
-                  // Normaliza para 2 casas decimais no formato brasileiro
-                  // (vírgula). Se o usuário digitar "45" vira "45,00"; se
-                  // digitar "45,9" vira "45,90". Campos vazios são mantidos.
-                  if (freightValue.trim() !== '') {
-                    const formatted = formatBRLValue(freightValue)
-                    if (formatted) setFreightValue(formatted)
-                  }
-                  getBlurHandler('freightValue')()
-                }}
-                error={shouldShowError(
-                  'freightValue',
-                  fieldErrors.freightValue,
-                )}
-                hint="Valor de frete informado manualmente."
-              />
-              <Select
-                label="Transportadora"
-                value={carrierUuid}
-                onChange={(e) => setCarrierUuid(e.target.value)}
-                options={[
-                  {
-                    value: '',
-                    label: carriersLoading ? 'Carregando…' : 'Selecione…',
-                  },
-                  ...carriers.map((c) => ({ value: c.uuid, label: c.name })),
-                ]}
-                aria-label="Transportadora responsável pelo frete"
-              />
-            </div>
+                getBlurHandler('freightValue')()
+              }}
+              freightValueError={shouldShowError(
+                'freightValue',
+                fieldErrors.freightValue,
+              )}
+              carrierUuid={carrierUuid}
+              onCarrierUuidChange={setCarrierUuid}
+              carriers={carriers}
+              carriersLoading={carriersLoading}
+            />
           </div>
         </div>
 
