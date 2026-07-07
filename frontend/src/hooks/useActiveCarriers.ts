@@ -34,7 +34,10 @@ export function useActiveCarriers(current?: CurrentCarrier | null): {
         if (cancelled) return
         setCarriers(p.content)
       })
-      .catch(() => {
+      .catch((err) => {
+        // Loga para diagnóstico: antes este erro era silenciado, mascarando
+        // 403/404 do backend como uma lista vazia no <select> dos formulários.
+        console.error('[useActiveCarriers] Falha ao carregar transportadoras:', err)
         if (cancelled) return
         setCarriers([])
       })

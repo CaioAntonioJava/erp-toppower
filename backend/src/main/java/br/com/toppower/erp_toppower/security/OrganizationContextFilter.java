@@ -77,6 +77,12 @@ public class OrganizationContextFilter extends OncePerRequestFilter {
             // a proteção "ler só o próprio perfil" fica no service). Exigir o
             // header aqui quebra o primeiro acesso de MANAGER sem org ativa.
             "/api/v1/profiles",
+            // Transportadoras são dado global (compartilhado entre empresas):
+            // a entidade Carrier não herda de OrganizationScopedEntity, então
+            // não há filtro Hibernate por organization_uuid. Exigir o header
+            // aqui quebraria a abertura dos formulários de venda por um
+            // MANAGER/SELLER sem empresa ativa selecionada.
+            "/api/v1/carriers",
             // Swagger / OpenAPI
             "/v3/api-docs",
             "/swagger-ui",
