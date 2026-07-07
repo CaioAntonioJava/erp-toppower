@@ -103,10 +103,6 @@ public record QuotationResponse(
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         String carrierName,
 
-        @Schema(description = "Nome do serviço da transportadora (resolvido no backend a partir de carrierUuid).",
-                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        String carrierServiceName,
-
         @Schema(description = "Margem de lucro aplicada sobre o total da proposta (em %). "
                 + "Ex.: 10.00 = 10% aplicado como multiplicação sobre o total parcial.",
                 example = "10.00", requiredMode = Schema.RequiredMode.REQUIRED)

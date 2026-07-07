@@ -46,6 +46,10 @@ import java.util.UUID;
  *   <li>{@code /api/v1/organizations/**} — gestão de Organizations (o admin
  *       pode listar todas sem org ativa);</li>
  *   <li>{@code /api/v1/user-organizations/**} — gestão de vínculos;</li>
+ *   <li>{@code /api/v1/profiles/**} — perfis não são isolados por Organization
+ *       (a busca é por {@code userUuid} e a proteção de "ler só o próprio
+ *       perfil" fica no service). Exigir o header aqui quebra o fluxo de
+ *       primeiro acesso de um MANAGER antes de haver org ativa selecionada.</li>
  *   <li>Swagger/OpenAPI.</li>
  * </ul>
  *
@@ -69,6 +73,10 @@ public class OrganizationContextFilter extends OncePerRequestFilter {
             "/api/v1/me",
             "/api/v1/organizations",
             "/api/v1/user-organizations",
+            // Perfis não são isolados por Organization (busca por userUuid;
+            // a proteção "ler só o próprio perfil" fica no service). Exigir o
+            // header aqui quebra o primeiro acesso de MANAGER sem org ativa.
+            "/api/v1/profiles",
             // Swagger / OpenAPI
             "/v3/api-docs",
             "/swagger-ui",

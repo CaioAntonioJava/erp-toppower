@@ -14,10 +14,6 @@ public record CarrierUpdateRequest(
         @Size(max = 200, message = "Nome deve ter no máximo {max} caracteres")
         String name,
 
-        @Schema(description = "Novo nome do serviço.", maxLength = 200)
-        @Size(max = 200, message = "Nome do serviço deve ter no máximo {max} caracteres")
-        String serviceName,
-
         @Schema(description = "Novo status.",
                 allowableValues = {"ATIVO", "INATIVO"})
         CarrierStatus status

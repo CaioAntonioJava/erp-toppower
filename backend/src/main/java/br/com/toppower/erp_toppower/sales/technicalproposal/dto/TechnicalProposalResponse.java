@@ -144,10 +144,6 @@ public record TechnicalProposalResponse(
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         String carrierName,
 
-        @Schema(description = "Nome do serviço da transportadora (resolvido no backend a partir de carrierUuid).",
-                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        String carrierServiceName,
-
         @Schema(description = "Soma dos preços dos serviços prestados.",
                 example = "350.00", requiredMode = Schema.RequiredMode.REQUIRED)
         BigDecimal servicesSubtotal,

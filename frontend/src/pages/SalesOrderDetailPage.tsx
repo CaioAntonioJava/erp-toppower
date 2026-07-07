@@ -371,9 +371,7 @@ export function SalesOrderDetailPage() {
               Transportadora
             </dt>
             <dd className="mt-1 text-sm text-slate-800 dark:text-slate-200">
-              {salesOrder.carrierName
-                ? `${salesOrder.carrierName}${salesOrder.carrierServiceName ? ` (${salesOrder.carrierServiceName})` : ''}`
-                : '—'}
+              {salesOrder.carrierName ?? '—'}
             </dd>
           </div>
           <div>

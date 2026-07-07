@@ -297,9 +297,7 @@ export function TechnicalProposalDetailPage() {
                   Transportadora
                 </dt>
                 <dd className="mt-1 text-slate-900 dark:text-slate-100">
-                  {proposal.carrierName
-                    ? `${proposal.carrierName}${proposal.carrierServiceName ? ` (${proposal.carrierServiceName})` : ''}`
-                    : '—'}
+                  {proposal.carrierName ?? '—'}
                 </dd>
               </div>
             </dl>

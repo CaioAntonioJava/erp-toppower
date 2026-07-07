@@ -127,8 +127,6 @@ export interface SalesOrderResponse {
   carrierUuid: string | null
   /** Nome da transportadora (resolvido no backend). */
   carrierName: string | null
-  /** Nome do serviço da transportadora (resolvido no backend). */
-  carrierServiceName: string | null
   status: SalesOrderStatus
   /** UUID da proposta que deu origem ao pedido (nulo em criação direta). */
   quotationUuid: string | null

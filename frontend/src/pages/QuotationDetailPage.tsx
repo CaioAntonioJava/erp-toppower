@@ -339,9 +339,7 @@ export function QuotationDetailPage() {
               Transportadora
             </dt>
             <dd className="mt-1 text-sm text-slate-800 dark:text-slate-200">
-              {quotation.carrierName
-                ? `${quotation.carrierName}${quotation.carrierServiceName ? ` (${quotation.carrierServiceName})` : ''}`
-                : '—'}
+              {quotation.carrierName ?? '—'}
             </dd>
           </div>
           <div>

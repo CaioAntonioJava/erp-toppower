@@ -240,7 +240,7 @@ public final class QuotationMapper {
      */
     public static QuotationResponse toResponse(Quotation quotation, List<QuotationItem> items,
                                                String sellerName, String clientName, String clientCode,
-                                               String carrierName, String carrierServiceName) {
+                                               String carrierName) {
         QuotationResponse.ClientType clientType =
                 (quotation.getCustomerUuid() != null)
                         ? QuotationResponse.ClientType.CUSTOMER
@@ -268,7 +268,6 @@ public final class QuotationMapper {
                 quotation.getFreightValue(),
                 quotation.getCarrierUuid(),
                 carrierName,
-                carrierServiceName,
                 quotation.getProfitMargin(),
                 quotation.getStatus(),
                 quotation.getSubtotal(),

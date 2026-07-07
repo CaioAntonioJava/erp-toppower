@@ -37,7 +37,6 @@ export function CarrierForm({
 
   // Campos editáveis.
   const [name, setName] = useState(carrier?.name ?? '')
-  const [serviceName, setServiceName] = useState(carrier?.serviceName ?? '')
   const [status, setStatus] = useState<RegistrationStatus>(
     carrier?.status ?? 'ATIVO',
   )
@@ -46,7 +45,6 @@ export function CarrierForm({
     const errs: Record<string, string> = {}
 
     if (!name.trim()) errs.name = 'Nome é obrigatório.'
-    if (!serviceName.trim()) errs.serviceName = 'Nome do serviço é obrigatório.'
 
     setFieldErrors(errs)
     return Object.keys(errs).length === 0
@@ -64,7 +62,6 @@ export function CarrierForm({
       if (isEdit && carrier) {
         const payload: CarrierUpdateRequest = {
           name: name.trim(),
-          serviceName: serviceName.trim(),
           status,
         }
         await onSaveUpdate(payload)
@@ -73,7 +70,6 @@ export function CarrierForm({
       } else {
         const payload: CarrierCreateRequest = {
           name: name.trim(),
-          serviceName: serviceName.trim(),
           status,
         }
         await onSaveCreate(payload)
@@ -106,7 +102,7 @@ export function CarrierForm({
           Dados básicos da transportadora.
         </p>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-1">
           <Input
             label="Nome"
             value={name}
@@ -116,17 +112,6 @@ export function CarrierForm({
             required
             maxLength={200}
             hint="Nome da transportadora (ex: TRANSPORTADORA XPTO LTDA)."
-          />
-
-          <Input
-            label="Nome do serviço"
-            value={serviceName}
-            onChange={(e) => setServiceName(e.target.value)}
-            onBlur={getBlurHandler('serviceName')}
-            error={shouldShowError('serviceName', fieldErrors.serviceName)}
-            required
-            maxLength={200}
-            hint="Descrição do serviço oferecido (ex: ENTREGA EXPRESSA)."
           />
         </div>
       </section>

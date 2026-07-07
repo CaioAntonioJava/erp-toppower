@@ -19,9 +19,7 @@ public interface CarrierRepository extends JpaRepository<Carrier, UUID> {
     @Query("""
             SELECT c FROM Carrier c
             WHERE (:status IS NULL OR c.status = :status)
-              AND (:query IS NULL
-                OR LOWER(c.name) LIKE LOWER(CONCAT('%', :query, '%'))
-                OR LOWER(c.serviceName) LIKE LOWER(CONCAT('%', :query, '%')))
+              AND (:query IS NULL OR LOWER(c.name) LIKE LOWER(CONCAT('%', :query, '%')))
             """)
     Page<Carrier> searchByQuery(@Param("status") CarrierStatus status,
                                 @Param("query") String query,

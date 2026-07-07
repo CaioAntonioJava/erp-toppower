@@ -103,10 +103,6 @@ public record SalesOrderResponse(
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         String carrierName,
 
-        @Schema(description = "Nome do serviço da transportadora (resolvido no backend a partir de carrierUuid).",
-                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        String carrierServiceName,
-
         @Schema(description = "Status atual do pedido.",
                 allowableValues = {"ABERTO", "FINALIZADO", "CANCELADO"},
                 requiredMode = Schema.RequiredMode.REQUIRED)

@@ -16,9 +16,6 @@ public record CarrierResponse(
         @Schema(description = "Nome da transportadora.", requiredMode = Schema.RequiredMode.REQUIRED)
         String name,
 
-        @Schema(description = "Nome do serviço.", requiredMode = Schema.RequiredMode.REQUIRED)
-        String serviceName,
-
         @Schema(description = "Status atual.", allowableValues = {"ATIVO", "INATIVO"},
                 requiredMode = Schema.RequiredMode.REQUIRED)
         CarrierStatus status,

@@ -180,8 +180,6 @@ export interface TechnicalProposalResponse {
   carrierUuid: string | null
   /** Nome da transportadora (resolvido no backend). */
   carrierName: string | null
-  /** Nome do serviço da transportadora (resolvido no backend). */
-  carrierServiceName: string | null
   servicesSubtotal: number
   productsSubtotal: number
   subtotal: number

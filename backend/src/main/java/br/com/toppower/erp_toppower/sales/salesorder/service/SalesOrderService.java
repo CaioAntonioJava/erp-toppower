@@ -129,7 +129,7 @@ public class SalesOrderService {
         ClientResolved client = resolveClient(savedHeader);
         CarrierResolved carrier = resolveCarrier(savedHeader);
         return SalesOrderMapper.toResponse(savedHeader, items, resolveSellerName(savedHeader),
-                client.name(), client.code(), carrier.name(), carrier.serviceName());
+                client.name(), client.code(), carrier.name());
     }
 
     // ---------------------------------------------------------------------
@@ -194,7 +194,7 @@ public class SalesOrderService {
         ClientResolved client = resolveClient(savedHeader);
         CarrierResolved carrier = resolveCarrier(savedHeader);
         return SalesOrderMapper.toResponse(savedHeader, items, resolveSellerName(savedHeader),
-                client.name(), client.code(), carrier.name(), carrier.serviceName());
+                client.name(), client.code(), carrier.name());
     }
 
     // ---------------------------------------------------------------------
@@ -211,7 +211,7 @@ public class SalesOrderService {
         ClientResolved client = resolveClient(o);
         CarrierResolved carrier = resolveCarrier(o);
         return SalesOrderMapper.toResponse(o, items, resolveSellerName(o),
-                client.name(), client.code(), carrier.name(), carrier.serviceName());
+                client.name(), client.code(), carrier.name());
     }
 
     @Transactional(readOnly = true)
@@ -224,7 +224,7 @@ public class SalesOrderService {
         ClientResolved client = resolveClient(o);
         CarrierResolved carrier = resolveCarrier(o);
         return SalesOrderMapper.toResponse(o, items, resolveSellerName(o),
-                client.name(), client.code(), carrier.name(), carrier.serviceName());
+                client.name(), client.code(), carrier.name());
     }
 
     /**
@@ -343,7 +343,7 @@ public class SalesOrderService {
         ClientResolved client = resolveClient(saved);
         CarrierResolved carrier = resolveCarrier(saved);
         return SalesOrderMapper.toResponse(saved, items, resolveSellerName(saved),
-                client.name(), client.code(), carrier.name(), carrier.serviceName());
+                client.name(), client.code(), carrier.name());
     }
 
     // ---------------------------------------------------------------------
@@ -399,7 +399,7 @@ public class SalesOrderService {
         ClientResolved client = resolveClient(saved);
         CarrierResolved carrier = resolveCarrier(saved);
         return SalesOrderMapper.toResponse(saved, items, resolveSellerName(saved),
-                client.name(), client.code(), carrier.name(), carrier.serviceName());
+                client.name(), client.code(), carrier.name());
     }
 
     // ---------------------------------------------------------------------
@@ -443,7 +443,7 @@ public class SalesOrderService {
         ClientResolved client = resolveClient(saved);
         CarrierResolved carrier = resolveCarrier(saved);
         return SalesOrderMapper.toResponse(saved, items, resolveSellerName(saved),
-                client.name(), client.code(), carrier.name(), carrier.serviceName());
+                client.name(), client.code(), carrier.name());
     }
 
     // ---------------------------------------------------------------------
@@ -566,25 +566,25 @@ public class SalesOrderService {
     }
 
     /**
-     * Resolve o nome e o nome do serviço da transportadora referenciada
-     * pelo pedido. Retorna {@code null} em ambos quando a carrier não
-     * existe mais, mantendo o UUID como referência no DTO.
+     * Resolve o nome da transportadora referenciada pelo pedido.
+     * Retorna {@code null} quando a carrier não existe mais, mantendo o
+     * UUID como referência no DTO.
      */
     private CarrierResolved resolveCarrier(SalesOrder o) {
         if (o.getCarrierUuid() == null) {
             return CarrierResolved.EMPTY;
         }
         return carrierRepository.findById(o.getCarrierUuid())
-                .map(c -> new CarrierResolved(c.getName(), c.getServiceName()))
+                .map(c -> new CarrierResolved(c.getName()))
                 .orElse(CarrierResolved.EMPTY);
     }
 
     /**
-     * Par (nome, nome do serviço) resolvido a partir da transportadora
-     * referenciada pelo pedido.
+     * Nome resolvido a partir da transportadora referenciada pelo
+     * pedido.
      */
-    private record CarrierResolved(String name, String serviceName) {
-        static final CarrierResolved EMPTY = new CarrierResolved(null, null);
+    private record CarrierResolved(String name) {
+        static final CarrierResolved EMPTY = new CarrierResolved(null);
     }
 
     /**

@@ -95,7 +95,7 @@ public class CarrierController {
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<PagedResponse<CarrierResponse>> search(
-            @Parameter(description = "Termo OPCIONAL (mínimo 2 caracteres). Match em name ou serviceName.",
+            @Parameter(description = "Termo OPCIONAL (mínimo 2 caracteres). Match em name.",
                     example = "xpto")
             @RequestParam(value = "query", required = false) String query,
             @Parameter(description = "Filtro OPCIONAL: ATIVO ou INATIVO. Omitido = ambos.",

@@ -82,7 +82,7 @@ export function CarriersListPage() {
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div className="grid gap-3 sm:grid-cols-[1fr_220px]">
           <Input
-            placeholder="Buscar por nome ou serviço…"
+            placeholder="Buscar por nome…"
             value={list.query}
             onChange={(e) => list.setQuery(e.target.value)}
             leftAdornment={<Search className="h-4 w-4" />}
@@ -167,7 +167,6 @@ export function CarriersListPage() {
                   />
                 </th>
                 <th className="px-4 py-3 font-medium">Nome</th>
-                <th className="px-4 py-3 font-medium">Serviço</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Atualizado em</th>
                 <th className="px-4 py-3 text-right font-medium">Ações</th>
@@ -176,15 +175,15 @@ export function CarriersListPage() {
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {list.loading ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center">
-                    <div className="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400">
-                      <Spinner size="sm" /> Carregando…
-                    </div>
-                  </td>
+<td colSpan={5} className="px-4 py-12 text-center">
+                  <div className="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                    <Spinner size="sm" /> Carregando…
+                  </div>
+                </td>
                 </tr>
               ) : list.items.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center">
+                  <td colSpan={5} className="px-4 py-12 text-center">
                     <div className="flex flex-col items-center gap-2 text-slate-500 dark:text-slate-400">
                       <Truck className="h-8 w-8 opacity-60" />
                       <p className="text-sm">Nenhuma transportadora encontrada.</p>
@@ -225,9 +224,6 @@ export function CarriersListPage() {
                         <div className="font-medium text-slate-900 dark:text-slate-100">
                           {c.name}
                         </div>
-                      </td>
-                      <td className="px-4 py-3 text-slate-700 dark:text-slate-200">
-                        {c.serviceName}
                       </td>
                       <td className="px-4 py-3">
                         <RegistrationStatusBadge status={c.status} />

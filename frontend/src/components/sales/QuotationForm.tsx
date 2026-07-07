@@ -316,8 +316,7 @@ export function QuotationForm({
   // Em modo edição, garante que a transportadora atual sempre apareça como
   // opção do <select>, mesmo que tenha sido inativada após a criação da
   // proposta. Sem isto, o select cairia no placeholder quando a carrier
-  // não retorna no filtro de ATIVO. O serviceName resolvido pelo backend
-  // permite exibir o nome do serviço sem precisar refazer o GET.
+  // não retorna no filtro de ATIVO.
   useEffect(() => {
     if (!quotation?.carrierUuid) return
     setCarriers((prev) => {
@@ -327,7 +326,6 @@ export function QuotationForm({
         {
           uuid: quotation.carrierUuid!,
           name: quotation.carrierName ?? '(transportadora removida)',
-          serviceName: quotation.carrierServiceName ?? '',
           status: 'INATIVO' as RegistrationStatus,
           createdAt: '',
           updatedAt: '',
@@ -336,7 +334,7 @@ export function QuotationForm({
         },
       ]
     })
-  }, [quotation?.carrierUuid, quotation?.carrierName, quotation?.carrierServiceName])
+  }, [quotation?.carrierUuid, quotation?.carrierName])
 
   // Sincroniza o número da proposta com o `initialNumber` que chega
   // assincronamente do endpoint `/quotations/next-number`. Em modo create,
@@ -1193,37 +1191,8 @@ export function QuotationForm({
                   ...carriers.map((c) => ({ value: c.uuid, label: c.name })),
                 ]}
                 aria-label="Transportadora responsável pelo frete"
-                hint="Selecione a transportadora. O serviço dela é exibido abaixo."
               />
             </div>
-            {/* Serviço da transportadora — read-only, derivado da carrier selecionada. */}
-            <Input
-              label="Serviço da transportadora"
-              value={
-                carrierUuid
-                  ? (carriers.find((c) => c.uuid === carrierUuid)
-                      ?.serviceName ??
-                    // Fallback para edição quando a carrier foi inativada
-                    // (não está na lista carregada): usa o nome do serviço
-                    // já resolvido pelo backend na proposta.
-                    quotation?.carrierServiceName ??
-                    '')
-                  : ''
-              }
-              readOnly
-              disabled
-              placeholder={
-                carrierUuid
-                  ? undefined
-                  : 'Selecione uma transportadora para ver o serviço.'
-              }
-              hint={
-                carrierUuid
-                  ? 'Preenchido automaticamente a partir da transportadora selecionada.'
-                  : 'O serviço é definido no cadastro da transportadora.'
-              }
-              className="mt-4"
-            />
           </div>
         </div>
 

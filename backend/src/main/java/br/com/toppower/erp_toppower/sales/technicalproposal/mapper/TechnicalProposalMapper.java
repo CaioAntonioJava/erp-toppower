@@ -342,7 +342,7 @@ public final class TechnicalProposalMapper {
             List<TechnicalProposalServiceItem> serviceItems,
             List<TechnicalProposalProductItem> productItems,
             String clientName, String clientCode,
-            String carrierName, String carrierServiceName) {
+            String carrierName) {
 
         TechnicalProposalResponse.ClientType clientType =
                 (tp.getCustomerUuid() != null)
@@ -380,7 +380,6 @@ public final class TechnicalProposalMapper {
                 tp.getNotes(),
                 tp.getCarrierUuid(),
                 carrierName,
-                carrierServiceName,
                 tp.getServicesSubtotal(),
                 tp.getProductsSubtotal(),
                 tp.getSubtotal(),

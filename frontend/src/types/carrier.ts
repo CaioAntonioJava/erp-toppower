@@ -5,7 +5,6 @@ export type { RegistrationStatus }
 export interface CarrierResponse {
   uuid: string
   name: string
-  serviceName: string
   status: RegistrationStatus
   createdAt: string
   updatedAt: string
@@ -15,13 +14,11 @@ export interface CarrierResponse {
 
 export interface CarrierCreateRequest {
   name: string
-  serviceName: string
   status?: RegistrationStatus
 }
 
 export interface CarrierUpdateRequest {
   name?: string
-  serviceName?: string
   status?: RegistrationStatus
 }
 

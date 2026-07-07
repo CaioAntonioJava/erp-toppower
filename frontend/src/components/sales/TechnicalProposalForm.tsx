@@ -289,8 +289,7 @@ export function TechnicalProposalForm({
 
   // Em modo edição, garante que a transportadora atual sempre apareça como
   // opção do <select>, mesmo que tenha sido inativada após a criação da
-  // proposta técnica. O serviceName resolvido pelo backend permite exibir
-  // o nome do serviço sem precisar refazer o GET.
+  // proposta técnica.
   useEffect(() => {
     if (!proposal?.carrierUuid) return
     setCarriers((prev) => {
@@ -300,7 +299,6 @@ export function TechnicalProposalForm({
         {
           uuid: proposal.carrierUuid!,
           name: proposal.carrierName ?? '(transportadora removida)',
-          serviceName: proposal.carrierServiceName ?? '',
           status: 'INATIVO' as RegistrationStatus,
           createdAt: '',
           updatedAt: '',
@@ -309,11 +307,7 @@ export function TechnicalProposalForm({
         },
       ]
     })
-  }, [
-    proposal?.carrierUuid,
-    proposal?.carrierName,
-    proposal?.carrierServiceName,
-  ])
+  }, [proposal?.carrierUuid, proposal?.carrierName])
 
   // Pré-preenche o rótulo do cliente no modo edição.
   useEffect(() => {
@@ -1264,33 +1258,6 @@ export function TechnicalProposalForm({
               ...carriers.map((c) => ({ value: c.uuid, label: c.name })),
             ]}
             aria-label="Transportadora responsável pelo frete"
-            hint="Selecione a transportadora. O serviço dela é exibido abaixo."
-          />
-          <Input
-            label="Serviço da transportadora"
-            value={
-              carrierUuid
-                ? (carriers.find((c) => c.uuid === carrierUuid)
-                    ?.serviceName ??
-                  // Fallback para edição quando a carrier foi inativada
-                  // (não está na lista carregada): usa o nome do serviço
-                  // já resolvido pelo backend na proposta.
-                  proposal?.carrierServiceName ??
-                  '')
-                : ''
-            }
-            readOnly
-            disabled
-            placeholder={
-              carrierUuid
-                ? undefined
-                : 'Selecione uma transportadora para ver o serviço.'
-            }
-            hint={
-              carrierUuid
-                ? 'Preenchido automaticamente a partir da transportadora selecionada.'
-                : 'O serviço é definido no cadastro da transportadora.'
-            }
           />
           <div className="sm:col-span-2 lg:col-span-3">
             <Select

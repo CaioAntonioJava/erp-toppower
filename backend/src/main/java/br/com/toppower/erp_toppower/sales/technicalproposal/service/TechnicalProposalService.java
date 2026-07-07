@@ -120,7 +120,7 @@ public class TechnicalProposalService {
         CarrierResolved carrier = resolveCarrier(savedHeader);
         return TechnicalProposalMapper.toResponse(savedHeader, objectives,
                 serviceItems, productItems, client.name(), client.code(),
-                carrier.name(), carrier.serviceName());
+                carrier.name());
     }
 
     // ---------------------------------------------------------------------
@@ -314,7 +314,7 @@ public class TechnicalProposalService {
         CarrierResolved carrier = resolveCarrier(saved);
         return TechnicalProposalMapper.toResponse(saved, objectives,
                 serviceItems, productItems, client.name(), client.code(),
-                carrier.name(), carrier.serviceName());
+                carrier.name());
     }
 
     // ---------------------------------------------------------------------
@@ -442,7 +442,7 @@ public class TechnicalProposalService {
         CarrierResolved carrier = resolveCarrier(tp);
         return TechnicalProposalMapper.toResponse(tp, objectives,
                 serviceItems, productItems, client.name(), client.code(),
-                carrier.name(), carrier.serviceName());
+                carrier.name());
     }
 
     private void applyNextCode(TechnicalProposal tp) {
@@ -634,25 +634,25 @@ public class TechnicalProposalService {
     }
 
     /**
-     * Resolve o nome e o nome do serviço da transportadora referenciada
-     * pela proposta técnica. Retorna {@code null} em ambos quando a
-     * carrier não existe mais, mantendo o UUID como referência no DTO.
+     * Resolve o nome da transportadora referenciada pela proposta
+     * técnica. Retorna {@code null} quando a carrier não existe mais,
+     * mantendo o UUID como referência no DTO.
      */
     private CarrierResolved resolveCarrier(TechnicalProposal tp) {
         if (tp.getCarrierUuid() == null) {
             return CarrierResolved.EMPTY;
         }
         return carrierRepository.findById(tp.getCarrierUuid())
-                .map(c -> new CarrierResolved(c.getName(), c.getServiceName()))
+                .map(c -> new CarrierResolved(c.getName()))
                 .orElse(CarrierResolved.EMPTY);
     }
 
     /**
-     * Par (nome, nome do serviço) resolvido a partir da transportadora
-     * referenciada pela proposta técnica.
+     * Nome resolvido a partir da transportadora referenciada pela
+     * proposta técnica.
      */
-    private record CarrierResolved(String name, String serviceName) {
-        static final CarrierResolved EMPTY = new CarrierResolved(null, null);
+    private record CarrierResolved(String name) {
+        static final CarrierResolved EMPTY = new CarrierResolved(null);
     }
 
     /**

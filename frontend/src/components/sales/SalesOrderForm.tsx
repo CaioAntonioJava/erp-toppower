@@ -280,8 +280,7 @@ export function SalesOrderForm({
 
   // Em modo edição, garante que a transportadora atual sempre apareça como
   // opção do <select>, mesmo que tenha sido inativada após a criação do
-  // pedido. O serviceName resolvido pelo backend permite exibir o nome do
-  // serviço sem precisar refazer o GET.
+  // pedido.
   useEffect(() => {
     if (!salesOrder?.carrierUuid) return
     setCarriers((prev) => {
@@ -291,7 +290,6 @@ export function SalesOrderForm({
         {
           uuid: salesOrder.carrierUuid!,
           name: salesOrder.carrierName ?? '(transportadora removida)',
-          serviceName: salesOrder.carrierServiceName ?? '',
           status: 'INATIVO' as RegistrationStatus,
           createdAt: '',
           updatedAt: '',
@@ -300,11 +298,7 @@ export function SalesOrderForm({
         },
       ]
     })
-  }, [
-    salesOrder?.carrierUuid,
-    salesOrder?.carrierName,
-    salesOrder?.carrierServiceName,
-  ])
+  }, [salesOrder?.carrierUuid, salesOrder?.carrierName])
 
 
   // Sincroniza o número do pedido com o `initialNumber` que chega
@@ -1028,37 +1022,8 @@ export function SalesOrderForm({
                   ...carriers.map((c) => ({ value: c.uuid, label: c.name })),
                 ]}
                 aria-label="Transportadora responsável pelo frete"
-                hint="Selecione a transportadora. O serviço dela é exibido abaixo."
               />
             </div>
-            {/* Serviço da transportadora — read-only, derivado da carrier selecionada. */}
-            <Input
-              label="Serviço da transportadora"
-              value={
-                carrierUuid
-                  ? (carriers.find((c) => c.uuid === carrierUuid)
-                      ?.serviceName ??
-                    // Fallback para edição quando a carrier foi inativada
-                    // (não está na lista carregada): usa o nome do serviço
-                    // já resolvido pelo backend no pedido.
-                    salesOrder?.carrierServiceName ??
-                    '')
-                  : ''
-              }
-              readOnly
-              disabled
-              placeholder={
-                carrierUuid
-                  ? undefined
-                  : 'Selecione uma transportadora para ver o serviço.'
-              }
-              hint={
-                carrierUuid
-                  ? 'Preenchido automaticamente a partir da transportadora selecionada.'
-                  : 'O serviço é definido no cadastro da transportadora.'
-              }
-              className="mt-4"
-            />
           </div>
         </div>
 

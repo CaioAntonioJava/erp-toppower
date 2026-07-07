@@ -17,7 +17,6 @@ public final class CarrierMapper {
     public static Carrier toEntity(CarrierCreateRequest request) {
         Carrier carrier = new Carrier();
         carrier.setName(request.name());
-        carrier.setServiceName(request.serviceName());
         carrier.setStatus(request.status());
         return carrier;
     }
@@ -26,7 +25,6 @@ public final class CarrierMapper {
         return new CarrierResponse(
                 carrier.getUuid(),
                 carrier.getName(),
-                carrier.getServiceName(),
                 carrier.getStatus(),
                 carrier.getCreatedAt(),
                 carrier.getUpdatedAt(),
@@ -41,9 +39,6 @@ public final class CarrierMapper {
     public static void applyUpdate(Carrier carrier, CarrierUpdateRequest request) {
         if (request.name() != null) {
             carrier.setName(request.name());
-        }
-        if (request.serviceName() != null) {
-            carrier.setServiceName(request.serviceName());
         }
         if (request.status() != null) {
             carrier.setStatus(request.status());

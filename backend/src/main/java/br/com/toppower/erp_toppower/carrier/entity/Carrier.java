@@ -24,10 +24,6 @@ public class Carrier extends OrganizationScopedEntity {
     @Column(name = "name", nullable = false, length = 200)
     private String name;
 
-    @UpperCase
-    @Column(name = "service_name", nullable = false, length = 200)
-    private String serviceName;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private CarrierStatus status;

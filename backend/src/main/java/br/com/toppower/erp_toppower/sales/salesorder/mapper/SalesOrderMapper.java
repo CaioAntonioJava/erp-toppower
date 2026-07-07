@@ -289,7 +289,7 @@ private static BigDecimal scaleDiscount(BigDecimal discount, DiscountType discou
      */
     public static SalesOrderResponse toResponse(SalesOrder order, List<SalesOrderItem> items,
                                                 String sellerName, String clientName, String clientCode,
-                                                String carrierName, String carrierServiceName) {
+                                                String carrierName) {
         SalesOrderResponse.ClientType clientType =
                 (order.getCustomerUuid() != null)
                         ? SalesOrderResponse.ClientType.CUSTOMER
@@ -316,7 +316,6 @@ private static BigDecimal scaleDiscount(BigDecimal discount, DiscountType discou
                 order.getFreightValue(),
                 order.getCarrierUuid(),
                 carrierName,
-                carrierServiceName,
                 order.getStatus(),
                 order.getQuotationUuid(),
                 order.getQuotationNumber(),

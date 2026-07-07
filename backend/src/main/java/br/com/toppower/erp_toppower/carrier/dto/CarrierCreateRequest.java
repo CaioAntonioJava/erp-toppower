@@ -14,12 +14,6 @@ public record CarrierCreateRequest(
         @Size(max = 200, message = "Nome deve ter no máximo {max} caracteres")
         String name,
 
-        @Schema(description = "Nome do serviço.", example = "ENTREGA EXPRESSA",
-                requiredMode = Schema.RequiredMode.REQUIRED, maxLength = 200)
-        @NotBlank(message = "Nome do serviço é obrigatório")
-        @Size(max = 200, message = "Nome do serviço deve ter no máximo {max} caracteres")
-        String serviceName,
-
         @Schema(description = "Status inicial. Se omitido, assume ATIVO.",
                 example = "ATIVO", allowableValues = {"ATIVO", "INATIVO"},
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)

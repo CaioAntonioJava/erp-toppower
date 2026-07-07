@@ -105,7 +105,7 @@ public class QuotationService {
         ClientResolved client = resolveClient(savedHeader);
         CarrierResolved carrier = resolveCarrier(savedHeader);
         return QuotationMapper.toResponse(savedHeader, items, resolveSellerName(savedHeader),
-                client.name(), client.code(), carrier.name(), carrier.serviceName());
+                client.name(), client.code(), carrier.name());
     }
 
     // ---------------------------------------------------------------------
@@ -122,7 +122,7 @@ public class QuotationService {
         ClientResolved client = resolveClient(q);
         CarrierResolved carrier = resolveCarrier(q);
         return QuotationMapper.toResponse(q, items, resolveSellerName(q),
-                client.name(), client.code(), carrier.name(), carrier.serviceName());
+                client.name(), client.code(), carrier.name());
     }
 
     @Transactional(readOnly = true)
@@ -135,7 +135,7 @@ public class QuotationService {
         ClientResolved client = resolveClient(q);
         CarrierResolved carrier = resolveCarrier(q);
         return QuotationMapper.toResponse(q, items, resolveSellerName(q),
-                client.name(), client.code(), carrier.name(), carrier.serviceName());
+                client.name(), client.code(), carrier.name());
     }
 
     /**
@@ -255,7 +255,7 @@ public class QuotationService {
         ClientResolved client = resolveClient(saved);
         CarrierResolved carrier = resolveCarrier(saved);
         return QuotationMapper.toResponse(saved, items, resolveSellerName(saved),
-                client.name(), client.code(), carrier.name(), carrier.serviceName());
+                client.name(), client.code(), carrier.name());
     }
 
     // ---------------------------------------------------------------------
@@ -282,7 +282,7 @@ public class QuotationService {
         ClientResolved client = resolveClient(saved);
         CarrierResolved carrier = resolveCarrier(saved);
         return QuotationMapper.toResponse(saved, items, resolveSellerName(saved),
-                client.name(), client.code(), carrier.name(), carrier.serviceName());
+                client.name(), client.code(), carrier.name());
     }
 
     // ---------------------------------------------------------------------
@@ -442,26 +442,26 @@ public class QuotationService {
     }
 
     /**
-     * Resolve o nome e o nome do serviço da transportadora referenciada
-     * pela proposta. Retorna {@code null} em ambos quando a carrier não
-     * existe mais (inativada/removida), mantendo o UUID como referência
-     * no DTO — mesmo tratamento dado a {@link #resolveSellerName}.
+     * Resolve o nome da transportadora referenciada pela proposta.
+     * Retorna {@code null} quando a carrier não existe mais
+     * (inativada/removida), mantendo o UUID como referência no DTO —
+     * mesmo tratamento dado a {@link #resolveSellerName}.
      */
     private CarrierResolved resolveCarrier(Quotation q) {
         if (q.getCarrierUuid() == null) {
             return CarrierResolved.EMPTY;
         }
         return carrierRepository.findById(q.getCarrierUuid())
-                .map(c -> new CarrierResolved(c.getName(), c.getServiceName()))
+                .map(c -> new CarrierResolved(c.getName()))
                 .orElse(CarrierResolved.EMPTY);
     }
 
     /**
-     * Par (nome, nome do serviço) resolvido a partir da transportadora
-     * referenciada pela proposta.
+     * Nome resolvido a partir da transportadora referenciada pela
+     * proposta.
      */
-    private record CarrierResolved(String name, String serviceName) {
-        static final CarrierResolved EMPTY = new CarrierResolved(null, null);
+    private record CarrierResolved(String name) {
+        static final CarrierResolved EMPTY = new CarrierResolved(null);
     }
 
     /**

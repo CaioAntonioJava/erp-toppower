@@ -203,8 +203,6 @@ export interface QuotationResponse {
   carrierUuid: string | null
   /** Nome da transportadora (resolvido no backend). */
   carrierName: string | null
-  /** Nome do serviço da transportadora (resolvido no backend). */
-  carrierServiceName: string | null
   /**
    * Margem de lucro aplicada sobre o total da proposta (em %). Ex.: 10 = 10%.
    * Aplicada como multiplicação (fator `1 + profitMargin/100`) sobre o subtotal

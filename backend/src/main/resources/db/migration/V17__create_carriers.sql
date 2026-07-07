@@ -28,7 +28,6 @@
 CREATE TABLE IF NOT EXISTS carriers (
     uuid            BINARY(16)      NOT NULL,
     name            VARCHAR(200)   NOT NULL,
-    service_name    VARCHAR(200)   NOT NULL,
     status          VARCHAR(20)    NOT NULL,
     created_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP
