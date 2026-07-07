@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
+  Building2,
   KeyRound,
   Plus,
   Search,
@@ -16,8 +17,15 @@ import { Alert } from '../components/ui/Alert'
 import { Badge } from '../components/ui/Badge'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { listUsers, resetUserPassword, deleteUser } from '../api/user.api'
+import {
+  listOrganizationsByUser,
+  removeUserOrganization,
+} from '../api/userOrganization.api'
 import { useAuth } from '../context/AuthContext'
-import type { UserResponse } from '../types/api'
+import type {
+  UserResponse,
+  UserOrganizationResponse,
+} from '../types/api'
 import { toApiError } from '../lib/errors'
 
 /** Modal simples para o admin digitar a nova senha do usuário.
@@ -115,9 +123,160 @@ function ResetPasswordDialog({
   )
 }
 
+/**
+ * Modal de gestão de vínculos usuário↔Organization. Por enquanto permite
+ * apenas remover vínculos (a adição/edição de default é feita no cadastro
+ * do usuário). Recarrega a lista de vínculos após cada remoção.
+ */
+function ManageOrganizationsDialog({
+  user,
+  onClose,
+  onChanged,
+}: {
+  user: UserResponse
+  onClose: () => void
+  onChanged: () => void
+}) {
+  const [links, setLinks] = useState<UserOrganizationResponse[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [removingId, setRemovingId] = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await listOrganizationsByUser(user.uuid)
+      setLinks(data)
+    } catch (err) {
+      setError(toApiError(err).message)
+      setLinks([])
+    } finally {
+      setLoading(false)
+    }
+  }, [user.uuid])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape' && !removingId) onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = ''
+    }
+  }, [onClose, removingId])
+
+  async function handleRemove(link: UserOrganizationResponse) {
+    setRemovingId(link.uuid)
+    setError(null)
+    try {
+      await removeUserOrganization(link.uuid)
+      await load()
+      onChanged()
+    } catch (err) {
+      setError(toApiError(err).message)
+    } finally {
+      setRemovingId(null)
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4 backdrop-blur-sm"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget && !removingId) onClose()
+      }}
+    >
+      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 dark:border-slate-800">
+          <div className="flex items-start gap-3">
+            <div className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-200">
+              <Building2 className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold">Empresas do usuário</h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Vínculos de <strong>{user.email}</strong>.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={!!removingId}
+            className="rounded p-1 text-slate-500 hover:bg-slate-100 disabled:opacity-50 dark:text-slate-400 dark:hover:bg-slate-800"
+            aria-label="Fechar"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="px-5 py-4">
+          {error ? <Alert variant="error">{error}</Alert> : null}
+
+          {loading ? (
+            <div className="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+              <Spinner size="sm" /> Carregando vínculos…
+            </div>
+          ) : links.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-slate-300 px-3 py-4 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+              Este usuário não está vinculado a nenhuma empresa.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {links.map((link) => (
+                <li
+                  key={link.uuid}
+                  className="flex items-start justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-700"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
+                      {link.organizationCorporateName}
+                    </p>
+                    <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                      {link.role === 'ROLE_ADMIN' ? 'Administrador' : 'Gestor'}
+                      {link.isDefault ? ' · padrão' : ''}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    onClick={() => handleRemove(link)}
+                    isLoading={removingId === link.uuid}
+                    disabled={!!removingId && removingId !== link.uuid}
+                    title="Remover vínculo"
+                    aria-label="Remover vínculo"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="flex justify-end border-t border-slate-200 px-5 py-4 dark:border-slate-800">
+          <Button variant="secondary" onClick={onClose} disabled={!!removingId}>
+            Fechar
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+type LinksByUser = Record<string, UserOrganizationResponse[]>
+
 export function UsersListPage() {
   const { user: currentUser } = useAuth()
   const [users, setUsers] = useState<UserResponse[]>([])
+  const [linksByUser, setLinksByUser] = useState<LinksByUser>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useState('')
@@ -129,24 +288,41 @@ export function UsersListPage() {
   const [deleteTarget, setDeleteTarget] = useState<UserResponse | null>(null)
   const [deleting, setDeleting] = useState(false)
 
+  const [manageTarget, setManageTarget] = useState<UserResponse | null>(null)
+
   const [feedback, setFeedback] = useState<string | null>(null)
 
-  async function load() {
+  async function loadUsersAndLinks() {
     setLoading(true)
     setError(null)
     try {
       const data = await listUsers()
       setUsers(data)
+      // Carrega vínculos em paralelo para mostrar badges na lista.
+      const entries = await Promise.all(
+        data.map(async (u) => {
+          try {
+            const links = await listOrganizationsByUser(u.uuid)
+            return [u.uuid, links] as const
+          } catch {
+            // Se falhar para um usuário específico, trata como "sem vínculos"
+            // em vez de quebrar a listagem inteira.
+            return [u.uuid, []] as const
+          }
+        }),
+      )
+      setLinksByUser(Object.fromEntries(entries))
     } catch (err) {
       setError(toApiError(err).message)
       setUsers([])
+      setLinksByUser({})
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    load()
+    loadUsersAndLinks()
   }, [])
 
   const filtered = useMemo(() => {
@@ -177,7 +353,7 @@ export function UsersListPage() {
       await deleteUser(deleteTarget.uuid)
       setFeedback(`Usuário "${deleteTarget.email}" excluído com sucesso.`)
       setDeleteTarget(null)
-      await load()
+      await loadUsersAndLinks()
     } catch (err) {
       setError(toApiError(err).message)
       setDeleteTarget(null)
@@ -230,6 +406,7 @@ export function UsersListPage() {
             <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-950/40 dark:text-slate-400">
               <tr>
                 <th className="px-4 py-3 font-medium">E-mail</th>
+                <th className="px-4 py-3 font-medium">Empresas</th>
                 <th className="px-4 py-3 font-medium">Papel</th>
                 <th className="px-4 py-3 text-right font-medium">Ações</th>
               </tr>
@@ -237,7 +414,7 @@ export function UsersListPage() {
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {loading ? (
                 <tr>
-                  <td colSpan={3} className="px-4 py-12 text-center">
+                  <td colSpan={4} className="px-4 py-12 text-center">
                     <div className="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400">
                       <Spinner size="sm" /> Carregando…
                     </div>
@@ -245,7 +422,7 @@ export function UsersListPage() {
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="px-4 py-12 text-center">
+                  <td colSpan={4} className="px-4 py-12 text-center">
                     <div className="flex flex-col items-center gap-2 text-slate-500 dark:text-slate-400">
                       <UserPlus className="h-8 w-8 opacity-60" />
                       <p className="text-sm">
@@ -261,58 +438,86 @@ export function UsersListPage() {
                   </td>
                 </tr>
               ) : (
-                filtered.map((u) => (
-                  <tr
-                    key={u.uuid}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-800/40"
-                  >
-                    <td className="px-4 py-3">
-                      <div className="inline-flex items-center gap-2 font-medium text-slate-900 dark:text-slate-100">
-                        <UsersIcon className="h-4 w-4 text-slate-400" />
-                        {u.email}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      {u.role === 'ROLE_ADMIN' ? (
-                        <Badge tone="info">Administrador</Badge>
-                      ) : (
-                        <Badge tone="neutral">Gestor</Badge>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => {
-                            setResetError(null)
-                            setResetTarget(u)
-                          }}
-                          title="Redefinir senha"
-                          aria-label="Redefinir senha"
-                        >
-                          <KeyRound className="h-4 w-4" />
-                          Redefinir senha
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="danger"
-                          onClick={() => setDeleteTarget(u)}
-                          disabled={currentUser?.uuid === u.uuid}
-                          title={
-                            currentUser?.uuid === u.uuid
-                              ? 'Você não pode excluir sua própria conta'
-                              : 'Excluir usuário'
-                          }
-                          aria-label="Excluir usuário"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          Excluir
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                filtered.map((u) => {
+                  const links = linksByUser[u.uuid] ?? []
+                  return (
+                    <tr
+                      key={u.uuid}
+                      className="hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                    >
+                      <td className="px-4 py-3">
+                        <div className="inline-flex items-center gap-2 font-medium text-slate-900 dark:text-slate-100">
+                          <UsersIcon className="h-4 w-4 text-slate-400" />
+                          {u.email}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        {links.length === 0 ? (
+                          <span className="text-xs text-slate-400 dark:text-slate-500">
+                            Sem vínculo
+                          </span>
+                        ) : (
+                          <div className="flex flex-wrap gap-1">
+                            {links.map((l) => (
+                              <Badge key={l.uuid} tone="neutral">
+                                {l.organizationCorporateName}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {u.role === 'ROLE_ADMIN' ? (
+                          <Badge tone="info">Administrador</Badge>
+                        ) : (
+                          <Badge tone="neutral">Gestor</Badge>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => setManageTarget(u)}
+                            title="Gerenciar empresas"
+                            aria-label="Gerenciar empresas"
+                          >
+                            <Building2 className="h-4 w-4" />
+                            Empresas
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => {
+                              setResetError(null)
+                              setResetTarget(u)
+                            }}
+                            title="Redefinir senha"
+                            aria-label="Redefinir senha"
+                          >
+                            <KeyRound className="h-4 w-4" />
+                            Redefinir senha
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            onClick={() => setDeleteTarget(u)}
+                            disabled={currentUser?.uuid === u.uuid}
+                            title={
+                              currentUser?.uuid === u.uuid
+                                ? 'Você não pode excluir sua própria conta'
+                                : 'Excluir usuário'
+                            }
+                            aria-label="Excluir usuário"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Excluir
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })
               )}
             </tbody>
           </table>
@@ -338,6 +543,23 @@ export function UsersListPage() {
               setResetTarget(null)
               setResetError(null)
             }
+          }}
+        />
+      ) : null}
+
+      {manageTarget ? (
+        <ManageOrganizationsDialog
+          user={manageTarget}
+          onClose={() => setManageTarget(null)}
+          onChanged={() => {
+            // Recarrega badges após uma remoção.
+            listOrganizationsByUser(manageTarget.uuid)
+              .then((links) => {
+                setLinksByUser((prev) => ({ ...prev, [manageTarget.uuid]: links }))
+              })
+              .catch(() => {
+                // ignora — o modal já mostra o erro localmente
+              })
           }}
         />
       ) : null}

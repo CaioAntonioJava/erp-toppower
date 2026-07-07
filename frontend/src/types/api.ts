@@ -69,6 +69,27 @@ export interface UserResponse {
   role: Role
 }
 
+/** Corpo de POST /api/v1/user-organizations (vincular usuário a Organization). */
+export interface UserOrganizationAssignRequest {
+  userId: string
+  organizationId: string
+  /** Apenas ROLE_MANAGER no fluxo de criação; ADMIN não se auto-vincula. */
+  role: Role
+  isDefault?: boolean
+}
+
+/** Resposta de vínculos usuário↔Organization. Espelha UserOrganizationResponse (backend). */
+export interface UserOrganizationResponse {
+  uuid: string
+  userUuid: string
+  userEmail: string
+  organizationUuid: string
+  organizationCorporateName: string
+  role: Role
+  isDefault: boolean
+  createdAt: string
+}
+
 /** Resposta de perfil. Espelha br.com.toppower...profile.dto.ProfileResponse. */
 export interface ProfileResponse {
   uuid: string

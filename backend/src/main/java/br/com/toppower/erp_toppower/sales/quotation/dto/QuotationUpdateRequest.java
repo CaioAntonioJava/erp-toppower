@@ -90,6 +90,11 @@ public record QuotationUpdateRequest(
                 example = "10.00", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         @DecimalMin(value = "0.00", message = "Margem de lucro não pode ser negativa")
         @Digits(integer = 3, fraction = 2, message = "Margem de lucro inválida")
-        BigDecimal profitMargin
+        BigDecimal profitMargin,
+
+        @Schema(description = "Nova transportadora (Carrier) responsável pelo frete. "
+                + "Envie nulo para remover a transportadora vinculada.",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        UUID carrierUuid
 ) {
 }

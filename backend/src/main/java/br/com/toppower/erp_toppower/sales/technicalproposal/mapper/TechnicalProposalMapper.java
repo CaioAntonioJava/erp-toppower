@@ -207,7 +207,7 @@ public final class TechnicalProposalMapper {
                 request.profitMargin(), request.discountType(), request.discount(),
                 request.freightValue(), request.deliveryDeadline(),
                 request.paymentCondition(), request.validity(),
-                request.deliveryType(), request.notes());
+                request.deliveryType(), request.notes(), request.carrierUuid());
         return tp;
     }
 
@@ -293,6 +293,8 @@ public final class TechnicalProposalMapper {
         if (request.notes() != null) {
             tp.setNotes(request.notes());
         }
+        // carrierUuid admite null (remoção da transportadora vinculada).
+        tp.setCarrierUuid(request.carrierUuid());
     }
 
     private static void applyHeader(TechnicalProposal tp, UUID customerUuid, UUID companyUuid,
@@ -305,7 +307,7 @@ public final class TechnicalProposalMapper {
                                     br.com.toppower.erp_toppower.sales.quotation.enums.PaymentCondition paymentCondition,
                                     String validity,
                                     br.com.toppower.erp_toppower.sales.quotation.enums.FreightType deliveryType,
-                                    String notes) {
+                                    String notes, UUID carrierUuid) {
         tp.setCustomerUuid(customerUuid);
         tp.setCompanyUuid(companyUuid);
         tp.setAddress(address);
@@ -321,6 +323,7 @@ public final class TechnicalProposalMapper {
         tp.setValidity(validity);
         tp.setDeliveryType(deliveryType);
         tp.setNotes(notes);
+        tp.setCarrierUuid(carrierUuid);
     }
 
     // ---------------------------------------------------------------------
@@ -338,7 +341,8 @@ public final class TechnicalProposalMapper {
             List<TechnicalProposalObjective> objectives,
             List<TechnicalProposalServiceItem> serviceItems,
             List<TechnicalProposalProductItem> productItems,
-            String clientName, String clientCode) {
+            String clientName, String clientCode,
+            String carrierName, String carrierServiceName) {
 
         TechnicalProposalResponse.ClientType clientType =
                 (tp.getCustomerUuid() != null)
@@ -374,6 +378,9 @@ public final class TechnicalProposalMapper {
                 tp.getValidity(),
                 tp.getDeliveryType(),
                 tp.getNotes(),
+                tp.getCarrierUuid(),
+                carrierName,
+                carrierServiceName,
                 tp.getServicesSubtotal(),
                 tp.getProductsSubtotal(),
                 tp.getSubtotal(),

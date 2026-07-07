@@ -158,6 +158,22 @@ public class OrganizationController {
     // Listagem do próprio usuário (alimenta o seletor de Organization)
     // =====================================================================
 
+    @GetMapping(value = "/all", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Listar todas as Organizations ATIVAS (admin)",
+            description = "Lista todas as empresas com status ATIVO, sem informação de vínculo "
+                    + "(papel/default sempre nulos). Usada para o admin atribuir empresas a "
+                    + "usuários no cadastro. Acesso restrito a ADMIN.")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasRole('ADMIN')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Lista de Organizations ativas.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = OrganizationSummary.class)))
+    })
+    public ResponseEntity<List<OrganizationSummary>> listAllActive() {
+        return ResponseEntity.ok(organizationService.listAllActive());
+    }
+
     @GetMapping(value = "/mine", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Listar Organizations do usuário autenticado",
             description = "Lista as empresas acessíveis ao usuário logado: ADMIN vê todas as ATIVAS; "

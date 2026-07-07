@@ -368,6 +368,16 @@ export function SalesOrderDetailPage() {
           </div>
           <div>
             <dt className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Transportadora
+            </dt>
+            <dd className="mt-1 text-sm text-slate-800 dark:text-slate-200">
+              {salesOrder.carrierName
+                ? `${salesOrder.carrierName}${salesOrder.carrierServiceName ? ` (${salesOrder.carrierServiceName})` : ''}`
+                : '—'}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Valor do frete
             </dt>
             <dd className="mt-1 text-sm text-slate-800 dark:text-slate-200">

@@ -181,7 +181,7 @@ private static BigDecimal scaleDiscount(BigDecimal discount, DiscountType discou
         applyHeader(o, request.customerUuid(), request.companyUuid(), request.attention(),
                 request.sellerUuid(), request.discountType(), request.discount(),
                 request.paymentCondition(), request.notes(),
-                request.freightType(), request.freightValue());
+                request.freightType(), request.freightValue(), request.carrierUuid());
         return o;
     }
 
@@ -211,7 +211,8 @@ private static BigDecimal scaleDiscount(BigDecimal discount, DiscountType discou
         applyHeader(o, source.getCustomerUuid(), source.getCompanyUuid(), attention,
                 source.getSellerUuid(), source.getDiscountType(), source.getDiscount(),
                 payment, notes,
-                source.getFreightType(), source.getFreightValue());
+                source.getFreightType(), source.getFreightValue(),
+                source.getCarrierUuid());
         return o;
     }
 
@@ -254,6 +255,8 @@ private static BigDecimal scaleDiscount(BigDecimal discount, DiscountType discou
         if (request.freightValue() != null) {
             order.setFreightValue(request.freightValue());
         }
+        // carrierUuid admite null (remoção da transportadora vinculada).
+        order.setCarrierUuid(request.carrierUuid());
     }
 
     private static void applyHeader(SalesOrder o, UUID customerUuid, UUID companyUuid,
@@ -261,7 +264,7 @@ private static BigDecimal scaleDiscount(BigDecimal discount, DiscountType discou
                                     DiscountType discountType, BigDecimal discount,
                                     PaymentCondition paymentCondition, String notes,
                                     FreightType freightType,
-                                    BigDecimal freightValue) {
+                                    BigDecimal freightValue, UUID carrierUuid) {
         o.setCustomerUuid(customerUuid);
         o.setCompanyUuid(companyUuid);
         o.setAttention(attention);
@@ -272,6 +275,7 @@ private static BigDecimal scaleDiscount(BigDecimal discount, DiscountType discou
         o.setNotes(notes);
         o.setFreightType(freightType);
         o.setFreightValue(freightValue);
+        o.setCarrierUuid(carrierUuid);
     }
 
     /**
@@ -284,7 +288,8 @@ private static BigDecimal scaleDiscount(BigDecimal discount, DiscountType discou
      * typeahead de query vazia para hidratar o cliente).
      */
     public static SalesOrderResponse toResponse(SalesOrder order, List<SalesOrderItem> items,
-                                                String sellerName, String clientName, String clientCode) {
+                                                String sellerName, String clientName, String clientCode,
+                                                String carrierName, String carrierServiceName) {
         SalesOrderResponse.ClientType clientType =
                 (order.getCustomerUuid() != null)
                         ? SalesOrderResponse.ClientType.CUSTOMER
@@ -309,6 +314,9 @@ private static BigDecimal scaleDiscount(BigDecimal discount, DiscountType discou
                 order.getNotes(),
                 order.getFreightType(),
                 order.getFreightValue(),
+                order.getCarrierUuid(),
+                carrierName,
+                carrierServiceName,
                 order.getStatus(),
                 order.getQuotationUuid(),
                 order.getQuotationNumber(),

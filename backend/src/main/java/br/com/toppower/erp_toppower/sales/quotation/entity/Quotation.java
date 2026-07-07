@@ -195,6 +195,16 @@ public class Quotation extends OrganizationScopedEntity {
     private BigDecimal freightValue;
 
     /**
+     * Referência à {@code Carrier} (transportadora) responsável pelo
+     * frete da proposta. Opcional — documentos sem frete/transportadora
+     * permanecem com este campo nulo. Não há FK física (referência por
+     * UUID, padrão do projeto); a validação de existência é feita no
+     * service quando o campo é informado.
+     */
+    @Column(name = "carrier_uuid")
+    private UUID carrierUuid;
+
+    /**
      * Margem de lucro aplicada sobre o total da proposta, expressa em
      * porcentagem (ex.: {@code 10.00} = 10%). Obrigatória.
      *

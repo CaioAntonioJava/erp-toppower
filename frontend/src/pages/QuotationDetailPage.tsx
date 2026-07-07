@@ -336,6 +336,16 @@ export function QuotationDetailPage() {
           </div>
           <div>
             <dt className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Transportadora
+            </dt>
+            <dd className="mt-1 text-sm text-slate-800 dark:text-slate-200">
+              {quotation.carrierName
+                ? `${quotation.carrierName}${quotation.carrierServiceName ? ` (${quotation.carrierServiceName})` : ''}`
+                : '—'}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Validade
             </dt>
             <dd className="mt-1 text-sm text-slate-800 dark:text-slate-200">

@@ -197,6 +197,16 @@ public class SalesOrder extends OrganizationScopedEntity {
     private SalesOrderStatus status;
 
     /**
+     * Referência à {@code Carrier} (transportadora) responsável pelo
+     * frete do pedido. Opcional — documentos sem transportadora
+     * permanecem com este campo nulo. Não há FK física (referência por
+     * UUID, padrão do projeto); a validação de existência é feita no
+     * service quando o campo é informado.
+     */
+    @Column(name = "carrier_uuid")
+    private UUID carrierUuid;
+
+    /**
      * UUID da {@code Quotation} que deu origem a este pedido. Nulo em
      * pedidos criados diretamente (sem proposta de origem). Imutável
      * após a criação ({@code updatable = false}).

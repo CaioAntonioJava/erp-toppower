@@ -16,9 +16,11 @@ import { toApiError } from '../../lib/errors'
 import { useFieldTouched } from '../../hooks/useFieldTouched'
 import { getProduct, searchProducts } from '../../api/product.api'
 import { listSellers } from '../../api/seller.api'
+import { listCarriers } from '../../api/carrier.api'
 import { searchQuotationClients, simulateQuotation } from '../../api/quotation.api'
 import type { ProductResponse, UnitType } from '../../types/product'
 import type { SellerResponse } from '../../types/seller'
+import type { CarrierResponse } from '../../types/carrier'
 import type { RegistrationStatus } from '../../types/registration'
 import type {
   ClientSummaryResponse,
@@ -151,6 +153,10 @@ export function QuotationForm({
   const [freightValue, setFreightValue] = useState<string>(
     quotation?.freightValue != null ? String(quotation.freightValue) : '',
   )
+  // Transportadora (Carrier) responsável pelo frete. Opcional.
+  const [carrierUuid, setCarrierUuid] = useState<string>(
+    quotation?.carrierUuid ?? '',
+  )
   // Margem de lucro aplicada sobre o total da proposta (em %). Obrigatória.
   const [profitMargin, setProfitMargin] = useState<string>(
     quotation?.profitMargin != null ? String(quotation.profitMargin) : '',
@@ -223,6 +229,8 @@ export function QuotationForm({
   // === coleções auxiliares ===
   const [sellers, setSellers] = useState<SellerResponse[]>([])
   const [sellersLoading, setSellersLoading] = useState(false)
+  const [carriers, setCarriers] = useState<CarrierResponse[]>([])
+  const [carriersLoading, setCarriersLoading] = useState(false)
   const [clientOptions, setClientOptions] = useState<ClientSummaryResponse[]>([])
   const [clientSearching, setClientSearching] = useState(false)
   const [productOptions, setProductOptions] = useState<ProductResponse[]>([])
@@ -283,6 +291,52 @@ export function QuotationForm({
       ]
     })
   }, [quotation?.sellerUuid, quotation?.sellerName])
+
+  // Carrega lista de transportadoras ativas uma vez.
+  useEffect(() => {
+    let cancelled = false
+    setCarriersLoading(true)
+    listCarriers({ status: 'ATIVO', size: 100, page: 0 })
+      .then((p) => {
+        if (cancelled) return
+        setCarriers(p.content)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setCarriers([])
+      })
+      .finally(() => {
+        if (!cancelled) setCarriersLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // Em modo edição, garante que a transportadora atual sempre apareça como
+  // opção do <select>, mesmo que tenha sido inativada após a criação da
+  // proposta. Sem isto, o select cairia no placeholder quando a carrier
+  // não retorna no filtro de ATIVO. O serviceName resolvido pelo backend
+  // permite exibir o nome do serviço sem precisar refazer o GET.
+  useEffect(() => {
+    if (!quotation?.carrierUuid) return
+    setCarriers((prev) => {
+      if (prev.some((c) => c.uuid === quotation.carrierUuid)) return prev
+      return [
+        ...prev,
+        {
+          uuid: quotation.carrierUuid!,
+          name: quotation.carrierName ?? '(transportadora removida)',
+          serviceName: quotation.carrierServiceName ?? '',
+          status: 'INATIVO' as RegistrationStatus,
+          createdAt: '',
+          updatedAt: '',
+          createdBy: null,
+          updatedBy: null,
+        },
+      ]
+    })
+  }, [quotation?.carrierUuid, quotation?.carrierName, quotation?.carrierServiceName])
 
   // Sincroniza o número da proposta com o `initialNumber` que chega
   // assincronamente do endpoint `/quotations/next-number`. Em modo create,
@@ -690,6 +744,7 @@ export function QuotationForm({
         payload.freightType = freightType === '' ? null : freightType
         payload.freightValue = parseNumber(freightValue)
         payload.profitMargin = parseNumber(profitMargin) ?? 0
+        payload.carrierUuid = carrierUuid || null
 
         // Override admin: envia `number`/`issueDate` no payload. O backend
         // atual (QuotationUpdateRequest) não inclui esses campos, então o
@@ -737,6 +792,7 @@ export function QuotationForm({
         if (freightValue.trim()) {
           payload.freightValue = parseNumber(freightValue)
         }
+        payload.carrierUuid = carrierUuid || null
 
         // Override admin (mesma observação do bloco de update acima).
         if (isAdmin) {
@@ -1088,7 +1144,7 @@ export function QuotationForm({
             />
           </div>
           <div className="sm:col-span-2 lg:col-span-3">
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <Select
                 label="Tipo de frete"
                 value={freightType}
@@ -1125,7 +1181,49 @@ export function QuotationForm({
                 )}
                 hint="Valor de frete informado manualmente."
               />
+              <Select
+                label="Transportadora"
+                value={carrierUuid}
+                onChange={(e) => setCarrierUuid(e.target.value)}
+                options={[
+                  {
+                    value: '',
+                    label: carriersLoading ? 'Carregando…' : 'Selecione…',
+                  },
+                  ...carriers.map((c) => ({ value: c.uuid, label: c.name })),
+                ]}
+                aria-label="Transportadora responsável pelo frete"
+                hint="Selecione a transportadora. O serviço dela é exibido abaixo."
+              />
             </div>
+            {/* Serviço da transportadora — read-only, derivado da carrier selecionada. */}
+            <Input
+              label="Serviço da transportadora"
+              value={
+                carrierUuid
+                  ? (carriers.find((c) => c.uuid === carrierUuid)
+                      ?.serviceName ??
+                    // Fallback para edição quando a carrier foi inativada
+                    // (não está na lista carregada): usa o nome do serviço
+                    // já resolvido pelo backend na proposta.
+                    quotation?.carrierServiceName ??
+                    '')
+                  : ''
+              }
+              readOnly
+              disabled
+              placeholder={
+                carrierUuid
+                  ? undefined
+                  : 'Selecione uma transportadora para ver o serviço.'
+              }
+              hint={
+                carrierUuid
+                  ? 'Preenchido automaticamente a partir da transportadora selecionada.'
+                  : 'O serviço é definido no cadastro da transportadora.'
+              }
+              className="mt-4"
+            />
           </div>
         </div>
 

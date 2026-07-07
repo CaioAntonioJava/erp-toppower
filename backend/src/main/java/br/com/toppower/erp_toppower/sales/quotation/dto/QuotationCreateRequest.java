@@ -99,6 +99,10 @@ public record QuotationCreateRequest(
         @NotNull(message = "Margem de lucro é obrigatória")
         @DecimalMin(value = "0.00", message = "Margem de lucro não pode ser negativa")
         @Digits(integer = 3, fraction = 2, message = "Margem de lucro inválida")
-        BigDecimal profitMargin
+        BigDecimal profitMargin,
+
+        @Schema(description = "UUID da transportadora (Carrier) responsável pelo frete. Opcional.",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        UUID carrierUuid
 ) {
 }

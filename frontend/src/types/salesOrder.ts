@@ -123,6 +123,12 @@ export interface SalesOrderResponse {
   freightType: import('./quotation').FreightType | null
   /** Valor do frete (manual). */
   freightValue: number | null
+  /** UUID da transportadora (Carrier) responsável pelo frete. */
+  carrierUuid: string | null
+  /** Nome da transportadora (resolvido no backend). */
+  carrierName: string | null
+  /** Nome do serviço da transportadora (resolvido no backend). */
+  carrierServiceName: string | null
   status: SalesOrderStatus
   /** UUID da proposta que deu origem ao pedido (nulo em criação direta). */
   quotationUuid: string | null
@@ -184,6 +190,8 @@ export interface SalesOrderCreateRequest {
   freightType?: import('./quotation').FreightType | null
   /** Valor do frete (manual). */
   freightValue?: number | null
+  /** UUID da transportadora (Carrier) responsável pelo frete. Opcional. */
+  carrierUuid?: string | null
 }
 
 /** Corpo de PATCH /api/v1/sales-orders/{id}. Espelha SalesOrderUpdateRequest. */
@@ -201,6 +209,8 @@ export interface SalesOrderUpdateRequest {
   freightType?: import('./quotation').FreightType | null
   /** Valor do frete (manual). */
   freightValue?: number | null
+  /** UUID da transportadora (Carrier). null = remover a transportadora vinculada. */
+  carrierUuid?: string | null
 }
 
 /**

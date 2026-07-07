@@ -256,6 +256,16 @@ public class TechnicalProposal extends OrganizationScopedEntity {
     private String validity;
 
     /**
+     * Referência à {@code Carrier} (transportadora) responsável pelo
+     * frete da proposta. Opcional — documentos sem transportadora
+     * permanecem com este campo nulo. Não há FK física (referência por
+     * UUID, padrão do projeto); a validação de existência é feita no
+     * service quando o campo é informado.
+     */
+    @Column(name = "carrier_uuid")
+    private UUID carrierUuid;
+
+    /**
      * Tipo de entrega (CIF/FOB), mesmo domínio usado em cotação.
      */
     @Enumerated(EnumType.STRING)

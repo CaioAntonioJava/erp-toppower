@@ -1,6 +1,7 @@
 package br.com.toppower.erp_toppower.sales.salesorder.service;
 
 import br.com.toppower.erp_toppower.common.dto.PagedResponse;
+import br.com.toppower.erp_toppower.carrier.repository.CarrierRepository;
 import br.com.toppower.erp_toppower.company.repository.CompanyRepository;
 import br.com.toppower.erp_toppower.customer.repository.CustomerRepository;
 import br.com.toppower.erp_toppower.seller.repository.SellerRepository;
@@ -81,6 +82,7 @@ public class SalesOrderService {
     private final CompanyRepository companyRepository;
     private final SellerRepository sellerRepository;
     private final StockService stockService;
+    private final CarrierRepository carrierRepository;
 
     public SalesOrderService(SalesOrderRepository salesOrderRepository,
                              SalesOrderItemRepository salesOrderItemRepository,
@@ -89,7 +91,8 @@ public class SalesOrderService {
                              CustomerRepository customerRepository,
                              CompanyRepository companyRepository,
                              SellerRepository sellerRepository,
-                             StockService stockService) {
+                             StockService stockService,
+                             CarrierRepository carrierRepository) {
         this.salesOrderRepository = salesOrderRepository;
         this.salesOrderItemRepository = salesOrderItemRepository;
         this.quotationRepository = quotationRepository;
@@ -98,6 +101,7 @@ public class SalesOrderService {
         this.companyRepository = companyRepository;
         this.sellerRepository = sellerRepository;
         this.stockService = stockService;
+        this.carrierRepository = carrierRepository;
     }
 
     // ---------------------------------------------------------------------
@@ -107,6 +111,7 @@ public class SalesOrderService {
     @Transactional
     public SalesOrderResponse create(SalesOrderCreateRequest request) {
         validateClientReference(request.customerUuid(), request.companyUuid(), true);
+        validateCarrierReference(request.carrierUuid(), true);
         validateItemsConsistency(request.items());
 
         SalesOrder header = SalesOrderMapper.toEntity(request);
@@ -122,8 +127,9 @@ public class SalesOrderService {
 
         savedHeader.recalculateTotals(items);
         ClientResolved client = resolveClient(savedHeader);
+        CarrierResolved carrier = resolveCarrier(savedHeader);
         return SalesOrderMapper.toResponse(savedHeader, items, resolveSellerName(savedHeader),
-                client.name(), client.code());
+                client.name(), client.code(), carrier.name(), carrier.serviceName());
     }
 
     // ---------------------------------------------------------------------
@@ -162,6 +168,12 @@ public class SalesOrderService {
         // apenas para consistência defensiva (não rejeita se ainda válido).
         validateClientReference(quotation.getCustomerUuid(), quotation.getCompanyUuid(), true);
 
+        // A carrier é copiada da proposta (snapshot). Validamos existência
+        // apenas para consistência defensiva — se a transportadora foi
+        // removida após a conversão, a referência fica orfã mas o pedido
+        // continua válido.
+        validateCarrierReference(quotation.getCarrierUuid(), true);
+
         SalesOrder header = SalesOrderMapper.fromQuotation(quotation, quotationItems, override);
         header.setNumber(generateNextNumber());
 
@@ -180,8 +192,9 @@ public class SalesOrderService {
 
         savedHeader.recalculateTotals(items);
         ClientResolved client = resolveClient(savedHeader);
+        CarrierResolved carrier = resolveCarrier(savedHeader);
         return SalesOrderMapper.toResponse(savedHeader, items, resolveSellerName(savedHeader),
-                client.name(), client.code());
+                client.name(), client.code(), carrier.name(), carrier.serviceName());
     }
 
     // ---------------------------------------------------------------------
@@ -196,8 +209,9 @@ public class SalesOrderService {
                 .findBySalesOrderUuidOrderByCreatedAtAsc(id);
         o.recalculateTotals(items);
         ClientResolved client = resolveClient(o);
+        CarrierResolved carrier = resolveCarrier(o);
         return SalesOrderMapper.toResponse(o, items, resolveSellerName(o),
-                client.name(), client.code());
+                client.name(), client.code(), carrier.name(), carrier.serviceName());
     }
 
     @Transactional(readOnly = true)
@@ -208,8 +222,9 @@ public class SalesOrderService {
                 .findBySalesOrderUuidOrderByCreatedAtAsc(o.getUuid());
         o.recalculateTotals(items);
         ClientResolved client = resolveClient(o);
+        CarrierResolved carrier = resolveCarrier(o);
         return SalesOrderMapper.toResponse(o, items, resolveSellerName(o),
-                client.name(), client.code());
+                client.name(), client.code(), carrier.name(), carrier.serviceName());
     }
 
     /**
@@ -299,6 +314,11 @@ public class SalesOrderService {
                 ? request.companyUuid() : o.getCompanyUuid();
         validateClientReference(effectiveCustomer, effectiveCompany, false);
 
+        // Valida a carrier apenas quando explicitamente informada.
+        if (request.carrierUuid() != null) {
+            validateCarrierReference(request.carrierUuid(), false);
+        }
+
         if (request.items() != null) {
             validateItemsConsistency(request.items());
             salesOrderItemRepository.deleteBySalesOrderUuid(id);
@@ -321,8 +341,9 @@ public class SalesOrderService {
 
         saved.recalculateTotals(items);
         ClientResolved client = resolveClient(saved);
+        CarrierResolved carrier = resolveCarrier(saved);
         return SalesOrderMapper.toResponse(saved, items, resolveSellerName(saved),
-                client.name(), client.code());
+                client.name(), client.code(), carrier.name(), carrier.serviceName());
     }
 
     // ---------------------------------------------------------------------
@@ -376,8 +397,9 @@ public class SalesOrderService {
                 .findBySalesOrderUuidOrderByCreatedAtAsc(id);
         saved.recalculateTotals(items);
         ClientResolved client = resolveClient(saved);
+        CarrierResolved carrier = resolveCarrier(saved);
         return SalesOrderMapper.toResponse(saved, items, resolveSellerName(saved),
-                client.name(), client.code());
+                client.name(), client.code(), carrier.name(), carrier.serviceName());
     }
 
     // ---------------------------------------------------------------------
@@ -419,8 +441,9 @@ public class SalesOrderService {
                 .findBySalesOrderUuidOrderByCreatedAtAsc(id);
         saved.recalculateTotals(items);
         ClientResolved client = resolveClient(saved);
+        CarrierResolved carrier = resolveCarrier(saved);
         return SalesOrderMapper.toResponse(saved, items, resolveSellerName(saved),
-                client.name(), client.code());
+                client.name(), client.code(), carrier.name(), carrier.serviceName());
     }
 
     // ---------------------------------------------------------------------
@@ -526,6 +549,42 @@ public class SalesOrderService {
      */
     private record ClientResolved(String name, String code) {
         static final ClientResolved EMPTY = new ClientResolved(null, null);
+    }
+
+    /**
+     * Valida a referência à transportadora (carrier): se não for nula,
+     * verifica a existência no cadastro.
+     */
+    private void validateCarrierReference(UUID carrierUuid, boolean verifyExists) {
+        if (carrierUuid == null) {
+            return;
+        }
+        if (verifyExists && !carrierRepository.existsById(carrierUuid)) {
+            throw new SalesOrderBusinessException(
+                    "Transportadora não encontrada: " + carrierUuid);
+        }
+    }
+
+    /**
+     * Resolve o nome e o nome do serviço da transportadora referenciada
+     * pelo pedido. Retorna {@code null} em ambos quando a carrier não
+     * existe mais, mantendo o UUID como referência no DTO.
+     */
+    private CarrierResolved resolveCarrier(SalesOrder o) {
+        if (o.getCarrierUuid() == null) {
+            return CarrierResolved.EMPTY;
+        }
+        return carrierRepository.findById(o.getCarrierUuid())
+                .map(c -> new CarrierResolved(c.getName(), c.getServiceName()))
+                .orElse(CarrierResolved.EMPTY);
+    }
+
+    /**
+     * Par (nome, nome do serviço) resolvido a partir da transportadora
+     * referenciada pelo pedido.
+     */
+    private record CarrierResolved(String name, String serviceName) {
+        static final CarrierResolved EMPTY = new CarrierResolved(null, null);
     }
 
     /**

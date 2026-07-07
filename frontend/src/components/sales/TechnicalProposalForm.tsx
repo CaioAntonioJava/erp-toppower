@@ -15,6 +15,7 @@ import { RichTextEditor } from '../ui/RichTextEditor'
 import { toApiError } from '../../lib/errors'
 import { useFieldTouched } from '../../hooks/useFieldTouched'
 import { getProduct, searchProducts } from '../../api/product.api'
+import { listCarriers } from '../../api/carrier.api'
 import {
   searchTechnicalProposalClients,
   simulateTechnicalProposal,
@@ -22,6 +23,8 @@ import {
 import { BRAZILIAN_STATES } from '../../lib/brazilianStates'
 import { maskZipCode } from '../../lib/documents'
 import type { ProductResponse, UnitType } from '../../types/product'
+import type { CarrierResponse } from '../../types/carrier'
+import type { RegistrationStatus } from '../../types/registration'
 import type {
   ClientSummaryResponse,
   DiscountType,
@@ -165,6 +168,10 @@ export function TechnicalProposalForm({
   const [freightValue, setFreightValue] = useState<string>(
     proposal?.freightValue != null ? String(proposal.freightValue) : '',
   )
+  // Transportadora (Carrier) responsável pelo frete. Opcional.
+  const [carrierUuid, setCarrierUuid] = useState<string>(
+    proposal?.carrierUuid ?? '',
+  )
   const [deliveryDeadline, setDeliveryDeadline] = useState<string>(
     proposal?.deliveryDeadline ?? '',
   )
@@ -241,6 +248,8 @@ export function TechnicalProposalForm({
   const [productOptions, setProductOptions] = useState<ProductResponse[]>([])
   const [productSearching, setProductSearching] = useState(false)
   const [activeProductRow, setActiveProductRow] = useState<string | null>(null)
+  const [carriers, setCarriers] = useState<CarrierResponse[]>([])
+  const [carriersLoading, setCarriersLoading] = useState(false)
 
   const [formError, setFormError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -256,6 +265,55 @@ export function TechnicalProposalForm({
     if (codeDirtyRef.current) return
     setCode(initialCode)
   }, [initialCode, proposal])
+
+  // Carrega lista de transportadoras ativas uma vez.
+  useEffect(() => {
+    let cancelled = false
+    setCarriersLoading(true)
+    listCarriers({ status: 'ATIVO', size: 100, page: 0 })
+      .then((p) => {
+        if (cancelled) return
+        setCarriers(p.content)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setCarriers([])
+      })
+      .finally(() => {
+        if (!cancelled) setCarriersLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // Em modo edição, garante que a transportadora atual sempre apareça como
+  // opção do <select>, mesmo que tenha sido inativada após a criação da
+  // proposta técnica. O serviceName resolvido pelo backend permite exibir
+  // o nome do serviço sem precisar refazer o GET.
+  useEffect(() => {
+    if (!proposal?.carrierUuid) return
+    setCarriers((prev) => {
+      if (prev.some((c) => c.uuid === proposal.carrierUuid)) return prev
+      return [
+        ...prev,
+        {
+          uuid: proposal.carrierUuid!,
+          name: proposal.carrierName ?? '(transportadora removida)',
+          serviceName: proposal.carrierServiceName ?? '',
+          status: 'INATIVO' as RegistrationStatus,
+          createdAt: '',
+          updatedAt: '',
+          createdBy: null,
+          updatedBy: null,
+        },
+      ]
+    })
+  }, [
+    proposal?.carrierUuid,
+    proposal?.carrierName,
+    proposal?.carrierServiceName,
+  ])
 
   // Pré-preenche o rótulo do cliente no modo edição.
   useEffect(() => {
@@ -670,6 +728,7 @@ export function TechnicalProposalForm({
         payload.deliveryType = deliveryType === '' ? null : deliveryType
         payload.deliveryDeadline = deliveryDeadline.trim() || null
         payload.validity = validity.trim() || null
+        payload.carrierUuid = carrierUuid || null
 
         await onSaveUpdate(payload)
         setSuccess('Proposta atualizada com sucesso!')
@@ -700,6 +759,7 @@ export function TechnicalProposalForm({
         if (deliveryType !== '') payload.deliveryType = deliveryType
         if (deliveryDeadline.trim()) payload.deliveryDeadline = deliveryDeadline.trim()
         if (validity.trim()) payload.validity = validity.trim()
+        payload.carrierUuid = carrierUuid || null
 
         await onSaveCreate(payload)
         setSuccess('Proposta criada com sucesso!')
@@ -1191,6 +1251,46 @@ export function TechnicalProposalForm({
             options={[{ value: '', label: 'Selecione…' }, ...FREIGHT_TYPE_OPTIONS]}
             aria-label="Tipo de entrega"
             hint="CIF = remetente; FOB = destinatário."
+          />
+          <Select
+            label="Transportadora"
+            value={carrierUuid}
+            onChange={(e) => setCarrierUuid(e.target.value)}
+            options={[
+              {
+                value: '',
+                label: carriersLoading ? 'Carregando…' : 'Selecione…',
+              },
+              ...carriers.map((c) => ({ value: c.uuid, label: c.name })),
+            ]}
+            aria-label="Transportadora responsável pelo frete"
+            hint="Selecione a transportadora. O serviço dela é exibido abaixo."
+          />
+          <Input
+            label="Serviço da transportadora"
+            value={
+              carrierUuid
+                ? (carriers.find((c) => c.uuid === carrierUuid)
+                    ?.serviceName ??
+                  // Fallback para edição quando a carrier foi inativada
+                  // (não está na lista carregada): usa o nome do serviço
+                  // já resolvido pelo backend na proposta.
+                  proposal?.carrierServiceName ??
+                  '')
+                : ''
+            }
+            readOnly
+            disabled
+            placeholder={
+              carrierUuid
+                ? undefined
+                : 'Selecione uma transportadora para ver o serviço.'
+            }
+            hint={
+              carrierUuid
+                ? 'Preenchido automaticamente a partir da transportadora selecionada.'
+                : 'O serviço é definido no cadastro da transportadora.'
+            }
           />
           <div className="sm:col-span-2 lg:col-span-3">
             <Select

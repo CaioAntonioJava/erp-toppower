@@ -176,6 +176,12 @@ export interface TechnicalProposalResponse {
   validity: string | null
   deliveryType: FreightType | null
   notes: string | null
+  /** UUID da transportadora (Carrier) responsável pelo frete. */
+  carrierUuid: string | null
+  /** Nome da transportadora (resolvido no backend). */
+  carrierName: string | null
+  /** Nome do serviço da transportadora (resolvido no backend). */
+  carrierServiceName: string | null
   servicesSubtotal: number
   productsSubtotal: number
   subtotal: number
@@ -226,6 +232,8 @@ export interface TechnicalProposalCreateRequest {
   validity?: string | null
   deliveryType?: FreightType | null
   notes?: string | null
+  /** UUID da transportadora (Carrier) responsável pelo frete. Opcional. */
+  carrierUuid?: string | null
 }
 
 /** Corpo de PATCH /api/v1/technical-proposals/{id}. */
@@ -248,6 +256,8 @@ export interface TechnicalProposalUpdateRequest {
   validity?: string | null
   deliveryType?: FreightType | null
   notes?: string | null
+  /** UUID da transportadora (Carrier). null = remover a transportadora vinculada. */
+  carrierUuid?: string | null
 }
 
 /** Resposta do endpoint /technical-proposals/next-code. */

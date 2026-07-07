@@ -292,6 +292,16 @@ export function TechnicalProposalDetailPage() {
                     : '—'}
                 </dd>
               </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  Transportadora
+                </dt>
+                <dd className="mt-1 text-slate-900 dark:text-slate-100">
+                  {proposal.carrierName
+                    ? `${proposal.carrierName}${proposal.carrierServiceName ? ` (${proposal.carrierServiceName})` : ''}`
+                    : '—'}
+                </dd>
+              </div>
             </dl>
 
             {proposal.address ? (

@@ -106,6 +106,18 @@ public class OrganizationService {
      *       {@code UserOrganization}, com a role por empresa e flag default.</li>
      * </ul>
      */
+    /**
+     * Lista todas as Organizations ATIVAS sem info de vínculo do usuário
+     * (papel/default são nulos). Usada pelo admin para atribuir empresas
+     * a usuários (ex.: ao criar um novo usuário).
+     */
+    @Transactional(readOnly = true)
+    public List<OrganizationSummary> listAllActive() {
+        return organizationRepository.findByStatus(OrganizationStatus.ATIVO, Pageable.unpaged())
+                .map(OrganizationMapper::toSummary)
+                .getContent();
+    }
+
     @Transactional(readOnly = true)
     public List<OrganizationSummary> listMine() {
         UserDetailsImpl principal = currentPrincipal();

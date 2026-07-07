@@ -199,6 +199,12 @@ export interface QuotationResponse {
   freightType: FreightType | null
   /** Valor do frete (manual). */
   freightValue: number | null
+  /** UUID da transportadora (Carrier) responsável pelo frete. */
+  carrierUuid: string | null
+  /** Nome da transportadora (resolvido no backend). */
+  carrierName: string | null
+  /** Nome do serviço da transportadora (resolvido no backend). */
+  carrierServiceName: string | null
   /**
    * Margem de lucro aplicada sobre o total da proposta (em %). Ex.: 10 = 10%.
    * Aplicada como multiplicação (fator `1 + profitMargin/100`) sobre o subtotal
@@ -271,6 +277,8 @@ export interface QuotationCreateRequest {
    * na criação. Ex.: 10 = 10%.
    */
   profitMargin: number
+  /** UUID da transportadora (Carrier) responsável pelo frete. Opcional. */
+  carrierUuid?: string | null
 }
 
 /** Corpo de PATCH /api/v1/quotations/{id}. Espelha QuotationUpdateRequest. */
@@ -294,6 +302,8 @@ export interface QuotationUpdateRequest {
    * PATCH (quando omitida, mantém o valor atual). Ex.: 10 = 10%.
    */
   profitMargin?: number
+  /** UUID da transportadora (Carrier). null = remover a transportadora vinculada. */
+  carrierUuid?: string | null
 }
 
 /** Resposta do endpoint /quotations/next-number. */

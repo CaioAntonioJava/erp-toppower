@@ -91,6 +91,10 @@ public record SalesOrderCreateRequest(
                 example = "45.90", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         @DecimalMin(value = "0.00", message = "Frete não pode ser negativo")
         @Digits(integer = 8, fraction = 2, message = "Frete inválido")
-        BigDecimal freightValue
+        BigDecimal freightValue,
+
+        @Schema(description = "UUID da transportadora (Carrier) responsável pelo frete. Opcional.",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        UUID carrierUuid
 ) {
 }
