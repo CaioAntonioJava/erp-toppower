@@ -26,9 +26,15 @@ public record TechnicalProposalProductItemResponse(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         BigDecimal quantity,
 
-        @Schema(description = "Preço unitário do produto (snapshot).", example = "150.00",
-                requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "Preço unitário final do produto (snapshot, com margem de lucro embutida).",
+                example = "150.00", requiredMode = Schema.RequiredMode.REQUIRED)
         BigDecimal unitPrice,
+
+        @Schema(description = "Preço unitário original enviado pelo usuário (sem margem de lucro). "
+                + "É o valor que o formulário usa como ponto de partida na edição — "
+                + "aplicar a margem sobre o `unitPrice` causaria duplicação.",
+                example = "130.43", requiredMode = Schema.RequiredMode.REQUIRED)
+        BigDecimal baseUnitPrice,
 
         @Schema(description = "Subtotal bruto da linha (unitPrice * quantity), antes do desconto da linha.",
                 example = "300.00", requiredMode = Schema.RequiredMode.REQUIRED)

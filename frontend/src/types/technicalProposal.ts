@@ -115,7 +115,14 @@ export interface TechnicalProposalServiceItemRequest {
 export interface TechnicalProposalServiceItemResponse {
   uuid: string
   description: string
+  /** Preço final (com margem de lucro embutida). */
   price: number | null
+  /**
+   * Preço original enviado pelo usuário (sem margem de lucro).
+   * É o valor usado como ponto de partida na edição — reaplicar a margem
+   * sobre `price` causaria duplicação.
+   */
+  basePrice: number | null
 }
 
 /** Linha de produto enviada na criação/edição. */
@@ -132,7 +139,14 @@ export interface TechnicalProposalProductItemResponse {
   uuid: string
   productUuid: string
   quantity: number
+  /** Preço unitário final (com margem de lucro embutida). */
   unitPrice: number
+  /**
+   * Preço unitário original enviado pelo usuário (sem margem de lucro).
+   * É o valor usado como ponto de partida na edição — reaplicar a margem
+   * sobre `unitPrice` causaria duplicação.
+   */
+  baseUnitPrice: number
   lineSubtotal: number
   discountType: DiscountType | null
   discount: number | null

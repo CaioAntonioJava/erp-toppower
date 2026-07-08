@@ -69,6 +69,9 @@ public final class TechnicalProposalMapper {
         TechnicalProposalServiceItem item = new TechnicalProposalServiceItem();
         item.setTechnicalProposalUuid(technicalProposalUuid);
         item.setDescription(request.description());
+        // Preço base (sem margem) — persistido junto do snapshot.
+        item.setBasePrice(request.price());
+        // Snapshot final: basePrice × (1 + profitMargin/100).
         item.setPrice(applyProfitMargin(request.price(), profitMargin));
         return item;
     }
@@ -78,7 +81,8 @@ public final class TechnicalProposalMapper {
         return new TechnicalProposalServiceItemResponse(
                 item.getUuid(),
                 item.getDescription(),
-                item.getPrice());
+                item.getPrice(),
+                item.getBasePrice());
     }
 
     // ---------------------------------------------------------------------
@@ -99,6 +103,10 @@ public final class TechnicalProposalMapper {
         item.setTechnicalProposalUuid(technicalProposalUuid);
         item.setProductUuid(request.productUuid());
         item.setQuantity(request.quantity());
+        // Preço base (sem margem) — persistido para que a edição da
+        // proposta não reaplique a margem sobre o snapshot.
+        item.setBaseUnitPrice(request.unitPrice());
+        // Snapshot final: baseUnitPrice × (1 + profitMargin/100).
         item.setUnitPrice(applyProfitMargin(request.unitPrice(), profitMargin));
         item.setDiscountType(request.discountType());
         item.setDiscount(request.discount());
@@ -118,6 +126,7 @@ public final class TechnicalProposalMapper {
                 item.getProductUuid(),
                 item.getQuantity(),
                 item.getUnitPrice(),
+                item.getBaseUnitPrice(),
                 productLineSubtotal(item),
                 item.getDiscountType(),
                 item.getDiscount(),

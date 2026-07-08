@@ -77,6 +77,16 @@ public class SalesOrderItem extends OrganizationScopedEntity {
     private BigDecimal unitPrice;
 
     /**
+     * Preço unitário original enviado pelo usuário (sem margem de lucro
+     * — o pedido não carrega margem, então aqui é apenas o valor que
+     * veio da cotação antes da aplicação da margem, preservado para
+     * rastreabilidade e para suportar eventual reversão
+     * pedido → cotação no futuro).
+     */
+    @Column(name = "base_unit_price", nullable = false, precision = 10, scale = 2)
+    private BigDecimal baseUnitPrice;
+
+    /**
      * Tipo de aplicação do desconto desta linha ({@link #discount}).
      * Nulo quando não há desconto.
      */

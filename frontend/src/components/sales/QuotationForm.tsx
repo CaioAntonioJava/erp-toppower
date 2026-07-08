@@ -182,7 +182,14 @@ export function QuotationForm({
         productLabel: '',
         // Unidade de medida (UN/MT/BOB) — também hidratada via `getProduct`.
         unitType: null,
-        unitPrice: it.unitPrice,
+        // Em edição, o `unitPrice` persistido já vem com a margem de lucro
+        // embutida. Se o usássemos como preço base, o backend reaplicaria
+        // a margem sobre o snapshot majorado na próxima chamada de
+        // simulate/save, duplicando o valor. Por isso carregamos o
+        // `baseUnitPrice` (preço original sem margem) como ponto de
+        // partida — o simulate refaz a margem e devolve o `unitPrice`
+        // com margem e o `totalPrice` líquido.
+        unitPrice: it.baseUnitPrice ?? it.unitPrice,
         quantity: it.quantity,
         discountType: it.discountType ?? null,
         discount: it.discount ?? null,

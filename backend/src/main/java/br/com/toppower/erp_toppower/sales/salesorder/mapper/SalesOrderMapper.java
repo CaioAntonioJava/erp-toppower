@@ -53,7 +53,9 @@ public final class SalesOrderMapper {
         item.setSalesOrderUuid(salesOrderUuid);
         item.setProductUuid(request.productUuid());
         item.setQuantity(request.quantity());
+        // Pedido não carrega margem; baseUnitPrice == unitPrice aqui.
         item.setUnitPrice(request.unitPrice());
+        item.setBaseUnitPrice(request.unitPrice());
         item.setDiscountType(request.discountType());
         item.setDiscount(request.discount());
         item.setTotalPrice(calculateItemTotalPrice(
@@ -94,6 +96,9 @@ public final class SalesOrderMapper {
         item.setProductUuid(source.getProductUuid());
         item.setQuantity(source.getQuantity());
         item.setUnitPrice(source.getUnitPrice());
+        // Preserva o preço base (sem margem) vindo da cotação, para
+        // rastreabilidade e eventual reversão pedido → cotação.
+        item.setBaseUnitPrice(source.getBaseUnitPrice());
         item.setDiscountType(source.getDiscountType());
         item.setDiscount(source.getDiscount());
         item.setTotalPrice(source.getTotalPrice());

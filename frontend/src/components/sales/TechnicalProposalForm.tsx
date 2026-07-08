@@ -204,7 +204,18 @@ export function TechnicalProposalForm({
       return proposal.serviceItems.map((s) => ({
         rowKey: nextRowKey(),
         description: s.description,
-        price: s.price != null ? formatBRLValue(s.price) : '',
+        // Em edição, `price` persistido já vem com a margem de lucro
+        // embutida. Se o usássemos como preço base, o backend
+        // reaplicaria a margem sobre o snapshot majorado na próxima
+        // chamada de simulate/save, duplicando o valor. Por isso
+        // carregamos `basePrice` (preço original sem margem) como
+        // ponto de partida.
+        price:
+          s.basePrice != null
+            ? formatBRLValue(s.basePrice)
+            : s.price != null
+              ? formatBRLValue(s.price)
+              : '',
       }))
     }
     // Em modo create, iniciamos com uma linha vazia.
@@ -222,7 +233,13 @@ export function TechnicalProposalForm({
         productUuid: p.productUuid,
         productLabel: '',
         unitType: null,
-        unitPrice: formatBRLValue(p.unitPrice),
+        // Em edição, `unitPrice` persistido já vem com a margem de
+        // lucro embutida. Se o usássemos como preço base, o backend
+        // reaplicaria a margem sobre o snapshot majorado na próxima
+        // chamada de simulate/save, duplicando o valor. Por isso
+        // carregamos `baseUnitPrice` (preço original sem margem) como
+        // ponto de partida.
+        unitPrice: formatBRLValue(p.baseUnitPrice ?? p.unitPrice),
         quantity: String(p.quantity),
         discountType: p.discountType ?? null,
         discount: p.discount != null ? formatBRLValue(p.discount) : '',
@@ -1090,6 +1107,12 @@ export function TechnicalProposalForm({
                 index={idx}
                 isFirst={idx === 0}
                 draft={s}
+                // Preço final (com margem) retornado pelo backend via
+                // simulate. Quando a simulação ainda não chegou, usa
+                // o preço original do draft como fallback visual.
+                priceWithMargin={
+                  simulation?.serviceItems?.[idx]?.price ?? null
+                }
                 onChange={(patch) => updateServiceItem(s.rowKey, patch)}
                 onRemove={() => removeServiceItem(s.rowKey)}
               />
@@ -1414,11 +1437,24 @@ interface ServiceRowProps {
   index: number
   isFirst: boolean
   draft: ServiceDraft
+  /**
+   * Preço final (com margem de lucro aplicada) retornado pelo backend
+   * em `simulation.serviceItems[i].price`. Quando `null`, ainda não
+   * há simulação disponível e o componente exibe fallback.
+   */
+  priceWithMargin: number | null
   onChange: (patch: Partial<ServiceDraft>) => void
   onRemove: () => void
 }
 
-function ServiceRow({ index, isFirst, draft, onChange, onRemove }: ServiceRowProps) {
+function ServiceRow({
+  index,
+  isFirst,
+  draft,
+  priceWithMargin,
+  onChange,
+  onRemove,
+}: ServiceRowProps) {
   const labelCls = 'mb-1.5 block text-xs font-medium text-slate-600 dark:text-slate-300'
   const [priceDisplay, setPriceDisplay] = useState<string>(draft.price)
 
@@ -1447,19 +1483,19 @@ function ServiceRow({ index, isFirst, draft, onChange, onRemove }: ServiceRowPro
         <input
           type="text"
           inputMode="decimal"
-          aria-label="Preço do serviço"
+          aria-label="Preço do serviço (com margem de lucro aplicada)"
           placeholder="0,00"
-          value={priceDisplay}
-          onChange={(e) => {
-            setPriceDisplay(e.target.value)
-            onChange({ price: e.target.value })
-          }}
-          onBlur={() => {
-            const formatted = formatBRLValue(priceDisplay)
-            setPriceDisplay(formatted)
-            onChange({ price: formatted })
-          }}
-          className="h-9 w-full min-w-0 rounded-md border border-slate-300 bg-white px-2 text-right text-sm text-slate-900 outline-none focus:border-focus focus:ring-1 focus:ring-focus/30 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+          value={
+            priceWithMargin != null
+              ? formatBRLValue(priceWithMargin)
+              : priceDisplay
+          }
+          // Readonly: o preço exibido reflete a margem de lucro aplicada
+          // pelo backend. A margem é controlada pelo campo global
+          // "Margem de lucro (%)" e o preço base continua sendo o valor
+          // original armazenado em `draft.price`.
+          readOnly
+          className="h-9 w-full min-w-0 rounded-md border border-slate-300 bg-slate-50 px-2 text-right text-sm text-slate-900 outline-none cursor-not-allowed dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
         />
       </div>
       <div className="flex h-full items-center justify-center">

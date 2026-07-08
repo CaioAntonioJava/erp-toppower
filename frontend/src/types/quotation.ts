@@ -147,7 +147,14 @@ export interface QuotationItemResponse {
   uuid: string
   productUuid: string
   quantity: number
+  /** Preço unitário final (com margem de lucro embutida). */
   unitPrice: number
+  /**
+   * Preço unitário original enviado pelo usuário (sem margem de lucro).
+   * É o valor usado como ponto de partida na edição — reaplicar a margem
+   * sobre `unitPrice` causaria duplicação.
+   */
+  baseUnitPrice: number
   /** Subtotal bruto da linha (unitPrice * quantity). */
   lineSubtotal: number
   discountType: DiscountType | null

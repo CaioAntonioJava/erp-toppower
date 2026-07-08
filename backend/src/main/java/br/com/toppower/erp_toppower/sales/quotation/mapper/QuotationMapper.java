@@ -52,6 +52,10 @@ public final class QuotationMapper {
         item.setQuotationUuid(quotationUuid);
         item.setProductUuid(request.productUuid());
         item.setQuantity(request.quantity());
+        // Preço base (sem margem) — persistido para que a edição da
+        // proposta não reaplique a margem sobre o snapshot.
+        item.setBaseUnitPrice(request.unitPrice());
+        // Snapshot final: baseUnitPrice × (1 + profitMargin/100).
         item.setUnitPrice(applyProfitMargin(request.unitPrice(), profitMargin));
         item.setDiscountType(request.discountType());
         item.setDiscount(request.discount());
@@ -77,6 +81,8 @@ public final class QuotationMapper {
         item.setQuotationUuid(quotationUuid);
         item.setProductUuid(request.productUuid());
         item.setQuantity(request.quantity());
+        // Preço base (sem margem) — persistido junto do snapshot.
+        item.setBaseUnitPrice(request.unitPrice());
         item.setUnitPrice(applyProfitMargin(request.unitPrice(), profitMargin));
         item.setDiscountType(request.discountType());
         item.setDiscount(request.discount());
@@ -95,6 +101,7 @@ public final class QuotationMapper {
                 item.getProductUuid(),
                 item.getQuantity(),
                 item.getUnitPrice(),
+                item.getBaseUnitPrice(),
                 lineSubtotal(item),
                 item.getDiscountType(),
                 item.getDiscount(),
