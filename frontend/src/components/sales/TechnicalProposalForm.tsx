@@ -1561,10 +1561,23 @@ function ServiceRow({
 }: ServiceRowProps) {
   const labelCls = 'mb-1.5 block text-xs font-medium text-slate-600 dark:text-slate-300'
   const [priceDisplay, setPriceDisplay] = useState<string>(draft.price)
+  const [focused, setFocused] = useState(false)
 
   useEffect(() => {
-    setPriceDisplay(draft.price)
-  }, [draft.price])
+    // Só sincroniza a partir do draft quando o campo NÃO está focado —
+    // durante a digitação o estado local é a fonte da verdade, e
+    // sobrescrevê-lo quebraria a edição.
+    if (!focused) setPriceDisplay(draft.price)
+  }, [draft.price, focused])
+
+  // Fora do foco: exibe o preço COM margem (atualiza em tempo real quando
+  // a margem global muda, via simulate). Focado: exibe o preço base
+  // (sem margem) para edição livre.
+  const displayed = focused
+    ? priceDisplay
+    : priceWithMargin != null
+      ? formatBRLValue(priceWithMargin)
+      : priceDisplay
 
   return (
     <div className="grid items-start gap-2 rounded-md border border-slate-200 p-2 sm:grid-cols-[40px_1fr_140px_40px] dark:border-slate-700">
@@ -1587,20 +1600,37 @@ function ServiceRow({
         <input
           type="text"
           inputMode="decimal"
-          aria-label="Preço do serviço (com margem de lucro aplicada)"
+          aria-label="Preço base do serviço (sem margem)"
           placeholder="0,00"
-          value={
-            priceWithMargin != null
-              ? formatBRLValue(priceWithMargin)
-              : priceDisplay
-          }
-          // Readonly: o preço exibido reflete a margem de lucro aplicada
-          // pelo backend. A margem é controlada pelo campo global
-          // "Margem de lucro (%)" e o preço base continua sendo o valor
-          // original armazenado em `draft.price`.
-          readOnly
-          className="h-9 w-full min-w-0 rounded-md border border-slate-300 bg-slate-50 px-2 text-right text-sm text-slate-900 outline-none cursor-not-allowed dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+          value={displayed}
+          onFocus={() => {
+            setFocused(true)
+            // Ao focar, garante que o campo mostre o preço base (sem
+            // margem) para edição, mesmo que antes exibisse o com margem.
+            setPriceDisplay(draft.price)
+          }}
+          onChange={(e) => {
+            setPriceDisplay(e.target.value)
+            onChange({ price: e.target.value })
+          }}
+          onBlur={() => {
+            setFocused(false)
+            if (priceDisplay.trim() !== '') {
+              const formatted = formatBRLValue(priceDisplay)
+              if (formatted) {
+                setPriceDisplay(formatted)
+                onChange({ price: formatted })
+              }
+            }
+          }}
+          className="h-9 w-full min-w-0 rounded-md border border-slate-300 bg-white px-2 text-right text-sm text-slate-900 outline-none focus:border-focus focus:ring-1 focus:ring-focus/30 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
         />
+        {priceWithMargin != null &&
+        parseNumber(draft.price) !== priceWithMargin ? (
+          <p className="mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">
+            Base {brlFormatter.format(parseNumber(draft.price) ?? 0)} + margem
+          </p>
+        ) : null}
       </div>
       <div className="flex h-full items-center justify-center">
         <button
@@ -1662,13 +1692,25 @@ function ProductRow({
 
   const [unitPriceDisplay, setUnitPriceDisplay] = useState<string>(draft.unitPrice)
   const [discountDisplay, setDiscountDisplay] = useState<string>(draft.discount)
+  const [priceFocused, setPriceFocused] = useState(false)
 
   useEffect(() => {
-    setUnitPriceDisplay(draft.unitPrice)
-  }, [draft.unitPrice])
+    // Só sincroniza a partir do draft quando o campo NÃO está focado —
+    // durante a digitação o estado local é a fonte da verdade.
+    if (!priceFocused) setUnitPriceDisplay(draft.unitPrice)
+  }, [draft.unitPrice, priceFocused])
   useEffect(() => {
     setDiscountDisplay(draft.discount)
   }, [draft.discount])
+
+  // Fora do foco: exibe o preço unitário COM margem (atualiza em tempo
+  // real quando a margem global muda, via simulate). Focado: exibe o
+  // preço base (sem margem) para edição livre.
+  const unitPriceDisplayed = priceFocused
+    ? unitPriceDisplay
+    : unitPriceWithMargin != null
+      ? formatBRLValue(unitPriceWithMargin)
+      : unitPriceDisplay
 
   return (
     <div className="grid items-start gap-2 px-3 py-2 sm:grid-cols-[40px_1fr_88px_96px_96px_120px_40px]">
@@ -1738,23 +1780,30 @@ function ProductRow({
         <input
           type="text"
           inputMode="decimal"
-          aria-label="Preço unitário (com margem de lucro aplicada)"
+          aria-label="Preço unitário base (sem margem)"
           placeholder="0,00"
-          value={
-            unitPriceWithMargin != null
-              ? formatBRLValue(unitPriceWithMargin)
-              : unitPriceDisplay
-          }
-          // Readonly: o preço unitário exibido reflete a margem de lucro
-          // aplicada pelo backend. A margem é controlada pelo campo
-          // global "Margem de lucro (%)" e o preço base continua sendo
-          // o valor original armazenado em `draft.unitPrice`.
-          readOnly
-          className={[
-            inputBase,
-            'text-right',
-            'bg-slate-50 dark:bg-slate-800 cursor-not-allowed',
-          ].join(' ')}
+          value={unitPriceDisplayed}
+          onFocus={() => {
+            setPriceFocused(true)
+            // Ao focar, garante que o campo mostre o preço base (sem
+            // margem) para edição, mesmo que antes exibisse o com margem.
+            setUnitPriceDisplay(draft.unitPrice)
+          }}
+          onChange={(e) => {
+            setUnitPriceDisplay(e.target.value)
+            onPatch({ unitPrice: e.target.value })
+          }}
+          onBlur={() => {
+            setPriceFocused(false)
+            if (unitPriceDisplay.trim() !== '') {
+              const formatted = formatBRLValue(unitPriceDisplay)
+              if (formatted) {
+                setUnitPriceDisplay(formatted)
+                onPatch({ unitPrice: formatted })
+              }
+            }
+          }}
+          className={[inputBase, 'text-right'].join(' ')}
         />
         {unitPriceWithMargin != null &&
         parseNumber(draft.unitPrice) !== unitPriceWithMargin ? (
