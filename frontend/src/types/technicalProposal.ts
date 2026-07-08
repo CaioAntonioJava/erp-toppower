@@ -42,7 +42,7 @@ export const TECHNICAL_PROPOSAL_STATUS_LABELS: Record<
   string
 > = {
   ABERTA: 'Aberta',
-  EM_ANDAMENTO: 'Em andamento',
+  EM_ANDAMENTO: 'Execução',
   CONCLUIDA: 'Concluída',
 }
 
