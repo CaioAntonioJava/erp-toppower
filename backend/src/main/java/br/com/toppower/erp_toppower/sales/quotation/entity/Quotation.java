@@ -44,16 +44,18 @@ import java.util.UUID;
  * agregado <b>não</b> declara relacionamento JPA com os itens, em
  * consonância com o restante do projeto.</p>
  *
-     * <p>Os campos calculados {@link #subtotal}, {@link #total} e
-     * {@link #totalQuantity} são preenchidos em memória pelo serviço
-     * após carregar os itens, através de {@link #recalculateTotals(List)}.
-     * O desconto por item <b>já está</b> subtraído em
-     * {@code item.totalPrice}, de modo que o {@code subtotal} reflete o
-     * total líquido dos itens. A {@link #profitMargin} é aplicada como
-     * multiplicação percentual sobre o {@code subtotal}, o desconto
-     * global é então subtraído do valor já com margem, e por último o
-     * {@link #freightValue} é somado — o frete nunca participa da margem
-     * nem do desconto.</p>
+* <p>Os campos calculados {@link #subtotal}, {@link #total} e
+ *     {@link #totalQuantity} são preenchidos em memória pelo serviço
+ *     após carregar os itens, através de {@link #recalculateTotals(List)}.
+ *     O desconto por item <b>já está</b> subtraído em
+ *     {@code item.totalPrice}, e a margem de lucro <b>já está</b>
+ *     embutida no {@code item.unitPrice} e refletida no
+ *     {@code item.totalPrice} — ambos calculados pelo
+ *     {@code QuotationMapper} no momento da criação/atualização do item.
+ *     Com isso, o {@code subtotal} já reflete o total líquido dos itens
+ *     com margem, o desconto global é então subtraído, e por último o
+ *     {@link #freightValue} é somado — o frete nunca participa da margem
+ *     nem do desconto.</p>
  */
 @Entity
 @Table(
@@ -205,13 +207,21 @@ public class Quotation extends OrganizationScopedEntity {
     private UUID carrierUuid;
 
     /**
-     * Margem de lucro aplicada sobre o total da proposta, expressa em
-     * porcentagem (ex.: {@code 10.00} = 10%). Obrigatória.
+     * Margem de lucro aplicada na proposta, expressa em porcentagem
+     * (ex.: {@code 10.00} = 10%). Obrigatória.
      *
-     * <p>Aplicada como multiplicação sobre o total parcial (subtotal
-     * menos o desconto global, mais o frete), através do fator
-     * {@code (1 + profitMargin / 100)}. É o último ajuste realizado na
-     * composição do {@link #total}.</p>
+     * <p>É aplicada <b>item a item</b> pelo {@code QuotationMapper} no
+     * momento da criação/atualização dos itens, majorando o
+     * {@code unitPrice} de cada {@link QuotationItem} pelo fator
+     * {@code (1 + profitMargin / 100)} e refletindo o resultado no
+     * {@code totalPrice} do item. Com isso, o {@link #total} da proposta
+     * passa a ser simplesmente
+     * {@code subtotal − desconto global + frete}, sendo {@code subtotal}
+     * a soma dos totais líquidos dos itens (já com margem embutida).</p>
+     *
+     * <p>Nota: registros criados antes da refatoração podem ter
+     * {@code unitPrice}/{@code totalPrice} sem margem — esses itens não
+     * serão retroativamente recalculados.</p>
      */
     @Column(name = "profit_margin", nullable = false, precision = 5, scale = 2)
     private BigDecimal profitMargin;
@@ -231,11 +241,11 @@ public class Quotation extends OrganizationScopedEntity {
     /**
      * Total final da proposta. Preenchido em memória por
      * {@link #recalculateTotals(List)}. Regra de composição:
-     * {@code (subtotal × (1 + profitMargin/100)) − desconto global + frete}.
-     * A margem de lucro incide apenas sobre o total dos itens (subtotal);
-     * o desconto global é aplicado depois, sobre o valor já com margem;
-     * o frete é somado por último e nunca participa da margem nem do
-     * desconto.
+     * {@code subtotal − desconto global + frete}, sendo {@code subtotal}
+     * a soma dos {@code totalPrice} dos itens (já com margem de lucro
+     * embutida e já líquido do desconto por item). O desconto global é
+     * aplicado sobre o valor já com margem; o frete é somado por último
+     * e nunca participa da margem nem do desconto.
      */
     @Transient
     private BigDecimal total = BigDecimal.ZERO;
@@ -258,15 +268,14 @@ public class Quotation extends OrganizationScopedEntity {
      * <p>Regra de cálculo:</p>
      * <ul>
      *   <li>{@code subtotal} = soma de {@code item.totalPrice} de cada
-     *       item (já líquido do desconto por item, que é deduzido na
-     *       criação/atualização do item);</li>
-     *   <li>{@code total} = ({@code subtotal} multiplicado pela
-     *       {@link #profitMargin} (fator {@code 1 + profitMargin/100}))
-     *       menos o desconto global (valor ou percentual), e por último
-     *       somado ao {@code freightValue}. A margem de lucro incide apenas
-     *       sobre o subtotal dos itens; o desconto é aplicado depois, sobre
-     *       o valor já com margem; o frete é somado ao final e nunca
-     *       participa da margem nem do desconto;</li>
+     *       item. Cada {@code totalPrice} já reflete (a) a margem de
+     *       lucro embutida no {@code unitPrice} e (b) o desconto da
+     *       própria linha já subtraído — ambos aplicados pelo
+     *       {@code QuotationMapper} na criação/atualização do item;</li>
+     *   <li>{@code total} = {@code subtotal} menos o desconto global
+     *       (valor fixo ou percentual, aplicado sobre o valor já com
+     *       margem) e somado ao {@link #freightValue}. O frete nunca
+     *       participa da margem nem do desconto.</li>
      *   <li>{@code totalQuantity} = soma de {@code item.quantity}.</li>
      * </ul>
      *
@@ -288,13 +297,11 @@ public class Quotation extends OrganizationScopedEntity {
                     .reduce(BigDecimal.ZERO, BigDecimal::add)
                     .intValue();
         }
-        // total = subtotal × (1 + margem/100), aplicado o desconto global
-        // sobre o valor já com margem, e por último somado o frete.
-        // A margem incide apenas sobre o total dos itens; o desconto é
-        // retirado depois da margem; o frete é repassado de forma fixa,
-        // sem participar da margem nem do desconto.
-        BigDecimal withMargin = applyProfitMargin(this.subtotal);
-        BigDecimal discounted = applyGlobalDiscount(withMargin);
+        // total = subtotal (já com margem embutida nos itens) − desconto global
+        // + frete. O desconto global é aplicado sobre o valor já com margem;
+        // o frete é somado ao final, sem participar da margem nem do desconto.
+        BigDecimal discounted = PricingMath.applyGlobalDiscount(
+                this.subtotal, this.discount, this.discountType);
         BigDecimal freight = (freightValue != null) ? freightValue : BigDecimal.ZERO;
         this.total = discounted.add(freight).setScale(2, RoundingMode.HALF_UP);
     }
@@ -302,31 +309,16 @@ public class Quotation extends OrganizationScopedEntity {
     /**
      * Valor em R$ do desconto global efetivamente aplicado, derivado da
      * mesma base usada em {@link #recalculateTotals(List)}: diferença entre
-     * o subtotal com margem e o subtotal já descontado. Retorna
+     * o subtotal (já com margem) e o subtotal já descontado. Retorna
      * {@code BigDecimal.ZERO} quando não há desconto global configurado.
      *
      * <p>Exposto para que o mapper possa popular o DTO de resposta sem
      * duplicar a lógica de cálculo.</p>
      */
     public BigDecimal calculateGlobalDiscountValue() {
-        BigDecimal withMargin = applyProfitMargin(this.subtotal);
-        BigDecimal discounted = applyGlobalDiscount(withMargin);
-        return withMargin.subtract(discounted).setScale(2, RoundingMode.HALF_UP);
-    }
-
-    /**
-     * Aplica a {@link #profitMargin} como multiplicação percentual sobre
-     * o subtotal dos itens (antes do desconto global e do frete), através
-     * do fator {@code (1 + profitMargin / 100)}. Delegado a
-     * {@link PricingMath#applyProfitMargin} para reaproveitamento entre
-     * documentos comerciais.
-     */
-    private BigDecimal applyProfitMargin(BigDecimal base) {
-        return PricingMath.applyProfitMargin(base, this.profitMargin);
-    }
-
-    private BigDecimal applyGlobalDiscount(BigDecimal base) {
-        return PricingMath.applyGlobalDiscount(base, this.discount, this.discountType);
+        BigDecimal discounted = PricingMath.applyGlobalDiscount(
+                this.subtotal, this.discount, this.discountType);
+        return this.subtotal.subtract(discounted).setScale(2, RoundingMode.HALF_UP);
     }
 
     /**

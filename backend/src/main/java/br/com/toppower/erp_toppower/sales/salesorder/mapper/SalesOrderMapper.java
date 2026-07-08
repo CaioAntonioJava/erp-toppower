@@ -1,6 +1,5 @@
 package br.com.toppower.erp_toppower.sales.salesorder.mapper;
 
-import br.com.toppower.erp_toppower.common.util.PricingMath;
 import br.com.toppower.erp_toppower.sales.quotation.entity.Quotation;
 import br.com.toppower.erp_toppower.sales.quotation.entity.QuotationItem;
 import br.com.toppower.erp_toppower.sales.quotation.enums.DiscountType;
@@ -28,13 +27,12 @@ import java.util.UUID;
  * considerando o desconto por item) que afeta o total final do
  * pedido.</p>
  *
- * <p><b>Embuti a margem de lucro</b> da {@code Quotation} nos preços
- * dos itens do {@code SalesOrder} durante a conversão
- * ({@link #fromQuotationItem(QuotationItem, UUID, BigDecimal)}),
- * majorando {@code unitPrice}, {@code totalPrice} e o desconto por
- * valor fixo pelo fator {@code (1 + profitMargin/100)}. Assim o
- * total do pedido reflete o valor com margem cobrado do cliente,
- * sem expor a margem como campo separado.</p>
+ * <p>Na conversão de uma {@code Quotation} para {@code SalesOrder}
+ * ({@link #fromQuotationItem(QuotationItem, UUID, BigDecimal)}), os
+ * preços dos itens já vêm com a margem de lucro embutida (o
+ * {@code QuotationMapper} aplica a margem item a item no momento da
+ * criação/atualização). Por isso, esta conversão apenas copia os
+ * valores, sem aplicar fator adicional.</p>
  */
 public final class SalesOrderMapper {
 
@@ -66,61 +64,41 @@ public final class SalesOrderMapper {
         return item;
     }
 
-/**
- * Cria uma entidade {@link SalesOrderItem} a partir de um item de
- * proposta (snapshot na conversão). Copia produto, quantidade, tipo
- * de desconto e <b>embuti a margem de lucro</b> da proposta nos
- * preços ({@code unitPrice}, {@code totalPrice} e, quando o desconto
- * é por valor fixo, também no {@code discount}), de modo que o
- * total do pedido reflita o valor já com margem cobrado do cliente.
- *
- * <p>O fator aplicado é {@code (1 + profitMargin / 100)}. Para
- * desconto percentual o valor {@code discount} é preservado (a
- * porcentagem incide sobre o novo preço base já majorado); para
- * desconto em valor fixo o {@code discount} é igualmente majorado
- * pelo mesmo fator, mantendo a identidade
- * {@code unitPrice * quantity - discount = totalPrice}.</p>
- */
-public static SalesOrderItem fromQuotationItem(QuotationItem source, UUID salesOrderUuid,
-                                                BigDecimal profitMargin) {
-    BigDecimal factor = PricingMath.profitFactor(profitMargin);
-    SalesOrderItem item = new SalesOrderItem();
-    item.setSalesOrderUuid(salesOrderUuid);
-    item.setProductUuid(source.getProductUuid());
-    item.setQuantity(source.getQuantity());
-    item.setUnitPrice(scale(source.getUnitPrice(), factor));
-    item.setDiscountType(source.getDiscountType());
-    item.setDiscount(scaleDiscount(source.getDiscount(), source.getDiscountType(), factor));
-    item.setTotalPrice(scale(source.getTotalPrice(), factor));
-    return item;
-}
-
-/**
- * Multiplica {@code value} por {@code factor} com 2 casas. Retorna
- * zero quando {@code value} é nulo.
- */
-private static BigDecimal scale(BigDecimal value, BigDecimal factor) {
-    if (value == null) {
-        return BigDecimal.ZERO;
+    /**
+     * Cria uma entidade {@link SalesOrderItem} a partir de um item de
+     * proposta (snapshot na conversão). Copia produto, quantidade, tipo
+     * de desconto, desconto e totais <b>sem aplicar fator de margem</b>:
+     * a margem de lucro da proposta já está embutida em
+     * {@code source.unitPrice} e {@code source.totalPrice}, calculada
+     * item a item pelo {@code QuotationMapper} no momento da
+     * criação/atualização da cotação.
+     *
+     * <p>O parâmetro {@code profitMargin} é mantido por compatibilidade
+     * com {@code SalesOrderService.createFromQuotation}, mas é
+     * ignorado neste método — a aplicação da margem é responsabilidade
+     * exclusiva do mapper de cotação. Marcado como {@code @Deprecated}
+     * para sinalizar que deve ser removido quando a assinatura puder
+     * ser quebrada.</p>
+     *
+     * @param source       item da cotação já com margem embutida
+     * @param salesOrderUuid UUID do pedido de venda
+     * @param profitMargin ignorado — a margem já está no snapshot
+     * @return item do pedido de venda
+     */
+    @Deprecated
+    public static SalesOrderItem fromQuotationItem(QuotationItem source, UUID salesOrderUuid,
+                                                    BigDecimal profitMargin) {
+        // no-op: profit margin already embedded in QuotationItem.unitPrice/totalPrice
+        SalesOrderItem item = new SalesOrderItem();
+        item.setSalesOrderUuid(salesOrderUuid);
+        item.setProductUuid(source.getProductUuid());
+        item.setQuantity(source.getQuantity());
+        item.setUnitPrice(source.getUnitPrice());
+        item.setDiscountType(source.getDiscountType());
+        item.setDiscount(source.getDiscount());
+        item.setTotalPrice(source.getTotalPrice());
+        return item;
     }
-    return value.multiply(factor).setScale(2, RoundingMode.HALF_UP);
-}
-
-/**
- * Majora o desconto da linha pelo fator de margem apenas quando for
- * valor fixo ({@code AMOUNT}); desconto percentual é preservado
- * (a porcentagem incide sobre o novo preço base já majorado).
- */
-private static BigDecimal scaleDiscount(BigDecimal discount, DiscountType discountType,
-                                         BigDecimal factor) {
-    if (discount == null || discount.signum() == 0) {
-        return discount;
-    }
-    if (discountType == DiscountType.AMOUNT) {
-        return scale(discount, factor);
-    }
-    return discount;
-}
 
     public static SalesOrderItemResponse toItemResponse(SalesOrderItem item) {
         return new SalesOrderItemResponse(

@@ -22,9 +22,12 @@ import java.util.UUID;
 /**
  * Conversões entre entidades do agregado {@code Quotation} e seus DTOs.
  *
- * <p>Inclui o cálculo do {@code totalPrice} de cada item (líquido,
- * considerando o desconto por item) que afeta o total final da
- * proposta.</p>
+ * <p>A margem de lucro ({@code profitMargin}) do header é aplicada
+ * <b>item a item</b> aqui: o {@code unitPrice} persistido já reflete a
+ * majoração e o {@code totalPrice} é calculado sobre esse preço
+ * majorado, líquido do desconto da própria linha. Com isso, o total da
+ * proposta é simplesmente a soma dos itens (já com margem e já líquido
+ * do desconto por item), menos o desconto global e mais o frete.</p>
  */
 public final class QuotationMapper {
 
@@ -37,22 +40,27 @@ public final class QuotationMapper {
 
     /**
      * Cria uma entidade {@link QuotationItem} a partir do DTO de request,
-     * calculando o {@code totalPrice} como {@code unitPrice * quantity - discount}
+     * aplicando a margem de lucro no {@code unitPrice} e calculando o
+     * {@code totalPrice} como
+     * {@code (unitPrice × (1 + profitMargin/100)) × quantity − discount}
      * (com o desconto interpretado conforme {@code discountType}).
      */
-    public static QuotationItem toItemEntity(QuotationItemRequest request, UUID quotationUuid) {
+    public static QuotationItem toItemEntity(QuotationItemRequest request,
+                                             UUID quotationUuid,
+                                             BigDecimal profitMargin) {
         QuotationItem item = new QuotationItem();
         item.setQuotationUuid(quotationUuid);
         item.setProductUuid(request.productUuid());
         item.setQuantity(request.quantity());
-        item.setUnitPrice(request.unitPrice());
+        item.setUnitPrice(applyProfitMargin(request.unitPrice(), profitMargin));
         item.setDiscountType(request.discountType());
         item.setDiscount(request.discount());
         item.setTotalPrice(calculateItemTotalPrice(
                 request.unitPrice(),
                 request.quantity(),
                 request.discount(),
-                request.discountType()));
+                request.discountType(),
+                profitMargin));
         return item;
     }
 
@@ -62,19 +70,22 @@ public final class QuotationMapper {
      * como zero pelo cálculo — o preview pode ser disparado com o
      * formulário em estado intermediário.
      */
-    public static QuotationItem toItemEntity(QuotationSimulateItemRequest request, UUID quotationUuid) {
+    public static QuotationItem toItemEntity(QuotationSimulateItemRequest request,
+                                             UUID quotationUuid,
+                                             BigDecimal profitMargin) {
         QuotationItem item = new QuotationItem();
         item.setQuotationUuid(quotationUuid);
         item.setProductUuid(request.productUuid());
         item.setQuantity(request.quantity());
-        item.setUnitPrice(request.unitPrice());
+        item.setUnitPrice(applyProfitMargin(request.unitPrice(), profitMargin));
         item.setDiscountType(request.discountType());
         item.setDiscount(request.discount());
         item.setTotalPrice(calculateItemTotalPrice(
                 request.unitPrice(),
                 request.quantity(),
                 request.discount(),
-                request.discountType()));
+                request.discountType(),
+                profitMargin));
         return item;
     }
 
@@ -99,17 +110,44 @@ public final class QuotationMapper {
     }
 
     /**
-     * Calcula o total líquido de uma linha:
-     * {@code unitPrice * quantity} menos o desconto (valor fixo ou percentual).
+     * Aplica a margem de lucro como multiplicação percentual sobre o
+     * {@code unitPrice}, através do fator {@code (1 + profitMargin / 100)}.
+     * Retorna {@code ZERO} quando o preço for nulo e o próprio preço
+     * (arredondado para 2 casas) quando a margem for nula ou zero.
+     */
+    static BigDecimal applyProfitMargin(BigDecimal unitPrice, BigDecimal profitMargin) {
+        if (unitPrice == null) {
+            return BigDecimal.ZERO;
+        }
+        if (profitMargin == null || profitMargin.signum() == 0) {
+            return unitPrice.setScale(2, RoundingMode.HALF_UP);
+        }
+        BigDecimal factor = BigDecimal.ONE.add(
+                profitMargin.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP));
+        return unitPrice.multiply(factor).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Calcula o total líquido de uma linha, aplicando a margem de lucro
+     * <b>antes</b> do desconto da própria linha:
+     * <pre>
+     *   unitPriceComMargem = unitPrice × (1 + profitMargin/100)
+     *   gross              = unitPriceComMargem × quantity
+     *   desconto           = gross × discount%        (se PERCENT)
+     *                      | discount (R$ fixo)       (se AMOUNT)
+     *   totalPrice         = gross − desconto
+     * </pre>
      */
     static BigDecimal calculateItemTotalPrice(BigDecimal unitPrice,
                                                BigDecimal quantity,
                                                BigDecimal discount,
-                                               DiscountType discountType) {
+                                               DiscountType discountType,
+                                               BigDecimal profitMargin) {
         if (unitPrice == null || quantity == null) {
             return BigDecimal.ZERO;
         }
-        BigDecimal gross = unitPrice.multiply(quantity);
+        BigDecimal unitPriceWithMargin = applyProfitMargin(unitPrice, profitMargin);
+        BigDecimal gross = unitPriceWithMargin.multiply(quantity);
         if (discount == null || discountType == null || discount.signum() == 0) {
             return gross.setScale(2, RoundingMode.HALF_UP);
         }

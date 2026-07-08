@@ -96,7 +96,8 @@ public class QuotationService {
         List<QuotationItem> items = new ArrayList<>(request.items().size());
         for (QuotationItemRequest itemReq : request.items()) {
             items.add(quotationItemRepository.save(
-                    QuotationMapper.toItemEntity(itemReq, savedHeader.getUuid())));
+                    QuotationMapper.toItemEntity(itemReq, savedHeader.getUuid(),
+                            savedHeader.getProfitMargin())));
         }
 
         // Recalcula e aplica os totais na entidade em memória (somente para a resposta)
@@ -245,7 +246,8 @@ public class QuotationService {
             items = new ArrayList<>(request.items().size());
             for (QuotationItemRequest itemReq : request.items()) {
                 items.add(quotationItemRepository.save(
-                        QuotationMapper.toItemEntity(itemReq, saved.getUuid())));
+                        QuotationMapper.toItemEntity(itemReq, saved.getUuid(),
+                                saved.getProfitMargin())));
             }
         } else {
             items = quotationItemRepository.findByQuotationUuidOrderByCreatedAtAsc(id);
@@ -307,7 +309,8 @@ public class QuotationService {
         List<QuotationItem> items = (request.items() == null)
                 ? List.of()
                 : request.items().stream()
-                        .map(itemReq -> QuotationMapper.toItemEntity(itemReq, header.getUuid()))
+                        .map(itemReq -> QuotationMapper.toItemEntity(itemReq, header.getUuid(),
+                                header.getProfitMargin()))
                         .toList();
 
         header.recalculateTotals(items);
