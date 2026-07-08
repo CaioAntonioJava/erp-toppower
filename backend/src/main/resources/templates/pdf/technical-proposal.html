@@ -111,12 +111,7 @@
     </tr>
     <tr>
       <td class="k">Validade da proposta</td>
-      <td class="v" th:text="${proposal.validity != null ? proposal.validity : '—'}">—</td>
-      <td class="k">Margem de lucro</td>
-      <td class="v"
-          th:text="${proposal.profitMargin != null
-                     ? #numbers.formatDecimal(proposal.profitMargin, 1, 'POINT', 2, 'COMMA') + '%'
-                     : '0,00%'}">0,00%</td>
+      <td class="v" colspan="3" th:text="${proposal.validity != null ? proposal.validity : '—'}">—</td>
     </tr>
   </table>
 </div>

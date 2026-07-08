@@ -58,8 +58,10 @@ public class SalesPdfService {
         try {
             xhtml = templateEngine.process(templateName, thymeleafContext);
         } catch (RuntimeException ex) {
-            // Repassa como RuntimeException com mensagem mais útil
-            throw new IllegalStateException(
+            // Repassa como PdfGenerationException (500) em vez de deixar
+            // o IllegalStateException genérico virar 400 enganoso ("selecione
+            // uma empresa ativa") no GlobalExceptionHandler.
+            throw new PdfGenerationException(
                     "Falha ao renderizar template Thymeleaf '" + templateName
                             + "': " + ex.getMessage(), ex);
         }
@@ -72,7 +74,7 @@ public class SalesPdfService {
             renderer.finishPDF();
             return out.toByteArray();
         } catch (Exception ex) {
-            throw new IllegalStateException(
+            throw new PdfGenerationException(
                     "Falha ao gerar PDF a partir do template '"
                             + templateName + "': " + ex.getMessage(), ex);
         }

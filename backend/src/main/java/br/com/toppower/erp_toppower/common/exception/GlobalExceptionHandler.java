@@ -116,6 +116,26 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
+    /**
+     * Falha ao gerar um PDF (Thymeleaf/Flying Saucer). Loga a stack
+     * trace completa em ERROR (necessário para diagnosticar problemas
+     * de template em produção) e devolve 500 para o cliente.
+     *
+     * <p><b>Por que handler dedicado?</b> Antes, o
+     * {@link SalesPdfService} lançava {@link IllegalStateException} ao
+     * falhar a renderização. Esse handler genérico abaixo converte
+     * qualquer {@link IllegalStateException} em HTTP 400 com a mensagem
+     * "Selecione uma empresa ativa..." — mascarando a causa real (erro
+     * de template, campo nulo, etc.) como se fosse problema de
+     * Organization ativa.</p>
+     */
+    @ExceptionHandler(br.com.toppower.erp_toppower.sales.pdf.PdfGenerationException.class)
+    public ResponseEntity<ApiError> handlePdfGeneration(br.com.toppower.erp_toppower.sales.pdf.PdfGenerationException ex) {
+        log.error("Falha ao gerar PDF: {}", ex.getMessage(), ex);
+        return build(HttpStatus.INTERNAL_SERVER_ERROR,
+                "Falha ao gerar o PDF. Verifique os logs do servidor para detalhes.");
+    }
+
     @ExceptionHandler(CepNotFoundException.class)
     public ResponseEntity<ApiError> handleCepNotFound(CepNotFoundException ex) {
         return build(HttpStatus.NOT_FOUND, ex.getMessage());

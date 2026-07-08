@@ -71,12 +71,7 @@
     </tr>
     <tr>
       <td class="k">Transportadora</td>
-      <td class="v" th:text="${quotation.carrierName != null ? quotation.carrierName : '—'}">—</td>
-      <td class="k">Margem de lucro</td>
-      <td class="v"
-          th:text="${quotation.profitMargin != null
-                     ? #numbers.formatDecimal(quotation.profitMargin, 1, 'POINT', 2, 'COMMA') + '%'
-                     : '0,00%'}">0,00%</td>
+      <td class="v" colspan="3" th:text="${quotation.carrierName != null ? quotation.carrierName : '—'}">—</td>
     </tr>
   </table>
 </div>
