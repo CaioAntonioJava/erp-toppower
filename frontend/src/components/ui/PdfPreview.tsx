@@ -32,6 +32,73 @@ interface PdfPreviewProps {
   onError?: (message: string) => void
 }
 
+/**
+ * Lê a mensagem de erro vinda de uma resposta axios com
+ * {@code responseType: 'blob'}. Nesse modo, o body de erro (JSON) chega
+ * como {@link Blob} em {@code err.response.data}, e o helper precisa
+ * decodificá-lo para extrair o campo {@code message} do
+ * {@link br.com.toppower.erp_toppower.common.exception.GlobalExceptionHandler.ApiError}.
+ *
+ * <p>Caminhos cobertos:</p>
+ * <ol>
+ *   <li>Body já é objeto JSON decodificado (axios padrão);</li>
+ *   <li>Body é Blob (axios + responseType:blob);</li>
+ *   <li>Body é string (ex.: resposta do Tomcat);</li>
+ *   <li>Sem body — usa o status HTTP para mapear uma mensagem padrão.</li>
+ * </ol>
+ */
+async function extractErrorMessage(err: unknown): Promise<string> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const anyErr = err as any
+  const status: number = anyErr?.response?.status ?? 0
+  const data = anyErr?.response?.data
+
+  // 1) Blob (caso típico do nosso PDF com responseType: 'blob')
+  if (data instanceof Blob) {
+    try {
+      const text = await data.text()
+      if (text) {
+        try {
+          const parsed = JSON.parse(text)
+          if (parsed?.message) return parsed.message
+        } catch {
+          // Não era JSON — usa o texto cru como fallback
+        }
+        return text.slice(0, 300)
+      }
+    } catch {
+      // falha ao ler o blob — segue para fallback genérico
+    }
+  }
+
+  // 2) Objeto JSON já decodificado
+  if (data && typeof data === 'object' && typeof data.message === 'string') {
+    return data.message
+  }
+
+  // 3) String crua
+  if (typeof data === 'string' && data.trim()) {
+    return data.trim()
+  }
+
+  // 4) Fallback por status
+  if (status > 0) {
+    if (status === 401) return 'Sessão expirada ou inválida. Faça login novamente.'
+    if (status === 403) return 'Acesso negado. Você não tem permissão para esta operação.'
+    if (status === 404) return 'Recurso não encontrado.'
+    if (status === 409) return 'Conflito: o recurso já existe ou está em estado inválido.'
+    if (status >= 500) return 'Erro interno do servidor. Tente novamente em instantes.'
+    return `Falha na requisição (HTTP ${status}).`
+  }
+
+  // 5) Sem resposta do servidor (rede offline, CORS, timeout)
+  if (anyErr?.request) {
+    return 'Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.'
+  }
+
+  return anyErr?.message ?? 'Ocorreu um erro inesperado.'
+}
+
 export function PdfPreview({ title, fetcher, onError }: PdfPreviewProps) {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [filename, setFilename] = useState<string>('')
@@ -59,12 +126,12 @@ export function PdfPreview({ title, fetcher, onError }: PdfPreviewProps) {
         setFilename(filename)
         setLoading(false)
       })
-      .catch((err) => {
+      .catch(async (err) => {
         if (cancelled) return
-        const message =
-          err?.response?.data?.message ??
-          err?.message ??
-          'Falha ao carregar o PDF.'
+        // Loga o erro completo no console para facilitar debug futuro.
+        // eslint-disable-next-line no-console
+        console.error('[PdfPreview] Falha ao carregar PDF:', err)
+        const message = await extractErrorMessage(err)
         setError(message)
         onError?.(message)
         setLoading(false)
