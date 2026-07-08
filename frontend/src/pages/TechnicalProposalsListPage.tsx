@@ -1,21 +1,26 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Eye,
   FileText,
   Plus,
+  Printer,
   Search,
-  Wrench,
 } from 'lucide-react'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Select } from '../components/ui/Select'
 import { Spinner } from '../components/ui/Spinner'
 import { Alert } from '../components/ui/Alert'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { TechnicalProposalStatusBadge } from '../components/sales/TechnicalProposalStatusBadge'
-import { listTechnicalProposals } from '../api/technicalProposal.api'
+import {
+  completeTechnicalProposal,
+  listTechnicalProposals,
+} from '../api/technicalProposal.api'
 import { toApiError } from '../lib/errors'
 import type {
   TechnicalProposalStatus,
@@ -64,6 +69,32 @@ export function TechnicalProposalsListPage() {
     useState<PagedResponse<TechnicalProposalSummaryResponse> | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Finalização de proposta direto da listagem.
+  const [completeTarget, setCompleteTarget] =
+    useState<TechnicalProposalSummaryResponse | null>(null)
+  const [completing, setCompleting] = useState(false)
+  const [completeError, setCompleteError] = useState<string | null>(null)
+
+  async function handleComplete() {
+    if (!completeTarget) return
+    setCompleting(true)
+    setCompleteError(null)
+    try {
+      await completeTechnicalProposal(completeTarget.uuid)
+      setCompleteTarget(null)
+      // Recarrega a página atual para refletir o novo status.
+      const params: Parameters<typeof listTechnicalProposals>[0] = { page, size }
+      if (status !== 'ALL') params.status = status
+      if (debouncedCode.length > 0) params.code = debouncedCode
+      const result = await listTechnicalProposals(params)
+      setData(result)
+    } catch (err) {
+      setCompleteError(toApiError(err).message)
+    } finally {
+      setCompleting(false)
+    }
+  }
 
   // Debounce do filtro por código.
   useEffect(() => {
@@ -143,6 +174,7 @@ export function TechnicalProposalsListPage() {
       </div>
 
       {error ? <Alert variant="error">{error}</Alert> : null}
+      {completeError ? <Alert variant="error">{completeError}</Alert> : null}
 
       {/* Tabela */}
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -235,13 +267,28 @@ export function TechnicalProposalsListPage() {
                           size="sm"
                           variant="ghost"
                           onClick={() =>
-                            navigate(`/technical-proposals/${tp.uuid}/edit`)
+                            window.open(
+                              `/technical-proposals/${tp.uuid}/pdf`,
+                              '_blank',
+                            )
                           }
-                          title="Editar"
-                          aria-label="Editar"
+                          title="Gerar PDF"
+                          aria-label="Gerar PDF"
                         >
-                          <Wrench className="h-4 w-4" />
+                          <Printer className="h-4 w-4" />
                         </Button>
+                        {tp.status === 'EM_ANDAMENTO' ? (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="!text-red-600 hover:!text-red-600 dark:!text-red-500 dark:hover:!text-red-500"
+                            onClick={() => setCompleteTarget(tp)}
+                            title="Finalizar serviço"
+                            aria-label="Finalizar serviço"
+                          >
+                            <CheckCircle2 className="h-4 w-4" />
+                          </Button>
+                        ) : null}
                       </div>
                     </td>
                   </tr>
@@ -282,6 +329,23 @@ export function TechnicalProposalsListPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={completeTarget != null}
+        title="Finalizar serviço?"
+        description={
+          completeTarget
+            ? `A proposta ${completeTarget.code} passará para CONCLUIDA e a data de entrega será preenchida com a data de hoje.`
+            : ''
+        }
+        confirmText="Finalizar"
+        confirmVariant="primary"
+        isLoading={completing}
+        onConfirm={handleComplete}
+        onClose={() => {
+          if (!completing) setCompleteTarget(null)
+        }}
+      />
     </div>
   )
 }

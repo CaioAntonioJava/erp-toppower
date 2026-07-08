@@ -237,6 +237,17 @@ export function TechnicalProposalFormPage() {
                 <X className="h-4 w-4" />
                 Cancelar
               </Button>
+              {canComplete ? (
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={() => setConfirmComplete(true)}
+                  size="md"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  Finalizar serviço
+                </Button>
+              ) : null}
               {canStart ? (
                 <Button
                   type="button"
@@ -246,17 +257,6 @@ export function TechnicalProposalFormPage() {
                 >
                   <Play className="h-4 w-4" />
                   Iniciar execução
-                </Button>
-              ) : null}
-              {canComplete ? (
-                <Button
-                  type="button"
-                  variant="primary"
-                  onClick={() => setConfirmComplete(true)}
-                  size="md"
-                >
-                  <CheckCircle2 className="h-4 w-4" />
-                  Concluir
                 </Button>
               ) : null}
               {canReopen ? (
@@ -367,9 +367,9 @@ export function TechnicalProposalFormPage() {
 
       <ConfirmDialog
         open={confirmComplete}
-        title="Concluir execução?"
+        title="Finalizar serviço?"
         description="A proposta passará para CONCLUIDA e a data de entrega será preenchida com a data de hoje."
-        confirmText="Concluir"
+        confirmText="Finalizar"
         confirmVariant="primary"
         isLoading={transitioning}
         onConfirm={() =>
