@@ -112,3 +112,36 @@ export async function searchQuotationClients(
   )
   return data
 }
+
+/**
+ * GET /quotations/{id}/pdf — baixa o PDF da proposta comercial como
+ * Blob, autenticado pelo axios (header Authorization) e respeitando a
+ * Organization ativa. Retorna o Blob + o nome de arquivo sugerido pelo
+ * servidor (cabeçalho Content-Disposition).
+ *
+ * Use o retorno com `URL.createObjectURL(blob)` para preview em iframe,
+ * ou dispare um `<a download>` para download direto.
+ */
+export async function getQuotationPdf(
+  id: string,
+  disposition: 'inline' | 'attachment' = 'inline',
+): Promise<{ blob: Blob; filename: string }> {
+  const response = await api.get<Blob>(`${BASE}/${id}/pdf`, {
+    params: { disposition },
+    responseType: 'blob',
+  })
+  const filename = parseFilename(response.headers['content-disposition'])
+    ?? `proposta-${id}.pdf`
+  return { blob: response.data, filename }
+}
+
+/**
+ * Extrai o filename do cabeçalho Content-Disposition. Aceita tanto
+ * `inline; filename="..."` quanto `attachment; filename=...` (com ou
+ * sem aspas, com ou sem `filename*` RFC 5987).
+ */
+function parseFilename(contentDisposition: string | undefined): string | null {
+  if (!contentDisposition) return null
+  const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(contentDisposition)
+  return match ? match[1] : null
+}

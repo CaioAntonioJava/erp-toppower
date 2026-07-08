@@ -135,3 +135,28 @@ export async function searchTechnicalProposalClients(
   )
   return data
 }
+
+/**
+ * GET /technical-proposals/{id}/pdf — baixa o PDF da proposta técnica
+ * como Blob, autenticado pelo axios. Use com `URL.createObjectURL` para
+ * preview ou `<a download>` para download direto.
+ */
+export async function getTechnicalProposalPdf(
+  id: string,
+  disposition: 'inline' | 'attachment' = 'inline',
+): Promise<{ blob: Blob; filename: string }> {
+  const response = await api.get<Blob>(`${BASE}/${id}/pdf`, {
+    params: { disposition },
+    responseType: 'blob',
+  })
+  const filename = parseFilename(response.headers['content-disposition'])
+    ?? `proposta-tecnica-${id}.pdf`
+  return { blob: response.data, filename }
+}
+
+/** Helper interno: extrai filename do header Content-Disposition. */
+function parseFilename(contentDisposition: string | undefined): string | null {
+  if (!contentDisposition) return null
+  const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(contentDisposition)
+  return match ? match[1] : null
+}

@@ -118,3 +118,28 @@ export async function cancelSalesOrder(
   const { data } = await api.delete<SalesOrderResponse>(`${BASE}/${id}`)
   return data
 }
+
+/**
+ * GET /sales-orders/{id}/pdf — baixa o PDF do pedido de venda como
+ * Blob, autenticado pelo axios. Use com `URL.createObjectURL` para
+ * preview ou `<a download>` para download direto.
+ */
+export async function getSalesOrderPdf(
+  id: string,
+  disposition: 'inline' | 'attachment' = 'inline',
+): Promise<{ blob: Blob; filename: string }> {
+  const response = await api.get<Blob>(`${BASE}/${id}/pdf`, {
+    params: { disposition },
+    responseType: 'blob',
+  })
+  const filename = parseFilename(response.headers['content-disposition'])
+    ?? `pedido-${id}.pdf`
+  return { blob: response.data, filename }
+}
+
+/** Helper interno: extrai filename do header Content-Disposition. */
+function parseFilename(contentDisposition: string | undefined): string | null {
+  if (!contentDisposition) return null
+  const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(contentDisposition)
+  return match ? match[1] : null
+}

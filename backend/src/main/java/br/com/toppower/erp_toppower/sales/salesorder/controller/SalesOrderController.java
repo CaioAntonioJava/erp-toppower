@@ -8,6 +8,7 @@ import br.com.toppower.erp_toppower.sales.salesorder.dto.SalesOrderResponse;
 import br.com.toppower.erp_toppower.sales.salesorder.dto.SalesOrderSummaryResponse;
 import br.com.toppower.erp_toppower.sales.salesorder.dto.SalesOrderUpdateRequest;
 import br.com.toppower.erp_toppower.sales.salesorder.enums.SalesOrderStatus;
+import br.com.toppower.erp_toppower.sales.salesorder.service.SalesOrderPdfService;
 import br.com.toppower.erp_toppower.sales.salesorder.service.SalesOrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -23,6 +24,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -50,6 +53,7 @@ public class SalesOrderController {
             "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
 
     private final SalesOrderService salesOrderService;
+    private final SalesOrderPdfService pdfService;
 
     // =====================================================================
     // Criação
@@ -307,5 +311,51 @@ public class SalesOrderController {
     })
     public ResponseEntity<SalesOrderResponse> cancel(@PathVariable UUID id) {
         return ResponseEntity.ok(salesOrderService.cancel(id));
+    }
+
+    // =====================================================================
+    // Geração de PDF
+    // =====================================================================
+
+    /**
+     * Gera o PDF A4 do pedido de venda, com cabeçalho dinâmico (logo +
+     * dados da Organization ativa). Suporta {@code disposition=inline}
+     * (default — preview em iframe) e {@code attachment} (download).
+     */
+    @GetMapping(value = "/{id:" + UUID_REGEX + "}/pdf",
+            produces = MediaType.APPLICATION_PDF_VALUE)
+    @Operation(summary = "Gerar PDF do pedido de venda",
+            description = "Retorna o PDF (A4) com cabeçalho do emissor (Organization ativa), "
+                    + "cliente, vendedor, condições, itens, totais e observações.")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "PDF gerado.",
+                    content = @Content(mediaType = MediaType.APPLICATION_PDF_VALUE,
+                            schema = @Schema(type = "string", format = "binary"))),
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "404", description = "Pedido não encontrado.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+    })
+    public ResponseEntity<byte[]> downloadPdf(
+            @PathVariable UUID id,
+            @Parameter(description = "Modo de disposição: 'inline' (preview) ou 'attachment' (download).",
+                    schema = @Schema(allowableValues = {"inline", "attachment"}))
+            @RequestParam(value = "disposition", defaultValue = "inline") String disposition) {
+        SalesOrderResponse so = salesOrderService.getById(id);
+        byte[] pdf = pdfService.renderPdf(id);
+
+        String fname = "pedido-" + so.number() + ".pdf";
+        ContentDisposition cd = "attachment".equalsIgnoreCase(disposition)
+                ? ContentDisposition.attachment().filename(fname).build()
+                : ContentDisposition.inline().filename(fname).build();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentDisposition(cd);
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentLength(pdf.length);
+
+        return ResponseEntity.ok().headers(headers).body(pdf);
     }
 }

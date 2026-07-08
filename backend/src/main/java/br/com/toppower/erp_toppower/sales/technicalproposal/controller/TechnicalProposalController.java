@@ -11,6 +11,7 @@ import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposa
 import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalSummaryResponse;
 import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalUpdateRequest;
 import br.com.toppower.erp_toppower.sales.technicalproposal.enums.TechnicalProposalStatus;
+import br.com.toppower.erp_toppower.sales.technicalproposal.service.TechnicalProposalPdfService;
 import br.com.toppower.erp_toppower.sales.technicalproposal.service.TechnicalProposalService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -26,6 +27,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -54,6 +57,7 @@ public class TechnicalProposalController {
 
     private final TechnicalProposalService service;
     private final ClientSearchService clientSearchService;
+    private final TechnicalProposalPdfService pdfService;
 
     // =====================================================================
     // CRUD
@@ -390,5 +394,52 @@ public class TechnicalProposalController {
             case CUSTOMER -> br.com.toppower.erp_toppower.sales.quotation.dto.QuotationResponse.ClientType.CUSTOMER;
             case COMPANY -> br.com.toppower.erp_toppower.sales.quotation.dto.QuotationResponse.ClientType.COMPANY;
         };
+    }
+
+    // =====================================================================
+    // Geração de PDF
+    // =====================================================================
+
+    /**
+     * Gera o PDF A4 da proposta técnica, com cabeçalho dinâmico (logo +
+     * dados da Organization ativa). Suporta {@code disposition=inline}
+     * (default — preview em iframe) e {@code attachment} (download).
+     */
+    @GetMapping(value = "/{id:" + UUID_REGEX + "}/pdf",
+            produces = MediaType.APPLICATION_PDF_VALUE)
+    @Operation(summary = "Gerar PDF da proposta técnica",
+            description = "Retorna o PDF (A4) com cabeçalho do emissor (Organization ativa), "
+                    + "cliente, responsável técnico, condições, objetivos, serviços, produtos, "
+                    + "totais e observações.")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "PDF gerado.",
+                    content = @Content(mediaType = MediaType.APPLICATION_PDF_VALUE,
+                            schema = @Schema(type = "string", format = "binary"))),
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "404", description = "Proposta não encontrada.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+    })
+    public ResponseEntity<byte[]> downloadPdf(
+            @PathVariable UUID id,
+            @Parameter(description = "Modo de disposição: 'inline' (preview) ou 'attachment' (download).",
+                    schema = @Schema(allowableValues = {"inline", "attachment"}))
+            @RequestParam(value = "disposition", defaultValue = "inline") String disposition) {
+        TechnicalProposalResponse tp = service.getById(id);
+        byte[] pdf = pdfService.renderPdf(id);
+
+        String fname = "proposta-" + tp.code() + ".pdf";
+        ContentDisposition cd = "attachment".equalsIgnoreCase(disposition)
+                ? ContentDisposition.attachment().filename(fname).build()
+                : ContentDisposition.inline().filename(fname).build();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentDisposition(cd);
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentLength(pdf.length);
+
+        return ResponseEntity.ok().headers(headers).body(pdf);
     }
 }

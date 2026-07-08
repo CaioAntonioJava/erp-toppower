@@ -11,6 +11,7 @@ import br.com.toppower.erp_toppower.sales.quotation.dto.QuotationSummaryResponse
 import br.com.toppower.erp_toppower.sales.quotation.dto.QuotationUpdateRequest;
 import br.com.toppower.erp_toppower.sales.quotation.enums.QuotationStatus;
 import br.com.toppower.erp_toppower.sales.quotation.service.ClientSearchService;
+import br.com.toppower.erp_toppower.sales.quotation.service.QuotationPdfService;
 import br.com.toppower.erp_toppower.sales.quotation.service.QuotationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -26,6 +27,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -55,6 +58,7 @@ public class QuotationController {
 
     private final QuotationService quotationService;
     private final ClientSearchService clientSearchService;
+    private final QuotationPdfService quotationPdfService;
 
     // =====================================================================
     // Endpoints de propostas
@@ -251,6 +255,56 @@ public class QuotationController {
     })
     public ResponseEntity<QuotationResponse> cancel(@PathVariable UUID id) {
         return ResponseEntity.ok(quotationService.cancel(id));
+    }
+
+    // =====================================================================
+    // Geração de PDF
+    // =====================================================================
+
+    /**
+     * Gera o PDF A4 da proposta comercial, com cabeçalho dinâmico
+     * (logo e dados da Organization ativa). Suporta dois modos via
+     * query param {@code disposition}:
+     * <ul>
+     *   <li>{@code inline} (default) — usado pelo frontend para exibir
+     *       o PDF em um iframe (preview).</li>
+     *   <li>{@code attachment} — dispara o download direto do arquivo.</li>
+     * </ul>
+     */
+    @GetMapping(value = "/{id:" + UUID_REGEX + "}/pdf",
+            produces = MediaType.APPLICATION_PDF_VALUE)
+    @Operation(summary = "Gerar PDF da proposta",
+            description = "Retorna o PDF (A4) com cabeçalho do emissor (Organization ativa), "
+                    + "cliente, condições, itens, totais e observações.")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "PDF gerado.",
+                    content = @Content(mediaType = MediaType.APPLICATION_PDF_VALUE,
+                            schema = @Schema(type = "string", format = "binary"))),
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "404", description = "Proposta não encontrada.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+    })
+    public ResponseEntity<byte[]> downloadPdf(
+            @PathVariable UUID id,
+            @Parameter(description = "Modo de disposição: 'inline' (preview) ou 'attachment' (download).",
+                    schema = @Schema(allowableValues = {"inline", "attachment"}))
+            @RequestParam(value = "disposition", defaultValue = "inline") String disposition) {
+        QuotationResponse q = quotationService.getById(id);
+        byte[] pdf = quotationPdfService.renderPdf(id);
+
+        ContentDisposition cd = "attachment".equalsIgnoreCase(disposition)
+                ? ContentDisposition.attachment().filename("proposta-" + q.number() + ".pdf").build()
+                : ContentDisposition.inline().filename("proposta-" + q.number() + ".pdf").build();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentDisposition(cd);
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentLength(pdf.length);
+
+        return ResponseEntity.ok().headers(headers).body(pdf);
     }
 
     // =====================================================================

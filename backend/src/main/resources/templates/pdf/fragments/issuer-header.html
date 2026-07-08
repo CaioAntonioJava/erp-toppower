@@ -1,0 +1,44 @@
+<!--
+  Cabeçalho padrão do emissor (Organization) compartilhado entre todos
+  os PDFs (cotação, proposta técnica, pedido de venda).
+
+  Variáveis esperadas:
+    - ${issuer} : IssuerView
+-->
+<table xmlns:th="http://www.thymeleaf.org"
+       style="width:100%; border-bottom: 1px solid #cbd5e1; padding-bottom: 12px;">
+  <tr>
+    <td style="width: 30%; vertical-align: top;">
+      <!-- Logo: se houver logoUrl da Organization, usa o <img>; senão,
+           usa o SVG inline do LogoTopPower (fallback estático). -->
+      <div th:if="${issuer.logoUrl != null and !issuer.logoUrl.isBlank()}"
+           style="height: 64px;">
+        <img th:src="@{${issuer.logoUrl}}"
+             style="max-height: 64px; max-width: 100%; object-fit: contain;"
+             alt="Logo"/>
+      </div>
+      <div th:if="${issuer.logoUrl == null or issuer.logoUrl.isBlank()}"
+           th:utext="'&lt;svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 552 180\' height=\'64\'&gt;&lt;rect width=\'552\' height=\'180\' fill=\'#dc2626\'/&gt;&lt;text x=\'50%\' y=\'50%\' fill=\'#fff\' font-family=\'Helvetica\' font-weight=\'bold\' font-size=\'64\' text-anchor=\'middle\' dominant-baseline=\'central\'&gt;TOP POWER&lt;/text&gt;&lt;/svg&gt;'"
+           style="height: 64px;"></div>
+    </td>
+    <td style="text-align: right; font-size: 9pt; color: #334155; line-height: 1.45;">
+      <div style="font-size: 11pt; font-weight: bold; color: #0f172a; margin-bottom: 4px;"
+           th:text="${issuer.tradeName}">TOP POWER</div>
+      <div th:text="${issuer.corporateName}">RAZÃO SOCIAL</div>
+      <div>
+        CNPJ: <span th:text="${issuer.cnpjFormatted}">00.000.000/0001-00</span>
+      </div>
+      <div th:if="${issuer.stateRegistration != '—'}">
+        IE: <span th:text="${issuer.stateRegistration}"></span>
+      </div>
+      <div th:if="${issuer.municipalRegistration != '—'}">
+        IM: <span th:text="${issuer.municipalRegistration}"></span>
+      </div>
+      <div th:text="${issuer.addressLine1()}">Endereço linha 1</div>
+      <div th:if="${issuer.addressLine2() != null}" th:text="${issuer.addressLine2()}"></div>
+      <div th:if="${issuer.addressLine3() != null}" th:text="${issuer.addressLine3()}"></div>
+      <div th:if="${issuer.phoneLabel() != null}" th:text="${issuer.phoneLabel()}"></div>
+      <div th:if="${issuer.emailLabel() != null}" th:text="${issuer.emailLabel()}"></div>
+    </td>
+  </tr>
+</table>
