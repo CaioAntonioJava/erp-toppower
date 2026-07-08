@@ -1,6 +1,7 @@
 package br.com.toppower.erp_toppower.sales.quotation.service;
 
 import br.com.toppower.erp_toppower.common.dto.PagedResponse;
+import br.com.toppower.erp_toppower.common.context.OrganizationContext;
 import br.com.toppower.erp_toppower.carrier.repository.CarrierRepository;
 import br.com.toppower.erp_toppower.company.repository.CompanyRepository;
 import br.com.toppower.erp_toppower.customer.repository.CustomerRepository;
@@ -128,7 +129,11 @@ public class QuotationService {
 
     @Transactional(readOnly = true)
     public QuotationResponse getByNumber(Long number) {
-        Quotation q = quotationRepository.findByNumber(number)
+        // A numeração é independente por Organization: o mesmo número pode
+        // existir em empresas diferentes. Restringe a busca à Organization
+        // ativa para não devolver a proposta de outra empresa.
+        UUID orgUuid = OrganizationContext.require();
+        Quotation q = quotationRepository.findByNumberAndOrganizationUuid(number, orgUuid)
                 .orElseThrow(() -> new QuotationNotFoundException(number));
         List<QuotationItem> items = quotationItemRepository
                 .findByQuotationUuidOrderByCreatedAtAsc(q.getUuid());
@@ -328,6 +333,8 @@ public class QuotationService {
      */
     @Transactional(readOnly = true)
     public Long getNextNumber() {
+        // A pré-visualização do próximo número é independente por
+        // Organization: cada empresa tem sua própria sequência.
         return generateNextNumber();
     }
 
@@ -335,10 +342,18 @@ public class QuotationService {
     // Helpers
     // ---------------------------------------------------------------------
 
+    /**
+     * Gera o próximo número sequencial de proposta para a Organization
+     * ativa (a partir de {@code 1500} na primeira proposta da empresa).
+     * A sequência é independente por Organization — cada empresa reinicia
+     * em 1500 e incrementa de +1 em +1, sem compartilhar a contagem com
+     * as demais.
+     */
     private Long generateNextNumber() {
-        Long maxNumber = quotationRepository.findMaxNumber();
+        UUID orgUuid = OrganizationContext.require();
+        Long maxNumber = quotationRepository.findMaxNumberByOrganizationUuid(orgUuid);
         if (maxNumber == null) {
-            // Nenhuma proposta cadastrada — inicia em 1500
+            // Nenhuma proposta cadastrada para esta Organization — inicia em 1500
             return INITIAL_NUMBER;
         }
         return maxNumber + 1L;

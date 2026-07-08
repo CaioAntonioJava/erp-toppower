@@ -62,8 +62,8 @@ import java.util.UUID;
         name = "quotations",
         uniqueConstraints = {
                 @jakarta.persistence.UniqueConstraint(
-                        name = "uk_quotation_number",
-                        columnNames = "number")
+                        name = "uk_quotation_org_number",
+                        columnNames = {"organization_uuid", "number"})
         }
 )
 @Getter

@@ -1,6 +1,7 @@
 package br.com.toppower.erp_toppower.sales.salesorder.service;
 
 import br.com.toppower.erp_toppower.common.dto.PagedResponse;
+import br.com.toppower.erp_toppower.common.context.OrganizationContext;
 import br.com.toppower.erp_toppower.carrier.repository.CarrierRepository;
 import br.com.toppower.erp_toppower.company.repository.CompanyRepository;
 import br.com.toppower.erp_toppower.customer.repository.CustomerRepository;
@@ -216,7 +217,11 @@ public class SalesOrderService {
 
     @Transactional(readOnly = true)
     public SalesOrderResponse getByNumber(Long number) {
-        SalesOrder o = salesOrderRepository.findByNumber(number)
+        // A numeração é independente por Organization: o mesmo número pode
+        // existir em empresas diferentes. Restringe a busca à Organization
+        // ativa para não devolver o pedido de outra empresa.
+        UUID orgUuid = OrganizationContext.require();
+        SalesOrder o = salesOrderRepository.findByNumberAndOrganizationUuid(number, orgUuid)
                 .orElseThrow(() -> new SalesOrderNotFoundException(number));
         List<SalesOrderItem> items = salesOrderItemRepository
                 .findBySalesOrderUuidOrderByCreatedAtAsc(o.getUuid());
@@ -457,6 +462,8 @@ public class SalesOrderService {
      */
     @Transactional(readOnly = true)
     public Long getNextNumber() {
+        // A pré-visualização do próximo número é independente por
+        // Organization: cada empresa tem sua própria sequência.
         return generateNextNumber();
     }
 
@@ -464,8 +471,16 @@ public class SalesOrderService {
     // Helpers
     // ---------------------------------------------------------------------
 
+    /**
+     * Gera o próximo número sequencial de pedido para a Organization
+     * ativa (a partir de {@code 1000} no primeiro pedido da empresa).
+     * A sequência é independente por Organization — cada empresa reinicia
+     * em 1000 e incrementa de +1 em +1, sem compartilhar a contagem com
+     * as demais.
+     */
     private Long generateNextNumber() {
-        Long maxNumber = salesOrderRepository.findMaxNumber();
+        UUID orgUuid = OrganizationContext.require();
+        Long maxNumber = salesOrderRepository.findMaxNumberByOrganizationUuid(orgUuid);
         if (maxNumber == null) {
             return INITIAL_NUMBER;
         }

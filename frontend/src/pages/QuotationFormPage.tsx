@@ -24,6 +24,7 @@ import type {
 } from '../types/quotation'
 import { toApiError } from '../lib/errors'
 import { useAuth } from '../context/AuthContext'
+import { useOrganization } from '../context/OrganizationContext'
 
 type Mode = 'loading' | 'create' | 'view'
 
@@ -37,6 +38,12 @@ export function QuotationFormPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const isAdmin = user?.role === 'ROLE_ADMIN'
+  // A numeração de proposta é independente por empresa: o próximo número
+  // precisa ser re-buscado sempre que a Organization ativa muda (igual ao
+  // TechnicalProposalFormPage). Sem isso, ao trocar de empresa no Topbar o
+  // número exibido no formulário fica desatualizado.
+  const { activeOrganization } = useOrganization()
+  const activeOrganizationUuid = activeOrganization?.uuid ?? null
 
   const [mode, setMode] = useState<Mode>('loading')
   const [quotation, setQuotation] = useState<QuotationResponse | null>(null)
@@ -54,15 +61,38 @@ export function QuotationFormPage() {
   // primeiro render, com `mode !== 'loading'`).
   const actionsRef = useRef<HTMLDivElement>(null)
 
+  // Modo CREATE: pré-visualiza o próximo número para exibir no header.
+  // Re-busca sempre que a Organization ativa muda, pois cada empresa tem
+  // sua própria sequência (1500, 1501, ... independente por empresa).
   useEffect(() => {
-    if (!id) {
+    if (id) return
+    if (!activeOrganizationUuid) {
+      // Sem Organization ativa: limpa o preview e aguarda seleção no Topbar.
       setMode('create')
-      // Pré-visualiza o próximo número para exibir no header.
-      getNextQuotationNumber()
-        .then((n) => setNextNumber(n))
-        .catch(() => setNextNumber(null))
+      setNextNumber(null)
       return
     }
+    let cancelled = false
+    setMode('create')
+    setNextNumber(null)
+    getNextQuotationNumber()
+      .then((n) => {
+        if (cancelled) return
+        setNextNumber(n)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setNextNumber(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [id, activeOrganizationUuid])
+
+  // Modo VIEW/EDIT: carrega a proposta pelo ID (imutável entre trocas de org,
+  // pois a URL é específica). Em caso de erro, cai em modo create.
+  useEffect(() => {
+    if (!id) return
     let cancelled = false
     setMode('loading')
     setLoadError(null)
@@ -215,6 +245,14 @@ export function QuotationFormPage() {
         </Alert>
       ) : null}
 
+      {mode === 'create' && !activeOrganizationUuid ? (
+        <Alert variant="info">
+          Selecione uma empresa ativa no seletor do topo da tela antes de
+          cadastrar uma proposta comercial. A numeração e o isolamento dos
+          dados dependem da empresa selecionada.
+        </Alert>
+      ) : null}
+
       {isAdmin && mode === 'view' && quotation ? (
         <RegistrationAuditCard
           createdBy={quotation.createdBy}
@@ -239,7 +277,17 @@ export function QuotationFormPage() {
             </div>
           ) : null}
           <fieldset disabled={readOnly} className={readOnly ? 'opacity-70' : ''}>
+            {/*
+              key = `${activeOrganizationUuid ?? 'no-org'}-${mode}-${id ?? 'new'}`
+              força o remount do form sempre que a Organization ativa muda
+              (cada empresa tem sua própria sequência de numeração) ou quando
+              o modo (create/view/edit) ou a proposta carregada mudam. Sem
+              isso, o estado interno do form (incluindo o `number` e o
+              `numberDirtyRef`) poderia ficar desatualizado ao trocar de
+              empresa pelo dropdown do Topbar.
+            */}
             <QuotationForm
+              key={`${activeOrganizationUuid ?? 'no-org'}-${mode}-${id ?? 'new'}`}
               quotation={canEdit ? quotation ?? undefined : undefined}
               initialNumber={mode === 'create' ? nextNumber : null}
               isAdmin={isAdmin}

@@ -22,6 +22,7 @@ import type {
 } from '../types/salesOrder'
 import { toApiError } from '../lib/errors'
 import { useAuth } from '../context/AuthContext'
+import { useOrganization } from '../context/OrganizationContext'
 
 type Mode = 'loading' | 'create' | 'view'
 
@@ -38,6 +39,12 @@ export function SalesOrderFormPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const isAdmin = user?.role === 'ROLE_ADMIN'
+  // A numeração de pedido é independente por empresa: o próximo número
+  // precisa ser re-buscado sempre que a Organization ativa muda (igual ao
+  // TechnicalProposalFormPage). Sem isso, ao trocar de empresa no Topbar o
+  // número exibido no formulário fica desatualizado.
+  const { activeOrganization } = useOrganization()
+  const activeOrganizationUuid = activeOrganization?.uuid ?? null
 
   const [mode, setMode] = useState<Mode>('loading')
   const [salesOrder, setSalesOrder] = useState<SalesOrderResponse | null>(null)
@@ -52,15 +59,38 @@ export function SalesOrderFormPage() {
   // primeiro render, com `mode !== 'loading'`).
   const actionsRef = useRef<HTMLDivElement>(null)
 
+  // Modo CREATE: pré-visualiza o próximo número para exibir no header.
+  // Re-busca sempre que a Organization ativa muda, pois cada empresa tem
+  // sua própria sequência (1000, 1001, ... independente por empresa).
   useEffect(() => {
-    if (!id) {
+    if (id) return
+    if (!activeOrganizationUuid) {
+      // Sem Organization ativa: limpa o preview e aguarda seleção no Topbar.
       setMode('create')
-      // Pré-visualiza o próximo número para exibir no header.
-      getNextSalesOrderNumber()
-        .then((n) => setNextNumber(n))
-        .catch(() => setNextNumber(null))
+      setNextNumber(null)
       return
     }
+    let cancelled = false
+    setMode('create')
+    setNextNumber(null)
+    getNextSalesOrderNumber()
+      .then((n) => {
+        if (cancelled) return
+        setNextNumber(n)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setNextNumber(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [id, activeOrganizationUuid])
+
+  // Modo VIEW/EDIT: carrega o pedido pelo ID (imutável entre trocas de org,
+  // pois a URL é específica). Em caso de erro, cai em modo create.
+  useEffect(() => {
+    if (!id) return
     let cancelled = false
     setMode('loading')
     setLoadError(null)
@@ -186,6 +216,14 @@ export function SalesOrderFormPage() {
         </Alert>
       ) : null}
 
+      {mode === 'create' && !activeOrganizationUuid ? (
+        <Alert variant="info">
+          Selecione uma empresa ativa no seletor do topo da tela antes de
+          cadastrar um pedido de venda. A numeração e o isolamento dos
+          dados dependem da empresa selecionada.
+        </Alert>
+      ) : null}
+
       {isAdmin && mode === 'view' && salesOrder ? (
         <RegistrationAuditCard
           createdBy={salesOrder.createdBy}
@@ -209,7 +247,17 @@ export function SalesOrderFormPage() {
             </div>
           ) : null}
           <fieldset disabled={readOnly} className={readOnly ? 'opacity-70' : ''}>
+            {/*
+              key = `${activeOrganizationUuid ?? 'no-org'}-${mode}-${id ?? 'new'}`
+              força o remount do form sempre que a Organization ativa muda
+              (cada empresa tem sua própria sequência de numeração) ou quando
+              o modo (create/view/edit) ou o pedido carregado mudam. Sem
+              isso, o estado interno do form (incluindo o `number` e o
+              `numberDirtyRef`) poderia ficar desatualizado ao trocar de
+              empresa pelo dropdown do Topbar.
+            */}
             <SalesOrderForm
+              key={`${activeOrganizationUuid ?? 'no-org'}-${mode}-${id ?? 'new'}`}
               salesOrder={canEdit ? salesOrder ?? undefined : undefined}
               initialNumber={mode === 'create' ? nextNumber : null}
               onSaveCreate={handleCreate}

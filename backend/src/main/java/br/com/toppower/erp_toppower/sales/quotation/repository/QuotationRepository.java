@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -20,16 +21,31 @@ public interface QuotationRepository extends JpaRepository<Quotation, UUID>,
     Optional<Quotation> findByNumber(Long number);
 
     /**
-     * Retorna o maior número de proposta já emitido. Usado para gerar o
-     * próximo número sequencial (a partir de {@code 1500} na primeira
-     * proposta).
+     * Busca uma proposta pelo número dentro de uma Organization específica.
+     * Necessário porque, com a numeração por empresa, o mesmo número pode
+     * existir em Organizations diferentes — a busca global por número não
+     * distingue a empresa emissora.
+     */
+    Optional<Quotation> findByNumberAndOrganizationUuid(Long number, UUID organizationUuid);
+
+    /**
+     * Retorna o maior número de proposta já emitido para a Organization
+     * informada. Usado para gerar o próximo número sequencial (a partir
+     * de {@code 1500} na primeira proposta da empresa), de forma
+     * independente por Organization (multi-empresa).
      *
      * <p>Retorna {@code null} quando ainda não houver nenhuma proposta
-     * cadastrada. Nesse caso, o serviço usa {@code 1500} como ponto de
-     * partida.</p>
+     * para a Organization informada. Nesse caso, o serviço usa
+     * {@code 1500} como ponto de partida.</p>
+     *
+     * <p>O filtro é explícito no WHERE (em vez de depender do
+     * {@code organizationFilter} do Hibernate) porque o Hibernate não
+     * aplica {@code @Filter} de forma confiável em queries agregadas
+     * (MAX). Segue o mesmo padrão de
+     * {@code TechnicalProposalRepository.findMaxSequenceByYearAndOrganizationUuid}.</p>
      */
-    @Query("SELECT MAX(q.number) FROM Quotation q")
-    Long findMaxNumber();
+    @Query("SELECT MAX(q.number) FROM Quotation q WHERE q.organizationUuid = :organizationUuid")
+    Long findMaxNumberByOrganizationUuid(@Param("organizationUuid") UUID organizationUuid);
 
     /**
      * Busca paginada por status (opcional).
