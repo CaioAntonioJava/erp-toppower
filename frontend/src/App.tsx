@@ -29,6 +29,8 @@ import { UsersListPage } from './pages/UsersListPage'
 import { UserFormPage } from './pages/UserFormPage'
 import { CarriersListPage } from './pages/CarriersListPage'
 import { CarrierFormPage } from './pages/CarrierFormPage'
+import { OrganizationsListPage } from './pages/OrganizationsListPage'
+import { OrganizationFormPage } from './pages/OrganizationFormPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { AppLayout } from './components/layout/AppLayout'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -88,6 +90,12 @@ export default function App() {
         <Route path="/carriers" element={<AdminRoute><CarriersListPage /></AdminRoute>} />
         <Route path="/carriers/new" element={<AdminRoute><CarrierFormPage /></AdminRoute>} />
         <Route path="/carriers/:id" element={<AdminRoute><CarrierFormPage /></AdminRoute>} />
+
+        {/* Rotas administrativas — gestão de empresas emissoras (Organizations).
+            Permite editar dados da empresa e fazer upload/remoção do logo
+            usado no cabeçalho dos PDFs (cotação/proposta/pedido). */}
+        <Route path="/organizations" element={<AdminRoute><OrganizationsListPage /></AdminRoute>} />
+        <Route path="/organizations/:id" element={<AdminRoute><OrganizationFormPage /></AdminRoute>} />
       </Route>
 
       {/* Rota de impressão/PDF da proposta — sem AppLayout (sidebar/topbar),

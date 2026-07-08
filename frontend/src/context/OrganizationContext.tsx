@@ -7,16 +7,28 @@ import {
   useState,
 } from 'react'
 import type { ReactNode } from 'react'
-import { listMine as apiListMine } from '../api/organization.api'
+import {
+  getOrganization,
+  listMine as apiListMine,
+} from '../api/organization.api'
 import { ORGANIZATION_KEY } from '../api/client'
 import { useAuth } from './AuthContext'
-import type { OrganizationSummary } from '../types/api'
+import type { OrganizationResponse, OrganizationSummary } from '../types/api'
 
 interface OrganizationContextValue {
   /** Organizations acessíveis ao usuário (para o seletor). */
   organizations: OrganizationSummary[]
-  /** Organization atualmente ativa (lida do localStorage), ou null. */
+  /** Organization atualmente ativa (resumo do seletor/login). */
   activeOrganization: OrganizationSummary | null
+  /**
+   * Organization ativa em sua forma rica (com endereço, telefone,
+   * e-mail, logoUrl). Hidratada sob demanda a partir de
+   * {@code GET /organizations/{id}}. Pode ser {@code null} durante a
+   * hidratação inicial ou se o fetch falhar.
+   */
+  activeOrganizationRich: OrganizationResponse | null
+  /** Recarrega tanto a lista quanto a Organization ativa rica. */
+  refreshRich: () => Promise<void>
   /** Altera a Organization ativa. Persiste no localStorage e bumpa revision,
    * forçando o remount do conteúdo da aplicação para recarregar todos os dados. */
   setActive: (org: OrganizationSummary) => void
@@ -35,8 +47,31 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth()
   const [organizations, setOrganizations] = useState<OrganizationSummary[]>([])
   const [activeOrganization, setActiveOrganization] = useState<OrganizationSummary | null>(null)
+  const [activeOrganizationRich, setActiveOrganizationRich] = useState<OrganizationResponse | null>(null)
   const [revision, setRevision] = useState(0)
   const [isLoading, setLoading] = useState(false)
+
+  /**
+   * Hidrata a Organization ativa em sua forma rica. Chamado sempre que
+   * {@code activeOrganization} muda (boot, troca de org) e exposto como
+   * {@code refreshRich} para que páginas que alteram o logo possam
+   * forçar refetch sem precisar trocar a org.
+   */
+  const refreshRich = useCallback(async () => {
+    if (!activeOrganization) {
+      setActiveOrganizationRich(null)
+      return
+    }
+    try {
+      const rich = await getOrganization(activeOrganization.uuid)
+      setActiveOrganizationRich(rich)
+    } catch {
+      // Falha silenciosa: o consumidor usa `activeOrganizationRich ?? null`
+      // como fallback. Em geral só ocorre se a org foi removida
+      // enquanto o usuário estava logado.
+      setActiveOrganizationRich(null)
+    }
+  }, [activeOrganization])
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -67,10 +102,29 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     if (isAuthLoading || !isAuthenticated) {
       setOrganizations([])
       setActiveOrganization(null)
+      setActiveOrganizationRich(null)
       return
     }
     refresh()
   }, [isAuthenticated, isAuthLoading, refresh])
+
+  // Sempre que a Organization ativa muda (boot ou troca manual),
+  // busca os dados ricos (incluindo logo e endereço).
+  useEffect(() => {
+    if (!activeOrganization) {
+      setActiveOrganizationRich(null)
+      return
+    }
+    let cancelled = false
+    getOrganization(activeOrganization.uuid)
+      .then((rich) => {
+        if (!cancelled) setActiveOrganizationRich(rich)
+      })
+      .catch(() => {
+        if (!cancelled) setActiveOrganizationRich(null)
+      })
+    return () => { cancelled = true }
+  }, [activeOrganization])
 
   const setActive = useCallback((org: OrganizationSummary) => {
     localStorage.setItem(ORGANIZATION_KEY, org.uuid)
@@ -83,12 +137,14 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     () => ({
       organizations,
       activeOrganization,
+      activeOrganizationRich,
       setActive,
       refresh,
+      refreshRich,
       revision,
       isLoading,
     }),
-    [organizations, activeOrganization, setActive, refresh, revision, isLoading],
+    [organizations, activeOrganization, activeOrganizationRich, setActive, refresh, refreshRich, revision, isLoading],
   )
 
   return (

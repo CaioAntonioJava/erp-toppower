@@ -9,6 +9,7 @@ import {
   FileUp,
   LayoutDashboard,
   Package,
+  Settings,
   Truck,
   User,
   UserCog,
@@ -36,18 +37,32 @@ const navItems: NavItem[] = [
   { to: '/sales-orders', label: 'Pedidos de Venda', icon: ClipboardList },
 ]
 
+/** Item de menu exclusivo de administradores — gestão de transportadoras. */
+const carriersItem: NavItem = { to: '/carriers', label: 'Transportadoras', icon: Truck }
+
 /** Item de menu exclusivo de administradores — gestão de usuários do sistema. */
 const usersItem: NavItem = { to: '/users', label: 'Usuários', icon: UserCog }
 
-/** Item de menu exclusivo de administradores — gestão de transportadoras. */
-const carriersItem: NavItem = { to: '/carriers', label: 'Transportadoras', icon: Truck }
+/**
+ * Item de menu exclusivo de administradores — gestão das empresas
+ * emissoras (Organizations: Top Power Engenharia, Materiais...).
+ * Permite editar dados e fazer upload do logo usado nos PDFs.
+ */
+const organizationsItem: NavItem = {
+  to: '/organizations',
+  label: 'Empresas (Org.)',
+  icon: Settings,
+}
 
 /** Sidebar com os links principais. Mantida simples para um MVP. */
 export function Sidebar() {
   const { user } = useAuth()
   const isAdmin = user?.role === 'ROLE_ADMIN'
-  // Admin vê os itens Transportadoras e Usuários ao final. Gestores não os veem.
-  const items = isAdmin ? [...navItems, carriersItem, usersItem] : navItems
+  // Admin vê os itens administrativos (Transportadoras, Empresas emissoras,
+  // Usuários) ao final. Gestores não os veem.
+  const items = isAdmin
+    ? [...navItems, carriersItem, organizationsItem, usersItem]
+    : navItems
 
   return (
     <aside className="hidden w-60 shrink-0 border-r border-slate-200 bg-white px-4 py-6 md:flex md:flex-col dark:border-slate-800 dark:bg-slate-900">
