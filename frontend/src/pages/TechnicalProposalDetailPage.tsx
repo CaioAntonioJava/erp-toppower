@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { CheckCircle2, Play, RotateCcw, Wrench } from 'lucide-react'
+import { CheckCircle2, Play, Printer, RotateCcw, Wrench } from 'lucide-react'
 import { Button } from '../components/ui/Button'
 import { Spinner } from '../components/ui/Spinner'
 import { Alert } from '../components/ui/Alert'
@@ -171,6 +171,18 @@ export function TechnicalProposalDetailPage() {
         <div className="flex flex-wrap items-center gap-2">
           {proposal ? (
             <>
+              <Button
+                variant="secondary"
+                onClick={() =>
+                  window.open(
+                    `/technical-proposals/${proposal.uuid}/pdf`,
+                    '_blank',
+                  )
+                }
+              >
+                <Printer className="h-4 w-4" />
+                Gerar PDF
+              </Button>
               <Button
                 variant="secondary"
                 onClick={() =>

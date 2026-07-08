@@ -24,6 +24,7 @@ import { SalesOrderPrintPage } from './pages/SalesOrderPrintPage'
 import { TechnicalProposalsListPage } from './pages/TechnicalProposalsListPage'
 import { TechnicalProposalFormPage } from './pages/TechnicalProposalFormPage'
 import { TechnicalProposalDetailPage } from './pages/TechnicalProposalDetailPage'
+import { TechnicalProposalPrintPage } from './pages/TechnicalProposalPrintPage'
 import { UsersListPage } from './pages/UsersListPage'
 import { UserFormPage } from './pages/UserFormPage'
 import { CarriersListPage } from './pages/CarriersListPage'
@@ -102,6 +103,7 @@ export default function App() {
       >
         <Route path="/quotations/:id/pdf" element={<QuotationPrintPage />} />
         <Route path="/sales-orders/:id/pdf" element={<SalesOrderPrintPage />} />
+        <Route path="/technical-proposals/:id/pdf" element={<TechnicalProposalPrintPage />} />
       </Route>
 
       {/* Compat: rota raiz redireciona para /login se não houver auth. */}
