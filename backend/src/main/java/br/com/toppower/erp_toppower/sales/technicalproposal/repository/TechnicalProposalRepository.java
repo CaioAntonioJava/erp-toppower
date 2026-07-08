@@ -20,14 +20,18 @@ public interface TechnicalProposalRepository extends JpaRepository<TechnicalProp
     Optional<TechnicalProposal> findByPrefixAndSequenceAndYear(String prefix, Long sequence, Integer year);
 
     /**
-     * Retorna o maior número de sequência já emitido para o ano informado.
-     * Usado para gerar o próximo código sequencial (reseta a {@code 1}
-     * quando o ano muda).
+     * Retorna o maior número de sequência já emitido para o ano e
+     * Organization informados. Usado para gerar o próximo código
+     * sequencial (reseta a {@code 1} quando o ano muda; cada
+     * Organization tem sua própria sequência).
      *
      * <p>Retorna {@code null} quando ainda não houver nenhuma proposta
-     * para o ano informado. Nesse caso, o serviço usa {@code 1} como
-     * ponto de partida.</p>
+     * para a combinação (year, organization_uuid) informada. Nesse
+     * caso, o serviço usa {@code 1} como ponto de partida.</p>
      */
-    @Query("SELECT MAX(t.sequence) FROM TechnicalProposal t WHERE t.year = :year")
-    Long findMaxSequenceByYear(Integer year);
+    @Query("""
+            SELECT MAX(t.sequence) FROM TechnicalProposal t
+            WHERE t.year = :year AND t.organizationUuid = :organizationUuid
+            """)
+    Long findMaxSequenceByYearAndOrganizationUuid(Integer year, UUID organizationUuid);
 }

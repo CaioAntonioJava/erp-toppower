@@ -17,6 +17,13 @@ public interface OrganizationRepository extends JpaRepository<Organization, UUID
 
     boolean existsByCnpj(String cnpj);
 
+    /**
+     * Verifica se já existe uma Organization com o prefixo de Proposta
+     * Técnica informado. O prefixo é globalmente único (constraint
+     * {@code uk_organizations_proposal_prefix} criada pela migration V25).
+     */
+    boolean existsByProposalPrefix(String proposalPrefix);
+
     Page<Organization> findByStatus(OrganizationStatus status, Pageable pageable);
 
     Optional<Organization> findByCnpj(String cnpj);

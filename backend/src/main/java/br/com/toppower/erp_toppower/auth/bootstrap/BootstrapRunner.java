@@ -95,6 +95,7 @@ public class BootstrapRunner implements CommandLineRunner {
             engenharia.setCity("SUMARE");
             engenharia.setState("SP");
             engenharia.setStatus(OrganizationStatus.ATIVO);
+            engenharia.setProposalPrefix("PT");
             organizationRepository.save(engenharia);
 
             Organization materiais = new Organization();
@@ -110,6 +111,7 @@ public class BootstrapRunner implements CommandLineRunner {
             materiais.setCity("SUMARE");
             materiais.setState("SP");
             materiais.setStatus(OrganizationStatus.ATIVO);
+            materiais.setProposalPrefix("PL");
             organizationRepository.save(materiais);
 
             log.info("Organizations padrão criadas (2).");

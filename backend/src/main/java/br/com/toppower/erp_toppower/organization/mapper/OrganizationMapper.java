@@ -29,6 +29,7 @@ public final class OrganizationMapper {
         org.setState(request.state());
         org.setComplement(request.complement());
         org.setStatus(request.status());
+        org.setProposalPrefix(request.proposalPrefix());
         return org;
     }
 
@@ -47,6 +48,7 @@ public final class OrganizationMapper {
         if (request.state() != null) org.setState(request.state());
         if (request.complement() != null) org.setComplement(request.complement());
         if (request.status() != null) org.setStatus(request.status());
+        if (request.proposalPrefix() != null) org.setProposalPrefix(request.proposalPrefix());
     }
 
     public static OrganizationResponse toResponse(Organization org) {
@@ -67,6 +69,7 @@ public final class OrganizationMapper {
                 org.getState(),
                 org.getComplement(),
                 org.getStatus(),
+                org.getProposalPrefix(),
                 org.getCreatedAt(),
                 org.getUpdatedAt()
         );
@@ -83,6 +86,7 @@ public final class OrganizationMapper {
                 org.getTradeName(),
                 org.getCnpj(),
                 org.getStatus(),
+                org.getProposalPrefix(),
                 null,
                 false
         );
@@ -95,6 +99,7 @@ public final class OrganizationMapper {
                 org.getTradeName(),
                 org.getCnpj(),
                 org.getStatus(),
+                org.getProposalPrefix(),
                 role,
                 isDefault
         );

@@ -34,11 +34,15 @@ import java.util.UUID;
  * um cliente pessoa física ({@code Customer}) ou jurídica ({@code Company}).
  *
  * <p>O identificador comercial da proposta é composto por três campos
- * persistidos — {@link #prefix} (ex.: {@code "PL"}), {@link #sequence}
- * (numérico sequencial) e {@link #year} (ano corrente) — e exibido no
- * formato {@code PL-001-2026} através de {@link #formattedCode()}. A
- * sequência reseta a cada novo ano (volta para {@code 1} quando o ano
- * muda). A trinca {@code (prefix, sequence, year)} é única no sistema.</p>
+ * persistidos — {@link #prefix} (definido pela {@code Organization} que
+ * emite, ex.: {@code "PT"} ou {@code "PL"}), {@link #sequence} (numérico
+ * sequencial) e {@link #year} (ano corrente) — e exibido no formato
+ * {@code <prefix>-<3 dígitos>-<year>} (ex.: {@code PT-001-2026}) através
+ * de {@link #formattedCode()}. A sequência reseta a cada novo ano
+ * (volta para {@code 1} quando o ano muda) <b>e é independente por
+ * Organization</b>. A trinca {@code (organization_uuid, prefix, sequence, year)}
+ * é única no sistema (constraint {@code uk_technical_proposal_org_code}
+ * criada pela migration V25).</p>
  *
  * <p>O cliente é referenciado por exatamente <b>um</b> dos campos
  * {@link #customerUuid} ou {@link #companyUuid}; o serviço de aplicação
@@ -78,8 +82,8 @@ import java.util.UUID;
         },
         uniqueConstraints = {
                 @UniqueConstraint(
-                        name = "uk_technical_proposal_code",
-                        columnNames = {"prefix", "sequence", "year"})
+                        name = "uk_technical_proposal_org_code",
+                        columnNames = {"organization_uuid", "prefix", "sequence", "year"})
         }
 )
 @Getter
@@ -91,8 +95,9 @@ public class TechnicalProposal extends OrganizationScopedEntity {
     public static final String DEFAULT_PREFIX = "PL";
 
     /**
-     * Prefixo do código comercial (ex.: {@code "PL"}). Imutável após a
-     * criação ({@code updatable = false}).
+     * Prefixo do código comercial (ex.: {@code "PT"} ou {@code "PL"}),
+     * copiado da {@code Organization} emissora no momento da criação.
+     * Imutável após a criação ({@code updatable = false}).
      */
     @Column(name = "prefix", nullable = false, updatable = false, length = 10)
     private String prefix;
@@ -168,6 +173,22 @@ public class TechnicalProposal extends OrganizationScopedEntity {
      */
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
+
+    /**
+     * Nome do responsável técnico pela proposta. <b>Opcional</b> — campo
+     * livre (sem validação de formato), persistido para fins de registro
+     * e contato com o cliente.
+     */
+    @Column(name = "technical_responsible", length = 150)
+    private String technicalResponsible;
+
+    /**
+     * E-mail de contato do responsável técnico. <b>Opcional</b> — campo
+     * livre (sem validação de formato), apenas um valor de texto digitado
+     * pelo usuário.
+     */
+    @Column(name = "email", length = 200)
+    private String email;
 
     /**
      * Status atual da proposta no seu ciclo de vida. Padrão
@@ -384,6 +405,10 @@ public class TechnicalProposal extends OrganizationScopedEntity {
      */
     @PrePersist
     private void onPrePersist() {
+        // O prefixo é injetado pelo service a partir da Organization
+        // corrente (OrganizationContext). Este fallback só é acionado
+        // em cenários legados/bootstrap e está mantido por segurança —
+        // NÃO deve ser a fonte primária do prefixo em produção.
         if (prefix == null) {
             prefix = DEFAULT_PREFIX;
         }

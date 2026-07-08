@@ -300,6 +300,22 @@ export function TechnicalProposalDetailPage() {
                   {proposal.carrierName ?? '—'}
                 </dd>
               </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  Responsável técnico
+                </dt>
+                <dd className="mt-1 text-slate-900 dark:text-slate-100">
+                  {proposal.technicalResponsible ?? '—'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  E-mail do responsável
+                </dt>
+                <dd className="mt-1 text-slate-900 dark:text-slate-100">
+                  {proposal.email ?? '—'}
+                </dd>
+              </div>
             </dl>
 
             {proposal.address ? (

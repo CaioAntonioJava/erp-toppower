@@ -87,6 +87,15 @@ public record OrganizationCreateRequest(
         @Schema(description = "Status inicial. Se omitido, assume ATIVO.",
                 example = "ATIVO", allowableValues = {"ATIVO", "INATIVO"},
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        OrganizationStatus status
+        OrganizationStatus status,
+
+        @Schema(description = "Prefixo do código das Propostas Técnicas emitidas "
+                + "por esta Organization (ex.: 'PT' para Engenharia, 'PL' para "
+                + "Materiais). Obrigatório e único no sistema.",
+                example = "PT", maxLength = 10,
+                requiredMode = Schema.RequiredMode.REQUIRED)
+        @NotBlank(message = "Prefixo de proposta é obrigatório")
+        @Size(max = 10, message = "Prefixo de proposta deve ter no máximo {max} caracteres")
+        String proposalPrefix
 ) {
 }

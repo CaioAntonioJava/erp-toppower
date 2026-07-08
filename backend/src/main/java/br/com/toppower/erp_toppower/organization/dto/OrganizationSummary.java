@@ -29,6 +29,11 @@ public record OrganizationSummary(
         @Schema(description = "Status.", requiredMode = Schema.RequiredMode.REQUIRED)
         OrganizationStatus status,
 
+        @Schema(description = "Prefixo do código das Propostas Técnicas emitidas "
+                + "por esta Organization.", example = "PT",
+                requiredMode = Schema.RequiredMode.REQUIRED)
+        String proposalPrefix,
+
         @Schema(description = "Papel do usuário nesta Organization (quando aplicável).")
         Role role,
 

@@ -1,9 +1,12 @@
 package br.com.toppower.erp_toppower.sales.technicalproposal.service;
 
+import br.com.toppower.erp_toppower.common.context.OrganizationContext;
 import br.com.toppower.erp_toppower.common.dto.PagedResponse;
 import br.com.toppower.erp_toppower.carrier.repository.CarrierRepository;
 import br.com.toppower.erp_toppower.company.repository.CompanyRepository;
 import br.com.toppower.erp_toppower.customer.repository.CustomerRepository;
+import br.com.toppower.erp_toppower.organization.entity.Organization;
+import br.com.toppower.erp_toppower.organization.repository.OrganizationRepository;
 import br.com.toppower.erp_toppower.product.repository.ProductRepository;
 import br.com.toppower.erp_toppower.sales.technicalproposal.dto.NextTechnicalProposalCodeResponse;
 import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalCreateRequest;
@@ -45,9 +48,11 @@ import java.util.UUID;
  *
  * <p>Responsabilidades principais:</p>
  * <ul>
- *   <li>Gerar o código comercial ({@code PL-001-2026}): prefixo fixo
- *       {@code PL}, sequência reiniciando a {@code 1} a cada novo ano
- *       e ano corrente;</li>
+ *   <li>Gerar o código comercial ({@code <prefix>-<seq>-<year>}, ex.:
+ *       {@code PT-001-2026} ou {@code PL-001-2026}): prefixo lido da
+ *       {@code Organization} ativa ({@link OrganizationContext}),
+ *       sequência reiniciando a {@code 1} a cada novo ano <b>por
+ *       Organization</b>, ano corrente;</li>
  *   <li>Validar a invariante de cliente (exatamente um entre
  *       {@code customerUuid} e {@code companyUuid});</li>
  *   <li>Validar a existência do cliente e dos produtos referenciados;</li>
@@ -71,6 +76,7 @@ public class TechnicalProposalService {
     private final CompanyRepository companyRepository;
     private final ProductRepository productRepository;
     private final CarrierRepository carrierRepository;
+    private final OrganizationRepository organizationRepository;
 
     public TechnicalProposalService(TechnicalProposalRepository repository,
                                     TechnicalProposalObjectiveRepository objectiveRepository,
@@ -79,7 +85,8 @@ public class TechnicalProposalService {
                                     CustomerRepository customerRepository,
                                     CompanyRepository companyRepository,
                                     ProductRepository productRepository,
-                                    CarrierRepository carrierRepository) {
+                                    CarrierRepository carrierRepository,
+                                    OrganizationRepository organizationRepository) {
         this.repository = repository;
         this.objectiveRepository = objectiveRepository;
         this.serviceItemRepository = serviceItemRepository;
@@ -88,6 +95,7 @@ public class TechnicalProposalService {
         this.companyRepository = companyRepository;
         this.productRepository = productRepository;
         this.carrierRepository = carrierRepository;
+        this.organizationRepository = organizationRepository;
     }
 
     // ---------------------------------------------------------------------
@@ -411,14 +419,18 @@ public class TechnicalProposalService {
      * Retorna o código que seria atribuído à próxima proposta, sem
      * persistir nada. Útil para o frontend exibir o valor previsto no
      * formulário antes do envio.
+     *
+     * <p>O prefixo vem da {@code Organization} ativa e a sequência é
+     * computada de forma independente por Organization/ano (multi-empresa).</p>
      */
     @Transactional(readOnly = true)
     public NextTechnicalProposalCodeResponse getNextCode() {
+        UUID orgUuid = OrganizationContext.require();
         int year = LocalDate.now().getYear();
-        long sequence = generateNextSequence(year);
-        String code = TechnicalProposal.DEFAULT_PREFIX + "-" + formatSequence(sequence) + "-" + year;
-        return new NextTechnicalProposalCodeResponse(
-                TechnicalProposal.DEFAULT_PREFIX, sequence, year, code);
+        String prefix = currentOrgProposalPrefix();
+        long sequence = generateNextSequence(year, orgUuid);
+        String code = prefix + "-" + formatSequence(sequence) + "-" + year;
+        return new NextTechnicalProposalCodeResponse(prefix, sequence, year, code);
     }
 
     // ---------------------------------------------------------------------
@@ -445,17 +457,46 @@ public class TechnicalProposalService {
                 carrier.name());
     }
 
+    /**
+     * Aplica o próximo código disponível à proposta: prefixo da
+     * {@code Organization} ativa, sequência independente por
+     * Organization/ano e ano corrente.
+     */
     private void applyNextCode(TechnicalProposal tp) {
+        UUID orgUuid = OrganizationContext.require();
         int year = LocalDate.now().getYear();
-        long sequence = generateNextSequence(year);
-        tp.setPrefix(TechnicalProposal.DEFAULT_PREFIX);
+        long sequence = generateNextSequence(year, orgUuid);
+        tp.setPrefix(currentOrgProposalPrefix());
         tp.setSequence(sequence);
         tp.setYear(year);
     }
 
-    private long generateNextSequence(int year) {
-        Long maxSequence = repository.findMaxSequenceByYear(year);
+    private long generateNextSequence(int year, UUID organizationUuid) {
+        Long maxSequence = repository.findMaxSequenceByYearAndOrganizationUuid(year, organizationUuid);
         return (maxSequence == null) ? 1L : maxSequence + 1L;
+    }
+
+    /**
+     * Resolve o prefixo de Proposta Técnica da {@code Organization}
+     * ativa ({@link OrganizationContext}). Lança exceção de negócio
+     * quando a Organization não tiver prefixo configurado (situação
+     * que não deve ocorrer com o cadastro obrigatório + migration V25,
+     * mas é tratada explicitamente para falhar de forma clara em vez
+     * de gerar um código inválido como "-001-2026").
+     */
+    private String currentOrgProposalPrefix() {
+        UUID orgUuid = OrganizationContext.require();
+        Organization org = organizationRepository.findById(orgUuid)
+                .orElseThrow(() -> new TechnicalProposalBusinessException(
+                        "Organization ativa não encontrada: " + orgUuid));
+        String prefix = org.getProposalPrefix();
+        if (prefix == null || prefix.isBlank()) {
+            throw new TechnicalProposalBusinessException(
+                    "Organization ativa (" + org.getTradeName() + ") não possui "
+                            + "proposalPrefix configurado. Atualize o cadastro da "
+                            + "empresa antes de emitir propostas técnicas.");
+        }
+        return prefix;
     }
 
     private static String formatSequence(long sequence) {

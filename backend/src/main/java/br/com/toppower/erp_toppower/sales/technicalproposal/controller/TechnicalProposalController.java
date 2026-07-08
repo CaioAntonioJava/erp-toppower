@@ -63,10 +63,12 @@ public class TechnicalProposalController {
             produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Criar proposta técnica",
             description = "Cria uma nova proposta técnica. O código é gerado automaticamente no "
-                    + "formato PL-001-2026 (prefixo fixo, sequência reiniciando a 1 a cada novo "
-                    + "ano, ano corrente). O status inicial é ABERTA e a data de início, se não "
-                    + "informada, recebe a data atual. Deve referenciar exatamente um cliente "
-                    + "(PF) ou uma empresa (PJ). Deve ter ao menos um item (serviço ou produto).")
+                    + "formato <prefixo>-<seq>-<ano> (ex.: PT-001-2026 ou PL-001-2026), onde o "
+                    + "prefixo é o `proposalPrefix` da Organization ativa (header X-Organization-Id) "
+                    + "e a sequência reinicia a 1 a cada novo ano, independentemente por empresa. "
+                    + "O status inicial é ABERTA e a data de início, se não informada, recebe a "
+                    + "data atual. Deve referenciar exatamente um cliente (PF) ou uma empresa (PJ). "
+                    + "Deve ter ao menos um item (serviço ou produto).")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
     @ApiResponses({
@@ -112,8 +114,9 @@ public class TechnicalProposalController {
 
     @GetMapping(value = "/next-code", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Pré-visualizar próximo código de proposta técnica",
-            description = "Retorna o próximo código (ex.: PL-001-2026) que seria atribuído à "
-                    + "próxima proposta. Não persiste nada.")
+            description = "Retorna o próximo código (ex.: PT-001-2026 ou PL-001-2026, conforme "
+                    + "o `proposalPrefix` da Organization ativa) que seria atribuído à próxima "
+                    + "proposta. A sequência é independente por Organization/ano. Não persiste nada.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
     @ApiResponses({
@@ -177,7 +180,8 @@ public class TechnicalProposalController {
     @GetMapping(value = "/by-code/{code}", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Buscar proposta técnica por código",
             description = "Retorna a proposta cujo código formatado bate exatamente com o "
-                    + "informado (ex.: PL-001-2026).")
+                    + "informado (ex.: PT-001-2026 ou PL-001-2026). A busca é restrita à "
+                    + "Organization ativa.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
     @ApiResponses({

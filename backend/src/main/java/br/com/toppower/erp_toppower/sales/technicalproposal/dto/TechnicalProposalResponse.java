@@ -73,6 +73,16 @@ public record TechnicalProposalResponse(
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         String description,
 
+        @Schema(description = "Nome do responsável técnico pela proposta (opcional).",
+                example = "João da Silva",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        String technicalResponsible,
+
+        @Schema(description = "E-mail de contato do responsável técnico (opcional).",
+                example = "joao.silva@empresa.com",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        String email,
+
         @Schema(description = "Status atual da proposta.",
                 allowableValues = {"ABERTA", "EM_ANDAMENTO", "CONCLUIDA"},
                 requiredMode = Schema.RequiredMode.REQUIRED)

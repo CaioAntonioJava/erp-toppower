@@ -159,6 +159,10 @@ export interface TechnicalProposalResponse {
   address: TechnicalProposalAddressResponse | null
   objectives: TechnicalProposalObjectiveResponse[]
   description: string | null
+  /** Nome do responsável técnico (opcional). */
+  technicalResponsible: string | null
+  /** E-mail de contato do responsável técnico (opcional, campo livre). */
+  email: string | null
   status: TechnicalProposalStatus
   startDate: string
   /** Data de término prevista/real, informada manualmente. */
@@ -217,6 +221,10 @@ export interface TechnicalProposalCreateRequest {
   address?: TechnicalProposalAddressRequest | null
   objectives: TechnicalProposalObjectiveRequest[]
   description?: string | null
+  /** Nome do responsável técnico (opcional). */
+  technicalResponsible?: string | null
+  /** E-mail de contato do responsável técnico (opcional, sem validação de formato). */
+  email?: string | null
   startDate?: string | null
   endDate?: string | null
   serviceItems?: TechnicalProposalServiceItemRequest[] | null
@@ -241,6 +249,10 @@ export interface TechnicalProposalUpdateRequest {
   address?: TechnicalProposalAddressRequest | null
   objectives?: TechnicalProposalObjectiveRequest[] | null
   description?: string | null
+  /** Nome do responsável técnico. string vazia = limpar. */
+  technicalResponsible?: string | null
+  /** E-mail do responsável técnico. string vazia = limpar. */
+  email?: string | null
   startDate?: string | null
   endDate?: string | null
   serviceItems?: TechnicalProposalServiceItemRequest[] | null

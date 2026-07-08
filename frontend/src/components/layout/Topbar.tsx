@@ -60,6 +60,11 @@ export function Topbar() {
             title="Selecionar Organization"
           >
             <Building2 className="h-4 w-4 text-primary" />
+            {activeOrganization?.proposalPrefix ? (
+              <span className="inline-flex h-5 items-center rounded-md border border-primary/30 bg-primary/10 px-1.5 font-mono text-[11px] font-semibold tracking-wide text-primary">
+                {activeOrganization.proposalPrefix}
+              </span>
+            ) : null}
             <span className="hidden max-w-[14rem] truncate sm:inline">
               {activeOrganization?.tradeName ?? 'Selecionar Organization'}
             </span>
@@ -73,7 +78,7 @@ export function Topbar() {
         )}
 
         {orgMenuOpen && organizations.length > 0 && (
-          <div className="absolute left-0 top-12 z-50 w-72 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800">
+          <div className="absolute left-0 top-12 z-50 w-80 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800">
             <div className="border-b border-slate-100 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:border-slate-700 dark:text-slate-400">
               Organizations
             </div>
@@ -90,10 +95,20 @@ export function Topbar() {
                       }`}
                     >
                       <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
-                      <span className="flex flex-col">
-                        <span className="font-medium">{org.tradeName}</span>
+                      <span className="flex flex-1 flex-col">
+                        <span className="flex items-center gap-2">
+                          <span className="font-medium">{org.tradeName}</span>
+                          {org.proposalPrefix ? (
+                            <span
+                              className="inline-flex h-5 items-center rounded-md border border-primary/30 bg-primary/10 px-1.5 font-mono text-[10px] font-semibold tracking-wide text-primary"
+                              title="Prefixo das propostas técnicas desta empresa"
+                            >
+                              {org.proposalPrefix}
+                            </span>
+                          ) : null}
+                        </span>
                         <span className="text-xs text-slate-500 dark:text-slate-400">
-                          {org.corporateName}
+                          {org.corporateName} · {org.cnpj}
                         </span>
                       </span>
                     </button>

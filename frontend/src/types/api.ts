@@ -13,6 +13,12 @@ export interface OrganizationSummary {
   tradeName: string
   cnpj: string
   status: OrganizationStatus
+  /**
+   * Prefixo do código das Propostas Técnicas emitidas por esta Organization
+   * (ex.: 'PT' para Top Power Engenharia, 'PL' para Top Power Materiais).
+   * A sigla completa fica `<proposalPrefix>-<seq 3 dígitos>-<ano>`.
+   */
+  proposalPrefix: string
   /** Papel do usuário nesta Organization (quando aplicável). */
   role?: Role | null
   /** Indica se esta é a Organization default do usuário. */

@@ -127,8 +127,18 @@ export function SelectOrganizationPage() {
                   }`}
                 />
                 <span className="flex flex-1 flex-col">
-                  <span className="font-medium text-slate-900 dark:text-slate-100">
-                    {org.tradeName}
+                  <span className="flex items-center gap-2">
+                    <span className="font-medium text-slate-900 dark:text-slate-100">
+                      {org.tradeName}
+                    </span>
+                    {org.proposalPrefix ? (
+                      <span
+                        className="inline-flex h-5 items-center rounded-md border border-primary/30 bg-primary/10 px-1.5 font-mono text-[10px] font-semibold tracking-wide text-primary"
+                        title="Prefixo das propostas técnicas desta empresa"
+                      >
+                        {org.proposalPrefix}
+                      </span>
+                    ) : null}
                   </span>
                   <span className="text-xs text-slate-500 dark:text-slate-400">
                     {org.corporateName} · {org.cnpj}

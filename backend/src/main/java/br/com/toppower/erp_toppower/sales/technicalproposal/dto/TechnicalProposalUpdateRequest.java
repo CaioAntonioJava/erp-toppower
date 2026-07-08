@@ -55,6 +55,18 @@ public record TechnicalProposalUpdateRequest(
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         String description,
 
+        @Schema(description = "Novo nome do responsável técnico. Envie string vazia para limpar.",
+                maxLength = 150,
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        @Size(max = 150, message = "Responsável técnico deve ter no máximo {max} caracteres")
+        String technicalResponsible,
+
+        @Schema(description = "Novo e-mail do responsável técnico. Envie string vazia para limpar. Campo livre, sem validação de formato.",
+                maxLength = 200,
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        @Size(max = 200, message = "E-mail deve ter no máximo {max} caracteres")
+        String email,
+
         @Schema(description = "Nova data de início (yyyy-MM-dd).",
                 example = "2026-07-05", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         LocalDate startDate,

@@ -203,7 +203,9 @@ public final class TechnicalProposalMapper {
         TechnicalProposal tp = new TechnicalProposal();
         applyHeader(tp, request.customerUuid(), request.companyUuid(),
                 toAddress(request.address()),
-                request.description(), request.startDate(), request.endDate(),
+                request.description(),
+                request.technicalResponsible(), request.email(),
+                request.startDate(), request.endDate(),
                 request.profitMargin(), request.discountType(), request.discount(),
                 request.freightValue(), request.deliveryDeadline(),
                 request.paymentCondition(), request.validity(),
@@ -260,6 +262,12 @@ public final class TechnicalProposalMapper {
         if (request.description() != null) {
             tp.setDescription(request.description());
         }
+        if (request.technicalResponsible() != null) {
+            tp.setTechnicalResponsible(emptyToNull(request.technicalResponsible()));
+        }
+        if (request.email() != null) {
+            tp.setEmail(emptyToNull(request.email()));
+        }
         if (request.startDate() != null) {
             tp.setStartDate(request.startDate());
         }
@@ -299,6 +307,7 @@ public final class TechnicalProposalMapper {
 
     private static void applyHeader(TechnicalProposal tp, UUID customerUuid, UUID companyUuid,
                                     Address address, String description,
+                                    String technicalResponsible, String email,
                                     java.time.LocalDate startDate,
                                     java.time.LocalDate endDate,
                                     BigDecimal profitMargin, DiscountType discountType,
@@ -312,6 +321,8 @@ public final class TechnicalProposalMapper {
         tp.setCompanyUuid(companyUuid);
         tp.setAddress(address);
         tp.setDescription(description);
+        tp.setTechnicalResponsible(technicalResponsible);
+        tp.setEmail(email);
         tp.setStartDate(startDate);
         tp.setEndDate(endDate);
         tp.setProfitMargin(profitMargin);
@@ -324,6 +335,20 @@ public final class TechnicalProposalMapper {
         tp.setDeliveryType(deliveryType);
         tp.setNotes(notes);
         tp.setCarrierUuid(carrierUuid);
+    }
+
+    /**
+     * Converte uma string vazia (após {@code trim()}) em {@code null},
+     * preservando qualquer outro valor (incluindo espaços no meio do
+     * texto). Usado pelos campos opcionais do PATCH que aceitam string
+     * vazia para indicar "limpar o valor".
+     */
+    private static String emptyToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     // ---------------------------------------------------------------------
@@ -363,6 +388,8 @@ public final class TechnicalProposalMapper {
                 toAddressResponse(tp.getAddress()),
                 objectives.stream().map(TechnicalProposalMapper::toObjectiveResponse).toList(),
                 tp.getDescription(),
+                tp.getTechnicalResponsible(),
+                tp.getEmail(),
                 tp.getStatus(),
                 tp.getStartDate(),
                 tp.getEndDate(),

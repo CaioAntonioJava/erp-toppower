@@ -70,6 +70,15 @@ public record OrganizationUpdateRequest(
 
         @Schema(description = "Status.", allowableValues = {"ATIVO", "INATIVO"},
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        OrganizationStatus status
+        OrganizationStatus status,
+
+        @Schema(description = "Prefixo do código das Propostas Técnicas. "
+                + "Único no sistema. Quando alterado, o próximo código da "
+                + "próxima proposta desta Organization usará o novo prefixo "
+                + "(propostas já existentes mantêm o prefixo antigo).",
+                example = "PT", maxLength = 10,
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        @Size(max = 10, message = "Prefixo de proposta deve ter no máximo {max} caracteres")
+        String proposalPrefix
 ) {
 }

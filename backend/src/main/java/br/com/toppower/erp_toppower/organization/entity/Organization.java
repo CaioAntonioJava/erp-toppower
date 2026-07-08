@@ -95,6 +95,21 @@ public class Organization extends BaseEntity implements Serializable {
     @Column(name = "status", nullable = false, length = 20)
     private OrganizationStatus status;
 
+    /**
+     * Prefixo do código das Propostas Técnicas emitidas por esta
+     * Organization (ex.: {@code "PT"} para Top Power Engenharia,
+     * {@code "PL"} para Top Power Materiais). O código final é montado
+     * como {@code <prefix>-<sequence 3 dígitos>-<year>} — sequência
+     * gerada independentemente por Organization/ano.
+     *
+     * <p>Obrigatório e único no sistema (constraint {@code UNIQUE} criada
+     * pela migration {@code V25}). Imutável no cadastro; pode ser
+     * alterado via PATCH (com validação de unicidade).</p>
+     */
+    @UpperCase
+    @Column(name = "proposal_prefix", nullable = false, length = 10)
+    private String proposalPrefix;
+
     @PrePersist
     private void onPrePersist() {
         if (status == null) {

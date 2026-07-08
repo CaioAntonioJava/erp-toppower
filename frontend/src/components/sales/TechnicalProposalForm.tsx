@@ -136,6 +136,12 @@ export function TechnicalProposalForm({
   const [description, setDescription] = useState<string>(
     proposal?.description ?? '',
   )
+  const [technicalResponsible, setTechnicalResponsible] = useState<string>(
+    proposal?.technicalResponsible ?? '',
+  )
+  const [responsibleEmail, setResponsibleEmail] = useState<string>(
+    proposal?.email ?? '',
+  )
   const [startDate, setStartDate] = useState<string>(
     proposal?.startDate ?? todayIso(),
   )
@@ -521,6 +527,14 @@ export function TechnicalProposalForm({
       errs.notes = 'Observações devem ter no máximo 2000 caracteres.'
     }
 
+    if (technicalResponsible.length > 150) {
+      errs.technicalResponsible =
+        'Responsável técnico deve ter no máximo 150 caracteres.'
+    }
+    if (responsibleEmail.length > 200) {
+      errs.email = 'E-mail deve ter no máximo 200 caracteres.'
+    }
+
     // Ao menos um item (serviço ou produto) preenchido.
     const validServices = serviceItems.filter(
       (s) => s.description.trim() !== '',
@@ -642,6 +656,10 @@ export function TechnicalProposalForm({
         const payload: TechnicalProposalUpdateRequest = {
           objectives: objectivesPayload,
           description: description.trim() ? description.trim() : null,
+          technicalResponsible: technicalResponsible.trim()
+            ? technicalResponsible.trim()
+            : null,
+          email: responsibleEmail.trim() ? responsibleEmail.trim() : null,
           startDate,
           endDate: endDate.trim() ? endDate : null,
           serviceItems: servicePayload.length > 0 ? servicePayload : null,
@@ -685,6 +703,9 @@ export function TechnicalProposalForm({
           payload.companyUuid = clientUuid
         }
         if (description.trim()) payload.description = description.trim()
+        if (technicalResponsible.trim())
+          payload.technicalResponsible = technicalResponsible.trim()
+        if (responsibleEmail.trim()) payload.email = responsibleEmail.trim()
         if (startDate.trim()) payload.startDate = startDate
         if (endDate.trim()) payload.endDate = endDate
         if (servicePayload.length > 0) payload.serviceItems = servicePayload
@@ -746,7 +767,6 @@ export function TechnicalProposalForm({
             }}
             readOnly
             disabled
-            hint="Gerado automaticamente (PL-001-2026)."
             className="max-w-[200px]"
           />
           <Select
@@ -836,6 +856,31 @@ export function TechnicalProposalForm({
               </p>
             ) : null}
           </div>
+        </div>
+
+        {/* Responsável técnico + e-mail (opcionais) */}
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <Input
+            label="Responsável técnico"
+            value={technicalResponsible}
+            onChange={(e) => setTechnicalResponsible(e.target.value)}
+            onBlur={getBlurHandler('technicalResponsible')}
+            error={shouldShowError(
+              'technicalResponsible',
+              fieldErrors.technicalResponsible,
+            )}
+            maxLength={150}
+            placeholder="Ex.: João da Silva"
+          />
+          <Input
+            label="E-mail do responsável"
+            value={responsibleEmail}
+            onChange={(e) => setResponsibleEmail(e.target.value)}
+            onBlur={getBlurHandler('email')}
+            error={shouldShowError('email', fieldErrors.email)}
+            maxLength={200}
+            placeholder="Ex.: joao.silva@empresa.com"
+          />
         </div>
 
         {/* Objetivos (lista dinâmica) */}

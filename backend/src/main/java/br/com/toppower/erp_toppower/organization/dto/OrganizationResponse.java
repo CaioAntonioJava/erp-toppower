@@ -57,6 +57,11 @@ public record OrganizationResponse(
         @Schema(description = "Status.", requiredMode = Schema.RequiredMode.REQUIRED)
         OrganizationStatus status,
 
+        @Schema(description = "Prefixo do código das Propostas Técnicas emitidas "
+                + "por esta Organization.", example = "PT",
+                requiredMode = Schema.RequiredMode.REQUIRED)
+        String proposalPrefix,
+
         @Schema(description = "Data de criação.", requiredMode = Schema.RequiredMode.REQUIRED)
         Instant createdAt,
 

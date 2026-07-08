@@ -26,6 +26,7 @@ import type {
 } from '../types/technicalProposal'
 import { toApiError } from '../lib/errors'
 import { useAuth } from '../context/AuthContext'
+import { useOrganization } from '../context/OrganizationContext'
 
 type Mode = 'loading' | 'create' | 'view'
 
@@ -38,6 +39,13 @@ export function TechnicalProposalFormPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { user } = useAuth()
+  // Importante: no modo create, o `next-code` precisa ser re-buscado
+  // sempre que a Organization ativa muda (cada empresa tem seu próprio
+  // prefixo, ex.: PT-001-2026 vs PL-001-2026). Sem essa dependência,
+  // o `useEffect` só dispararia em mount e mostraria o prefixo errado
+  // ao trocar de empresa no dropdown do Topbar.
+  const { activeOrganization } = useOrganization()
+  const activeOrganizationUuid = activeOrganization?.uuid ?? null
   const isAdmin = user?.role === 'ROLE_ADMIN'
 
   const [mode, setMode] = useState<Mode>('loading')
@@ -57,14 +65,39 @@ export function TechnicalProposalFormPage() {
 
   const actionsRef = useRef<HTMLDivElement>(null)
 
+  // Modo CREATE: re-busca o próximo código sempre que a Organization ativa
+  // muda (cada empresa tem seu próprio prefixo e sua própria sequência).
+  // Usamos `activeOrganizationUuid` como dependência para garantir que o
+  // effect reaja à troca de empresa no Topbar.
   useEffect(() => {
-    if (!id) {
+    if (id) return
+    if (!activeOrganizationUuid) {
+      // Sem Organization ativa: limpa o preview e fica aguardando.
       setMode('create')
-      getNextTechnicalProposalCode()
-        .then((r) => setNextCode(r.code))
-        .catch(() => setNextCode(null))
+      setNextCode(null)
       return
     }
+    let cancelled = false
+    setMode('create')
+    setNextCode(null)
+    getNextTechnicalProposalCode()
+      .then((r) => {
+        if (cancelled) return
+        setNextCode(r.code)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setNextCode(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [id, activeOrganizationUuid])
+
+  // Modo VIEW/EDIT: carrega a proposta pelo ID (imutável entre trocas de org,
+  // pois a URL é específica). Em caso de erro, cai em modo create.
+  useEffect(() => {
+    if (!id) return
     let cancelled = false
     setMode('loading')
     setLoadError(null)
@@ -149,9 +182,26 @@ export function TechnicalProposalFormPage() {
             Proposta Técnica
           </h1>
           {mode === 'create' ? (
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Preencha os dados para criar a proposta técnica.
-            </p>
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+              {activeOrganization?.proposalPrefix ? (
+                <span
+                  className="inline-flex h-6 items-center rounded-md border border-primary/30 bg-primary/10 px-2 font-mono text-[11px] font-semibold tracking-wide text-primary"
+                  title="Prefixo da empresa ativa (define o início do código das propostas)"
+                >
+                  {activeOrganization.proposalPrefix}
+                </span>
+              ) : null}
+              {nextCode ? (
+                <>
+                  <span>Próximo código:</span>
+                  <span className="font-mono font-medium text-slate-700 dark:text-slate-200">
+                    {nextCode}
+                  </span>
+                </>
+              ) : (
+                <span>Preencha os dados para criar a proposta técnica.</span>
+              )}
+            </div>
           ) : mode === 'view' && proposal ? (
             <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
               <span className="font-mono">{proposal.code}</span>
@@ -282,7 +332,17 @@ export function TechnicalProposalFormPage() {
             </div>
           ) : null}
           <fieldset disabled={readOnly} className={readOnly ? 'opacity-70' : ''}>
+            {/*
+              key = `${activeOrganizationUuid}-${mode}-${id ?? 'new'}` força
+              o remount do form sempre que a Organization ativa muda
+              (cada empresa tem seu próprio prefixo de proposta e sua
+              própria sequência) ou quando o modo (create/view/edit) ou a
+              proposta carregada mudam. Sem isso, o estado interno do
+              form (incluindo o `code`) poderia ficar desatualizado ao
+              trocar de empresa pelo dropdown do Topbar.
+            */}
             <TechnicalProposalForm
+              key={`${activeOrganizationUuid ?? 'no-org'}-${mode}-${id ?? 'new'}`}
               proposal={canEdit ? proposal ?? undefined : undefined}
               initialCode={mode === 'create' ? nextCode : null}
               onSaveCreate={handleCreate}

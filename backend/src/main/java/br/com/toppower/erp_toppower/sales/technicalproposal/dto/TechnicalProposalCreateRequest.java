@@ -59,6 +59,20 @@ public record TechnicalProposalCreateRequest(
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         String description,
 
+        @Schema(description = "Nome do responsável técnico pela proposta. Opcional.",
+                example = "João da Silva",
+                maxLength = 150,
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        @Size(max = 150, message = "Responsável técnico deve ter no máximo {max} caracteres")
+        String technicalResponsible,
+
+        @Schema(description = "E-mail de contato do responsável técnico. Opcional — campo livre, sem validação de formato.",
+                example = "joao.silva@empresa.com",
+                maxLength = 200,
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        @Size(max = 200, message = "E-mail deve ter no máximo {max} caracteres")
+        String email,
+
         @Schema(description = "Data de início da proposta (yyyy-MM-dd). Se omitida, usa a data atual.",
                 example = "2026-07-05", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         LocalDate startDate,

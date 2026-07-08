@@ -23,6 +23,12 @@ function isFullWidthRoute(pathname: string): boolean {
   if (/^\/quotations\/[^/]+\/edit$/.test(pathname)) return true
   // /quotations/:id — detalhe
   if (/^\/quotations\/[^/]+$/.test(pathname)) return true
+  // /technical-proposals/new — cadastro
+  if (pathname === '/technical-proposals/new') return true
+  // /technical-proposals/:id/edit — edição
+  if (/^\/technical-proposals\/[^/]+\/edit$/.test(pathname)) return true
+  // /technical-proposals/:id — detalhe
+  if (/^\/technical-proposals\/[^/]+$/.test(pathname)) return true
   return false
 }
 
