@@ -4,6 +4,7 @@ import br.com.toppower.erp_toppower.auth.exception.InvalidCredentialsException;
 import br.com.toppower.erp_toppower.carrier.exception.CarrierNotFoundException;
 import br.com.toppower.erp_toppower.cep.exception.CepNotFoundException;
 import br.com.toppower.erp_toppower.organization.exception.DuplicateOrganizationCnpjException;
+import br.com.toppower.erp_toppower.organization.exception.InvalidLogoException;
 import br.com.toppower.erp_toppower.organization.exception.InvalidOrganizationHeaderException;
 import br.com.toppower.erp_toppower.organization.exception.OrganizationAccessDeniedException;
 import br.com.toppower.erp_toppower.organization.exception.OrganizationContextRequiredException;
@@ -94,7 +95,19 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler({AccessDeniedException.class, AuthorizationDeniedException.class})
     public ResponseEntity<ApiError> handleAccessDenied(RuntimeException ex) {
-        log.debug("Acesso negado: {}", ex.getMessage());
+        // Log em WARN (não DEBUG) com as authorities do principal autenticado,
+        // para permitir diagnosticar 403 inesperados em produção. O handler
+        // mascara a mensagem original do Spring Security com um texto genérico,
+        // então sem este log a causa real fica invisível.
+        var auth = org.springframework.security.core.context.SecurityContextHolder
+                .getContext().getAuthentication();
+        String authorities = (auth != null)
+                ? auth.getAuthorities().stream()
+                        .map(java.util.Objects::toString)
+                        .reduce((a, b) -> a + "," + b)
+                        .orElse("(nenhuma)")
+                : "(sem autenticação)";
+        log.warn("Acesso negado [authorities={}]: {}", authorities, ex.getMessage());
         return build(HttpStatus.FORBIDDEN, "Acesso negado. Você não tem permissão para esta operação.");
     }
 
@@ -111,6 +124,24 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex) {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    /**
+     * Trata {@link IllegalStateException} lançado quando uma operação de
+     * negócio exige uma Organization ativa (via
+     * {@code OrganizationContext.require()}) mas o contexto não está
+     * populado — situação que ocorre quando o usuário (ex: ADMIN) opera
+     * sem uma empresa selecionada no seletor do Topbar.
+     *
+     * <p>Em vez de propagar um 500 genérico, devolve um 400 com mensagem
+     * acionável, orientando o usuário a selecionar uma empresa ativa antes
+     * de cadastrar propostas/pedidos.</p>
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiError> handleIllegalState(IllegalStateException ex) {
+        log.warn("Estado inválido (Organization ativa ausente?): {}", ex.getMessage());
+        return build(HttpStatus.BAD_REQUEST,
+                "Selecione uma empresa ativa no topo da tela antes de realizar esta operação.");
     }
 
     @ExceptionHandler(IncorrectPasswordException.class)
@@ -303,6 +334,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidOrganizationHeaderException.class)
     public ResponseEntity<ApiError> handleInvalidOrganizationHeader(InvalidOrganizationHeaderException ex) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidLogoException.class)
+    public ResponseEntity<ApiError> handleInvalidLogo(InvalidLogoException ex) {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 

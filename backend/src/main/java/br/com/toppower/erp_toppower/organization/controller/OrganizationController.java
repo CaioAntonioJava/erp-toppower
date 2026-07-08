@@ -6,6 +6,7 @@ import br.com.toppower.erp_toppower.organization.dto.OrganizationResponse;
 import br.com.toppower.erp_toppower.organization.dto.OrganizationSummary;
 import br.com.toppower.erp_toppower.organization.dto.OrganizationUpdateRequest;
 import br.com.toppower.erp_toppower.organization.enums.OrganizationStatus;
+import br.com.toppower.erp_toppower.organization.service.OrganizationLogoService;
 import br.com.toppower.erp_toppower.organization.service.OrganizationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -32,7 +33,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
@@ -47,6 +50,7 @@ public class OrganizationController {
             "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
 
     private final OrganizationService organizationService;
+    private final OrganizationLogoService organizationLogoService;
 
     // =====================================================================
     // Gestão de Organizations (admin-only)
@@ -152,6 +156,57 @@ public class OrganizationController {
     })
     public ResponseEntity<OrganizationResponse> activate(@PathVariable UUID id) {
         return ResponseEntity.ok(organizationService.activate(id));
+    }
+
+    // =====================================================================
+    // Logo da Organization (admin-only)
+    // =====================================================================
+
+    @PostMapping(value = "/{id:" + UUID_REGEX + "}/logo",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Upload de logo da Organization",
+            description = "Recebe um arquivo de imagem (PNG, JPEG ou SVG) e armazena em "
+                    + "<app.uploads.dir>/logos/<uuid>.<ext>. A URL pública "
+                    + "(ex.: /logos/<uuid>.png) é persistida no campo logoUrl "
+                    + "e usada como cabeçalho nos PDFs gerados pelo backend. "
+                    + "Re-upload sobrescreve o anterior; extensões antigas são limpas.")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasRole('ADMIN')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Logo enviado; Organization atualizada.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = OrganizationResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Arquivo vazio ou tipo não permitido.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "404", description = "Organization não encontrada.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+    })
+    public ResponseEntity<OrganizationResponse> uploadLogo(
+            @PathVariable UUID id,
+            @Parameter(description = "Arquivo de logo (PNG, JPEG ou SVG).",
+                    content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE))
+            @RequestPart("file") MultipartFile file) {
+        return ResponseEntity.ok(br.com.toppower.erp_toppower.organization.mapper.OrganizationMapper.toResponse(
+                organizationLogoService.uploadLogo(id, file)));
+    }
+
+    @DeleteMapping(value = "/{id:" + UUID_REGEX + "}/logo", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Remover logo da Organization",
+            description = "Apaga o arquivo do disco e zera o campo logoUrl. "
+                    + "No-op se a Organization não tem logo configurado.")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasRole('ADMIN')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Logo removido (ou já ausente).",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = OrganizationResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Organization não encontrada.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+    })
+    public ResponseEntity<OrganizationResponse> deleteLogo(@PathVariable UUID id) {
+        return ResponseEntity.ok(br.com.toppower.erp_toppower.organization.mapper.OrganizationMapper.toResponse(
+                organizationLogoService.deleteLogo(id)));
     }
 
     // =====================================================================

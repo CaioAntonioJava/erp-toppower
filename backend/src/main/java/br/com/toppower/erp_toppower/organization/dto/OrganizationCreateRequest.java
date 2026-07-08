@@ -84,6 +84,13 @@ public record OrganizationCreateRequest(
         @Size(max = 100, message = "Complemento deve ter no máximo {max} caracteres")
         String complement,
 
+        @Schema(description = "URL pública do logo da Organization "
+                + "(ex.: /logos/<uuid>.png). Geralmente preenchida após o "
+                + "upload via endpoint dedicado /organizations/{id}/logo.",
+                maxLength = 500, requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        @Size(max = 500, message = "URL do logo deve ter no máximo {max} caracteres")
+        String logoUrl,
+
         @Schema(description = "Status inicial. Se omitido, assume ATIVO.",
                 example = "ATIVO", allowableValues = {"ATIVO", "INATIVO"},
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)

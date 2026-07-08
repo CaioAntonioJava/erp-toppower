@@ -26,6 +26,11 @@ public record OrganizationSummary(
         @Schema(description = "CNPJ.", requiredMode = Schema.RequiredMode.REQUIRED)
         String cnpj,
 
+        @Schema(description = "URL pública do logo da Organization "
+                + "(ex.: /logos/<uuid>.png). Pode ser nula.",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        String logoUrl,
+
         @Schema(description = "Status.", requiredMode = Schema.RequiredMode.REQUIRED)
         OrganizationStatus status,
 

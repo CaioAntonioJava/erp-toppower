@@ -1,2 +1,6 @@
 # Artefatos temporários de execução local (não versionar)
 /PID
+# Uploads locais (logos das Organizations)
+/uploads/
+/backend/uploads/
+/backend/target/

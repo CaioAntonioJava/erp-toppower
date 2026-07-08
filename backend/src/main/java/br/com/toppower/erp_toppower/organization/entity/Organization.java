@@ -91,6 +91,15 @@ public class Organization extends BaseEntity implements Serializable {
     @Column(name = "complement", length = 100)
     private String complement;
 
+    /**
+     * URL pública do logo da Organization (ex.: {@code /logos/<uuid>.png}).
+     * Servido pelo {@code WebMvcConfig} a partir de
+     * {@code ${app.uploads.dir}/logos/}. Quando nulo, o template do PDF
+     * cai no logo estático padrão.
+     */
+    @Column(name = "logo_url", length = 500)
+    private String logoUrl;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private OrganizationStatus status;

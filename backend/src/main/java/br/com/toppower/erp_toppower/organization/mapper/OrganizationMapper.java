@@ -28,6 +28,7 @@ public final class OrganizationMapper {
         org.setCity(request.city());
         org.setState(request.state());
         org.setComplement(request.complement());
+        org.setLogoUrl(request.logoUrl());
         org.setStatus(request.status());
         org.setProposalPrefix(request.proposalPrefix());
         return org;
@@ -47,6 +48,7 @@ public final class OrganizationMapper {
         if (request.city() != null) org.setCity(request.city());
         if (request.state() != null) org.setState(request.state());
         if (request.complement() != null) org.setComplement(request.complement());
+        if (request.logoUrl() != null) org.setLogoUrl(request.logoUrl());
         if (request.status() != null) org.setStatus(request.status());
         if (request.proposalPrefix() != null) org.setProposalPrefix(request.proposalPrefix());
     }
@@ -68,6 +70,7 @@ public final class OrganizationMapper {
                 org.getCity(),
                 org.getState(),
                 org.getComplement(),
+                org.getLogoUrl(),
                 org.getStatus(),
                 org.getProposalPrefix(),
                 org.getCreatedAt(),
@@ -85,6 +88,7 @@ public final class OrganizationMapper {
                 org.getCorporateName(),
                 org.getTradeName(),
                 org.getCnpj(),
+                org.getLogoUrl(),
                 org.getStatus(),
                 org.getProposalPrefix(),
                 null,
@@ -98,6 +102,7 @@ public final class OrganizationMapper {
                 org.getCorporateName(),
                 org.getTradeName(),
                 org.getCnpj(),
+                org.getLogoUrl(),
                 org.getStatus(),
                 org.getProposalPrefix(),
                 role,

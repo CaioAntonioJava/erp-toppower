@@ -54,6 +54,12 @@ public record OrganizationResponse(
         @Schema(description = "Complemento.")
         String complement,
 
+        @Schema(description = "URL pública do logo da Organization "
+                + "(ex.: /logos/<uuid>.png). Pode ser nula — nesse caso o "
+                + "template do PDF usa o logo padrão.",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        String logoUrl,
+
         @Schema(description = "Status.", requiredMode = Schema.RequiredMode.REQUIRED)
         OrganizationStatus status,
 

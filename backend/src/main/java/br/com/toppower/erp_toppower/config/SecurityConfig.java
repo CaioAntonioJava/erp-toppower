@@ -22,6 +22,11 @@ public class SecurityConfig {
 
     private static final String[] PUBLIC_PATHS = {
             "/api/v1/auth/login",
+            // Logos das Organizations (servidos pelo WebMvcConfig a partir
+            // de ./uploads/logos/). Sem autenticação para que o template
+            // Thymeleaf (Flying Saucer) consiga carregar a imagem no PDF
+            // sem precisar de token.
+            "/logos/**",
             // SpringDoc OpenAPI / Swagger UI
             "/v3/api-docs",
             "/v3/api-docs/**",

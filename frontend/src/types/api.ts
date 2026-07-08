@@ -12,6 +12,8 @@ export interface OrganizationSummary {
   corporateName: string
   tradeName: string
   cnpj: string
+  /** URL pública do logo (ex.: '/logos/<uuid>.png'). Opcional. */
+  logoUrl?: string | null
   status: OrganizationStatus
   /**
    * Prefixo do código das Propostas Técnicas emitidas por esta Organization
@@ -23,6 +25,58 @@ export interface OrganizationSummary {
   role?: Role | null
   /** Indica se esta é a Organization default do usuário. */
   isDefault?: boolean
+}
+
+/**
+ * Representação completa de uma Organization (espelha
+ * {@code OrganizationResponse} do backend). Inclui endereço e demais
+ * campos necessários para alimentar o cabeçalho dos PDFs sem precisar
+ * de uma nova chamada de API.
+ */
+export interface OrganizationResponse {
+  uuid: string
+  corporateName: string
+  tradeName: string
+  cnpj: string
+  stateRegistration?: string | null
+  municipalRegistration?: string | null
+  phone?: string | null
+  email?: string | null
+  zipCode?: string | null
+  street?: string | null
+  number?: string | null
+  district?: string | null
+  city?: string | null
+  state?: string | null
+  complement?: string | null
+  logoUrl?: string | null
+  status: OrganizationStatus
+  proposalPrefix: string
+  createdAt: string
+  updatedAt: string
+}
+
+/**
+ * Corpo de PATCH /api/v1/organizations/{id}. Todos os campos opcionais;
+ * apenas os enviados são atualizados (PATCH semântico).
+ */
+export interface OrganizationUpdateRequest {
+  corporateName?: string
+  tradeName?: string
+  stateRegistration?: string
+  municipalRegistration?: string
+  phone?: string
+  email?: string
+  zipCode?: string
+  street?: string
+  number?: string
+  district?: string
+  city?: string
+  state?: string
+  complement?: string
+  logoUrl?: string
+  status?: OrganizationStatus
+  proposalPrefix?: string
 }
 
 /** Usuário autenticado (retornado em /auth/login e /me). Espelha LoginResponse.AuthenticatedUser. */

@@ -68,6 +68,11 @@ public record OrganizationUpdateRequest(
         @Size(max = 100, message = "Complemento deve ter no máximo {max} caracteres")
         String complement,
 
+        @Schema(description = "URL pública do logo da Organization.",
+                maxLength = 500, requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        @Size(max = 500, message = "URL do logo deve ter no máximo {max} caracteres")
+        String logoUrl,
+
         @Schema(description = "Status.", allowableValues = {"ATIVO", "INATIVO"},
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         OrganizationStatus status,
