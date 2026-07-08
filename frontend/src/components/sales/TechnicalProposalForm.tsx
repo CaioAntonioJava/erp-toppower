@@ -5,19 +5,22 @@ import {
   useState,
   type FormEvent,
 } from 'react'
-import { Plus, Trash2 } from 'lucide-react'
+import { Loader2, Plus, Trash2 } from 'lucide-react'
 import { Input } from '../ui/Input'
 import { Select } from '../ui/Select'
 import { Button } from '../ui/Button'
 import { Alert } from '../ui/Alert'
 import { Spinner } from '../ui/Spinner'
 import { RichTextEditor } from '../ui/RichTextEditor'
-import { toApiError } from '../../lib/errors'
+import { toApiError, errorMessage } from '../../lib/errors'
 import { parseNumber, formatBRLValue } from '../../lib/money'
 import { useFieldTouched } from '../../hooks/useFieldTouched'
 import { useActiveCarriers } from '../../hooks/useActiveCarriers'
 import { FreightConditionsFields } from './FreightConditionsFields'
 import { getProduct, searchProducts } from '../../api/product.api'
+import { getCep } from '../../api/cep.api'
+import { getCustomer } from '../../api/customer.api'
+import { getCompany } from '../../api/company.api'
 import {
   searchTechnicalProposalClients,
   simulateTechnicalProposal,
@@ -197,6 +200,9 @@ export function TechnicalProposalForm({
     state: proposal?.address?.state ?? '',
     zipCode: proposal?.address?.zipCode ?? '',
   }))
+  // Lookup de CEP na base local: loading + mensagem de erro inline.
+  const [cepLoading, setCepLoading] = useState(false)
+  const [cepLookupError, setCepLookupError] = useState<string | null>(null)
 
   // === itens de serviço ===
   const [serviceItems, setServiceItems] = useState<ServiceDraft[]>(() => {
@@ -343,6 +349,58 @@ export function TechnicalProposalForm({
     }
   }, [proposal])
 
+  /**
+   * Pré-preenche o endereço de execução a partir do cadastro do
+   * cliente quando a seção de endereço é habilitada e todos os campos
+   * estão vazios (não sobrescreve endereço já preenchido — seja por
+   * edição de proposta existente, seja por preenchimento manual ou
+   * lookup de CEP).
+   */
+  useEffect(() => {
+    if (!hasAddress) return
+    if (!clientUuid) return
+    // Guarda: só preenche se TODOS os campos estiverem vazios. Evita
+    // sobrescrever endereço persistido em edição ou digitado pelo
+    // usuário (inclusive via lookup de CEP).
+    const isEmpty = (v?: string | null) => v == null || v.trim() === ''
+    if (
+      !isEmpty(address.street) ||
+      !isEmpty(address.number) ||
+      !isEmpty(address.neighborhood) ||
+      !isEmpty(address.city) ||
+      !isEmpty(address.state) ||
+      !isEmpty(address.zipCode)
+    ) {
+      return
+    }
+    let cancelled = false
+    ;(async () => {
+      try {
+        const client = clientType === 'CUSTOMER'
+          ? await getCustomer(clientUuid)
+          : await getCompany(clientUuid)
+        if (cancelled) return
+        const a = client.address
+        setAddress({
+          street: a.street ?? '',
+          number: a.number ?? '',
+          complement: a.complement ?? '',
+          neighborhood: a.neighborhood ?? '',
+          city: a.city ?? '',
+          state: a.state ?? '',
+          zipCode: a.zipCode ?? '',
+        })
+      } catch {
+        // Cliente não encontrado ou sem permissão — mantém o estado
+        // atual e deixa o usuário preencher manualmente.
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasAddress, clientUuid, clientType])
+
   // Debounce do typeahead de clientes.
   const clientDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
   const clientTypeRef = useRef<TechnicalProposalClientType>(clientType)
@@ -450,6 +508,37 @@ export function TechnicalProposalForm({
     })
     setProductOptions([])
     setActiveProductRow(null)
+  }
+
+  /**
+   * Ao desfocar o CEP com 8 dígitos válidos, consulta a base local
+   * (offline) e preenche automaticamente logradouro, bairro, cidade
+   * e UF. Não sobrescreve número e complemento (dados do imóvel).
+   * Falhas (CEP não encontrado, base vazia) são mostradas inline
+   * abaixo do campo, sem bloquear o formulário.
+   */
+  async function handleCepBlur() {
+    const digits = (address.zipCode ?? '').replace(/\D/g, '')
+    if (digits.length !== 8) return
+    setCepLoading(true)
+    setCepLookupError(null)
+    try {
+      const cep = await getCep(digits)
+      setAddress((a) => ({
+        ...a,
+        // Só sobrescreve se a base local retornou valor (CEPs
+        // genéricos podem trazer logradouro/bairro/cidade/UF null).
+        street: cep.street ?? a.street,
+        neighborhood: cep.neighborhood ?? a.neighborhood,
+        city: cep.city ?? a.city,
+        state: cep.state ?? a.state,
+        zipCode: cep.zipCode,
+      }))
+    } catch (err) {
+      setCepLookupError(errorMessage(err))
+    } finally {
+      setCepLoading(false)
+    }
   }
 
   // === simulação de totais (debounced, sem persistir) ===
@@ -1074,8 +1163,23 @@ export function TechnicalProposalForm({
                   zipCode: maskZipCode(e.target.value),
                 }))
               }
+              onBlur={() => {
+                void handleCepBlur()
+              }}
+              error={cepLookupError ?? undefined}
+              hint={
+                cepLoading
+                  ? 'Buscando endereço na base local...'
+                  : 'Digite o CEP para preenchimento automático.'
+              }
+              disabled={cepLoading}
               maxLength={9}
               placeholder="00000-000"
+              rightAdornment={
+                cepLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                ) : null
+              }
             />
           </div>
         ) : null}
