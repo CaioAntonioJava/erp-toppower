@@ -967,6 +967,10 @@ export function QuotationForm({
                 isFirst={idx === 0}
                 item={it}
                 lineTotal={simulation?.items?.[idx]?.totalPrice ?? it.unitPrice * it.quantity}
+                // Preço unitário já com margem aplicado — vem do backend
+                // via simulate. Quando a simulação ainda não chegou, usa
+                // o preço original do draft como fallback visual.
+                unitPriceWithMargin={simulation?.items?.[idx]?.unitPrice ?? null}
                 fieldErrors={fieldErrors}
                 productOptions={productOptions}
                 productSearching={
@@ -1207,6 +1211,12 @@ interface ItemRowProps {
   item: ItemDraft
   /** Total líquido da linha (vindo do backend via simulate). */
   lineTotal: number
+  /**
+   * Preço unitário já com a margem de lucro aplicada, retornado pelo
+   * backend em `simulation.items[i].unitPrice`. Quando `null`, ainda
+   * não há simulação disponível e o componente exibe fallback.
+   */
+  unitPriceWithMargin: number | null
   fieldErrors: Record<string, string>
   productOptions: ProductResponse[]
   productSearching: boolean
@@ -1231,6 +1241,7 @@ function ItemRow({
   isFirst,
   item,
   lineTotal,
+  unitPriceWithMargin,
   fieldErrors,
   productOptions,
   productSearching,
@@ -1400,32 +1411,36 @@ function ItemRow({
         />
       </div>
 
-      {/* Preço Unit */}
+      {/* Preço Unit (readonly — mostra o valor COM margem de lucro aplicada) */}
       <div role="cell" className="min-w-0">
         {isFirst ? <label className={labelCls}>Preço</label> : null}
         <input
           type="text"
           inputMode="decimal"
-          aria-label="Preço unitário"
+          aria-label="Preço unitário (com margem de lucro aplicada)"
           placeholder="0,00"
-          value={unitPriceDisplay}
-          onChange={(e) => {
-            setUnitPriceDisplay(e.target.value)
-            const v = parseNumber(e.target.value)
-            onPatch({ unitPrice: v ?? 0 })
-          }}
-          onBlur={() => {
-            // Normaliza para 2 casas decimais no formato brasileiro
-            // (vírgula): "80" → "80,00"; "45,9" → "45,90".
-            const formatted = formatBRLValue(unitPriceDisplay)
-            setUnitPriceDisplay(formatted)
-            const n = parseNumber(formatted)
-            onPatch({ unitPrice: n ?? 0 })
-            getBlurHandler(unitPriceField)()
-          }}
-          className={[inputBase, 'text-right', unitPriceError ? inputError : ''].join(' ')}
-          required
+          value={
+            unitPriceWithMargin != null
+              ? formatBRLValue(unitPriceWithMargin)
+              : unitPriceDisplay
+          }
+          // Readonly: o preço unitário exibido reflete a margem de lucro
+          // aplicada pelo backend. A margem é controlada pelo campo
+          // global "Margem de lucro (%)" e o preço base continua sendo
+          // o valor original armazenado em `item.unitPrice`.
+          readOnly
+          className={[
+            inputBase,
+            'text-right',
+            'bg-slate-50 dark:bg-slate-800 cursor-not-allowed',
+            unitPriceError ? inputError : '',
+          ].join(' ')}
         />
+        {unitPriceWithMargin != null && item.unitPrice !== unitPriceWithMargin ? (
+          <p className="mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">
+            Base {brlFormatter.format(item.unitPrice)} + margem
+          </p>
+        ) : null}
       </div>
 
       {/* Desconto */}
