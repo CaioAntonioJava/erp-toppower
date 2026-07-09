@@ -73,6 +73,30 @@ textarea:-moz-ui-invalid {
   -webkit-box-shadow: none !important;
 }
 
+/* =====================================================================
+   Contraste dos dropdowns nativos no tema dark.
+   No Chrome (mesmo com `color-scheme: dark`), o painel aberto do
+   `<select>` e seus `<option>` mantêm o estilo do UA (fundo azul-claro
+   com texto preto), o que destoa do restante da UI no tema escuro.
+   Forçamos as cores dos options no modo dark via CSS global para cobrir
+   tanto o `<select>` do componente `Select` quanto qualquer `<select>`
+   nativo espalhado pela aplicação. O seletor `option:checked` estiliza
+   o option atualmente selecionado. */
+.dark select option,
+.dark select optgroup {
+  background-color: #0f172a; /* slate-900 — mesmo fundo do controle fechado */
+  color: #f1f5f9; /* slate-100 */
+}
+
+.dark select option:checked {
+  background-color: #1e293b; /* slate-800 — destaque sutil ao reabrir */
+  color: #f1f5f9;
+}
+
+.dark select option:disabled {
+  color: #94a3b8; /* slate-400 — placeholder "Selecione…" */
+}
+
 /* Remove os botões de spinner (setinhas) de TODOS os <input type="number">.
    Aplicado globalmente — vale para qualquer campo numérico atual ou futuro,
    sem precisar repetir a regra em cada componente. */
