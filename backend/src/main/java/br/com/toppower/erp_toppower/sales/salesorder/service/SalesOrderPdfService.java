@@ -1,5 +1,6 @@
 package br.com.toppower.erp_toppower.sales.salesorder.service;
 
+import br.com.toppower.erp_toppower.common.util.SoftBreak;
 import br.com.toppower.erp_toppower.product.dto.ProductResponse;
 import br.com.toppower.erp_toppower.product.service.ProductService;
 import br.com.toppower.erp_toppower.sales.pdf.PdfModelBuilder;
@@ -50,6 +51,11 @@ public class SalesOrderPdfService {
         model.put("order", order);
         model.put("productNames", resolveProductField(order, ProductResponse::name));
         model.put("productCodes", resolveProductField(order, p -> p.code() != null ? p.code() : "—"));
+        // Nomes com quebra "macia" (sufixo societário, separadores
+        // semânticos) — pré-computados no Java porque o SpEL restrito
+        // do Thymeleaf não permite T(SomeClass).method(...) no template.
+        model.put("clientNameHtml", softBroken(order.clientName()));
+        model.put("attentionHtml", softBroken(order.attention()));
 
         return salesPdfService.render("pdf/sales-order", model);
     }
@@ -69,5 +75,14 @@ public class SalesOrderPdfService {
             }
         }
         return result;
+    }
+
+    /**
+     * Aplica {@link SoftBreak#name(String)} ao valor, retornando
+     * {@code "—"} quando nulo/vazio — para que o template use
+     * {@code th:utext="${chave}"} sem precisar de guarda.
+     */
+    private static String softBroken(String value) {
+        return (value == null || value.isBlank()) ? "—" : SoftBreak.name(value);
     }
 }

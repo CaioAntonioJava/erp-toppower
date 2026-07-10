@@ -1,5 +1,6 @@
 package br.com.toppower.erp_toppower.sales.technicalproposal.service;
 
+import br.com.toppower.erp_toppower.common.util.SoftBreak;
 import br.com.toppower.erp_toppower.product.dto.ProductResponse;
 import br.com.toppower.erp_toppower.product.service.ProductService;
 import br.com.toppower.erp_toppower.sales.pdf.PdfModelBuilder;
@@ -51,6 +52,16 @@ public class TechnicalProposalPdfService {
         model.put("proposal", proposal);
         model.put("productNames", resolveProductField(proposal, ProductResponse::name));
         model.put("productCodes", resolveProductField(proposal, p -> p.code() != null ? p.code() : "—"));
+        // Nome com quebra "macia" (sufixo societário, separadores
+        // semânticos) — pré-computado no Java porque o SpEL restrito
+        // do Thymeleaf não permite T(SomeClass).method(...) no template.
+        // Mantido simétrico com QuotationPdfService e SalesOrderPdfService
+        // mesmo que o template atual ainda não o utilize.
+        String clientName = proposal.clientName();
+        if (proposal.clientCode() != null && clientName != null) {
+            clientName = proposal.clientCode() + " — " + clientName;
+        }
+        model.put("clientNameHtml", softBroken(clientName));
 
         return salesPdfService.render("pdf/technical-proposal", model);
     }
@@ -70,5 +81,14 @@ public class TechnicalProposalPdfService {
             }
         }
         return result;
+    }
+
+    /**
+     * Aplica {@link SoftBreak#name(String)} ao valor, retornando
+     * {@code "—"} quando nulo/vazio — para que o template use
+     * {@code th:utext="${chave}"} sem precisar de guarda.
+     */
+    private static String softBroken(String value) {
+        return (value == null || value.isBlank()) ? "—" : SoftBreak.name(value);
     }
 }
