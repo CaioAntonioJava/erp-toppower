@@ -1,6 +1,7 @@
 package br.com.toppower.erp_toppower.sales.pdf;
 
 import br.com.toppower.erp_toppower.common.util.CurrencyFormatter;
+import br.com.toppower.erp_toppower.common.util.SoftBreak;
 import br.com.toppower.erp_toppower.organization.dto.OrganizationResponse;
 
 import java.util.List;
@@ -25,6 +26,8 @@ public record IssuerView(
         String phone,
         String email,
         String logoUrl,
+        /** Data URI (Base64) do logo, pronto para uso em {@code <img src="...">}. */
+        String logoDataUri,
         List<String> addressLines
 ) {
 
@@ -32,17 +35,35 @@ public record IssuerView(
         if (org == null) {
             return null;
         }
+        // Pré-quebra nome fantasia e razão social em <br/> usando a
+        // heurística do SoftBreak — nomes longos como
+        // "AEC PLATAFORMAS ELEVATORIAS E LOCACAO DE EQUIPAMENTOS LTDA"
+        // não cabem na coluna do cabeçalho e, sem o <br/>, o Flying
+        // Saucer deixa o texto invadir a linha de baixo, sobrepondo
+        // o título do documento.
+        String tradeName = nullToDash(org.tradeName());
+        String corporateName = nullToDash(org.corporateName());
         return new IssuerView(
-                nullToDash(org.corporateName()),
-                nullToDash(org.tradeName()),
+                breakName(corporateName),
+                tradeName, // sem SoftBreak — "LTDA" fica na mesma linha do nome fantasia
                 formatCnpj(org.cnpj()),
                 nullToDash(org.stateRegistration()),
                 nullToDash(org.municipalRegistration()),
                 nullToDash(org.phone()),
                 nullToDash(org.email()),
                 org.logoUrl(),
+                null, // logoDataUri é injetado pelo PdfModelBuilder (precisa do ImageEmbedder)
                 buildAddressLines(org)
         );
+    }
+
+    /**
+     * Aplica o {@link SoftBreak#name(String)} ao valor, retornando-o
+     * intacto se for o placeholder "—" (vazio).
+     */
+    private static String breakName(String value) {
+        if (value == null || value.equals("—")) return value;
+        return SoftBreak.name(value);
     }
 
     /** Linha 1 do endereço: logradouro + número. */

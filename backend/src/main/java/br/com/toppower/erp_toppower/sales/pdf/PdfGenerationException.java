@@ -4,8 +4,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
- * Falha ao gerar um PDF (renderização Thymeleaf, conversão Flying
- * Saucer, ou dados insuficientes). Mapeada para HTTP 500 pelo
+ * Falha ao gerar um PDF (renderização Thymeleaf, conversão
+ * OpenHTMLtoPDF, ou dados insuficientes). Mapeada para HTTP 500 pelo
  * {@link org.springframework.http.HttpStatus#INTERNAL_SERVER_ERROR}
  * via {@link ResponseStatus} — distinguindo-a do
  * {@link IllegalStateException} genérico, que é capturado pelo
