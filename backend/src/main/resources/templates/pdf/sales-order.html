@@ -10,70 +10,81 @@
 <!-- Cabeçalho do emissor -->
 <div th:replace="~{pdf/fragments/issuer-header :: issuer}"></div>
 
-<!-- Título do documento -->
-<div style="margin-top: 18px;">
-  <div class="doc-title"
-       th:text="'PEDIDO DE VENDA nº ' + ${order.number}">PEDIDO DE VENDA</div>
-  <div class="doc-subtitle">
-    <span>Emitido em </span>
-    <span th:text="${#temporals.format(order.orderDate, 'dd/MM/yyyy')}">--/--/----</span>
-    <span> • Status: </span>
-    <span th:text="${order.status.name()}">ABERTO</span>
-    <span th:if="${order.quotationNumber != null}">
-        • Origem: Proposta nº <span th:text="${order.quotationNumber}">—</span>
-    </span>
-  </div>
+<!-- Barra de acento + título do documento -->
+<div class="doc-accent">&#160;</div>
+<div class="doc-title"
+     th:text="'Pedido de Venda nº ' + ${order.number}">Pedido de Venda</div>
+<div class="doc-subtitle">
+  Emitido em
+  <span th:text="${#temporals.format(order.orderDate, 'dd/MM/yyyy')}">--/--/----</span>
+  &#160;•&#160; Status:
+  <span th:text="${order.status.name()}">ABERTO</span>
+  <span th:if="${order.quotationNumber != null}">
+    &#160;•&#160; Origem: Proposta nº <span th:text="${order.quotationNumber}">—</span>
+  </span>
 </div>
 
-<!-- Cliente + vendedor -->
-<div class="section">
-  <div class="section-title">Cliente</div>
-  <table class="kv">
-    <tr>
-      <td class="k">Nome</td>
-      <td class="v" th:text="${order.clientName != null ? order.clientName : '—'}">—</td>
-      <td class="k">Código</td>
-      <td class="v" th:text="${order.clientCode != null ? order.clientCode : '—'}">—</td>
-    </tr>
-    <tr>
-      <td class="k">Aos cuidados de</td>
-      <td class="v" th:text="${order.attention != null ? order.attention : '—'}">—</td>
-      <td class="k">Vendedor</td>
-      <td class="v" th:text="${order.sellerName != null ? order.sellerName : '—'}">—</td>
-    </tr>
-  </table>
-</div>
-
-<!-- Condições -->
-<div class="section">
-  <div class="section-title">Condições</div>
-  <table class="kv">
-    <tr>
-      <td class="k">Condição de pagamento</td>
-      <td class="v" th:text="${order.paymentCondition != null ? order.paymentCondition.displayName : '—'}">—</td>
-      <td class="k">Tipo de frete</td>
-      <td class="v" th:text="${order.freightType != null ? order.freightType.name() : '—'}">—</td>
-    </tr>
-    <tr>
-      <td class="k">Desconto global</td>
-      <td class="v"
-          th:text="${order.discountType != null and order.discount != null
-                     ? (order.discountType.name() == 'PERCENT'
-                          ? #numbers.formatDecimal(order.discount, 1, 'POINT', 2, 'COMMA') + '%'
-                          : 'R$ ' + #numbers.formatDecimal(order.discount, 1, 'POINT', 2, 'COMMA'))
-                     : '—'}">—</td>
-      <td class="k">Valor do frete</td>
-      <td class="v money"
-          th:text="${order.freightValue != null
-                     ? 'R$ ' + #numbers.formatDecimal(order.freightValue, 1, 'POINT', 2, 'COMMA')
-                     : '—'}">—</td>
-    </tr>
-    <tr>
-      <td class="k">Transportadora</td>
-      <td class="v" colspan="3" th:text="${order.carrierName != null ? order.carrierName : '—'}">—</td>
-    </tr>
-  </table>
-</div>
+<!-- Cliente + Condições (lado a lado) -->
+<table class="panel-row">
+  <tbody>
+  <tr>
+    <td style="width:50%;">
+      <div class="panel">
+        <div class="panel-title">Cliente</div>
+        <table class="kv">
+          <tr>
+            <td class="k">Nome:</td>
+            <td class="v" th:utext="${clientNameHtml}">—</td>
+          </tr>
+          <tr>
+            <td class="k">Aos cuidados de:</td>
+            <td class="v" th:utext="${attentionHtml}">—</td>
+          </tr>
+          <tr>
+            <td class="k">Vendedor:</td>
+            <td class="v" th:text="${order.sellerName != null ? order.sellerName : '—'}">—</td>
+          </tr>
+        </table>
+      </div>
+    </td>
+    <td style="width:50%;">
+      <div class="panel">
+        <div class="panel-title">Condições</div>
+        <table class="kv">
+          <tr>
+            <td class="k">Pagamento:</td>
+            <td class="v" th:text="${order.paymentCondition != null ? order.paymentCondition.displayName : '—'}">—</td>
+          </tr>
+          <tr>
+            <td class="k">Tipo de frete:</td>
+            <td class="v" th:text="${order.freightType != null ? order.freightType.name() : '—'}">—</td>
+          </tr>
+          <tr>
+            <td class="k">Desconto:</td>
+            <td class="v"
+                th:text="${order.discountType != null and order.discount != null
+                           ? (order.discountType.name() == 'PERCENT'
+                                ? order.discount + '%'
+                                : 'R$ ' + #numbers.formatDecimal(order.discount, 1, 'POINT', 2, 'COMMA'))
+                           : '—'}">—</td>
+          </tr>
+          <tr>
+            <td class="k">Valor do frete:</td>
+            <td class="v money"
+                th:text="${order.freightValue != null
+                           ? 'R$ ' + #numbers.formatDecimal(order.freightValue, 1, 'POINT', 2, 'COMMA')
+                           : '—'}">—</td>
+          </tr>
+          <tr>
+            <td class="k">Transportadora:</td>
+            <td class="v" th:text="${order.carrierName != null ? order.carrierName : '—'}">—</td>
+          </tr>
+        </table>
+      </div>
+    </td>
+  </tr>
+  </tbody>
+</table>
 
 <!-- Itens -->
 <div class="section" th:if="${!#lists.isEmpty(order.items)}">
@@ -83,14 +94,14 @@
   <table class="grid">
     <thead>
     <tr>
-      <th style="width:5%;">#</th>
+      <th style="width:4%;">#</th>
       <th style="width:12%;">Cód.</th>
       <th>Produto</th>
       <th class="num" style="width:8%;">Qtd.</th>
       <th class="num" style="width:12%;">Preço un.</th>
-      <th class="num" style="width:12%;">Subtotal</th>
-      <th class="num" style="width:10%;">Desc.</th>
-      <th class="num" style="width:13%;">Total</th>
+      <th class="num" style="width:13%;">Subtotal</th>
+      <th class="num" style="width:9%;">Desc.</th>
+      <th class="num" style="width:14%;">Total</th>
     </tr>
     </thead>
     <tbody>
@@ -124,22 +135,22 @@
   <table>
     <tr>
       <td>Subtotal</td>
-      <td class="num money"
+      <td class="money"
           th:text="${'R$ ' + #numbers.formatDecimal(order.subtotal, 1, 'POINT', 2, 'COMMA')}">0,00</td>
     </tr>
     <tr th:if="${order.globalDiscountValue != null and order.globalDiscountValue.signum() != 0}">
-      <td>Desconto global</td>
-      <td class="num money"
+      <td>Desconto</td>
+      <td class="money"
           th:text="${'- R$ ' + #numbers.formatDecimal(order.globalDiscountValue, 1, 'POINT', 2, 'COMMA')}">- 0,00</td>
     </tr>
     <tr th:if="${order.freightValue != null}">
       <td>Frete</td>
-      <td class="num money"
+      <td class="money"
           th:text="${'R$ ' + #numbers.formatDecimal(order.freightValue, 1, 'POINT', 2, 'COMMA')}">0,00</td>
     </tr>
     <tr class="grand">
       <td>TOTAL</td>
-      <td class="num money"
+      <td class="money"
           th:text="${'R$ ' + #numbers.formatDecimal(order.total, 1, 'POINT', 2, 'COMMA')}">0,00</td>
     </tr>
   </table>
@@ -148,27 +159,25 @@
 <!-- Observações -->
 <div class="section" th:if="${order.notes != null and !order.notes.isBlank()}">
   <div class="section-title">Observações</div>
-  <div class="notes" th:text="${order.notes}">—</div>
+  <div class="notes" th:utext="${order.notes}">—</div>
 </div>
 
 <!-- Assinaturas -->
 <div class="signatures">
-  <div class="sig">
-    <div class="sig-line"></div>
-    <div class="sig-label">Vendedor</div>
-    <div class="sig-name" th:text="${order.sellerName != null ? order.sellerName : ''}"></div>
-  </div>
-  <div class="sig">
-    <div class="sig-line"></div>
-    <div class="sig-label">Cliente</div>
-    <div class="sig-name" th:text="${order.clientName != null ? order.clientName : ''}"></div>
-  </div>
-</div>
-
-<!-- Rodapé -->
-<div class="footer"
-     th:text="'Documento gerado em ' + ${#temporals.format(generatedAt, 'dd/MM/yyyy HH:mm')}">
-  Documento gerado em —
+  <table>
+    <tr>
+      <td>
+        <div class="sig-line">&#160;</div>
+        <div class="sig-label">Vendedor</div>
+        <div class="sig-name" th:text="${order.sellerName != null ? order.sellerName : ''}"></div>
+      </td>
+      <td>
+        <div class="sig-line">&#160;</div>
+        <div class="sig-label">Cliente</div>
+        <div class="sig-name" th:text="${order.clientName != null ? order.clientName : ''}"></div>
+      </td>
+    </tr>
+  </table>
 </div>
 
 </body>

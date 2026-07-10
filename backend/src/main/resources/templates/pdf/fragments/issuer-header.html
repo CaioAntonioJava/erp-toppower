@@ -1,58 +1,71 @@
-<!DOCTYPE html>
 <!--
-  Cabeçalho padrão do emissor (Organization) compartilhado entre todos
-  os PDFs (cotação, proposta técnica, pedido de venda).
+  Cabeçalho do emissor (Organization) compartilhado entre todos os PDFs
+  (cotação, proposta técnica, pedido de venda).
 
   Variáveis esperadas:
     - ${issuer} : IssuerView
 
-  IMPORTANTE: o fragmento é declarado via th:fragment="issuer" no
-  <th:block> abaixo. Sem isso, ~{pdf/fragments/issuer-header :: issuer}
-  não resolve (causa do bug do PDF em branco).
+  Decisões de layout (compatíveis com OpenHTMLtoPDF 1.0.10):
+    - Estrutura 100% em <table> com vertical-align:middle — o renderer
+      é robusto com tabelas e instável com flex/margin/auto.
+    - Logo à esquerda (máx 140px de altura), dados do emissor à direita,
+      alinhados à direita. Trade name em peso; demais linhas em cinza.
+    - Fallback textual "TOP POWER" no retângulo vermelho da marca quando
+      não há logo cadastrado.
+    - Separador inferior (filete slate-300) fecha o cabeçalho.
 -->
-<html xmlns:th="http://www.thymeleaf.org">
-<body>
-
-<th:block th:fragment="issuer">
-  <table style="width:100%; border-bottom: 1px solid #cbd5e1; padding-bottom: 12px;">
+<th:block xmlns:th="http://www.thymeleaf.org" th:fragment="issuer">
+  <table style="width:100%; border-collapse:collapse;">
     <tr>
-      <td style="width: 30%; vertical-align: top;">
-        <!-- Logo: se houver logoUrl da Organization, usa o <img>; senão,
-             usa um placeholder textual (não é SVG inline para evitar
-             problemas de parsing XHTML no Flying Saucer). -->
-        <div th:if="${issuer.logoUrl != null and !issuer.logoUrl.isBlank()}"
-             style="height: 64px;">
-          <img th:src="${issuer.logoUrl}"
-               style="max-height: 64px; max-width: 100%; object-fit: contain;"
-               alt="Logo"/>
-        </div>
-        <div th:if="${issuer.logoUrl == null or issuer.logoUrl.isBlank()}"
-             style="height: 64px; display: flex; align-items: center; justify-content: center; background:#dc2626; color:#fff; font-weight: bold; font-size: 12pt; border-radius: 4px;">
-          TOP POWER
-        </div>
+      <!-- Coluna do logo -->
+      <td style="width: 30%; vertical-align: middle; padding: 0 0 8px 0;">
+        <table th:if="${issuer.logoDataUri != null and !issuer.logoDataUri.isBlank()}"
+               style="border-collapse:collapse;">
+          <tr>
+            <td style="height: 140px; vertical-align: middle;">
+              <img th:src="${issuer.logoDataUri}"
+                   style="max-height: 140px; max-width: 100%;"
+                   alt="Logo"/>
+            </td>
+          </tr>
+        </table>
+        <table th:if="${issuer.logoDataUri == null or issuer.logoDataUri.isBlank()}"
+               style="border-collapse:collapse; width: 190px; height: 280px;
+                      background:#0184ff; color:#ffffff;
+                      font-family: Helvetica, Arial, sans-serif;
+                      font-weight: bold; font-size: 13pt;">
+          <tr>
+            <td style="text-align:center; vertical-align:middle; color:#ffffff;
+                       letter-spacing: 1px;">
+              TOP POWER
+            </td>
+          </tr>
+        </table>
       </td>
-      <td style="text-align: right; font-size: 9pt; color: #334155; line-height: 1.45;">
-        <div style="font-size: 11pt; font-weight: bold; color: #0f172a; margin-bottom: 4px;"
-             th:text="${issuer.tradeName}">TOP POWER</div>
-        <div th:text="${issuer.corporateName}">RAZÃO SOCIAL</div>
-        <div>
-          CNPJ: <span th:text="${issuer.cnpjFormatted}">00.000.000/0001-00</span>
-        </div>
-        <div th:if="${issuer.stateRegistration != '—'}">
-          IE: <span th:text="${issuer.stateRegistration}"></span>
-        </div>
-        <div th:if="${issuer.municipalRegistration != '—'}">
-          IM: <span th:text="${issuer.municipalRegistration}"></span>
-        </div>
-        <div th:text="${issuer.addressLine1()}">Endereço linha 1</div>
-        <div th:if="${issuer.addressLine2() != null}" th:text="${issuer.addressLine2()}"></div>
-        <div th:if="${issuer.addressLine3() != null}" th:text="${issuer.addressLine3()}"></div>
-        <div th:if="${issuer.phoneLabel() != null}" th:text="${issuer.phoneLabel()}"></div>
-        <div th:if="${issuer.emailLabel() != null}" th:text="${issuer.emailLabel()}"></div>
+      <!-- Coluna dos dados do emissor -->
+      <td style="width: 100%; vertical-align: middle; text-align: right;
+                 font-family: Helvetica, Arial, sans-serif;
+                 font-size: 8pt; color: #64748b; line-height: 1.4;
+                 padding: 0 0 8px 0;">
+        <div style="font-size: 11pt; font-weight: bold; color: #0f172a;
+                    margin-bottom: 1px;">[(${issuer.tradeName})]</div>
+        <div>[(${issuer.corporateName})]</div>
+        <div>CNPJ: [[${issuer.cnpjFormatted}]]</div>
+        <div th:if="${issuer.stateRegistration != '—'}">IE: [[${issuer.stateRegistration}]]</div>
+        <div th:if="${issuer.municipalRegistration != '—'}">IM: [[${issuer.municipalRegistration}]]</div>
+        <div>[[${issuer.addressLine1()}]]</div>
+        <div th:if="${issuer.addressLine2() != null}">[[${issuer.addressLine2()}]]</div>
+        <div th:if="${issuer.addressLine3() != null}">[[${issuer.addressLine3()}]]</div>
+        <div th:if="${issuer.phoneLabel() != null}">[[${issuer.phoneLabel()}]]</div>
+        <div th:if="${issuer.emailLabel() != null}">[[${issuer.emailLabel()}]]</div>
       </td>
     </tr>
   </table>
+  <!-- Filete separador inferior -->
+  <table style="width:100%; border-collapse:collapse;">
+    <tr>
+      <td style="height: 0; line-height: 0; font-size: 0;
+                 border-top: 1px solid #cbd5e1;">&#160;</td>
+    </tr>
+  </table>
 </th:block>
-
-</body>
-</html>

@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
   <meta charset="UTF-8"/>
-  <title th:text="'Proposta Comercial nº ' + ${quotation.number}">Proposta</title>
+  <title th:text="'Proposta Comercial nº ' + ${quotation.number}">Proposta Comercial</title>
   <style th:replace="~{pdf/styles :: shared}"></style>
 </head>
 <body>
@@ -10,71 +10,82 @@
 <!-- Cabeçalho do emissor -->
 <div th:replace="~{pdf/fragments/issuer-header :: issuer}"></div>
 
-<!-- Título do documento -->
-<div style="margin-top: 18px;">
-  <div class="doc-title"
-       th:text="'PROPOSTA COMERCIAL nº ' + ${quotation.number}">PROPOSTA COMERCIAL nº 1500</div>
-  <div class="doc-subtitle">
-    <span>Emitida em </span>
-    <span th:text="${#temporals.format(quotation.issueDate, 'dd/MM/yyyy')}">--/--/----</span>
-    <span> • Status: </span>
-    <span th:text="${quotation.status.name()}">ATIVA</span>
-    <span th:if="${quotation.validityDays != null}">
-        • Validade:
-        <span th:text="${quotation.validityDays + ' dias'}">15 dias</span>
-    </span>
-  </div>
+<!-- Barra de acento + título do documento -->
+<div class="doc-accent">&#160;</div>
+<div class="doc-title"
+     th:text="'Proposta Comercial nº ' + ${quotation.number}">Proposta Comercial</div>
+<div class="doc-subtitle">
+  Emitida em
+  <span th:text="${#temporals.format(quotation.issueDate, 'dd/MM/yyyy')}">--/--/----</span>
+  &#160;•&#160; Status:
+  <span th:text="${quotation.status.name()}">ATIVA</span>
+  <span th:if="${quotation.validityDays != null}">
+    &#160;•&#160; Validade:
+    <span th:text="${quotation.validityDays + ' dias'}">30 dias</span>
+  </span>
 </div>
 
-<!-- Bloco cliente + vendedor -->
-<div class="section">
-  <div class="section-title">Cliente</div>
-  <table class="kv">
-    <tr>
-      <td class="k">Nome</td>
-      <td class="v" th:text="${quotation.clientName != null ? quotation.clientName : '—'}">—</td>
-      <td class="k">Código</td>
-      <td class="v" th:text="${quotation.clientCode != null ? quotation.clientCode : '—'}">—</td>
-    </tr>
-    <tr>
-      <td class="k">Aos cuidados de</td>
-      <td class="v" th:text="${quotation.attention != null ? quotation.attention : '—'}">—</td>
-      <td class="k">Vendedor</td>
-      <td class="v" th:text="${quotation.sellerName != null ? quotation.sellerName : '—'}">—</td>
-    </tr>
-  </table>
-</div>
-
-<!-- Condições -->
-<div class="section">
-  <div class="section-title">Condições</div>
-  <table class="kv">
-    <tr>
-      <td class="k">Condição de pagamento</td>
-      <td class="v" th:text="${quotation.paymentCondition != null ? quotation.paymentCondition.displayName : '—'}">—</td>
-      <td class="k">Tipo de frete</td>
-      <td class="v" th:text="${quotation.freightType != null ? quotation.freightType.name() : '—'}">—</td>
-    </tr>
-    <tr>
-      <td class="k">Desconto global</td>
-      <td class="v"
-          th:text="${quotation.discountType != null and quotation.discount != null
-                     ? (quotation.discountType.name() == 'PERCENT'
-                          ? quotation.discount + '%'
-                          : 'R$ ' + #numbers.formatDecimal(quotation.discount, 1, 'POINT', 2, 'COMMA'))
-                     : '—'}">—</td>
-      <td class="k">Valor do frete</td>
-      <td class="v money"
-          th:text="${quotation.freightValue != null
-                     ? 'R$ ' + #numbers.formatDecimal(quotation.freightValue, 1, 'POINT', 2, 'COMMA')
-                     : '—'}">—</td>
-    </tr>
-    <tr>
-      <td class="k">Transportadora</td>
-      <td class="v" colspan="3" th:text="${quotation.carrierName != null ? quotation.carrierName : '—'}">—</td>
-    </tr>
-  </table>
-</div>
+<!-- Cliente + Condições (lado a lado) -->
+<table class="panel-row">
+  <tbody>
+  <tr>
+    <td style="width:50%;">
+      <div class="panel">
+        <div class="panel-title">Cliente</div>
+        <table class="kv">
+          <tr>
+            <td class="k">Nome:</td>
+            <td class="v break-word" th:utext="${clientNameHtml}">—</td>
+          </tr>
+          <tr class="group-gap">
+            <td class="k">Aos cuidados de:</td>
+            <td class="v break-word" th:utext="${attentionHtml}">—</td>
+          </tr>
+          <tr class="group-gap">
+            <td class="k">Vendedor:</td>
+            <td class="v break-word" th:text="${quotation.sellerName != null ? quotation.sellerName : '—'}">—</td>
+          </tr>
+        </table>
+      </div>
+    </td>
+    <td style="width:50%;">
+      <div class="panel">
+        <div class="panel-title">Condições</div>
+        <table class="kv">
+          <tr>
+            <td class="k">Pagamento:</td>
+            <td class="v" th:text="${quotation.paymentCondition != null ? quotation.paymentCondition.displayName : '—'}">—</td>
+          </tr>
+          <tr class="group-gap">
+            <td class="k">Tipo de frete:</td>
+            <td class="v" th:text="${quotation.freightType != null ? quotation.freightType.name() : '—'}">—</td>
+          </tr>
+          <tr class="group-gap">
+            <td class="k">Desconto:</td>
+            <td class="v"
+                th:text="${quotation.discountType != null and quotation.discount != null
+                           ? (quotation.discountType.name() == 'PERCENT'
+                                ? quotation.discount + '%'
+                                : 'R$ ' + #numbers.formatDecimal(quotation.discount, 1, 'POINT', 2, 'COMMA'))
+                           : '—'}">—</td>
+          </tr>
+          <tr class="group-gap">
+            <td class="k">Valor do frete:</td>
+            <td class="v money"
+                th:text="${quotation.freightValue != null
+                           ? 'R$ ' + #numbers.formatDecimal(quotation.freightValue, 1, 'POINT', 2, 'COMMA')
+                           : '—'}">—</td>
+          </tr>
+          <tr class="group-gap">
+            <td class="k">Transportadora:</td>
+            <td class="v break-word" th:text="${quotation.carrierName != null ? quotation.carrierName : '—'}">—</td>
+          </tr>
+        </table>
+      </div>
+    </td>
+  </tr>
+  </tbody>
+</table>
 
 <!-- Itens -->
 <div class="section" th:if="${!#lists.isEmpty(quotation.items)}">
@@ -84,14 +95,14 @@
   <table class="grid">
     <thead>
     <tr>
-      <th style="width:5%;">#</th>
+      <th style="width:4%;">#</th>
       <th style="width:12%;">Cód.</th>
       <th>Produto</th>
       <th class="num" style="width:8%;">Qtd.</th>
       <th class="num" style="width:12%;">Preço un.</th>
-      <th class="num" style="width:12%;">Subtotal</th>
-      <th class="num" style="width:10%;">Desc.</th>
-      <th class="num" style="width:13%;">Total</th>
+      <th class="num" style="width:13%;">Subtotal</th>
+      <th class="num" style="width:9%;">Desc.</th>
+      <th class="num" style="width:14%;">Total</th>
     </tr>
     </thead>
     <tbody>
@@ -125,22 +136,22 @@
   <table>
     <tr>
       <td>Subtotal</td>
-      <td class="num money"
+      <td class="money"
           th:text="${'R$ ' + #numbers.formatDecimal(quotation.subtotal, 1, 'POINT', 2, 'COMMA')}">0,00</td>
     </tr>
     <tr th:if="${quotation.globalDiscountValue != null and quotation.globalDiscountValue.signum() != 0}">
-      <td>Desconto global</td>
-      <td class="num money"
+      <td>Desconto</td>
+      <td class="money"
           th:text="${'- R$ ' + #numbers.formatDecimal(quotation.globalDiscountValue, 1, 'POINT', 2, 'COMMA')}">- 0,00</td>
     </tr>
     <tr th:if="${quotation.freightValue != null}">
       <td>Frete</td>
-      <td class="num money"
+      <td class="money"
           th:text="${'R$ ' + #numbers.formatDecimal(quotation.freightValue, 1, 'POINT', 2, 'COMMA')}">0,00</td>
     </tr>
     <tr class="grand">
       <td>TOTAL</td>
-      <td class="num money"
+      <td class="money"
           th:text="${'R$ ' + #numbers.formatDecimal(quotation.total, 1, 'POINT', 2, 'COMMA')}">0,00</td>
     </tr>
   </table>
@@ -149,27 +160,25 @@
 <!-- Observações -->
 <div class="section" th:if="${quotation.notes != null and !quotation.notes.isBlank()}">
   <div class="section-title">Observações</div>
-  <div class="notes" th:text="${quotation.notes}">—</div>
+  <div class="notes" th:utext="${quotation.notes}">—</div>
 </div>
 
 <!-- Assinaturas -->
 <div class="signatures">
-  <div class="sig">
-    <div class="sig-line"></div>
-    <div class="sig-label">Vendedor</div>
-    <div class="sig-name" th:text="${quotation.sellerName != null ? quotation.sellerName : ''}"></div>
-  </div>
-  <div class="sig">
-    <div class="sig-line"></div>
-    <div class="sig-label">Cliente</div>
-    <div class="sig-name" th:text="${quotation.clientName != null ? quotation.clientName : ''}"></div>
-  </div>
-</div>
-
-<!-- Rodapé -->
-<div class="footer"
-     th:text="'Documento gerado em ' + ${#temporals.format(generatedAt, 'dd/MM/yyyy HH:mm')}">
-  Documento gerado em —
+  <table>
+    <tr>
+      <td>
+        <div class="sig-line">&#160;</div>
+        <div class="sig-label">Vendedor</div>
+        <div class="sig-name" th:text="${quotation.sellerName != null ? quotation.sellerName : ''}"></div>
+      </td>
+      <td>
+        <div class="sig-line">&#160;</div>
+        <div class="sig-label">Cliente</div>
+        <div class="sig-name" th:text="${quotation.clientName != null ? quotation.clientName : ''}"></div>
+      </td>
+    </tr>
+  </table>
 </div>
 
 </body>

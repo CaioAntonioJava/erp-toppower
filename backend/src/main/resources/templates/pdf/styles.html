@@ -2,12 +2,44 @@
   CSS compartilhado entre todos os templates de PDF. Incluído via
   <style th:replace="~{pdf/styles :: shared}"></style> no <head>
   de cada template.
+
+  Layout "clean & moderno" desenhado para o OpenHTMLtoPDF 1.0.10:
+
+  Suporta (e usa):
+    - @page size / margin / @bottom-center (paginação nativa)
+    - @page :first (customização da primeira página)
+    - -fs-table-paginate: paginate (repete thead entre páginas)
+    - widows / orphans, page-break-inside: avoid
+
+  NÃO usa (renderer não suporta de forma estável):
+    - display: flex / grid
+    - position: absolute / fixed (fora de @page margin boxes)
+    - CSS variables / calc()
+
+  Toda estrutura visual usa <table> com vertical-align e block-level,
+  mesma abordagem estável já adotada nos templates anteriores.
+
+  Paleta:
+    slate-900  #0f172a  (texto forte, TOTAL)
+    slate-700  #334155  (texto corpo)
+    slate-600  #475569  (labels, títulos de seção)
+    slate-500  #64748b  (subtítulos, cinza médio)
+    slate-400  #94a3b8  (rodapé, cinza claro)
+    slate-300  #cbd5e1  (bordas)
+    slate-200  #e2e8f0  (bordas finas, zebrado)
+    slate-100  #f1f5f9  (fundo de thead, cards)
+    red-600    #dc2626  (acento de marca / fallback TOP POWER)
+    red-50     #fef2f2  (fundo de acento do TOTAL)
 -->
 <th:block xmlns:th="http://www.thymeleaf.org" th:fragment="shared">
   <style type="text/css">
+    /* ===== Configuração de página (A4 retrato) =====
+       Margens: 1.5cm (respiro generoso, cabe em qualquer impressora).
+       @bottom-center: rodapé com numeração de página (feature nativa
+       do OpenHTMLtoPDF, mesmo nome que no Flying Saucer). */
     @page {
       size: A4;
-      margin: 1.5cm 1.5cm 2cm 1.5cm;
+      margin: 1.5cm 1.5cm 1.8cm 1.5cm;
       @bottom-center {
         content: "Página " counter(page) " de " counter(pages);
         font-family: Helvetica, Arial, sans-serif;
@@ -15,83 +47,236 @@
         color: #94a3b8;
       }
     }
+    /* Primeira página: mesma margem superior (o issuer-header já
+       entrega o respiro interno). A regra @page :first é suportada
+       pelo OpenHTMLtoPDF. */
+    @page :first {
+      margin-top: 1.5cm;
+    }
 
     body {
-      font-family: Helvetica, Arial, sans-serif;
-      font-size: 10pt;
-      color: #0f172a;
-      line-height: 1.4;
-    }
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 9pt;
+  color: #334155;
+  line-height: 1.45;
+
+  margin: 0;
+  padding: 0;
+
+  page-break-inside: auto;
+
+  /* melhora a renderização de textos grandes */
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
 
     table { border-collapse: collapse; }
 
+    /* ===== Cabeçalho do documento (barra de acento + título) ===== */
+    .doc-accent {
+      border-top: 3px solid #0277fd;
+      margin-top: 16px;
+      margin-bottom: 0;
+      padding: 0;
+      font-size: 0;
+      line-height: 0;
+      height: 0;
+    }
     .doc-title {
-      font-size: 14pt;
+      font-size: 15pt;
       font-weight: bold;
       color: #0f172a;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      margin-top: 14px;
+      margin-top: 8px;
+      margin-bottom: 2px;
     }
-
     .doc-subtitle {
-      font-size: 9pt;
+      font-size: 8.5pt;
       color: #64748b;
-      margin-top: 4px;
+      margin-top: 0;
+      margin-bottom: 10px;
     }
 
+    /* ===== Seções ===== */
     .section {
-      margin-top: 18px;
+      margin-top: 14px;
       page-break-inside: avoid;
     }
-
     .section-title {
-      font-size: 9pt;
+      font-size: 8pt;
       font-weight: bold;
       color: #475569;
       text-transform: uppercase;
       letter-spacing: 1px;
       border-bottom: 1px solid #e2e8f0;
-      padding-bottom: 4px;
+      padding-bottom: 3px;
       margin-bottom: 8px;
     }
 
-    table.kv {
-      width: 100%;
-    }
-    table.kv td {
-      padding: 3px 6px;
-      vertical-align: top;
-    }
-    table.kv td.k {
-      width: 22%;
-      font-size: 8pt;
-      color: #64748b;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    table.kv td.v {
-      width: 28%;
-      font-weight: bold;
-    }
-
-    table.grid {
+    /* ===== Painéis lado a lado (cliente + condições, etc.) =====
+       Estrutura em tabela de 2 colunas com gap simulado por padding.
+       OpenHTMLtoPDF não tem flex, então usamos table + valign:top. */
+    .panel-row {
       width: 100%;
       border-collapse: collapse;
     }
+    .panel-row > tbody > tr > td {
+      vertical-align: top;
+      padding: 0;
+    }
+    .panel-row > tbody > tr > td:first-child {
+      padding-right: 18px;
+    }
+    .panel-row > tbody > tr > td:last-child {
+      padding-left: 18px;
+    }
+    .panel {
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    background: #ffffff;
+
+    padding: 10px 12px;
+
+    page-break-inside: avoid;
+    }
+    .panel-title{
+    font-size:7.5pt;
+    font-weight:bold;
+    color:#94a3b8;
+
+    text-transform:uppercase;
+    letter-spacing:.8px;
+
+    margin-bottom:8px;
+    padding-bottom:4px;
+
+    border-bottom:1px solid #f1f5f9;
+    }
+
+    /* ===== Tabela chave/valor (kv) ===== */
+    table.kv {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    table.kv td{
+    padding:2px 0;
+    vertical-align:top;
+    font-size:8pt;
+    }
+    table.kv td.k {
+      width:34%;
+
+    color:#64748b;
+
+    font-size:7pt;
+
+    font-weight:bold;
+
+    text-transform:uppercase;
+
+    letter-spacing:.5px;
+
+    white-space:nowrap;
+
+    padding-right:10px;
+    }
+    table.kv td.v {
+      font-weight:bold;
+
+    color:#0f172a;
+
+    font-size:7pt;
+
+    line-height:1.35;
+
+    padding-left:2px;
+
+    word-break:break-word;
+    }
+
+    /* ===========================================================
+   LIMITADORES DE TEXTO
+   =========================================================== */
+
+.text-limit-1{
+    max-height:1.4em;
+    overflow:hidden;
+}
+
+.text-limit-2{
+    max-height:2.8em;
+    overflow:hidden;
+}
+
+.text-limit-3{
+    max-height:4.2em;
+    overflow:hidden;
+}
+
+/* separa blocos dentro da tabela kv */
+
+.group-gap td{
+
+    padding-top:8px !important;
+
+}
+
+.value-strong{
+
+    font-size:8pt;
+
+    color:#0f172a;
+
+    font-weight:bold;
+
+}
+
+.nowrap{
+    white-space:nowrap;
+}
+
+.wrap{
+    white-space:normal;
+}
+
+.break-word{
+    word-break:break-word;
+}
+
+    /* ===== Tabela de grade (itens) =====
+       -fs-table-paginate: paginate repete o cabeçalho entre páginas.
+       widows/orphans evita que a tabela fique órfã no topo. */
+    table.grid {
+      width: 100%;
+      border-collapse: collapse;
+      -fs-table-paginate: paginate;
+      widows: 2;
+      orphans: 2;
+    }
     table.grid thead th {
       text-align: left;
-      font-size: 8pt;
+      font-size: 7pt;
+      font-weight: bold;
       color: #475569;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      padding: 6px 4px;
+      padding: 7px 8px;
+      background-color: #f1f5f9;
       border-bottom: 1px solid #cbd5e1;
     }
     table.grid tbody td {
-      padding: 6px 4px;
+      padding: 7px 8px;
       border-bottom: 1px solid #e2e8f0;
-      font-size: 9pt;
+      font-size: 8.5pt;
+      vertical-align: top;
+      color: #334155;
+    }
+    /* Zebrado leve para legibilidade. OpenHTMLtoPDF suporta
+       nth-child na maioria dos casos, mas por segurança aplicamos
+       também via classe .alt quando necessário. */
+    table.grid tbody tr:nth-child(even) td {
+      background-color: #f8fafc;
     }
     table.grid tbody tr:last-child td {
       border-bottom: 1px solid #cbd5e1;
@@ -100,56 +285,93 @@
     .num { text-align: right; }
     .money { font-family: "Courier New", monospace; }
 
+    /* ===== Totais (card destacado à direita) ===== */
     .totals {
       margin-top: 16px;
       width: 100%;
-      display: table;
+      page-break-inside: avoid;
     }
-    .totals table {
-      width: 50%;
-      margin-left: auto;
+    .totals > table {
+      width: 48%;
+      margin-left: 52%;
       border-collapse: collapse;
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+      background: #ffffff;
     }
-    .totals td {
-      padding: 4px 6px;
+    .totals > table td {
+      padding: 5px 12px;
       font-size: 9pt;
     }
-    .totals td:first-child {
+    .totals > table td:first-child {
       color: #475569;
     }
-    .totals tr.grand td {
+    .totals > table td:last-child {
+      text-align: right;
+    }
+    .totals > table tr.grand td {
       font-size: 11pt;
       font-weight: bold;
-      border-top: 1px solid #0f172a;
-      padding-top: 6px;
+      color: #0f172a;
+      border-top: 2px solid #0277fd;
+      background-color: #cddeff;
+      padding-top: 8px;
+      padding-bottom: 8px;
     }
 
+    /* ===== Observações ===== */
     .notes {
-      font-size: 9pt;
+      font-size: 8.5pt;
       color: #334155;
       white-space: pre-wrap;
-      word-wrap: break-word;
+      line-height: 1.5;
     }
 
-    .signatures {
-      margin-top: 60px;
-      width: 100%;
-      display: table;
+    /* ===== Listas (objetivos da proposta técnica) ===== */
+    .obj-list {
+      margin: 0;
+      padding-left: 18px;
+      font-size: 8.5pt;
+      color: #334155;
+      line-height: 1.5;
     }
-    .sig {
-      width: 45%;
-      display: inline-block;
+    .obj-list li {
+      margin-bottom: 3px;
+    }
+
+    /* ===== Endereço de execução ===== */
+    .addr-block {
+      font-size: 8.5pt;
+      color: #334155;
+      line-height: 1.5;
+    }
+
+    /* ===== Assinaturas ===== */
+    .signatures {
+      margin-top: 50px;
+      width: 100%;
+      page-break-inside: avoid;
+    }
+    .signatures > table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .signatures > table td {
+      width: 50%;
       text-align: center;
       vertical-align: top;
-      margin: 0 2%;
+      padding: 0 20px;
     }
     .sig-line {
       border-top: 1px solid #475569;
-      margin-bottom: 4px;
+      height: 0;
+      line-height: 0;
+      font-size: 0;
+      margin-bottom: 6px;
     }
     .sig-label {
-      font-size: 8pt;
-      color: #64748b;
+      font-size: 7.5pt;
+      color: #94a3b8;
       text-transform: uppercase;
       letter-spacing: 1px;
     }
@@ -157,17 +379,17 @@
       font-size: 9pt;
       font-weight: bold;
       color: #0f172a;
-      margin-top: 2px;
+      margin-top: 3px;
     }
 
-    .footer {
-      position: fixed;
-      bottom: -1cm;
-      left: 0;
-      right: 0;
-      text-align: center;
-      font-size: 8pt;
-      color: #94a3b8;
+    /* ===== Utilitários de quebra de página ===== */
+    .page-break-before {
+      page-break-before: always;
+      break-before: page;
+    }
+    .page-break-after {
+      page-break-after: always;
+      break-after: page;
     }
   </style>
 </th:block>
