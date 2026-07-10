@@ -117,7 +117,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Falha ao gerar um PDF (Thymeleaf/Flying Saucer). Loga a stack
+     * Falha ao gerar um PDF (Thymeleaf/OpenHTMLtoPDF). Loga a stack
      * trace completa em ERROR (necessário para diagnosticar problemas
      * de template em produção) e devolve 500 para o cliente.
      *
