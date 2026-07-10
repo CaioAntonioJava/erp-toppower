@@ -29,6 +29,7 @@
 	<properties>
 		<java.version>17</java.version>
 		<jjwt.version>0.12.6</jjwt.version>
+		<openhtml.version>1.0.10</openhtml.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -94,16 +95,26 @@
 			<version>2.8.0</version>
 		</dependency>
 
-		<!-- Thymeleaf + Flying Saucer para geração de PDFs (cotação, proposta
-		     técnica, pedido de venda) a partir de templates HTML/CSS. -->
+		<!-- Thymeleaf + OpenHTMLtoPDF para geração de PDFs (cotação, proposta
+		     técnica, pedido de venda) a partir de templates HTML/CSS.
+
+		     OpenHTMLtoPDF é construído sobre Apache PDFBox 2.x e suporta
+		     um subset maior de CSS 2.1/3 que o Flying Saucer (incluindo
+		     named pages, running elements, -fs-table-paginate, widows/orphans).
+		     Mantém o pipeline Thymeleaf→HTML→PDF inalterado. -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-thymeleaf</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.xhtmlrenderer</groupId>
-			<artifactId>flying-saucer-pdf</artifactId>
-			<version>9.11.1</version>
+			<groupId>com.openhtmltopdf</groupId>
+			<artifactId>openhtmltopdf-core</artifactId>
+			<version>${openhtml.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.openhtmltopdf</groupId>
+			<artifactId>openhtmltopdf-pdfbox</artifactId>
+			<version>${openhtml.version}</version>
 		</dependency>
 
 		<!-- Helpers de I/O para upload de logos de Organization. -->
