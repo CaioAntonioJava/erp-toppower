@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Download, X } from 'lucide-react'
+import { Download, Printer, X } from 'lucide-react'
 import { Button } from './Button'
 import { Spinner } from './Spinner'
 import { Alert } from './Alert'
@@ -108,6 +108,9 @@ export function PdfPreview({ title, fetcher, onError }: PdfPreviewProps) {
   // Mantém o último URL criado para revogar quando um novo chegar.
   const lastUrlRef = useRef<string | null>(null)
 
+  // Referência ao iframe para acionar a impressão nativa do PDF.
+  const iframeRef = useRef<HTMLIFrameElement | null>(null)
+
   useEffect(() => {
     let cancelled = false
     setLoading(true)
@@ -166,6 +169,41 @@ export function PdfPreview({ title, fetcher, onError }: PdfPreviewProps) {
     a.remove()
   }
 
+  /**
+   * Dispara o diálogo de impressão do navegador para o PDF carregado
+   * no iframe. Funciona em todos os browsers modernos: o usuário
+   * escolhe a impressora destino (ou "Salvar como PDF") e o documento
+   * vai direto, sem nova requisição ao backend.
+   */
+  function handlePrint() {
+    if (!pdfUrl) return
+    const iframe = iframeRef.current
+    // Caminho preferencial: pedir ao iframe para imprimir, preservando
+    // margens/orientação do próprio PDF.
+    if (iframe && iframe.contentWindow) {
+      try {
+        iframe.contentWindow.focus()
+        iframe.contentWindow.print()
+        return
+      } catch {
+        // Algum browser pode bloquear contentWindow.print(); cai no fallback.
+      }
+    }
+    // Fallback: abre o blob em uma nova aba e dispara a impressão lá.
+    const win = window.open(pdfUrl, '_blank', 'noopener,noreferrer')
+    if (win) {
+      // Dá tempo do PDF carregar antes de abrir o diálogo.
+      win.addEventListener('load', () => {
+        try {
+          win.focus()
+          win.print()
+        } catch {
+          // Sem permissão — o usuário pode usar Ctrl+P manualmente.
+        }
+      })
+    }
+  }
+
   return (
     <div className="flex h-screen flex-col">
       {/* Barra de ações — não interfere com o iframe. */}
@@ -184,6 +222,16 @@ export function PdfPreview({ title, fetcher, onError }: PdfPreviewProps) {
           >
             <Download className="h-4 w-4" />
             Baixar PDF
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handlePrint}
+            disabled={!pdfUrl || loading}
+            title="Imprimir proposta"
+          >
+            <Printer className="h-4 w-4" />
+            Imprimir Proposta
           </Button>
           <Button variant="ghost" size="sm" onClick={() => window.close()}>
             <X className="h-4 w-4" />
@@ -204,6 +252,7 @@ export function PdfPreview({ title, fetcher, onError }: PdfPreviewProps) {
           </div>
         ) : pdfUrl ? (
           <iframe
+            ref={iframeRef}
             src={pdfUrl}
             title={title}
             className="h-full w-full border-0 bg-white"
