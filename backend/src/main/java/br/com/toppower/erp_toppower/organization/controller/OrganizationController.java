@@ -166,11 +166,12 @@ public class OrganizationController {
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Upload de logo da Organization",
-            description = "Recebe um arquivo de imagem (PNG, JPEG ou SVG) e armazena em "
+            description = "Recebe um arquivo de imagem (PNG ou JPEG) e armazena em "
                     + "<app.uploads.dir>/logos/<uuid>.<ext>. A URL pública "
                     + "(ex.: /logos/<uuid>.png) é persistida no campo logoUrl "
                     + "e usada como cabeçalho nos PDFs gerados pelo backend. "
-                    + "Re-upload sobrescreve o anterior; extensões antigas são limpas.")
+                    + "Re-upload sobrescreve o anterior; extensões antigas são limpas. "
+                    + "SVG não é aceito (o renderer de PDF não suporta).")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasRole('ADMIN')")
     @ApiResponses({
@@ -184,7 +185,7 @@ public class OrganizationController {
     })
     public ResponseEntity<OrganizationResponse> uploadLogo(
             @PathVariable UUID id,
-            @Parameter(description = "Arquivo de logo (PNG, JPEG ou SVG).",
+            @Parameter(description = "Arquivo de logo (PNG ou JPEG).",
                     content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE))
             @RequestPart("file") MultipartFile file) {
         return ResponseEntity.ok(br.com.toppower.erp_toppower.organization.mapper.OrganizationMapper.toResponse(

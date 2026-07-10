@@ -61,7 +61,7 @@ export async function activateOrganization(id: string): Promise<OrganizationResp
 
 /**
  * POST /organizations/{id}/logo — upload de um arquivo de imagem como
- * logo da Organization. Aceita PNG, JPEG ou SVG.
+ * logo da Organization. Aceita PNG ou JPEG.
  */
 export async function uploadOrganizationLogo(
   id: string,

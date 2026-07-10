@@ -30,7 +30,7 @@ import { toApiError } from '../lib/errors'
 type Mode = 'loading' | 'create' | 'view'
 
 /** Tipos MIME aceitos pelo backend para o logo. */
-const ALLOWED_LOGO_TYPES = ['image/png', 'image/jpeg', 'image/svg+xml']
+const ALLOWED_LOGO_TYPES = ['image/png', 'image/jpeg']
 /** Tamanho máximo do logo (deve espelhar `spring.servlet.multipart.max-file-size`). */
 const MAX_LOGO_SIZE_BYTES = 2 * 1024 * 1024 // 2 MB
 
@@ -154,7 +154,7 @@ export function OrganizationFormPage() {
     setUploadError(null)
 
     if (!ALLOWED_LOGO_TYPES.includes(file.type)) {
-      setUploadError(`Tipo não permitido (${file.type || 'desconhecido'}). Aceitos: PNG, JPEG, SVG.`)
+      setUploadError(`Tipo não permitido (${file.type || 'desconhecido'}). Aceitos: PNG ou JPEG.`)
       return
     }
     if (file.size > MAX_LOGO_SIZE_BYTES) {
@@ -287,7 +287,7 @@ export function OrganizationFormPage() {
             <h2 className="text-base font-semibold">Logo</h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">
               Imagem usada no cabeçalho dos PDFs (cotação, proposta técnica, pedido de venda).
-              Formatos: PNG, JPEG ou SVG. Máximo 2 MB.
+              Formatos: PNG ou JPEG. Máximo 2 MB.
             </p>
           </div>
         </div>

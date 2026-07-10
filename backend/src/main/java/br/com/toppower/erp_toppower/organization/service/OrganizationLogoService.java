@@ -40,7 +40,14 @@ import java.util.UUID;
 @Service
 public class OrganizationLogoService {
 
-    private static final List<String> ALLOWED_EXTENSIONS = List.of("png", "jpg", "jpeg", "svg");
+    /**
+     * Extensões aceitas para upload de logo. SVG intencionalmente
+     * ausente: o OpenHTMLtoPDF (renderer HTML→PDF usado nos PDFs
+     * de cotação / pedido / proposta técnica) não suporta SVG —
+     * Java ImageIO não tem decoder e o renderer lança
+     * {@code IOException: Unrecognized Image format}.
+     */
+    private static final List<String> ALLOWED_EXTENSIONS = List.of("png", "jpg", "jpeg");
 
     private final OrganizationRepository organizationRepository;
     private final AppProperties appProperties;
@@ -136,7 +143,8 @@ public class OrganizationLogoService {
     /**
      * Extrai a extensão do nome original do arquivo, normalizada em
      * minúsculas. Para {@code image/jpeg}, tanto {@code jpg} quanto
-     * {@code jpeg} são aceitos.
+     * {@code jpeg} são aceitos. SVG é rejeitado (ver
+     * {@link #ALLOWED_EXTENSIONS}).
      */
     private String resolveExtension(MultipartFile file) {
         String original = file.getOriginalFilename();
@@ -148,7 +156,6 @@ public class OrganizationLogoService {
             ext = switch (file.getContentType() == null ? "" : file.getContentType().toLowerCase(Locale.ROOT)) {
                 case "image/png" -> "png";
                 case "image/jpeg" -> "jpg";
-                case "image/svg+xml" -> "svg";
                 default -> "";
             };
         }

@@ -51,8 +51,16 @@ public class AppProperties {
     }
 
     public static class Logo {
-        /** Lista branca de content types aceitos para upload (separados por vírgula). */
-        private List<String> allowedContentTypes = List.of("image/png", "image/jpeg", "image/svg+xml");
+        /**
+         * Lista branca de content types aceitos para upload de logo.
+         *
+         * <p>SVG intencionalmente ausente: o renderer de PDF
+         * (OpenHTMLtoPDF) usa Java {@code ImageIO}, que não tem
+         * decoder para SVG. Aceitar SVG no upload geraria PDFs sem
+         * o logo e exceções {@code IOException: Unrecognized Image
+         * format} no log.</p>
+         */
+        private List<String> allowedContentTypes = List.of("image/png", "image/jpeg");
 
         public List<String> getAllowedContentTypes() {
             return allowedContentTypes;
