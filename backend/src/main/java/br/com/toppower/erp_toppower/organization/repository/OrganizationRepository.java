@@ -24,6 +24,13 @@ public interface OrganizationRepository extends JpaRepository<Organization, UUID
      */
     boolean existsByProposalPrefix(String proposalPrefix);
 
+    /**
+     * Verifica se já existe uma Organization com o prefixo de Contrato
+     * informado. O prefixo é globalmente único (constraint
+     * {@code uk_organizations_contract_prefix} criada pela migration V29).
+     */
+    boolean existsByContractPrefix(String contractPrefix);
+
     Page<Organization> findByStatus(OrganizationStatus status, Pageable pageable);
 
     Optional<Organization> findByCnpj(String cnpj);

@@ -39,6 +39,16 @@ public record OrganizationSummary(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         String proposalPrefix,
 
+        @Schema(description = "Prefixo do código dos Contratos emitidos por esta "
+                + "Organization.", example = "CT",
+                requiredMode = Schema.RequiredMode.REQUIRED)
+        String contractPrefix,
+
+        @Schema(description = "Texto HTML padrão pré-preenchido na descrição "
+                + "de novos contratos. Pode ser nulo.",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        String contractDefaultDescription,
+
         @Schema(description = "Papel do usuário nesta Organization (quando aplicável).")
         Role role,
 

@@ -57,6 +57,7 @@ export function OrganizationsListPage() {
                 logoUrl: s.logoUrl ?? null,
                 status: s.status,
                 proposalPrefix: s.proposalPrefix,
+                contractPrefix: s.contractPrefix,
                 createdAt: '',
                 updatedAt: '',
               } as OrganizationResponse
@@ -134,7 +135,8 @@ export function OrganizationsListPage() {
                 <th className="px-4 py-3 font-medium">Razão social</th>
                 <th className="px-4 py-3 font-medium">Nome fantasia</th>
                 <th className="px-4 py-3 font-medium">CNPJ</th>
-                <th className="px-4 py-3 font-medium">Prefixo</th>
+                <th className="px-4 py-3 font-medium">Prefixo Proposta</th>
+                <th className="px-4 py-3 font-medium">Prefixo Contrato</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 text-right font-medium">Ações</th>
               </tr>
@@ -142,7 +144,7 @@ export function OrganizationsListPage() {
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center">
+                  <td colSpan={8} className="px-4 py-12 text-center">
                     <div className="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400">
                       <Spinner size="sm" /> Carregando…
                     </div>
@@ -150,7 +152,7 @@ export function OrganizationsListPage() {
                 </tr>
               ) : items.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center">
+                  <td colSpan={8} className="px-4 py-12 text-center">
                     <div className="flex flex-col items-center gap-2 text-slate-500 dark:text-slate-400">
                       <Building2 className="h-8 w-8 opacity-60" />
                       <p className="text-sm">Nenhuma empresa cadastrada.</p>
@@ -196,6 +198,9 @@ export function OrganizationsListPage() {
                     </td>
                     <td className="px-4 py-3">
                       <Badge tone="info">{org.proposalPrefix}</Badge>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge tone="info">{org.contractPrefix}</Badge>
                     </td>
                     <td className="px-4 py-3">
                       <Badge tone={org.status === 'ATIVO' ? 'success' : 'neutral'}>

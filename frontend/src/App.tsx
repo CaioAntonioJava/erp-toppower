@@ -25,6 +25,10 @@ import { TechnicalProposalsListPage } from './pages/TechnicalProposalsListPage'
 import { TechnicalProposalFormPage } from './pages/TechnicalProposalFormPage'
 import { TechnicalProposalDetailPage } from './pages/TechnicalProposalDetailPage'
 import { TechnicalProposalPrintPage } from './pages/TechnicalProposalPrintPage'
+import { ContractsListPage } from './pages/ContractsListPage'
+import { ContractFormPage } from './pages/ContractFormPage'
+import { ContractDetailPage } from './pages/ContractDetailPage'
+import { ContractPrintPage } from './pages/ContractPrintPage'
 import { UsersListPage } from './pages/UsersListPage'
 import { UserFormPage } from './pages/UserFormPage'
 import { CarriersListPage } from './pages/CarriersListPage'
@@ -81,6 +85,10 @@ export default function App() {
         <Route path="/technical-proposals/new" element={<TechnicalProposalFormPage />} />
         <Route path="/technical-proposals/:id/edit" element={<TechnicalProposalFormPage />} />
         <Route path="/technical-proposals/:id" element={<TechnicalProposalDetailPage />} />
+        <Route path="/contracts" element={<ContractsListPage />} />
+        <Route path="/contracts/new" element={<ContractFormPage />} />
+        <Route path="/contracts/:id/edit" element={<ContractFormPage />} />
+        <Route path="/contracts/:id" element={<ContractDetailPage />} />
 
         {/* Rotas administrativas — gestão de usuários (ROLE_ADMIN). */}
         <Route path="/users" element={<AdminRoute><UsersListPage /></AdminRoute>} />
@@ -112,6 +120,7 @@ export default function App() {
         <Route path="/quotations/:id/pdf" element={<QuotationPrintPage />} />
         <Route path="/sales-orders/:id/pdf" element={<SalesOrderPrintPage />} />
         <Route path="/technical-proposals/:id/pdf" element={<TechnicalProposalPrintPage />} />
+        <Route path="/contracts/:id/pdf" element={<ContractPrintPage />} />
       </Route>
 
       {/* Compat: rota raiz redireciona para /login se não houver auth. */}

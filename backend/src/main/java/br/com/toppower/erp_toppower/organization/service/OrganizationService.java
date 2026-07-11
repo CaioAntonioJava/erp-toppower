@@ -8,6 +8,7 @@ import br.com.toppower.erp_toppower.organization.dto.OrganizationUpdateRequest;
 import br.com.toppower.erp_toppower.organization.entity.Organization;
 import br.com.toppower.erp_toppower.organization.enums.OrganizationStatus;
 import br.com.toppower.erp_toppower.organization.exception.DuplicateOrganizationCnpjException;
+import br.com.toppower.erp_toppower.organization.exception.DuplicateOrganizationContractPrefixException;
 import br.com.toppower.erp_toppower.organization.exception.DuplicateOrganizationProposalPrefixException;
 import br.com.toppower.erp_toppower.organization.exception.OrganizationNotFoundException;
 import br.com.toppower.erp_toppower.organization.mapper.OrganizationMapper;
@@ -48,6 +49,9 @@ public class OrganizationService {
         if (organizationRepository.existsByProposalPrefix(request.proposalPrefix())) {
             throw new DuplicateOrganizationProposalPrefixException(request.proposalPrefix());
         }
+        if (organizationRepository.existsByContractPrefix(request.contractPrefix())) {
+            throw new DuplicateOrganizationContractPrefixException(request.contractPrefix());
+        }
         Organization org = OrganizationMapper.toEntity(request);
         Organization saved = organizationRepository.save(org);
         return OrganizationMapper.toResponse(saved);
@@ -78,12 +82,17 @@ public class OrganizationService {
     public OrganizationResponse update(UUID id, OrganizationUpdateRequest request) {
         Organization org = organizationRepository.findById(id)
                 .orElseThrow(() -> new OrganizationNotFoundException(id));
-        // Valida unicidade do prefixo antes de aplicar: ignora quando o
+        // Valida unicidade dos prefixos antes de aplicar: ignora quando o
         // valor enviado é igual ao atual (PATCH idempotente).
         if (request.proposalPrefix() != null
                 && !request.proposalPrefix().equalsIgnoreCase(org.getProposalPrefix())
                 && organizationRepository.existsByProposalPrefix(request.proposalPrefix())) {
             throw new DuplicateOrganizationProposalPrefixException(request.proposalPrefix());
+        }
+        if (request.contractPrefix() != null
+                && !request.contractPrefix().equalsIgnoreCase(org.getContractPrefix())
+                && organizationRepository.existsByContractPrefix(request.contractPrefix())) {
+            throw new DuplicateOrganizationContractPrefixException(request.contractPrefix());
         }
         OrganizationMapper.applyUpdate(org, request);
         return OrganizationMapper.toResponse(organizationRepository.save(org));

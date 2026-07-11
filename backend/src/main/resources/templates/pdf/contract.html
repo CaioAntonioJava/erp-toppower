@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <title th:text="'Contrato nº ' + ${contract.code}">Contrato</title>
+  <style th:replace="~{pdf/styles :: shared}"></style>
+</head>
+<body>
+
+<!-- Cabeçalho do emissor -->
+<div th:replace="~{pdf/fragments/issuer-header :: issuer}"></div>
+
+<!-- Barra de acento + título do documento -->
+<div class="doc-accent">&#160;</div>
+<div class="doc-title"
+     th:text="'Contrato nº ' + ${contract.code}">Contrato</div>
+<div class="doc-subtitle">
+  Status:
+  <span th:text="${contract.status.name()}">ABERTA</span>
+  <span th:if="${contract.startDate != null}">
+    &#160;•&#160; Início da vigência em
+    <span th:text="${#temporals.format(contract.startDate, 'dd/MM/yyyy')}">--/--/----</span>
+  </span>
+</div>
+
+<!-- Cliente -->
+<div class="section">
+  <div class="section-title">Cliente</div>
+  <table class="kv">
+    <tr>
+      <td class="k">Cliente:</td>
+      <td class="v" th:utext="${customerNameHtml}">—</td>
+    </tr>
+  </table>
+</div>
+
+<!-- Endereço do contrato -->
+<div class="section" th:if="${contract.address != null}">
+  <div class="section-title">Endereço</div>
+  <div class="addr-block">
+    <span th:if="${contract.address.street != null}">
+      <span th:text="${contract.address.street}"></span><span th:if="${contract.address.number != null}" th:text="', ' + ${contract.address.number}"></span>
+    </span>
+    <span th:if="${contract.address.complement != null and !contract.address.complement.isBlank()}"
+          th:text="' — ' + ${contract.address.complement}"></span>
+    <span th:if="${contract.address.neighborhood != null and !contract.address.neighborhood.isBlank()}"
+          th:text="' — ' + ${contract.address.neighborhood}"></span>
+    <br/>
+    <span th:if="${contract.address.city != null}" th:text="${contract.address.city}"></span><span th:if="${contract.address.state != null}" th:text="'/' + ${contract.address.state}"></span>
+    <span th:if="${contract.address.zipCode != null and !contract.address.zipCode.isBlank()}"
+          th:text="' — CEP ' + ${contract.address.zipCode}"></span>
+  </div>
+</div>
+
+<!-- Descrição do contrato -->
+<div class="section"
+     th:if="${contract.description != null and !contract.description.isBlank()}">
+  <div class="section-title">Descrição do contrato</div>
+  <div class="notes" th:utext="${contract.description}">—</div>
+</div>
+
+<!-- Cláusula -->
+<div class="section"
+     th:if="${contract.clause != null and !contract.clause.isBlank()}">
+  <div class="section-title">Cláusula</div>
+  <div class="notes" th:utext="${contract.clause}">—</div>
+</div>
+
+<!-- Serviços -->
+<div class="section"
+     th:if="${contract.servicesDescription != null and !contract.servicesDescription.isBlank()}">
+  <div class="section-title">Serviços</div>
+  <div class="notes" th:utext="${contract.servicesDescription}">—</div>
+</div>
+
+<!-- Produtos -->
+<div class="section"
+     th:if="${contract.productsDescription != null and !contract.productsDescription.isBlank()}">
+  <div class="section-title">Produtos</div>
+  <div class="notes" th:utext="${contract.productsDescription}">—</div>
+</div>
+
+<!-- Assinaturas -->
+<div class="signatures">
+  <table>
+    <tr>
+      <td>
+        <div class="sig-line">&#160;</div>
+        <div class="sig-label">Contratante</div>
+        <div class="sig-name" th:text="${contract.clientName != null ? contract.clientName : ''}"></div>
+      </td>
+      <td>
+        <div class="sig-line">&#160;</div>
+        <div class="sig-label">Contratada</div>
+        <div class="sig-name" th:text="${issuer != null and issuer.tradeName != null ? issuer.tradeName : ''}"></div>
+      </td>
+    </tr>
+  </table>
+</div>
+
+</body>
+</html>

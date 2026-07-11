@@ -119,6 +119,35 @@ public class Organization extends BaseEntity implements Serializable {
     @Column(name = "proposal_prefix", nullable = false, length = 10)
     private String proposalPrefix;
 
+    /**
+     * Prefixo do código dos Contratos emitidos por esta Organization
+     * (ex.: {@code "CT"} para Top Power Engenharia, {@code "CL"} para
+     * Top Power Materiais). O código final é montado como
+     * {@code <prefix>-<sequence 3 dígitos>-<year>} — sequência gerada
+     * independentemente por Organization/ano.
+     *
+     * <p>Obrigatório e único no sistema (constraint
+     * {@code uk_organizations_contract_prefix} criada pela migration
+     * {@code V29}). Imutável no cadastro; pode ser alterado via PATCH
+     * (com validação de unicidade).</p>
+     */
+    @UpperCase
+    @Column(name = "contract_prefix", nullable = false, length = 10)
+    private String contractPrefix;
+
+    /**
+     * Texto HTML padrão que é pré-preenchido na descrição de novos
+     * contratos emitidos por esta Organization. O usuário pode editar
+     * livremente o conteúdo antes de salvar o contrato — este campo
+     * serve apenas como template inicial.
+     *
+     * <p>Armazenado como TEXT para suportar HTML com formatação
+     * (negrito, parágrafos, etc.). Quando nulo ou vazio, a descrição
+     * do novo contrato inicia em branco.</p>
+     */
+    @Column(name = "contract_default_description", columnDefinition = "TEXT")
+    private String contractDefaultDescription;
+
     @PrePersist
     private void onPrePersist() {
         if (status == null) {

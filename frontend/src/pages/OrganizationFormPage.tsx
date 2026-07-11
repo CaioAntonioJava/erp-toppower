@@ -16,6 +16,7 @@ import { Spinner } from '../components/ui/Spinner'
 import { Alert } from '../components/ui/Alert'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { Badge } from '../components/ui/Badge'
+import { RichTextEditor } from '../components/ui/RichTextEditor'
 import {
   activateOrganization,
   deleteOrganizationLogo,
@@ -93,19 +94,24 @@ export function OrganizationFormPage() {
         if (cancelled) return
         setOrg(data)
         setMode('view')
-        setForm({
-          corporateName: data.corporateName,
-          tradeName: data.tradeName,
-          phone: data.phone ?? '',
-          email: data.email ?? '',
-          zipCode: data.zipCode ?? '',
-          street: data.street ?? '',
-          number: data.number ?? '',
-          district: data.district ?? '',
-          city: data.city ?? '',
-          state: data.state ?? '',
-          complement: data.complement ?? '',
-        })
+		        setForm({
+		          corporateName: data.corporateName,
+		          tradeName: data.tradeName,
+		          stateRegistration: data.stateRegistration ?? '',
+		          municipalRegistration: data.municipalRegistration ?? '',
+		          phone: data.phone ?? '',
+		          email: data.email ?? '',
+		          zipCode: data.zipCode ?? '',
+		          street: data.street ?? '',
+		          number: data.number ?? '',
+		          district: data.district ?? '',
+		          city: data.city ?? '',
+		          state: data.state ?? '',
+		          complement: data.complement ?? '',
+		          proposalPrefix: data.proposalPrefix,
+		          contractPrefix: data.contractPrefix,
+		          contractDefaultDescription: data.contractDefaultDescription ?? '',
+		        })
       })
       .catch((err) => {
         if (!cancelled) setSaveError(toApiError(err).message)
@@ -242,7 +248,8 @@ export function OrganizationFormPage() {
               {org.status === 'ATIVO' ? 'Ativa' : 'Inativa'}
             </Badge>
             <span aria-hidden>•</span>
-            <Badge tone="info">Prefixo {org.proposalPrefix}</Badge>
+            <Badge tone="info">Propostas: {org.proposalPrefix}</Badge>
+            <Badge tone="info">Contratos: {org.contractPrefix}</Badge>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -398,9 +405,21 @@ export function OrganizationFormPage() {
             />
             <Input
               label="Prefixo das propostas técnicas"
-              value={org.proposalPrefix}
-              readOnly
-              hint={`Ex.: ${org.proposalPrefix}-001-${new Date().getFullYear()}. Único no sistema.`}
+              value={form.proposalPrefix ?? ''}
+              onChange={(e) =>
+                updateField('proposalPrefix', e.target.value.toUpperCase())
+              }
+              maxLength={10}
+              hint={`Ex.: ${form.proposalPrefix ?? 'PT'}-001-${new Date().getFullYear()}. Único no sistema.`}
+            />
+            <Input
+              label="Prefixo dos contratos"
+              value={form.contractPrefix ?? ''}
+              onChange={(e) =>
+                updateField('contractPrefix', e.target.value.toUpperCase())
+              }
+              maxLength={10}
+              hint={`Ex.: ${form.contractPrefix ?? 'CT'}-001-${new Date().getFullYear()}. Único no sistema.`}
             />
             <Input
               label="Inscrição estadual"
@@ -501,6 +520,24 @@ export function OrganizationFormPage() {
               className="sm:col-span-1"
             />
           </div>
+        </section>
+
+        {/* Descrição padrão de contratos */}
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="mb-4">
+            <h2 className="text-base font-semibold">Descrição padrão de contratos</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Texto HTML que será pré-preenchido automaticamente na descrição
+              de novos contratos. O usuário pode editar livremente antes de
+              salvar. Use o editor para formatar (negrito, parágrafos, etc.).
+            </p>
+          </div>
+          <RichTextEditor
+            value={form.contractDefaultDescription ?? ''}
+            onChange={(val) => updateField('contractDefaultDescription', val)}
+            maxLength={4000}
+            aria-label="Descrição padrão de contratos"
+          />
         </section>
 
         {/* Mensagens de feedback (rodapé do form) */}

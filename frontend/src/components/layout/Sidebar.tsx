@@ -5,6 +5,7 @@ import {
   Building2,
   ClipboardList,
   Factory,
+  FileSignature,
   FileText,
   FileUp,
   LayoutDashboard,
@@ -34,6 +35,7 @@ const navItems: NavItem[] = [
   { to: '/products', label: 'Produtos', icon: Package },
   { to: '/quotations', label: 'Propostas Comerciais', icon: FileText },
   { to: '/technical-proposals', label: 'Propostas Técnicas', icon: Wrench },
+  { to: '/contracts', label: 'Contratos', icon: FileSignature },
   { to: '/sales-orders', label: 'Pedidos de Venda', icon: ClipboardList },
 ]
 

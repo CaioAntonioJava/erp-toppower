@@ -21,6 +21,17 @@ export interface OrganizationSummary {
    * A sigla completa fica `<proposalPrefix>-<seq 3 dígitos>-<ano>`.
    */
   proposalPrefix: string
+  /**
+   * Prefixo do código dos Contratos emitidos por esta Organization
+   * (ex.: 'CT' para Top Power Engenharia, 'CL' para Top Power Materiais).
+   * A sigla completa fica `<contractPrefix>-<seq 3 dígitos>-<ano>`.
+   */
+  contractPrefix: string
+  /**
+   * Texto HTML padrão pré-preenchido na descrição de novos contratos.
+   * Opcional — quando nulo ou vazio, a descrição inicia em branco.
+   */
+  contractDefaultDescription?: string | null
   /** Papel do usuário nesta Organization (quando aplicável). */
   role?: Role | null
   /** Indica se esta é a Organization default do usuário. */
@@ -52,6 +63,9 @@ export interface OrganizationResponse {
   logoUrl?: string | null
   status: OrganizationStatus
   proposalPrefix: string
+  contractPrefix: string
+  /** Texto HTML padrão pré-preenchido na descrição de novos contratos. */
+  contractDefaultDescription?: string | null
   createdAt: string
   updatedAt: string
 }
@@ -77,6 +91,9 @@ export interface OrganizationUpdateRequest {
   logoUrl?: string
   status?: OrganizationStatus
   proposalPrefix?: string
+  contractPrefix?: string
+  /** Texto HTML padrão pré-preenchido na descrição de novos contratos. */
+  contractDefaultDescription?: string | null
 }
 
 /** Usuário autenticado (retornado em /auth/login e /me). Espelha LoginResponse.AuthenticatedUser. */

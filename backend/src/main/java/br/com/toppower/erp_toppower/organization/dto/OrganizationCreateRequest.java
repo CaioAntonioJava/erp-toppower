@@ -103,6 +103,21 @@ public record OrganizationCreateRequest(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         @NotBlank(message = "Prefixo de proposta é obrigatório")
         @Size(max = 10, message = "Prefixo de proposta deve ter no máximo {max} caracteres")
-        String proposalPrefix
+        String proposalPrefix,
+
+        @Schema(description = "Prefixo do código dos Contratos emitidos por esta "
+                + "Organization (ex.: 'CT' para Engenharia, 'CL' para "
+                + "Materiais). Obrigatório e único no sistema.",
+                example = "CT", maxLength = 10,
+                requiredMode = Schema.RequiredMode.REQUIRED)
+        @NotBlank(message = "Prefixo de contrato é obrigatório")
+        @Size(max = 10, message = "Prefixo de contrato deve ter no máximo {max} caracteres")
+        String contractPrefix,
+
+        @Schema(description = "Texto HTML padrão pré-preenchido na descrição "
+                + "de novos contratos. Opcional — quando nulo ou vazio, a "
+                + "descrição inicia em branco.",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        String contractDefaultDescription
 ) {
 }

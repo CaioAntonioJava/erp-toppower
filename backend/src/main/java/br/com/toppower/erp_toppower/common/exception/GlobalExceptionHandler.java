@@ -4,6 +4,7 @@ import br.com.toppower.erp_toppower.auth.exception.InvalidCredentialsException;
 import br.com.toppower.erp_toppower.carrier.exception.CarrierNotFoundException;
 import br.com.toppower.erp_toppower.cep.exception.CepNotFoundException;
 import br.com.toppower.erp_toppower.organization.exception.DuplicateOrganizationCnpjException;
+import br.com.toppower.erp_toppower.organization.exception.DuplicateOrganizationContractPrefixException;
 import br.com.toppower.erp_toppower.organization.exception.InvalidLogoException;
 import br.com.toppower.erp_toppower.organization.exception.InvalidOrganizationHeaderException;
 import br.com.toppower.erp_toppower.organization.exception.OrganizationAccessDeniedException;
@@ -16,6 +17,11 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import br.com.toppower.erp_toppower.company.exception.CompanyNotFoundException;
 import br.com.toppower.erp_toppower.company.exception.DuplicateCompanyCnpjException;
+import br.com.toppower.erp_toppower.contract.exception.ContractBusinessException;
+import br.com.toppower.erp_toppower.contract.exception.ContractCompanyNotFoundException;
+import br.com.toppower.erp_toppower.contract.exception.ContractCustomerNotFoundException;
+import br.com.toppower.erp_toppower.contract.exception.ContractNotFoundException;
+import br.com.toppower.erp_toppower.contract.exception.InvalidContractClientException;
 import br.com.toppower.erp_toppower.customer.exception.CustomerNotFoundException;
 import br.com.toppower.erp_toppower.customer.exception.DuplicateCustomerCpfException;
 import br.com.toppower.erp_toppower.product.exception.DuplicateProductCodeException;
@@ -308,6 +314,35 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
+    // =====================================================================
+    // Contratos (Contract)
+    // =====================================================================
+
+    @ExceptionHandler(ContractNotFoundException.class)
+    public ResponseEntity<ApiError> handleContractNotFound(ContractNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(ContractCustomerNotFoundException.class)
+    public ResponseEntity<ApiError> handleContractCustomerNotFound(ContractCustomerNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(ContractCompanyNotFoundException.class)
+    public ResponseEntity<ApiError> handleContractCompanyNotFound(ContractCompanyNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidContractClientException.class)
+    public ResponseEntity<ApiError> handleInvalidContractClient(InvalidContractClientException ex) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(ContractBusinessException.class)
+    public ResponseEntity<ApiError> handleContractBusiness(ContractBusinessException ex) {
+        return build(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
     @ExceptionHandler(SupplierNotFoundException.class)
     public ResponseEntity<ApiError> handleSupplierNotFound(SupplierNotFoundException ex) {
         return build(HttpStatus.NOT_FOUND, ex.getMessage());
@@ -334,6 +369,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DuplicateOrganizationCnpjException.class)
     public ResponseEntity<ApiError> handleDuplicateOrganizationCnpj(DuplicateOrganizationCnpjException ex) {
+        return build(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(DuplicateOrganizationContractPrefixException.class)
+    public ResponseEntity<ApiError> handleDuplicateOrganizationContractPrefix(
+            DuplicateOrganizationContractPrefixException ex) {
         return build(HttpStatus.CONFLICT, ex.getMessage());
     }
 

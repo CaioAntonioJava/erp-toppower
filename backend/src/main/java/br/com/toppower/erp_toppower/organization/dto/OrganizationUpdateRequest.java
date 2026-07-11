@@ -84,6 +84,21 @@ public record OrganizationUpdateRequest(
                 example = "PT", maxLength = 10,
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         @Size(max = 10, message = "Prefixo de proposta deve ter no máximo {max} caracteres")
-        String proposalPrefix
+        String proposalPrefix,
+
+        @Schema(description = "Prefixo do código dos Contratos. Único no sistema. "
+                + "Quando alterado, o próximo código do próximo contrato "
+                + "desta Organization usará o novo prefixo (contratos já "
+                + "existentes mantêm o prefixo antigo).",
+                example = "CT", maxLength = 10,
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        @Size(max = 10, message = "Prefixo de contrato deve ter no máximo {max} caracteres")
+        String contractPrefix,
+
+        @Schema(description = "Texto HTML padrão pré-preenchido na descrição "
+                + "de novos contratos. Opcional — quando nulo ou vazio, a "
+                + "descrição inicia em branco.",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        String contractDefaultDescription
 ) {
 }

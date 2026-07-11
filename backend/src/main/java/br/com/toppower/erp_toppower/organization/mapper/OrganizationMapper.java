@@ -31,6 +31,8 @@ public final class OrganizationMapper {
         org.setLogoUrl(request.logoUrl());
         org.setStatus(request.status());
         org.setProposalPrefix(request.proposalPrefix());
+        org.setContractPrefix(request.contractPrefix());
+        org.setContractDefaultDescription(request.contractDefaultDescription());
         return org;
     }
 
@@ -51,6 +53,8 @@ public final class OrganizationMapper {
         if (request.logoUrl() != null) org.setLogoUrl(request.logoUrl());
         if (request.status() != null) org.setStatus(request.status());
         if (request.proposalPrefix() != null) org.setProposalPrefix(request.proposalPrefix());
+        if (request.contractPrefix() != null) org.setContractPrefix(request.contractPrefix());
+        if (request.contractDefaultDescription() != null) org.setContractDefaultDescription(request.contractDefaultDescription());
     }
 
     public static OrganizationResponse toResponse(Organization org) {
@@ -73,6 +77,8 @@ public final class OrganizationMapper {
                 org.getLogoUrl(),
                 org.getStatus(),
                 org.getProposalPrefix(),
+                org.getContractPrefix(),
+                org.getContractDefaultDescription(),
                 org.getCreatedAt(),
                 org.getUpdatedAt()
         );
@@ -91,6 +97,8 @@ public final class OrganizationMapper {
                 org.getLogoUrl(),
                 org.getStatus(),
                 org.getProposalPrefix(),
+                org.getContractPrefix(),
+                org.getContractDefaultDescription(),
                 null,
                 false
         );
@@ -105,6 +113,8 @@ public final class OrganizationMapper {
                 org.getLogoUrl(),
                 org.getStatus(),
                 org.getProposalPrefix(),
+                org.getContractPrefix(),
+                org.getContractDefaultDescription(),
                 role,
                 isDefault
         );
