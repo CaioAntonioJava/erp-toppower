@@ -35,6 +35,22 @@
   color-scheme: dark;
 }
 
+/* =====================================================================
+   Cor de seleção de texto — garante contraste adequado tanto no tema
+   claro quanto no escuro. No tema claro usamos um tom de azul da
+   paleta primary; no escuro usamos um tom mais claro para destacar
+   bem contra o fundo escuro.
+   ===================================================================== */
+::selection {
+  background-color: var(--color-primary-200);
+  color: #0f172a; /* slate-900 — texto escuro para contraste */
+}
+
+.dark ::selection {
+  background-color: var(--color-primary-600);
+  color: #f1f5f9; /* slate-100 — texto claro para contraste */
+}
+
 /* Cursor pointer em todos os botões clicáveis por padrão.
    O `not-allowed` continua sendo aplicado via Tailwind
    `disabled:cursor-not-allowed` nos componentes individuais. */

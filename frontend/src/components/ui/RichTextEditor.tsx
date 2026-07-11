@@ -15,14 +15,9 @@ import {
  * seleção seja previsível e compatível com a identidade visual do ERP.
  */
 const TEXT_COLORS: ReadonlyArray<{ value: string; label: string }> = [
-  { value: '#0f172a', label: 'Preto' }, // slate-900
+  { value: '#ffffff', label: 'Branco' },
   { value: '#dc2626', label: 'Vermelho' }, // red-600
-  { value: '#2563eb', label: 'Azul' }, // blue-600
-  { value: '#16a34a', label: 'Verde' }, // green-600
   { value: '#ca8a04', label: 'Amarelo' }, // yellow-600
-  { value: '#ea580c', label: 'Laranja' }, // orange-600
-  { value: '#7c3aed', label: 'Roxo' }, // violet-600
-  { value: '#64748b', label: 'Cinza' }, // slate-500
 ]
 
 interface RichTextEditorProps {
@@ -165,37 +160,37 @@ export function RichTextEditor({
     emitChange()
   }
 
-  // Mantém o estado da seleção (negrito/itálico/sublinhado ativos) para
-  // destacar visualmente os botões correspondentes na toolbar.
-  const [, force] = useState(0)
-  function refreshActiveStates() {
-    force((n) => n + 1)
-  }
-  function isActive(cmd: 'bold' | 'italic' | 'underline'): boolean {
-    try {
-      return document.queryCommandState(cmd)
-    } catch {
-      return false
-    }
-  }
-  const activeColor = (() => {
-    try {
-      const v = document.queryCommandValue('foreColor')
-      // Converte rgb(...) para hex para comparar com nossa paleta.
-      if (!v) return null
-      const m = v.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/)
-      if (!m) return v
-      const [, r, g, b] = m
-      return (
-        '#' +
-        [r, g, b]
-          .map((n) => Number(n).toString(16).padStart(2, '0'))
-          .join('')
-      )
-    } catch {
-      return null
-    }
-  })()
+	// Mantém o estado da seleção (negrito/itálico/sublinhado ativos) para
+	// destacar visualmente os botões correspondentes na toolbar.
+	const [, force] = useState(0)
+	function refreshActiveStates() {
+	  force((n) => n + 1)
+	}
+	function isActive(cmd: 'bold' | 'italic' | 'underline'): boolean {
+	  try {
+	    return document.queryCommandState(cmd)
+	  } catch {
+	    return false
+	  }
+	}
+	const activeColor = (() => {
+	  try {
+	    const v = document.queryCommandValue('foreColor')
+	    // Converte rgb(...) para hex para comparar com nossa paleta.
+	    if (!v) return null
+	    const m = v.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/)
+	    if (!m) return v
+	    const [, r, g, b] = m
+	    return (
+	      '#' +
+	      [r, g, b]
+	        .map((n) => Number(n).toString(16).padStart(2, '0'))
+	        .join('')
+	    )
+	  } catch {
+	    return null
+	  }
+	})()
 
   const toolbarBtnBase =
     'inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-600 transition-colors ' +
@@ -261,66 +256,69 @@ export function RichTextEditor({
 
           <span className="mx-1 h-5 w-px bg-slate-200 dark:bg-slate-700" aria-hidden />
 
-          {/* Cor do texto */}
-          <div className="relative" ref={colorPopoverRef}>
-            <button
-              type="button"
-              title="Cor do texto"
-              aria-label="Cor do texto"
-              aria-expanded={colorOpen}
-              onClick={() => setColorOpen((v) => !v)}
-              className={[toolbarBtnBase, colorOpen ? toolbarBtnActive : ''].join(' ')}
-            >
-              <span className="flex items-center gap-0.5">
+	          {/* Cor do texto */}
+	          <div className="relative" ref={colorPopoverRef}>
+	            <button
+	              type="button"
+	              title="Cor do texto"
+	              aria-label="Cor do texto"
+	              aria-expanded={colorOpen}
+	              onClick={() => setColorOpen((v) => !v)}
+	              className={[toolbarBtnBase, colorOpen ? toolbarBtnActive : ''].join(' ')}
+	            >
+	              <span className="flex items-center gap-0.5">
                 <span
-                  className="font-bold"
+                  className="text-sm font-bold leading-none"
                   style={{ color: activeColor ?? '#0f172a' }}
                   aria-hidden
                 >
                   A
                 </span>
-                <ChevronDown className="h-3 w-3" />
-              </span>
-            </button>
+	                <ChevronDown className="h-3 w-3" />
+	              </span>
+	            </button>
             {colorOpen ? (
-              <div
-                className={[
-                  'absolute left-0 top-full z-20 mt-1 grid grid-cols-4 gap-1 rounded-lg border border-slate-200 bg-white p-2 shadow-lg',
-                  'dark:border-slate-700 dark:bg-slate-900',
-                ].join(' ')}
-                role="listbox"
-                aria-label="Paleta de cores"
-              >
-                {TEXT_COLORS.map((c) => (
-                  <button
-                    key={c.value}
-                    type="button"
-                    role="option"
-                    aria-selected={activeColor?.toLowerCase() === c.value.toLowerCase()}
-                    title={c.label}
-                    onClick={() => {
-                      runCommand('foreColor', c.value)
-                      setColorOpen(false)
-                      refreshActiveStates()
-                    }}
-                    className={[
-                      'inline-flex h-7 w-7 items-center justify-center rounded border border-slate-200 hover:scale-110 transition-transform',
-                      'dark:border-slate-700',
-                      activeColor?.toLowerCase() === c.value.toLowerCase()
-                        ? 'ring-2 ring-focus'
-                        : '',
-                    ].join(' ')}
-                  >
-                    <span
-                      className="text-base font-bold leading-none"
-                      style={{ color: c.value }}
-                      aria-hidden
-                    >
-                      A
-                    </span>
-                  </button>
-                ))}
-              </div>
+	              <div
+	                className={[
+	                  'absolute left-0 top-full z-20 mt-1 flex gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-lg',
+	                  'dark:border-slate-700 dark:bg-slate-900',
+	                ].join(' ')}
+	                role="listbox"
+	                aria-label="Paleta de cores"
+	              >
+	                {TEXT_COLORS.map((c) => {
+	                  const isSelected = activeColor?.toLowerCase() === c.value.toLowerCase()
+	                  return (
+	                    <button
+	                      key={c.value}
+	                      type="button"
+	                      role="option"
+	                      aria-selected={isSelected}
+	                      title={c.label}
+	                      onClick={() => {
+	                        runCommand('foreColor', c.value)
+	                        setColorOpen(false)
+	                        refreshActiveStates()
+	                      }}
+	                      className={[
+	                        'inline-flex h-8 w-8 items-center justify-center rounded-md transition-all',
+	                        'hover:bg-slate-100 dark:hover:bg-slate-800',
+	                        isSelected
+	                          ? 'bg-slate-200 dark:bg-slate-700 ring-2 ring-focus'
+	                          : '',
+	                      ].join(' ')}
+	                    >
+	                      <span
+	                        className="text-lg font-bold leading-none"
+	                        style={{ color: c.value }}
+	                        aria-hidden
+	                      >
+	                        A
+	                      </span>
+	                    </button>
+	                  )
+	                })}
+	              </div>
             ) : null}
           </div>
 
