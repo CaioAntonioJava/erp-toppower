@@ -319,13 +319,20 @@
       padding-bottom: 8px;
     }
 
-    /* ===== Observações ===== */
-    .notes {
-      font-size: 8.5pt;
-      color: #334155;
-      white-space: pre-wrap;
-      line-height: 1.5;
-    }
+	    /* ===== Observações ===== */
+	    .notes {
+	      font-size: 8.5pt;
+	      color: #334155;
+	      white-space: pre-wrap;
+	      line-height: 1.5;
+	    }
+	    /* No PDF o fundo é sempre branco, então forçamos texto escuro
+	       mesmo quando o usuário aplicou cor branca (ou qualquer outra)
+	       no editor rico do frontend. */
+	    .notes * {
+	      color: #0f172a !important;
+	      background-color: transparent !important;
+	    }
 
     /* ===== Listas (objetivos da proposta técnica) ===== */
     .obj-list {
