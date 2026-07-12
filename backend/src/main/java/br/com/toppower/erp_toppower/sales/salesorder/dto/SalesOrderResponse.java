@@ -16,9 +16,11 @@ import java.util.UUID;
  * Representação completa de um pedido de venda retornada pela API,
  * incluindo itens e totais calculados.
  *
- * <p><b>Não expõe margem de lucro</b> — o pedido é o documento externo
- * enviado ao cliente, e a margem é informação interna da
- * {@code Quotation}.</p>
+ * <p><b>Margem de lucro</b> ({@code profitMargin}) é opcional e aplicada
+ * apenas na criação/edição direta; pedidos convertidos de proposta ficam
+ * com o campo nulo (a margem da proposta já vem embutida nos preços do
+ * snapshot). É informação interna de precificação e <b>não</b> aparece no
+ * PDF do pedido.</p>
  */
 @Schema(name = "SalesOrderResponse", description = "Representação completa de um pedido de venda.")
 public record SalesOrderResponse(
@@ -115,6 +117,11 @@ public record SalesOrderResponse(
         @Schema(description = "Número da proposta que deu origem ao pedido (nulo em criação direta).",
                 example = "1500", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         Long quotationNumber,
+
+        @Schema(description = "Margem de lucro (percentual) aplicada na criação/edição direta. "
+                + "Nula em pedidos convertidos de proposta. Informação interna, não exibida no PDF.",
+                example = "10.00", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        BigDecimal profitMargin,
 
         @Schema(description = "Soma dos totais líquidos dos itens (após descontos por item), antes do desconto global.",
                 example = "1450.00", requiredMode = Schema.RequiredMode.REQUIRED)

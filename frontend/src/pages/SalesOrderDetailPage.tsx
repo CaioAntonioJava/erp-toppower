@@ -358,6 +358,19 @@ export function SalesOrderDetailPage() {
           </div>
           <div>
             <dt className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Margem de lucro
+            </dt>
+            <dd className="mt-1 text-sm text-slate-800 dark:text-slate-200">
+              {salesOrder.profitMargin != null
+                ? `${salesOrder.profitMargin.toLocaleString('pt-BR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}%`
+                : '—'}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Tipo de frete
             </dt>
             <dd className="mt-1 text-sm text-slate-800 dark:text-slate-200">

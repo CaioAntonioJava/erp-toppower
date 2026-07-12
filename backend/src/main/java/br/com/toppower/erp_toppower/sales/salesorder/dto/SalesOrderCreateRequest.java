@@ -28,9 +28,11 @@ import java.util.UUID;
  * (cliente pessoa física) e {@link #companyUuid} (cliente pessoa
  * jurídica). A validação dessa invariante é feita no serviço.</p>
  *
- * <p><b>Não há margem de lucro</b> neste request — o pedido é o
- * documento externo enviado ao cliente, e a margem é informação
- * interna mantida apenas na {@code Quotation}.</p>
+ * <p>A margem de lucro ({@link #profitMargin}) é <b>opcional</b>: quando
+ * informada, é aplicada item a item sobre o preço unitário, embutindo-se
+ * no {@code unitPrice} e no total do pedido. Quando omitida, nenhum
+ * acréscimo é aplicado. A margem é informação interna de precificação e
+ * <b>não</b> aparece no PDF do pedido.</p>
  */
 @Schema(name = "SalesOrderCreateRequest", description = "Dados para cadastro direto de um novo pedido de venda.")
 public record SalesOrderCreateRequest(
@@ -95,6 +97,14 @@ public record SalesOrderCreateRequest(
 
         @Schema(description = "UUID da transportadora (Carrier) responsável pelo frete. Opcional.",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID carrierUuid
+        UUID carrierUuid,
+
+        @Schema(description = "Margem de lucro (percentual) aplicada sobre o preço unitário dos itens. "
+                + "Opcional — quando omitida, nenhum acréscimo é aplicado. Informação interna, "
+                + "não exibida no PDF do pedido.",
+                example = "10.00", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        @DecimalMin(value = "0.00", message = "Margem de lucro não pode ser negativa")
+        @Digits(integer = 3, fraction = 2, message = "Margem de lucro inválida")
+        BigDecimal profitMargin
 ) {
 }

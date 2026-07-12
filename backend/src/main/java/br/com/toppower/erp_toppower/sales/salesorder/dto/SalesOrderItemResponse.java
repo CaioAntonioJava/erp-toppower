@@ -8,7 +8,9 @@ import java.util.UUID;
 
 /**
  * Linha de produto retornada pela API, com o total líquido já calculado
- * ({@code unitPrice * quantity - discount}).
+ * ({@code unitPrice * quantity - discount}). O {@code baseUnitPrice}
+ * preserva o preço original (sem margem) para que o formulário de edição
+ * não reaplique a margem sobre um snapshot já majorado.
  */
 @Schema(name = "SalesOrderItemResponse", description = "Linha de produto de um pedido de venda.")
 public record SalesOrderItemResponse(
@@ -22,8 +24,13 @@ public record SalesOrderItemResponse(
         @Schema(description = "Quantidade do produto.", example = "2.00", requiredMode = Schema.RequiredMode.REQUIRED)
         BigDecimal quantity,
 
-        @Schema(description = "Preço unitário do produto (snapshot).", example = "150.00", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "Preço unitário do produto (snapshot, com margem aplicada quando houver).",
+                example = "165.00", requiredMode = Schema.RequiredMode.REQUIRED)
         BigDecimal unitPrice,
+
+        @Schema(description = "Preço unitário original (sem margem). Igual ao unitPrice quando não há margem.",
+                example = "150.00", requiredMode = Schema.RequiredMode.REQUIRED)
+        BigDecimal baseUnitPrice,
 
         @Schema(description = "Subtotal bruto da linha (unitPrice * quantity), antes do desconto da linha.",
                 example = "300.00", requiredMode = Schema.RequiredMode.REQUIRED)

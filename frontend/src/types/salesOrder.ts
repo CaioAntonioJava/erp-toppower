@@ -73,7 +73,10 @@ export interface SalesOrderItemResponse {
   uuid: string
   productUuid: string
   quantity: number
+  /** Preço unitário (com margem aplicada quando houver). */
   unitPrice: number
+  /** Preço unitário original (sem margem). Igual ao unitPrice quando não há margem. */
+  baseUnitPrice: number
   /** Subtotal bruto da linha (unitPrice * quantity). */
   lineSubtotal: number
   discountType: import('./quotation').DiscountType | null
@@ -95,8 +98,9 @@ export interface SalesOrderItemRequest {
  * Representação completa do pedido de venda.
  * Espelha SalesOrderResponse no backend.
  *
- * <p><b>Não expõe margem de lucro</b> — o pedido é o documento externo
- * enviado ao cliente, e a margem é informação interna da proposta.</p>
+ * <p>A margem de lucro ({@code profitMargin}) é opcional, aplicada
+ * apenas na criação/edição direta. Nula em pedidos convertidos de
+ * proposta. É informação interna e não aparece no PDF do pedido.</p>
  */
 export interface SalesOrderResponse {
   uuid: string
@@ -132,11 +136,14 @@ export interface SalesOrderResponse {
   quotationUuid: string | null
   /** Número da proposta de origem (nulo em criação direta). */
   quotationNumber: number | null
+  /** Margem de lucro (%) aplicada na criação/edição direta. Nula em pedidos convertidos. */
+  profitMargin: number | null
   /** Soma dos totais líquidos dos itens (antes do desconto global). */
   subtotal: number
   /**
    * Total final do pedido. Composição:
-   * `(subtotal − desconto global) + frete`. Sem margem de lucro.
+   * `(subtotal − desconto global) + frete`. A margem, quando presente,
+   * já está embutida nos preços dos itens.
    */
   total: number
   /** Valor em R$ do desconto global efetivamente aplicado. */
@@ -190,6 +197,8 @@ export interface SalesOrderCreateRequest {
   freightValue?: number | null
   /** UUID da transportadora (Carrier) responsável pelo frete. Opcional. */
   carrierUuid?: string | null
+  /** Margem de lucro (%) aplicada sobre o preço unitário dos itens. Opcional. */
+  profitMargin?: number | null
 }
 
 /** Corpo de PATCH /api/v1/sales-orders/{id}. Espelha SalesOrderUpdateRequest. */
@@ -209,6 +218,8 @@ export interface SalesOrderUpdateRequest {
   freightValue?: number | null
   /** UUID da transportadora (Carrier). null = remover a transportadora vinculada. */
   carrierUuid?: string | null
+  /** Margem de lucro (%) aplicada sobre o preço unitário dos itens. Omitir mantém a atual. */
+  profitMargin?: number | null
 }
 
 /**
@@ -249,12 +260,16 @@ export interface SalesOrderFilters {
 // /simulate. Para oferecer o mesmo preview em tempo real no formulário,
 // replicamos aqui a fórmula do backend:
 //
-//   item.totalPrice = unitPrice * quantity - discountAmount
+//   unitPriceComMargem = unitPrice × (1 + profitMargin/100)   (se houver margem)
+//   item.totalPrice = unitPriceComMargem * quantity - discountAmount
 //     discountAmount = AMOUNT ? discount : gross * discount / 100
 //   subtotal = Σ item.totalPrice
 //   globalDiscountValue = AMOUNT ? discount : subtotal * discount / 100
 //   total = (subtotal - globalDiscountValue) + freight
 //   totalQuantity = Σ item.quantity
+//
+// A margem, quando informada, é aplicada sobre o preço unitário antes
+// do desconto da linha — espelhando SalesOrderMapper.calculateItemTotalPrice.
 
 /** Arredonda para 2 casas (HALF_UP), como o backend (BigDecimal). */
 export function round2(n: number): number {
@@ -262,17 +277,36 @@ export function round2(n: number): number {
 }
 
 /**
+ * Aplica a margem de lucro como multiplicação percentual sobre o preço
+ * unitário: `unitPrice × (1 + profitMargin/100)`. Sem margem (nula ou
+ * zero) retorna o próprio preço arredondado. Espelha
+ * `SalesOrderMapper.applyProfitMargin`.
+ */
+export function applyProfitMargin(
+  unitPrice: number,
+  profitMargin?: number | null,
+): number {
+  if (unitPrice == null) return 0
+  if (profitMargin == null || profitMargin === 0) return round2(unitPrice)
+  return round2(unitPrice * (1 + profitMargin / 100))
+}
+
+/**
  * Calcula o total líquido de uma linha de item, espelhando
- * `SalesOrderMapper.calculateItemTotalPrice`.
+ * `SalesOrderMapper.calculateItemTotalPrice`. A margem, quando
+ * informada, é aplicada sobre o preço unitário antes do desconto da
+ * linha.
  */
 export function calculateItemTotalPrice(
   unitPrice: number,
   quantity: number,
   discount: number | null,
   discountType: import('./quotation').DiscountType | null,
+  profitMargin?: number | null,
 ): number {
   if (unitPrice == null || quantity == null) return 0
-  const gross = unitPrice * quantity
+  const unitPriceWithMargin = applyProfitMargin(unitPrice, profitMargin)
+  const gross = unitPriceWithMargin * quantity
   if (discount == null || discountType == null || discount === 0) {
     return round2(gross)
   }
@@ -309,7 +343,9 @@ export interface SalesOrderTotals {
 
 /**
  * Calcula todos os totais do pedido a partir dos itens e condições,
- * espelhando `SalesOrder.recalculateTotals`.
+ * espelhando `SalesOrder.recalculateTotals`. A margem, quando
+ * informada, é aplicada sobre o preço unitário de cada item antes do
+ * desconto da linha.
  */
 export function calculateSalesOrderTotals(
   items: ReadonlyArray<{
@@ -321,9 +357,10 @@ export function calculateSalesOrderTotals(
   discount: number | null,
   discountType: import('./quotation').DiscountType | null,
   freightValue: number | null,
+  profitMargin?: number | null,
 ): SalesOrderTotals {
   const subtotal = items.reduce(
-    (acc, it) => acc + calculateItemTotalPrice(it.unitPrice, it.quantity, it.discount, it.discountType),
+    (acc, it) => acc + calculateItemTotalPrice(it.unitPrice, it.quantity, it.discount, it.discountType, profitMargin),
     0,
   )
   const totalQuantity = items.reduce((acc, it) => acc + (it.quantity ?? 0), 0)

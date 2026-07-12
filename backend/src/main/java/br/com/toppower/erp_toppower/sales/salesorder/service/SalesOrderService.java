@@ -38,6 +38,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -65,9 +66,12 @@ import java.util.UUID;
  *       estoque estornado automaticamente.</li>
  * </ul>
  *
- * <p><b>Sem margem de lucro</b> — o pedido é o documento externo enviado
- * ao cliente. A margem é informação interna mantida apenas na
- * {@code Quotation}.</p>
+ * <p><b>Margem de lucro opcional</b> — na criação/edição direta, o
+ * pedido pode receber uma margem de lucro aplicada item a item sobre o
+ * preço unitário. A conversão de {@code Quotation} <b>não</b> popula a
+ * margem do pedido: a margem da proposta já vem embutida nos preços do
+ * snapshot, e o pedido convertido fica com margem nula. A margem é
+ * informação interna de precificação e não aparece no PDF do pedido.</p>
  */
 @Service
 public class SalesOrderService {
@@ -123,7 +127,8 @@ public class SalesOrderService {
         List<SalesOrderItem> items = new ArrayList<>(request.items().size());
         for (SalesOrderItemRequest itemReq : request.items()) {
             items.add(salesOrderItemRepository.save(
-                    SalesOrderMapper.toItemEntity(itemReq, savedHeader.getUuid())));
+                    SalesOrderMapper.toItemEntity(itemReq, savedHeader.getUuid(),
+                            savedHeader.getProfitMargin())));
         }
 
         savedHeader.recalculateTotals(items);
@@ -333,12 +338,18 @@ public class SalesOrderService {
         SalesOrderMapper.applyUpdate(o, request);
         SalesOrder saved = salesOrderRepository.save(o);
 
+        // Margem efetiva: a do request quando informada, senão a já
+        // persistida — usada para aplicar o acréscimo nos itens recriados.
+        BigDecimal effectiveProfitMargin = (request.profitMargin() != null)
+                ? request.profitMargin() : o.getProfitMargin();
+
         List<SalesOrderItem> items;
         if (request.items() != null) {
             items = new ArrayList<>(request.items().size());
             for (SalesOrderItemRequest itemReq : request.items()) {
                 items.add(salesOrderItemRepository.save(
-                        SalesOrderMapper.toItemEntity(itemReq, saved.getUuid())));
+                        SalesOrderMapper.toItemEntity(itemReq, saved.getUuid(),
+                                effectiveProfitMargin)));
             }
         } else {
             items = salesOrderItemRepository.findBySalesOrderUuidOrderByCreatedAtAsc(id);

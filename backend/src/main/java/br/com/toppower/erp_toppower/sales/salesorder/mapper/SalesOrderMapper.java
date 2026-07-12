@@ -27,12 +27,19 @@ import java.util.UUID;
  * considerando o desconto por item) que afeta o total final do
  * pedido.</p>
  *
+ * <p>Na <b>criação/edição direta</b>, a margem de lucro opcional do
+ * header ({@code profitMargin}) é aplicada item a item aqui: o
+ * {@code baseUnitPrice} preserva o preço original (sem margem) e o
+ * {@code unitPrice} reflete a majoração
+ * {@code baseUnitPrice × (1 + profitMargin/100)}.</p>
+ *
  * <p>Na conversão de uma {@code Quotation} para {@code SalesOrder}
  * ({@link #fromQuotationItem(QuotationItem, UUID, BigDecimal)}), os
  * preços dos itens já vêm com a margem de lucro embutida (o
  * {@code QuotationMapper} aplica a margem item a item no momento da
  * criação/atualização). Por isso, esta conversão apenas copia os
- * valores, sem aplicar fator adicional.</p>
+ * valores, sem aplicar fator adicional — e o header convertido fica
+ * com {@code profitMargin} nulo.</p>
  */
 public final class SalesOrderMapper {
 
@@ -45,24 +52,34 @@ public final class SalesOrderMapper {
 
     /**
      * Cria uma entidade {@link SalesOrderItem} a partir do DTO de request,
-     * calculando o {@code totalPrice} como {@code unitPrice * quantity - discount}
+     * aplicando a margem de lucro (quando informada) sobre o
+     * {@code unitPrice} e calculando o {@code totalPrice} como
+     * {@code (unitPrice × (1 + profitMargin/100)) × quantity − discount}
      * (com o desconto interpretado conforme {@code discountType}).
+     *
+     * @param request       DTO da linha
+     * @param salesOrderUuid UUID do pedido
+     * @param profitMargin  margem de lucro opcional; nula ou zero não aplica acréscimo
      */
-    public static SalesOrderItem toItemEntity(SalesOrderItemRequest request, UUID salesOrderUuid) {
+    public static SalesOrderItem toItemEntity(SalesOrderItemRequest request, UUID salesOrderUuid,
+                                               BigDecimal profitMargin) {
         SalesOrderItem item = new SalesOrderItem();
         item.setSalesOrderUuid(salesOrderUuid);
         item.setProductUuid(request.productUuid());
         item.setQuantity(request.quantity());
-        // Pedido não carrega margem; baseUnitPrice == unitPrice aqui.
-        item.setUnitPrice(request.unitPrice());
+        // Preço base (sem margem) — persistido para que a edição do
+        // pedido não reaplique a margem sobre o snapshot.
         item.setBaseUnitPrice(request.unitPrice());
+        // Snapshot final: baseUnitPrice × (1 + profitMargin/100).
+        item.setUnitPrice(applyProfitMargin(request.unitPrice(), profitMargin));
         item.setDiscountType(request.discountType());
         item.setDiscount(request.discount());
         item.setTotalPrice(calculateItemTotalPrice(
                 request.unitPrice(),
                 request.quantity(),
                 request.discount(),
-                request.discountType()));
+                request.discountType(),
+                profitMargin));
         return item;
     }
 
@@ -111,6 +128,7 @@ public final class SalesOrderMapper {
                 item.getProductUuid(),
                 item.getQuantity(),
                 item.getUnitPrice(),
+                item.getBaseUnitPrice(),
                 lineSubtotal(item),
                 item.getDiscountType(),
                 item.getDiscount(),
@@ -133,10 +151,31 @@ public final class SalesOrderMapper {
                                               BigDecimal quantity,
                                               BigDecimal discount,
                                               DiscountType discountType) {
+        return calculateItemTotalPrice(unitPrice, quantity, discount, discountType, null);
+    }
+
+    /**
+     * Calcula o total líquido de uma linha, aplicando a margem de lucro
+     * <b>antes</b> do desconto da própria linha (espelha
+     * {@code QuotationMapper.calculateItemTotalPrice}):
+     * <pre>
+     *   unitPriceComMargem = unitPrice × (1 + profitMargin/100)
+     *   gross              = unitPriceComMargem × quantity
+     *   desconto           = gross × discount%        (se PERCENT)
+     *                      | discount (R$ fixo)       (se AMOUNT)
+     *   totalPrice         = gross − desconto
+     * </pre>
+     */
+    static BigDecimal calculateItemTotalPrice(BigDecimal unitPrice,
+                                              BigDecimal quantity,
+                                              BigDecimal discount,
+                                              DiscountType discountType,
+                                              BigDecimal profitMargin) {
         if (unitPrice == null || quantity == null) {
             return BigDecimal.ZERO;
         }
-        BigDecimal gross = unitPrice.multiply(quantity);
+        BigDecimal unitPriceWithMargin = applyProfitMargin(unitPrice, profitMargin);
+        BigDecimal gross = unitPriceWithMargin.multiply(quantity);
         if (discount == null || discountType == null || discount.signum() == 0) {
             return gross.setScale(2, RoundingMode.HALF_UP);
         }
@@ -147,6 +186,24 @@ public final class SalesOrderMapper {
         };
         BigDecimal net = gross.subtract(discountAmount);
         return net.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Aplica a margem de lucro como multiplicação percentual sobre o
+     * {@code unitPrice}, através do fator {@code (1 + profitMargin / 100)}.
+     * Retorna {@code ZERO} quando o preço for nulo e o próprio preço
+     * (arredondado para 2 casas) quando a margem for nula ou zero.
+     */
+    static BigDecimal applyProfitMargin(BigDecimal unitPrice, BigDecimal profitMargin) {
+        if (unitPrice == null) {
+            return BigDecimal.ZERO;
+        }
+        if (profitMargin == null || profitMargin.signum() == 0) {
+            return unitPrice.setScale(2, RoundingMode.HALF_UP);
+        }
+        BigDecimal factor = BigDecimal.ONE.add(
+                profitMargin.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP));
+        return unitPrice.multiply(factor).setScale(2, RoundingMode.HALF_UP);
     }
 
     // ---------------------------------------------------------------------
@@ -165,6 +222,7 @@ public final class SalesOrderMapper {
                 request.sellerUuid(), request.discountType(), request.discount(),
                 request.paymentCondition(), request.notes(),
                 request.freightType(), request.freightValue(), request.carrierUuid());
+        o.setProfitMargin(request.profitMargin());
         return o;
     }
 
@@ -238,6 +296,9 @@ public final class SalesOrderMapper {
         if (request.freightValue() != null) {
             order.setFreightValue(request.freightValue());
         }
+        if (request.profitMargin() != null) {
+            order.setProfitMargin(request.profitMargin());
+        }
         // carrierUuid admite null (remoção da transportadora vinculada).
         order.setCarrierUuid(request.carrierUuid());
     }
@@ -302,6 +363,7 @@ public final class SalesOrderMapper {
                 order.getStatus(),
                 order.getQuotationUuid(),
                 order.getQuotationNumber(),
+                order.getProfitMargin(),
                 order.getSubtotal(),
                 order.getTotal(),
                 order.calculateGlobalDiscountValue(),

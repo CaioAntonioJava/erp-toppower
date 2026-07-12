@@ -53,10 +53,16 @@ import java.util.UUID;
  * agregado <b>não</b> declara relacionamento JPA com os itens, em
  * consonância com o restante do projeto.</p>
  *
- * <p><b>Importante:</b> diferentemente da proposta, o pedido <b>não</b>
- * possui margem de lucro ({@code profitMargin}). O pedido é o documento
- * externo enviado ao cliente (PDF), e a margem de lucro é informação
- * interna de precificação mantida apenas na {@code Quotation}.</p>
+ * <p><b>Margem de lucro:</b> o pedido possui uma margem de lucro
+ * <b>opcional</b> ({@link #profitMargin}), aplicada apenas na
+ * <b>criação/edição direta</b>. Quando informada, é embutida item a item
+ * no {@code unitPrice} pelo mapper (o {@code baseUnitPrice} preserva o
+ * preço original sem margem, para que a edição não reaplique a margem
+ * sobre um snapshot já majorado). A conversão de {@code Quotation} em
+ * pedido <b>nunca</b> popula este campo — a margem da proposta já vem
+ * embutida nos preços do snapshot, e o pedido convertido fica com
+ * {@link #profitMargin} nulo. A margem é informação interna de
+ * precificação e <b>não</b> aparece no PDF do pedido.</p>
  *
  * <p>Os campos calculados {@link #subtotal}, {@link #total} e
  * {@link #totalQuantity} são preenchidos em memória pelo serviço após
@@ -222,6 +228,20 @@ public class SalesOrder extends OrganizationScopedEntity {
     @Column(name = "quotation_number", updatable = false)
     private Long quotationNumber;
 
+    /**
+     * Margem de lucro (percentual) aplicada sobre o preço unitário dos
+     * itens na <b>criação/edição direta</b> do pedido. Opcional — quando
+     * nula, nenhum acréscimo é aplicado ({@code unitPrice == baseUnitPrice}
+     * nos itens).
+     *
+     * <p><b>Nunca</b> é populada na conversão de {@code Quotation}: a
+     * margem da proposta já vem embutida no snapshot dos itens, e o
+     * pedido convertido permanece com este campo nulo. É informação
+     * interna de precificação e não aparece no PDF do pedido.</p>
+     */
+    @Column(name = "profit_margin", precision = 5, scale = 2)
+    private BigDecimal profitMargin;
+
     // ---------------------------------------------------------------------
     // Campos calculados (não persistidos)
     // ---------------------------------------------------------------------
@@ -241,8 +261,12 @@ public class SalesOrder extends OrganizationScopedEntity {
      * aplicado sobre o subtotal dos itens; o frete é somado por último e
      * nunca participa do desconto.
      *
-     * <p>Diferente da proposta, <b>sem</b> margem de lucro — o total do
-     * pedido reflete o valor cobrado do cliente.</p>
+     * <p>Regra de composição:
+     * {@code (subtotal − desconto global) + frete}. O desconto global é
+     * aplicado sobre o subtotal dos itens; o frete é somado por último e
+     * nunca participa do desconto. A margem de lucro, quando presente na
+     * criação direta, já está embutida nos preços dos itens pelo mapper
+     * — não há cálculo adicional aqui.</p>
      */
     @Transient
     private BigDecimal total = BigDecimal.ZERO;
@@ -293,7 +317,8 @@ public class SalesOrder extends OrganizationScopedEntity {
         }
         // total = subtotal − desconto global, e por último somado o frete.
         // O frete é repassado de forma fixa, sem participar do desconto.
-        // Sem margem de lucro — o total reflete o valor cobrado do cliente.
+        // A margem de lucro, quando presente, já está embutida nos
+        // totalPrice dos itens — não há cálculo adicional aqui.
         BigDecimal discounted = applyGlobalDiscount(this.subtotal);
         BigDecimal freight = (freightValue != null) ? freightValue : BigDecimal.ZERO;
         this.total = discounted.add(freight).setScale(2, RoundingMode.HALF_UP);

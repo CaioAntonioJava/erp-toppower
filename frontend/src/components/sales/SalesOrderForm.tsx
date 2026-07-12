@@ -139,6 +139,12 @@ export function SalesOrderForm({
   const [discount, setDiscount] = useState<string>(
     salesOrder?.discount != null ? String(salesOrder.discount) : '',
   )
+  // Margem de lucro (%) aplicada sobre o preço unitário dos itens na
+  // criação/edição direta. Opcional — quando vazia, nenhum acréscimo é
+  // aplicado. Espelha o campo do header no backend.
+  const [profitMargin, setProfitMargin] = useState<string>(
+    salesOrder?.profitMargin != null ? String(salesOrder.profitMargin) : '',
+  )
 
   // === campos gerados pelo servidor ===
   // O número vem do backend (a partir de 1000). Pré-preenchido em create
@@ -173,7 +179,9 @@ export function SalesOrderForm({
         productLabel: '',
         // Unidade de medida (UN/MT/BOB) — também hidratada via `getProduct`.
         unitType: null,
-        unitPrice: it.unitPrice,
+        // Carrega o preço base (sem margem) no campo "Preço" para que a
+        // edição não reaplique a margem sobre um snapshot já majorado.
+        unitPrice: it.baseUnitPrice ?? it.unitPrice,
         quantity: it.quantity,
         discountType: it.discountType ?? null,
         discount: it.discount ?? null,
@@ -450,9 +458,11 @@ export function SalesOrderForm({
   // Diferente das propostas, o backend de pedidos NÃO expõe um endpoint
   // /simulate. Replicamos a fórmula do backend (SalesOrderMapper /
   // SalesOrder.recalculateTotals) para oferecer o mesmo preview em tempo
-  // real. Sem margem de lucro — o total reflete o valor cobrado do cliente.
+  // real. A margem de lucro, quando informada, é aplicada sobre o preço
+  // unitário de cada item antes do desconto da linha.
   const discountNumber = discountType !== '' ? parseNumber(discount) : null
   const freightValueNumber = parseNumber(freightValue)
+  const profitMarginNumber = parseNumber(profitMargin)
   const totals = calculateSalesOrderTotals(
     items.map((it) => ({
       quantity: it.quantity,
@@ -463,6 +473,7 @@ export function SalesOrderForm({
     discountNumber,
     discountType !== '' ? discountType : null,
     freightValueNumber,
+    profitMarginNumber,
   )
 
   // === validação e submit ===
@@ -518,6 +529,13 @@ export function SalesOrderForm({
     }
     if (discountType !== '' && discount.trim() === '') {
       errs.discount = 'Informe o valor do desconto ou remova o tipo.'
+    }
+
+    if (profitMargin.trim() !== '') {
+      const m = parseNumber(profitMargin)
+      if (m == null || m < 0) {
+        errs.profitMargin = 'Margem de lucro não pode ser negativa.'
+      }
     }
 
     if (attention.length > 150) {
@@ -582,6 +600,9 @@ export function SalesOrderForm({
         payload.freightType = freightType === '' ? null : freightType
         payload.freightValue = parseNumber(freightValue)
         payload.carrierUuid = carrierUuid || null
+        payload.profitMargin = profitMargin.trim()
+          ? parseNumber(profitMargin)
+          : null
 
         await onSaveUpdate(payload)
         setSuccess('Pedido atualizado com sucesso!')
@@ -610,6 +631,9 @@ export function SalesOrderForm({
           payload.freightValue = parseNumber(freightValue)
         }
         payload.carrierUuid = carrierUuid || null
+        payload.profitMargin = profitMargin.trim()
+          ? parseNumber(profitMargin)
+          : null
 
         await onSaveCreate(payload)
         setSuccess('Pedido criado com sucesso!')
@@ -780,17 +804,30 @@ export function SalesOrderForm({
 
       {/* Itens */}
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-2">
           <h3 className="text-base font-semibold">Itens</h3>
-          <Button type="button" variant="primary" onClick={addItem} className="mb-0.5 mr-6">
-            <Plus className="h-4 w-4" />
-            Adicionar item
-          </Button>
+          <div className="flex flex-wrap items-end gap-3">
+            <Input
+              id="sales-order-profit-margin"
+              type="number"
+              inputMode="decimal"
+              step="0.01"
+              min={0}
+              placeholder="Margem de lucro (%)"
+              aria-label="Margem de lucro (%)"
+              value={profitMargin}
+              onChange={(e) => setProfitMargin(e.target.value)}
+              onBlur={getBlurHandler('profitMargin')}
+              error={shouldShowError('profitMargin', fieldErrors.profitMargin)}
+              rightAdornment={<span aria-hidden>%</span>}
+              className="max-w-[200px]"
+            />
+            <Button type="button" variant="primary" onClick={addItem} className="mb-0.5">
+              <Plus className="h-4 w-4" />
+              Adicionar item
+            </Button>
+          </div>
         </div>
-        <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
-          Liste os produtos do pedido. Cada linha é um item com quantidade,
-          preço unitário e desconto opcional.
-        </p>
 
         {fieldErrors.items && !fieldErrors.items.startsWith('items.') ? (
           <Alert variant="error">{fieldErrors.items}</Alert>
@@ -813,6 +850,7 @@ export function SalesOrderForm({
                   it.quantity,
                   it.discount,
                   it.discountType,
+                  profitMarginNumber,
                 )}
                 fieldErrors={fieldErrors}
                 productOptions={productOptions}
