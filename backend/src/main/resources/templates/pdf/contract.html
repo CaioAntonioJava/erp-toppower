@@ -59,11 +59,29 @@
   <div class="notes" th:utext="${contract.description}">—</div>
 </div>
 
-<!-- Cláusulas -->
+<!--
+  Cláusulas (Cláusula 1 + Cláusula 2 + Cláusula 3)
+  ---------------------------------------------------------------------
+  O array `contract.clauses` é uma lista linear única persistida no
+  backend. Aqui no PDF a lista é dividida em três caixas puramente
+  para espelhar o layout do formulário: o primeiro terço vai para a
+  caixa "Cláusula 1" (logo após a Descrição do contrato), o segundo
+  terço vai para a caixa "Cláusula 2" (logo após Produtos, antes de
+  Prazo de entrega) e o restante vai para a caixa "Cláusula 3" (logo
+  após Prazo de entrega, antes de Valor total). A numeração é
+  sequencial conforme a posição real na lista (Cláusula 1, 2, 3, ...).
+-->
 <div class="section"
-     th:if="${contract.clauses != null and !contract.clauses.isEmpty()}">
-  <div class="section-title">Cláusulas</div>
-  <div th:each="clause, iter : ${contract.clauses}" class="clause-item">
+     th:if="${contract.clauses != null and !contract.clauses.isEmpty()}"
+     th:with="
+       thirdSize=${T(java.lang.Math).ceil(contract.clauses.size() / 3.0).intValue()},
+       firstThirdEnd=${thirdSize},
+       secondThirdEnd=${thirdSize * 2},
+       clausesFirst=${contract.clauses.subList(0, firstThirdEnd)},
+       clausesSecond=${contract.clauses.subList(firstThirdEnd, secondThirdEnd)},
+       clausesThird=${contract.clauses.subList(secondThirdEnd, contract.clauses.size())}">
+  <div class="section-title" th:if="${!clausesFirst.isEmpty()}">Cláusula 1</div>
+  <div th:each="clause, iter : ${clausesFirst}" class="clause-item">
     <div class="clause-number" th:text="'Cláusula ' + (iter.index + 1) + ':'">Cláusula 1:</div>
     <div class="notes" th:utext="${clause.description}">—</div>
   </div>
@@ -101,6 +119,49 @@
 
   <div th:if="${contract.productsDescription != null and !contract.productsDescription.isBlank()}"
        class="notes" th:utext="${contract.productsDescription}" th:styleappend="${contract.productItems != null and !contract.productItems.isEmpty()} ? 'margin-top: 8px;' : ''">—</div>
+</div>
+
+<!--
+  Cláusula 2 — segundo terço da lista linear de cláusulas, exibido logo
+  após a seção "Produtos" e antes de "Prazo de entrega". Recalcula as
+  variáveis locais a partir de `contract.clauses`.
+-->
+<div class="section"
+     th:if="${contract.clauses != null and !contract.clauses.isEmpty()}"
+     th:with="
+       thirdSize=${T(java.lang.Math).ceil(contract.clauses.size() / 3.0).intValue()},
+       firstThirdEnd=${thirdSize},
+       secondThirdEnd=${thirdSize * 2},
+       clausesSecond=${contract.clauses.subList(firstThirdEnd, secondThirdEnd)}">
+  <div class="section-title" th:if="${!clausesSecond.isEmpty()}">Cláusula 2</div>
+  <div th:each="clause, iter : ${clausesSecond}" class="clause-item">
+    <div class="clause-number" th:text="'Cláusula ' + (firstThirdEnd + iter.index + 1) + ':'">Cláusula 1:</div>
+    <div class="notes" th:utext="${clause.description}">—</div>
+  </div>
+</div>
+
+<!-- Prazo de entrega -->
+<div class="section"
+     th:if="${contract.deliveryDeadline != null and !contract.deliveryDeadline.isBlank()}">
+  <div class="section-title">Prazo de entrega</div>
+  <div class="notes" th:utext="${contract.deliveryDeadline}">—</div>
+</div>
+
+<!--
+  Cláusula 3 — terceiro terço (restante) da lista linear de cláusulas,
+  exibido logo após "Prazo de entrega" e antes de "Valor total".
+-->
+<div class="section"
+     th:if="${contract.clauses != null and !contract.clauses.isEmpty()}"
+     th:with="
+       thirdSize=${T(java.lang.Math).ceil(contract.clauses.size() / 3.0).intValue()},
+       secondThirdEnd=${thirdSize * 2},
+       clausesThird=${contract.clauses.subList(secondThirdEnd, contract.clauses.size())}">
+  <div class="section-title" th:if="${!clausesThird.isEmpty()}">Cláusula 3</div>
+  <div th:each="clause, iter : ${clausesThird}" class="clause-item">
+    <div class="clause-number" th:text="'Cláusula ' + (secondThirdEnd + iter.index + 1) + ':'">Cláusula 1:</div>
+    <div class="notes" th:utext="${clause.description}">—</div>
+  </div>
 </div>
 
 <!-- Valor total -->

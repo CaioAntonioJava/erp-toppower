@@ -114,7 +114,13 @@ public record ContractResponse(
 
         @Schema(description = "Valor total do contrato (preenchimento manual).",
                 example = "15000.00", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        BigDecimal totalValue
+        BigDecimal totalValue,
+
+        @Schema(description = "Prazo de entrega do contrato (texto livre, opcional).",
+                example = "30 dias úteis",
+                maxLength = 500,
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        String deliveryDeadline
 ) {
 
     /**

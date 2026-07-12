@@ -88,6 +88,15 @@ public record ContractCreateRequest(
         @Schema(description = "Valor total do contrato (preenchimento manual). "
                 + "Opcional — sem cálculo automático.",
                 example = "15000.00", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        BigDecimal totalValue
+        BigDecimal totalValue,
+
+        @Schema(description = "Prazo de entrega do contrato (texto livre). "
+                + "Opcional — sem semântica de data. Ex.: '30 dias úteis', "
+                + "'15 dias após a assinatura', 'entrega imediata'.",
+                example = "30 dias úteis",
+                maxLength = 500,
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        @Size(max = 500, message = "Prazo de entrega deve ter no máximo {max} caracteres")
+        String deliveryDeadline
 ) {
 }

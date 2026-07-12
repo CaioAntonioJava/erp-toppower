@@ -238,25 +238,95 @@ export function ContractDetailPage() {
               </div>
             ) : null}
 
-            {contract.clauses && contract.clauses.length > 0 ? (
-              <div className="mt-6 border-t border-slate-200 pt-4 dark:border-slate-800">
-                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                  Cláusulas
-                </h3>
-                <div className="mt-2 space-y-3">
-                  {contract.clauses.map((clause, idx) => (
-                    <div key={clause.uuid}>
-                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                        Cláusula {idx + 1}
-                      </p>
-                      <div className="prose prose-sm mt-0.5 max-w-none whitespace-pre-line text-slate-700 dark:prose-invert dark:text-slate-300">
-                        {clause.description}
+            {/*
+              Cláusula 1 / Cláusula 2 / Cláusula 3 — o array
+              `contract.clauses` é uma lista linear única persistida no
+              backend; aqui é dividida em três caixas puramente para
+              espelhar o layout do formulário de cadastro. A divisão é
+              por terço: primeiro terço entra na caixa "Cláusula 1"
+              (dentro do resumo do cabeçalho), segundo terço na caixa
+              "Cláusula 2" (entre Produtos e Prazo de entrega) e o
+              restante na caixa "Cláusula 3" (entre Prazo de entrega e
+              Valor total). A numeração é sequencial pela posição real
+              na lista.
+            */}
+            {(() => {
+              const clausesFirst = contract.clauses
+                ? contract.clauses.slice(
+                    0,
+                    Math.ceil(contract.clauses.length / 3),
+                  )
+                : []
+              const clausesSecond = contract.clauses
+                ? contract.clauses.slice(
+                    Math.ceil(contract.clauses.length / 3),
+                    Math.ceil(contract.clauses.length / 3) * 2,
+                  )
+                : []
+              const clausesThird = contract.clauses
+                ? contract.clauses.slice(
+                    Math.ceil(contract.clauses.length / 3) * 2,
+                  )
+                : []
+              const thirdSize = clausesFirst.length
+              return (
+                <>
+                  {clausesFirst.length > 0 ? (
+                    <div className="mt-6 border-t border-slate-200 pt-4 dark:border-slate-800">
+                      <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                        Cláusula 1
+                      </h3>
+                      <div className="mt-2 space-y-3">
+                        {clausesFirst.map((clause, idx) => (
+                          <div key={clause.uuid}>
+                            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                              Cláusula {idx + 1}
+                            </p>
+                            <div className="prose prose-sm mt-0.5 max-w-none whitespace-pre-line text-slate-700 dark:prose-invert dark:text-slate-300">
+                              {clause.description}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
+                  ) : null}
+                  {clausesSecond.length > 0 ? (
+                    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                      <h2 className="mb-3 text-base font-semibold">Cláusula 2</h2>
+                      <div className="space-y-3">
+                        {clausesSecond.map((clause, idx) => (
+                          <div key={clause.uuid}>
+                            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                              Cláusula {thirdSize + idx + 1}
+                            </p>
+                            <div className="prose prose-sm mt-0.5 max-w-none whitespace-pre-line text-slate-700 dark:prose-invert dark:text-slate-300">
+                              {clause.description}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  ) : null}
+                  {clausesThird.length > 0 ? (
+                    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                      <h2 className="mb-3 text-base font-semibold">Cláusula 3</h2>
+                      <div className="space-y-3">
+                        {clausesThird.map((clause, idx) => (
+                          <div key={clause.uuid}>
+                            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                              Cláusula {thirdSize * 2 + idx + 1}
+                            </p>
+                            <div className="prose prose-sm mt-0.5 max-w-none whitespace-pre-line text-slate-700 dark:prose-invert dark:text-slate-300">
+                              {clause.description}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  ) : null}
+                </>
+              )
+            })()}
           </section>
 
           {/* Serviços */}
@@ -318,6 +388,16 @@ export function ContractDetailPage() {
                   }}
                 />
               ) : null}
+            </section>
+          ) : null}
+
+          {/* Prazo de entrega */}
+          {contract.deliveryDeadline ? (
+            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <h2 className="mb-1 text-base font-semibold">Prazo de entrega</h2>
+              <p className="text-sm text-slate-700 dark:text-slate-200 whitespace-pre-line">
+                {contract.deliveryDeadline}
+              </p>
             </section>
           ) : null}
 

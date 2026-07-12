@@ -126,8 +126,6 @@ export function CarrierFormPage() {
           </h1>
           {mode === 'view' && carrier ? (
             <div className="mt-1 flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-              <span>{carrier.serviceName}</span>
-              <span aria-hidden>•</span>
               <RegistrationStatusBadge status={carrier.status} />
             </div>
           ) : mode === 'create' ? (

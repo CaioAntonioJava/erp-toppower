@@ -82,6 +82,14 @@ public record ContractUpdateRequest(
         @Schema(description = "Novo valor total do contrato (preenchimento manual). "
                 + "Envie null para não alterar, zero para limpar.",
                 example = "15000.00", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        BigDecimal totalValue
+        BigDecimal totalValue,
+
+        @Schema(description = "Novo prazo de entrega do contrato (texto livre). "
+                + "Envie string vazia para limpar, null para não alterar.",
+                example = "30 dias úteis",
+                maxLength = 500,
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        @Size(max = 500, message = "Prazo de entrega deve ter no máximo {max} caracteres")
+        String deliveryDeadline
 ) {
 }

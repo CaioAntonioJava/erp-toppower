@@ -160,6 +160,8 @@ export interface ContractResponse {
   updatedBy: string | null
   /** Valor total do contrato (preenchimento manual). */
   totalValue: number | null
+  /** Prazo de entrega do contrato (texto livre, opcional). */
+  deliveryDeadline: string | null
 }
 
 /** Resumo do contrato para listagens paginadas. */
@@ -195,6 +197,8 @@ export interface ContractCreateRequest {
   productItems?: ContractProductItemRequest[] | null
   /** Valor total do contrato (preenchimento manual, opcional). */
   totalValue?: number | null
+  /** Prazo de entrega (texto livre, opcional). */
+  deliveryDeadline?: string | null
   startDate?: string | null
 }
 
@@ -216,6 +220,8 @@ export interface ContractUpdateRequest {
   productItems?: ContractProductItemRequest[] | null
   /** Novo valor total. */
   totalValue?: number | null
+  /** Novo prazo de entrega (texto livre). null = não alterar, "" = limpar. */
+  deliveryDeadline?: string | null
   startDate?: string | null
 }
 

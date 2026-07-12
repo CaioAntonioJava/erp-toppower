@@ -244,6 +244,11 @@ export function ContractForm({
     contract?.totalValue != null ? String(contract.totalValue) : '',
   )
 
+  // === Prazo de entrega ===
+  const [deliveryDeadline, setDeliveryDeadline] = useState<string>(
+    contract?.deliveryDeadline ?? '',
+  )
+
   // === Título do contrato ===
   const [contractTitle, setContractTitle] = useState<string>(
     `Contrato de Prestação de Serviço ${initialCode ?? contract?.code ?? ''}`,
@@ -351,6 +356,24 @@ export function ContractForm({
       prev.map((c) => (c.rowKey === rowKey ? { ...c, description } : c)),
     )
   }
+
+  /**
+   * Divisão puramente visual da lista linear {@link clauses} em três
+   * caixas no formulário ("Cláusula 1", "Cláusula 2" e "Cláusula 3").
+   * A divisão é por terço: primeiro terço em Cláusula 1, segundo terço
+   * em Cláusula 2, restante em Cláusula 3.
+   *
+   * <p>A divisão é recomputada a cada render: novas cláusulas adicionadas
+   * por qualquer uma das caixas entram no array linear e podem migrar de
+   * caixa ao atingir/ultrapassar os pontos de corte. Isso é intencional —
+   * o usuário está editando uma lista única, apenas com layout dividido.</p>
+   */
+  const thirdSize = Math.ceil(clauses.length / 3)
+  const firstThirdEnd = thirdSize
+  const secondThirdEnd = thirdSize * 2
+  const clausesFirstThird = clauses.slice(0, firstThirdEnd)
+  const clausesSecondThird = clauses.slice(firstThirdEnd, secondThirdEnd)
+  const clausesThirdThird = clauses.slice(secondThirdEnd)
 
   // === handlers de itens de serviço ===
   function addServiceItem() {
@@ -531,6 +554,7 @@ export function ContractForm({
           serviceItems: serviceItemsPayload.length > 0 ? serviceItemsPayload : undefined,
           productItems: productItemsPayload.length > 0 ? productItemsPayload : undefined,
           totalValue: totalValueNum,
+          deliveryDeadline: deliveryDeadline.trim() || null,
           startDate,
         }
         await onSaveUpdate(payload)
@@ -546,6 +570,7 @@ export function ContractForm({
           serviceItems: serviceItemsPayload.length > 0 ? serviceItemsPayload : null,
           productItems: productItemsPayload.length > 0 ? productItemsPayload : null,
           totalValue: totalValueNum,
+          deliveryDeadline: deliveryDeadline.trim() || null,
           startDate,
         }
         await onSaveCreate(payload)
@@ -709,10 +734,18 @@ export function ContractForm({
         ) : null}
       </section>
 
-      {/* Cláusulas */}
+      {/*
+        Cláusula 1
+        ---------------------------------------------------------------------
+        O array `clauses` é uma lista linear única, mas é renderizado em três
+        caixas no formulário (Cláusula 1, Cláusula 2 e Cláusula 3) — a
+        Cláusula 2 fica abaixo da seção "Produtos" e a Cláusula 3 fica
+        abaixo do "Prazo de entrega", antes de "Valor total". A divisão é
+        por terço, recomputada a cada render a partir de `firstThirdEnd`.
+      */}
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-base font-semibold">Cláusulas</h3>
+          <h3 className="text-base font-semibold">Cláusula 1</h3>
           <Button type="button" variant="secondary" onClick={addClause}>
             <Plus className="h-4 w-4" />
             Adicionar cláusula
@@ -729,14 +762,14 @@ export function ContractForm({
           </p>
         ) : null}
 
-        {clauses.length === 0 ? (
+        {clausesFirstThird.length === 0 ? (
           <div className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
             Nenhuma cláusula. Clique em <strong>Adicionar cláusula</strong> para
             começar.
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {clauses.map((c, idx) => (
+            {clausesFirstThird.map((c, idx) => (
               <div
                 key={c.rowKey}
                 className="flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/50"
@@ -1102,6 +1135,171 @@ export function ContractForm({
           maxLength={4000}
           aria-label="Descrição dos produtos"
         />
+      </section>
+
+      {/*
+        Cláusula 2 — duplicação visual da seção "Cláusula 1"
+        ---------------------------------------------------------------------
+        Esta seção é uma duplicação visual (mesmo modelo, mesmo array
+        `clauses`) posicionada abaixo da "Descrição dos produtos" e antes
+        de "Prazo de entrega". O usuário continua editando uma única
+        lista linear: novas cláusulas adicionadas aqui entram no mesmo
+        array que alimenta a "Cláusula 1" e a "Cláusula 3". A numeração
+        segue a posição real na lista (Cláusula {firstThirdEnd + idx + 1}).
+      */}
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-base font-semibold">Cláusula 2</h3>
+          <Button type="button" variant="secondary" onClick={addClause}>
+            <Plus className="h-4 w-4" />
+            Adicionar cláusula
+          </Button>
+        </div>
+        <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+          Continuação das cláusulas contratuais — mesmo modelo da seção
+          anterior.
+        </p>
+
+        {clausesSecondThird.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+            Nenhuma cláusula nesta seção. Clique em <strong>Adicionar
+            cláusula</strong> para começar.
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {clausesSecondThird.map((c, idx) => (
+              <div
+                key={c.rowKey}
+                className="flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/50"
+              >
+                <div className="flex-1">
+                  <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+                    Cláusula {firstThirdEnd + idx + 1}
+                  </label>
+                  <input
+                    type="text"
+                    value={c.description}
+                    onChange={(e) => updateClause(c.rowKey, e.target.value)}
+                    onBlur={() => markAllTouched()}
+                    maxLength={4000}
+                    placeholder="Digite a cláusula..."
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                  />
+                  {shouldShowError(
+                    `clauses.${firstThirdEnd + idx}`,
+                    fieldErrors[`clauses.${firstThirdEnd + idx}`],
+                  ) ? (
+                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                      {fieldErrors[`clauses.${firstThirdEnd + idx}`]}
+                    </p>
+                  ) : null}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeClause(c.rowKey)}
+                  disabled={clauses.length <= 1}
+                  aria-label="Remover cláusula"
+                  title="Remover cláusula"
+                  className="mt-5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-slate-500 hover:bg-slate-200 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-slate-700 dark:hover:text-red-400"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Prazo de entrega */}
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <h3 className="mb-1 text-base font-semibold">Prazo de entrega</h3>
+        <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+          Texto livre. Opcional — não tem semântica de data, é apenas uma
+          descrição (ex.: "30 dias úteis", "15 dias após a assinatura",
+          "entrega imediata").
+        </p>
+        <div className="max-w-2xl">
+          <Input
+            label="Prazo de entrega"
+            value={deliveryDeadline}
+            onChange={(e) => setDeliveryDeadline(e.target.value)}
+            placeholder="Ex.: 30 dias úteis"
+            maxLength={500}
+          />
+        </div>
+      </section>
+
+      {/*
+        Cláusula 3 — duplicação visual das seções "Cláusula 1" e "Cláusula 2"
+        ---------------------------------------------------------------------
+        Esta seção é uma duplicação visual (mesmo modelo, mesmo array
+        `clauses`) posicionada abaixo do "Prazo de entrega" e antes de
+        "Valor total". O usuário continua editando uma única lista
+        linear: novas cláusulas adicionadas aqui entram no mesmo array
+        que alimenta as outras duas caixas. A numeração segue a posição
+        real na lista (Cláusula {secondThirdEnd + idx + 1}).
+      */}
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-base font-semibold">Cláusula 3</h3>
+          <Button type="button" variant="secondary" onClick={addClause}>
+            <Plus className="h-4 w-4" />
+            Adicionar cláusula
+          </Button>
+        </div>
+        <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+          Continuação das cláusulas contratuais — mesmo modelo das seções
+          anteriores.
+        </p>
+
+        {clausesThirdThird.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+            Nenhuma cláusula nesta seção. Clique em <strong>Adicionar
+            cláusula</strong> para começar.
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {clausesThirdThird.map((c, idx) => (
+              <div
+                key={c.rowKey}
+                className="flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/50"
+              >
+                <div className="flex-1">
+                  <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+                    Cláusula {secondThirdEnd + idx + 1}
+                  </label>
+                  <input
+                    type="text"
+                    value={c.description}
+                    onChange={(e) => updateClause(c.rowKey, e.target.value)}
+                    onBlur={() => markAllTouched()}
+                    maxLength={4000}
+                    placeholder="Digite a cláusula..."
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                  />
+                  {shouldShowError(
+                    `clauses.${secondThirdEnd + idx}`,
+                    fieldErrors[`clauses.${secondThirdEnd + idx}`],
+                  ) ? (
+                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                      {fieldErrors[`clauses.${secondThirdEnd + idx}`]}
+                    </p>
+                  ) : null}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeClause(c.rowKey)}
+                  disabled={clauses.length <= 1}
+                  aria-label="Remover cláusula"
+                  title="Remover cláusula"
+                  className="mt-5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-slate-500 hover:bg-slate-200 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-slate-700 dark:hover:text-red-400"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Valor total */}

@@ -174,6 +174,16 @@ public class Contract extends OrganizationScopedEntity {
     private String productsDescription;
 
     /**
+     * Prazo de entrega do contrato. <b>Opcional</b>, texto livre
+     * (ex.: "30 dias úteis", "15 dias após a assinatura", "entrega
+     * imediata"). Persistido como {@code VARCHAR(500)} — não tem
+     * semântica de data; é apenas uma descrição que aparece no
+     * formulário abaixo de "Cláusula 2" e no PDF.
+     */
+    @Column(name = "delivery_deadline", length = 500)
+    private String deliveryDeadline;
+
+    /**
      * Status atual do contrato no seu ciclo de vida. Padrão
      * {@link ContractStatus#ABERTA} na criação.
      */
