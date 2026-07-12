@@ -120,8 +120,8 @@ export function TechnicalProposalFormPage() {
   async function handleCreate(payload: TechnicalProposalCreateRequest) {
     setSaving(true)
     try {
-      const created = await createTechnicalProposal(payload)
-      navigate(`/technical-proposals/${created.uuid}/edit`, { replace: true })
+      await createTechnicalProposal(payload)
+      navigate('/technical-proposals', { replace: true })
     } finally {
       setSaving(false)
     }
