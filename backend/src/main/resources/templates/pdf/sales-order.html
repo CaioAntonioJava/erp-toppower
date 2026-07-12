@@ -24,7 +24,9 @@
   </span>
 </div>
 
-<!-- Cliente + Condições (lado a lado) -->
+<!-- Cliente + Condições (lado a lado).
+     Cada label/valor opcional só é renderizado se o dado correspondente
+     estiver preenchido no cadastro — campo em branco = linha omitida. -->
 <table class="panel-row">
   <tbody>
   <tr>
@@ -34,15 +36,15 @@
         <table class="kv">
           <tr>
             <td class="k">Nome:</td>
-            <td class="v" th:utext="${clientNameHtml}">—</td>
+            <td class="v break-word" th:utext="${clientNameHtml != null ? clientNameHtml : '—'}">—</td>
           </tr>
-          <tr>
+          <tr th:if="${attentionHtml != null}">
             <td class="k">Aos cuidados de:</td>
-            <td class="v" th:utext="${attentionHtml}">—</td>
+            <td class="v break-word" th:utext="${attentionHtml}">—</td>
           </tr>
-          <tr>
+          <tr th:if="${order.sellerName != null and !order.sellerName.isBlank()}">
             <td class="k">Vendedor:</td>
-            <td class="v" th:text="${order.sellerName != null ? order.sellerName : '—'}">—</td>
+            <td class="v break-word" th:text="${order.sellerName}">—</td>
           </tr>
         </table>
       </div>
@@ -59,25 +61,21 @@
             <td class="k">Tipo de frete:</td>
             <td class="v" th:text="${order.freightType != null ? order.freightType.name() : '—'}">—</td>
           </tr>
-          <tr>
+          <tr th:if="${order.discountType != null and order.discount != null}">
             <td class="k">Desconto:</td>
             <td class="v"
-                th:text="${order.discountType != null and order.discount != null
-                           ? (order.discountType.name() == 'PERCENT'
-                                ? order.discount + '%'
-                                : 'R$ ' + #numbers.formatDecimal(order.discount, 1, 'POINT', 2, 'COMMA'))
-                           : '—'}">—</td>
+                th:text="${order.discountType.name() == 'PERCENT'
+                           ? order.discount + '%'
+                           : 'R$ ' + #numbers.formatDecimal(order.discount, 1, 'POINT', 2, 'COMMA')}">—</td>
           </tr>
-          <tr>
+          <tr th:if="${order.freightValue != null}">
             <td class="k">Valor do frete:</td>
             <td class="v money"
-                th:text="${order.freightValue != null
-                           ? 'R$ ' + #numbers.formatDecimal(order.freightValue, 1, 'POINT', 2, 'COMMA')
-                           : '—'}">—</td>
+                th:text="${'R$ ' + #numbers.formatDecimal(order.freightValue, 1, 'POINT', 2, 'COMMA')}">—</td>
           </tr>
-          <tr>
+          <tr th:if="${order.carrierName != null and !order.carrierName.isBlank()}">
             <td class="k">Transportadora:</td>
-            <td class="v" th:text="${order.carrierName != null ? order.carrierName : '—'}">—</td>
+            <td class="v break-word" th:text="${order.carrierName}">—</td>
           </tr>
         </table>
       </div>
@@ -91,17 +89,17 @@
   <div class="section-title">
     Itens (<span th:text="${#lists.size(order.items)}">0</span>)
   </div>
-  <table class="grid">
+  <table class="grid products">
     <thead>
     <tr>
       <th style="width:4%;">#</th>
-      <th style="width:12%;">Cód.</th>
+      <th style="width:11%;">Cód.</th>
       <th>Produto</th>
-      <th class="num" style="width:8%;">Qtd.</th>
+      <th class="num" style="width:7%;">Qtd.</th>
       <th class="num" style="width:12%;">Preço un.</th>
-      <th class="num" style="width:13%;">Subtotal</th>
+      <th class="num" style="width:12%;">Subtotal</th>
       <th class="num" style="width:9%;">Desc.</th>
-      <th class="num" style="width:14%;">Total</th>
+      <th class="num" style="width:13%;">Total</th>
     </tr>
     </thead>
     <tbody>
@@ -122,7 +120,7 @@
                       ? (it.discountType.name() == 'PERCENT'
                           ? #numbers.formatDecimal(it.discount, 1, 'POINT', 2, 'COMMA') + '%'
                           : 'R$ ' + #numbers.formatDecimal(it.discount, 1, 'POINT', 2, 'COMMA'))
-                      : '—'}">—</td>
+                      : ''}"></td>
       <td class="num money"
           th:text="${'R$ ' + #numbers.formatDecimal(it.totalPrice, 1, 'POINT', 2, 'COMMA')}">0,00</td>
     </tr>
@@ -130,7 +128,8 @@
   </table>
 </div>
 
-<!-- Totais -->
+<!-- Totais — Subtotal e TOTAL são sempre renderizados.
+     Desconto e Frete só aparecem se houver valor lançado. -->
 <div class="totals">
   <table>
     <tr>
@@ -162,19 +161,21 @@
   <div class="notes" th:utext="${order.notes}">—</div>
 </div>
 
-<!-- Assinaturas -->
+<!-- Assinaturas — nome só aparece quando preenchido. -->
 <div class="signatures">
   <table>
     <tr>
       <td>
         <div class="sig-line">&#160;</div>
         <div class="sig-label">Vendedor</div>
-        <div class="sig-name" th:text="${order.sellerName != null ? order.sellerName : ''}"></div>
+        <div class="sig-name" th:if="${order.sellerName != null and !order.sellerName.isBlank()}"
+             th:text="${order.sellerName}"></div>
       </td>
       <td>
         <div class="sig-line">&#160;</div>
         <div class="sig-label">Cliente</div>
-        <div class="sig-name" th:text="${order.clientName != null ? order.clientName : ''}"></div>
+        <div class="sig-name" th:if="${order.clientName != null and !order.clientName.isBlank()}"
+             th:text="${order.clientName}"></div>
       </td>
     </tr>
   </table>

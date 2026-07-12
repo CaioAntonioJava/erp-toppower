@@ -29,24 +29,34 @@
   <table class="kv">
     <tr>
       <td class="k">Cliente:</td>
-      <td class="v" th:utext="${customerNameHtml}">—</td>
+      <td class="v" th:utext="${customerNameHtml != null ? customerNameHtml : '—'}">—</td>
     </tr>
   </table>
 </div>
 
-<!-- Endereço do contrato -->
-<div class="section" th:if="${contract.address != null}">
+<!-- Endereço do contrato.
+     O bloco só aparece se o objeto address existir e tiver ao menos
+     um sub-campo preenchido — endereço totalmente vazio = omitido. -->
+<div class="section"
+     th:if="${contract.address != null
+              and ((contract.address.street != null and !contract.address.street.isBlank())
+                or (contract.address.number != null and !contract.address.number.isBlank())
+                or (contract.address.complement != null and !contract.address.complement.isBlank())
+                or (contract.address.neighborhood != null and !contract.address.neighborhood.isBlank())
+                or (contract.address.city != null and !contract.address.city.isBlank())
+                or (contract.address.state != null and !contract.address.state.isBlank())
+                or (contract.address.zipCode != null and !contract.address.zipCode.isBlank()))}">
   <div class="section-title">Endereço</div>
   <div class="addr-block">
-    <span th:if="${contract.address.street != null}">
-      <span th:text="${contract.address.street}"></span><span th:if="${contract.address.number != null}" th:text="', ' + ${contract.address.number}"></span>
+    <span th:if="${contract.address.street != null and !contract.address.street.isBlank()}">
+      <span th:text="${contract.address.street}"></span><span th:if="${contract.address.number != null and !contract.address.number.isBlank()}" th:text="', ' + ${contract.address.number}"></span>
     </span>
     <span th:if="${contract.address.complement != null and !contract.address.complement.isBlank()}"
           th:text="' — ' + ${contract.address.complement}"></span>
     <span th:if="${contract.address.neighborhood != null and !contract.address.neighborhood.isBlank()}"
           th:text="' — ' + ${contract.address.neighborhood}"></span>
     <br/>
-    <span th:if="${contract.address.city != null}" th:text="${contract.address.city}"></span><span th:if="${contract.address.state != null}" th:text="'/' + ${contract.address.state}"></span>
+    <span th:if="${contract.address.city != null and !contract.address.city.isBlank()}" th:text="${contract.address.city}"></span><span th:if="${contract.address.state != null and !contract.address.state.isBlank()}" th:text="'/' + ${contract.address.state}"></span>
     <span th:if="${contract.address.zipCode != null and !contract.address.zipCode.isBlank()}"
           th:text="' — CEP ' + ${contract.address.zipCode}"></span>
   </div>
@@ -164,25 +174,35 @@
   </div>
 </div>
 
+<!-- Descrição adicional — bloco rich text opcional exibido logo após
+  a "Cláusula 3" e antes de "Valor total", espelhando o formulário. -->
+<div class="section"
+     th:if="${contract.additionalDescription != null and !contract.additionalDescription.isBlank()}">
+  <div class="section-title">Descrição adicional</div>
+  <div class="notes" th:utext="${contract.additionalDescription}">—</div>
+</div>
+
 <!-- Valor total -->
 <div class="section" th:if="${contract.totalValue != null}">
   <div class="section-title">Valor total</div>
   <div class="notes" th:text="'R$ ' + ${#numbers.formatDecimal(contract.totalValue, 0, 'COMMA', 2, 'COMMA')}">—</div>
 </div>
 
-<!-- Assinaturas -->
+<!-- Assinaturas — nome só aparece quando preenchido. -->
 <div class="signatures">
   <table>
     <tr>
       <td>
         <div class="sig-line">&#160;</div>
         <div class="sig-label">Contratante</div>
-        <div class="sig-name" th:text="${contract.clientName != null ? contract.clientName : ''}"></div>
+        <div class="sig-name" th:if="${contract.clientName != null and !contract.clientName.isBlank()}"
+             th:text="${contract.clientName}"></div>
       </td>
       <td>
         <div class="sig-line">&#160;</div>
         <div class="sig-label">Contratada</div>
-        <div class="sig-name" th:text="${issuer != null and issuer.tradeName != null ? issuer.tradeName : ''}"></div>
+        <div class="sig-name" th:if="${issuer != null and issuer.tradeName != null and !issuer.tradeName.isBlank() and issuer.tradeName != '—'}"
+             th:text="${issuer.tradeName}"></div>
       </td>
     </tr>
   </table>

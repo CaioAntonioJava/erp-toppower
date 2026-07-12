@@ -85,10 +85,10 @@ public class TechnicalProposalPdfService {
 
     /**
      * Aplica {@link SoftBreak#name(String)} ao valor, retornando
-     * {@code "—"} quando nulo/vazio — para que o template use
-     * {@code th:utext="${chave}"} sem precisar de guarda.
+     * {@code null} quando nulo/vazio. O template decide se renderiza o
+     * bloco (label + valor) só quando o conteúdo estiver presente.
      */
     private static String softBroken(String value) {
-        return (value == null || value.isBlank()) ? "—" : SoftBreak.name(value);
+        return (value == null || value.isBlank()) ? null : SoftBreak.name(value);
     }
 }
