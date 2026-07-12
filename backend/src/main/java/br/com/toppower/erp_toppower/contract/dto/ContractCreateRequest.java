@@ -2,10 +2,13 @@ package br.com.toppower.erp_toppower.contract.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -50,12 +53,12 @@ public record ContractCreateRequest(
         @NotNull(message = "Descrição do contrato é obrigatória")
         String description,
 
-        @Schema(description = "Cláusula contratual (texto livre, geralmente longo). "
-                + "Pensada para um input largo no formulário.",
-                example = "As partes acordam que...",
+        @Schema(description = "Cláusulas contratuais (lista de textos livres). "
+                + "O contrato deve ter ao menos uma cláusula.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotNull(message = "Cláusula é obrigatória")
-        String clause,
+        @NotEmpty(message = "O contrato deve ter ao menos uma cláusula")
+        @Valid
+        List<ContractClauseRequest> clauses,
 
         @Schema(description = "Bloco de texto descrevendo os serviços do contrato (opcional).",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
@@ -68,6 +71,23 @@ public record ContractCreateRequest(
         @Schema(description = "Data de início da vigência do contrato (yyyy-MM-dd). "
                 + "Se omitida, usa a data atual.",
                 example = "2026-07-10", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        LocalDate startDate
+        LocalDate startDate,
+
+        @Schema(description = "Itens de serviço do contrato (opcional). Cada item "
+                + "possui apenas descrição — sem preço.",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        @Valid
+        List<ContractServiceItemRequest> serviceItems,
+
+        @Schema(description = "Itens de produto do contrato (opcional). Cada item "
+                + "possui referência ao produto + quantidade — sem preço.",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        @Valid
+        List<ContractProductItemRequest> productItems,
+
+        @Schema(description = "Valor total do contrato (preenchimento manual). "
+                + "Opcional — sem cálculo automático.",
+                example = "15000.00", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        BigDecimal totalValue
 ) {
 }

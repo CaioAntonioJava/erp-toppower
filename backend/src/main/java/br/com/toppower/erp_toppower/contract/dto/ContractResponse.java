@@ -3,8 +3,10 @@ package br.com.toppower.erp_toppower.contract.dto;
 import br.com.toppower.erp_toppower.contract.enums.ContractStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -65,9 +67,9 @@ public record ContractResponse(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         String description,
 
-        @Schema(description = "Cláusula contratual.",
+        @Schema(description = "Cláusulas contratuais.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        String clause,
+        List<ContractClauseResponse> clauses,
 
         @Schema(description = "Bloco de texto descrevendo os serviços (opcional).",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
@@ -100,7 +102,19 @@ public record ContractResponse(
 
         @Schema(description = "E-mail do usuário que fez a última atualização.",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        String updatedBy
+        String updatedBy,
+
+        @Schema(description = "Itens de serviço do contrato (opcional).",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        List<ContractServiceItemResponse> serviceItems,
+
+        @Schema(description = "Itens de produto do contrato (opcional).",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        List<ContractProductItemResponse> productItems,
+
+        @Schema(description = "Valor total do contrato (preenchimento manual).",
+                example = "15000.00", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        BigDecimal totalValue
 ) {
 
     /**

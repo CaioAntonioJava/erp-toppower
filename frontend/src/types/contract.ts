@@ -2,10 +2,11 @@
  * Tipos do módulo de Contratos. Espelham os DTOs do backend
  * (`br.com.toppower.erp_toppower.contract.dto`).
  *
- * <p>Ao contrário da Proposta Técnica, este módulo é mais simples: o
- * agregado não possui itens estruturados (serviços/produtos) — os
- * blocos opcionais de descrição de serviços e produtos são persistidos
- * como campos {@code TEXT} diretamente no header.</p>
+ * <p>Além dos blocos de texto livre ({@code servicesDescription},
+ * {@code productsDescription}), o contrato agora suporta itens
+ * estruturados de serviço (apenas descrição) e produto (referência +
+ * quantidade), seguindo o mesmo padrão de linhas dinâmicas da
+ * Proposta Técnica, porém sem preço/margem.</p>
  *
  * <p>O cliente do contrato pode ser pessoa física ({@code Customer})
  * <b>ou</b> pessoa jurídica ({@code Company}). A invariante "exatamente
@@ -65,6 +66,53 @@ export interface ContractAddressResponse {
 }
 
 // =====================================================================
+// Cláusulas
+// =====================================================================
+
+/** Linha de cláusula de um contrato (request). */
+export interface ContractClauseRequest {
+  description: string
+}
+
+/** Linha de cláusula de um contrato (response). */
+export interface ContractClauseResponse {
+  uuid: string
+  description: string
+}
+
+// =====================================================================
+// Itens de serviço
+// =====================================================================
+
+/** Item de serviço de um contrato (request) — apenas descrição. */
+export interface ContractServiceItemRequest {
+  description: string
+}
+
+/** Item de serviço de um contrato (response). */
+export interface ContractServiceItemResponse {
+  uuid: string
+  description: string
+}
+
+// =====================================================================
+// Itens de produto
+// =====================================================================
+
+/** Item de produto de um contrato (request) — referência + quantidade. */
+export interface ContractProductItemRequest {
+  productUuid: string
+  quantity: number
+}
+
+/** Item de produto de um contrato (response). */
+export interface ContractProductItemResponse {
+  uuid: string
+  productUuid: string
+  quantity: number
+}
+
+// =====================================================================
 // Header
 // =====================================================================
 
@@ -94,18 +142,24 @@ export interface ContractResponse {
   address: ContractAddressResponse | null
   /** Descrição detalhada do contrato (~1000 chars). */
   description: string
-  /** Cláusula contratual (texto livre). */
-  clause: string
+  /** Cláusulas contratuais (lista de textos livres). */
+  clauses: ContractClauseResponse[]
   /** Bloco de texto descrevendo os serviços (opcional). */
   servicesDescription: string | null
   /** Bloco de texto descrevendo os produtos (opcional). */
   productsDescription: string | null
+  /** Itens de serviço estruturados (opcional). */
+  serviceItems: ContractServiceItemResponse[]
+  /** Itens de produto estruturados (opcional). */
+  productItems: ContractProductItemResponse[]
   status: ContractStatus
   startDate: string
   createdAt: string
   updatedAt: string
   createdBy: string | null
   updatedBy: string | null
+  /** Valor total do contrato (preenchimento manual). */
+  totalValue: number | null
 }
 
 /** Resumo do contrato para listagens paginadas. */
@@ -131,9 +185,16 @@ export interface ContractCreateRequest {
   companyUuid?: string | null
   address?: ContractAddressRequest | null
   description: string
-  clause: string
+  /** Lista de cláusulas contratuais. O contrato deve ter ao menos uma. */
+  clauses: ContractClauseRequest[]
   servicesDescription?: string | null
   productsDescription?: string | null
+  /** Itens de serviço (opcional). */
+  serviceItems?: ContractServiceItemRequest[] | null
+  /** Itens de produto (opcional). */
+  productItems?: ContractProductItemRequest[] | null
+  /** Valor total do contrato (preenchimento manual, opcional). */
+  totalValue?: number | null
   startDate?: string | null
 }
 
@@ -143,11 +204,18 @@ export interface ContractUpdateRequest {
   companyUuid?: string | null
   address?: ContractAddressRequest | null
   description?: string | null
-  clause?: string | null
+  /** Nova lista de cláusulas (substitui a anterior por completo). */
+  clauses?: ContractClauseRequest[]
   /** String vazia = limpar. */
   servicesDescription?: string | null
   /** String vazia = limpar. */
   productsDescription?: string | null
+  /** Nova lista de itens de serviço (substitui a anterior). */
+  serviceItems?: ContractServiceItemRequest[] | null
+  /** Nova lista de itens de produto (substitui a anterior). */
+  productItems?: ContractProductItemRequest[] | null
+  /** Novo valor total. */
+  totalValue?: number | null
   startDate?: string | null
 }
 

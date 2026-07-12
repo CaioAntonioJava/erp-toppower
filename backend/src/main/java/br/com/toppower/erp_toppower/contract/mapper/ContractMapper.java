@@ -3,12 +3,22 @@ package br.com.toppower.erp_toppower.contract.mapper;
 import br.com.toppower.erp_toppower.common.embeddable.Address;
 import br.com.toppower.erp_toppower.contract.dto.ContractAddressRequest;
 import br.com.toppower.erp_toppower.contract.dto.ContractAddressResponse;
+import br.com.toppower.erp_toppower.contract.dto.ContractClauseRequest;
+import br.com.toppower.erp_toppower.contract.dto.ContractClauseResponse;
 import br.com.toppower.erp_toppower.contract.dto.ContractCreateRequest;
+import br.com.toppower.erp_toppower.contract.dto.ContractProductItemRequest;
+import br.com.toppower.erp_toppower.contract.dto.ContractProductItemResponse;
 import br.com.toppower.erp_toppower.contract.dto.ContractResponse;
+import br.com.toppower.erp_toppower.contract.dto.ContractServiceItemRequest;
+import br.com.toppower.erp_toppower.contract.dto.ContractServiceItemResponse;
 import br.com.toppower.erp_toppower.contract.dto.ContractSummaryResponse;
 import br.com.toppower.erp_toppower.contract.dto.ContractUpdateRequest;
 import br.com.toppower.erp_toppower.contract.entity.Contract;
+import br.com.toppower.erp_toppower.contract.entity.ContractClause;
+import br.com.toppower.erp_toppower.contract.entity.ContractProductItem;
+import br.com.toppower.erp_toppower.contract.entity.ContractServiceItem;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -65,6 +75,61 @@ public final class ContractMapper {
     }
 
     // ---------------------------------------------------------------------
+    // Cláusulas
+    // ---------------------------------------------------------------------
+
+    public static ContractClause toClauseEntity(
+            ContractClauseRequest request, UUID contractUuid) {
+        ContractClause clause = new ContractClause();
+        clause.setContractUuid(contractUuid);
+        clause.setDescription(request.description());
+        return clause;
+    }
+
+    public static ContractClauseResponse toClauseResponse(
+            ContractClause clause) {
+        return new ContractClauseResponse(
+                clause.getUuid(), clause.getDescription());
+    }
+
+    // ---------------------------------------------------------------------
+    // Itens de serviço
+    // ---------------------------------------------------------------------
+
+    public static ContractServiceItem toServiceItemEntity(
+            ContractServiceItemRequest request, UUID contractUuid) {
+        ContractServiceItem item = new ContractServiceItem();
+        item.setContractUuid(contractUuid);
+        item.setDescription(request.description());
+        return item;
+    }
+
+    public static ContractServiceItemResponse toServiceItemResponse(
+            ContractServiceItem item) {
+        return new ContractServiceItemResponse(
+                item.getUuid(), item.getDescription());
+    }
+
+    // ---------------------------------------------------------------------
+    // Itens de produto
+    // ---------------------------------------------------------------------
+
+    public static ContractProductItem toProductItemEntity(
+            ContractProductItemRequest request, UUID contractUuid) {
+        ContractProductItem item = new ContractProductItem();
+        item.setContractUuid(contractUuid);
+        item.setProductUuid(request.productUuid());
+        item.setQuantity(request.quantity());
+        return item;
+    }
+
+    public static ContractProductItemResponse toProductItemResponse(
+            ContractProductItem item) {
+        return new ContractProductItemResponse(
+                item.getUuid(), item.getProductUuid(), item.getQuantity());
+    }
+
+    // ---------------------------------------------------------------------
     // Header — create / update
     // ---------------------------------------------------------------------
 
@@ -82,10 +147,10 @@ public final class ContractMapper {
         c.setCompanyUuid(request.companyUuid());
         c.setAddress(toAddress(request.address()));
         c.setDescription(request.description());
-        c.setClause(request.clause());
         c.setServicesDescription(request.servicesDescription());
         c.setProductsDescription(request.productsDescription());
         c.setStartDate(request.startDate());
+        c.setTotalValue(request.totalValue());
         return c;
     }
 
@@ -109,9 +174,6 @@ public final class ContractMapper {
         if (request.description() != null) {
             c.setDescription(request.description());
         }
-        if (request.clause() != null) {
-            c.setClause(request.clause());
-        }
         if (request.servicesDescription() != null) {
             c.setServicesDescription(emptyToNull(request.servicesDescription()));
         }
@@ -120,6 +182,9 @@ public final class ContractMapper {
         }
         if (request.startDate() != null) {
             c.setStartDate(request.startDate());
+        }
+        if (request.totalValue() != null) {
+            c.setTotalValue(request.totalValue());
         }
     }
 
@@ -149,7 +214,10 @@ public final class ContractMapper {
     public static ContractResponse toResponse(Contract c,
                                               ContractResponse.ClientType clientType,
                                               String clientName,
-                                              String clientCode) {
+                                              String clientCode,
+                                              List<ContractClause> clauses,
+                                              List<ContractServiceItem> serviceItems,
+                                              List<ContractProductItem> productItems) {
         return new ContractResponse(
                 c.getUuid(),
                 c.getPrefix(),
@@ -163,7 +231,7 @@ public final class ContractMapper {
                 clientCode,
                 toAddressResponse(c.getAddress()),
                 c.getDescription(),
-                c.getClause(),
+                clauses.stream().map(ContractMapper::toClauseResponse).toList(),
                 c.getServicesDescription(),
                 c.getProductsDescription(),
                 c.getStatus(),
@@ -171,7 +239,10 @@ public final class ContractMapper {
                 c.getCreatedAt(),
                 c.getUpdatedAt(),
                 c.getCreatedBy(),
-                c.getUpdatedBy());
+                c.getUpdatedBy(),
+                serviceItems.stream().map(ContractMapper::toServiceItemResponse).toList(),
+                productItems.stream().map(ContractMapper::toProductItemResponse).toList(),
+                c.getTotalValue());
     }
 
     /**

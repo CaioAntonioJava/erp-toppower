@@ -238,41 +238,99 @@ export function ContractDetailPage() {
               </div>
             ) : null}
 
-            {contract.clause ? (
+            {contract.clauses && contract.clauses.length > 0 ? (
               <div className="mt-6 border-t border-slate-200 pt-4 dark:border-slate-800">
                 <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                  Cláusula
+                  Cláusulas
                 </h3>
-                <div className="prose prose-sm mt-1 max-w-none whitespace-pre-line text-slate-700 dark:prose-invert dark:text-slate-300">
-                  {contract.clause}
+                <div className="mt-2 space-y-3">
+                  {contract.clauses.map((clause, idx) => (
+                    <div key={clause.uuid}>
+                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                        Cláusula {idx + 1}
+                      </p>
+                      <div className="prose prose-sm mt-0.5 max-w-none whitespace-pre-line text-slate-700 dark:prose-invert dark:text-slate-300">
+                        {clause.description}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             ) : null}
           </section>
 
           {/* Serviços */}
-          {contract.servicesDescription ? (
+          {contract.servicesDescription || (contract.serviceItems && contract.serviceItems.length > 0) ? (
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
               <h2 className="mb-3 text-base font-semibold">Serviços</h2>
-              <div
-                className="prose prose-sm max-w-none text-slate-700 dark:prose-invert dark:text-slate-300"
-                dangerouslySetInnerHTML={{
-                  __html: contract.servicesDescription,
-                }}
-              />
+
+              {contract.serviceItems && contract.serviceItems.length > 0 ? (
+                <div className="mb-4 space-y-2">
+                  {contract.serviceItems.map((item, idx) => (
+                    <div key={item.uuid} className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/50">
+                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                        Serviço {idx + 1}
+                      </p>
+                      <p className="mt-0.5 text-sm text-slate-700 dark:text-slate-300">
+                        {item.description}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+
+              {contract.servicesDescription ? (
+                <div
+                  className="prose prose-sm max-w-none text-slate-700 dark:prose-invert dark:text-slate-300"
+                  dangerouslySetInnerHTML={{
+                    __html: contract.servicesDescription,
+                  }}
+                />
+              ) : null}
             </section>
           ) : null}
 
           {/* Produtos */}
-          {contract.productsDescription ? (
+          {contract.productsDescription || (contract.productItems && contract.productItems.length > 0) ? (
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
               <h2 className="mb-3 text-base font-semibold">Produtos</h2>
-              <div
-                className="prose prose-sm max-w-none text-slate-700 dark:prose-invert dark:text-slate-300"
-                dangerouslySetInnerHTML={{
-                  __html: contract.productsDescription,
-                }}
-              />
+
+              {contract.productItems && contract.productItems.length > 0 ? (
+                <div className="mb-4 space-y-2">
+                  {contract.productItems.map((item, idx) => (
+                    <div key={item.uuid} className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/50">
+                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                        Produto {idx + 1}
+                      </p>
+                      <p className="mt-0.5 text-sm text-slate-700 dark:text-slate-300">
+                        {item.productUuid} — Qtd: {item.quantity}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+
+              {contract.productsDescription ? (
+                <div
+                  className="prose prose-sm max-w-none text-slate-700 dark:prose-invert dark:text-slate-300"
+                  dangerouslySetInnerHTML={{
+                    __html: contract.productsDescription,
+                  }}
+                />
+              ) : null}
+            </section>
+          ) : null}
+
+          {/* Valor total */}
+          {contract.totalValue != null ? (
+            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <h2 className="mb-1 text-base font-semibold">Valor total</h2>
+              <p className="text-lg font-medium text-slate-900 dark:text-slate-100">
+                {new Intl.NumberFormat('pt-BR', {
+                  style: 'currency',
+                  currency: 'BRL',
+                }).format(contract.totalValue)}
+              </p>
             </section>
           ) : null}
 

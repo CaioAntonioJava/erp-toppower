@@ -4,12 +4,18 @@ import br.com.toppower.erp_toppower.common.context.OrganizationContext;
 import br.com.toppower.erp_toppower.common.dto.PagedResponse;
 import br.com.toppower.erp_toppower.company.entity.Company;
 import br.com.toppower.erp_toppower.company.repository.CompanyRepository;
+import br.com.toppower.erp_toppower.contract.dto.ContractClauseRequest;
 import br.com.toppower.erp_toppower.contract.dto.ContractCreateRequest;
+import br.com.toppower.erp_toppower.contract.dto.ContractProductItemRequest;
 import br.com.toppower.erp_toppower.contract.dto.ContractResponse;
+import br.com.toppower.erp_toppower.contract.dto.ContractServiceItemRequest;
 import br.com.toppower.erp_toppower.contract.dto.ContractSummaryResponse;
 import br.com.toppower.erp_toppower.contract.dto.ContractUpdateRequest;
 import br.com.toppower.erp_toppower.contract.dto.NextContractCodeResponse;
 import br.com.toppower.erp_toppower.contract.entity.Contract;
+import br.com.toppower.erp_toppower.contract.entity.ContractClause;
+import br.com.toppower.erp_toppower.contract.entity.ContractProductItem;
+import br.com.toppower.erp_toppower.contract.entity.ContractServiceItem;
 import br.com.toppower.erp_toppower.contract.enums.ContractStatus;
 import br.com.toppower.erp_toppower.contract.exception.ContractBusinessException;
 import br.com.toppower.erp_toppower.contract.exception.ContractCompanyNotFoundException;
@@ -17,7 +23,10 @@ import br.com.toppower.erp_toppower.contract.exception.ContractCustomerNotFoundE
 import br.com.toppower.erp_toppower.contract.exception.ContractNotFoundException;
 import br.com.toppower.erp_toppower.contract.exception.InvalidContractClientException;
 import br.com.toppower.erp_toppower.contract.mapper.ContractMapper;
+import br.com.toppower.erp_toppower.contract.repository.ContractClauseRepository;
+import br.com.toppower.erp_toppower.contract.repository.ContractProductItemRepository;
 import br.com.toppower.erp_toppower.contract.repository.ContractRepository;
+import br.com.toppower.erp_toppower.contract.repository.ContractServiceItemRepository;
 import br.com.toppower.erp_toppower.customer.entity.Customer;
 import br.com.toppower.erp_toppower.customer.repository.CustomerRepository;
 import br.com.toppower.erp_toppower.organization.entity.Organization;
@@ -65,15 +74,24 @@ import java.util.UUID;
 public class ContractService {
 
     private final ContractRepository contractRepository;
+    private final ContractClauseRepository contractClauseRepository;
+    private final ContractServiceItemRepository contractServiceItemRepository;
+    private final ContractProductItemRepository contractProductItemRepository;
     private final CustomerRepository customerRepository;
     private final CompanyRepository companyRepository;
     private final OrganizationRepository organizationRepository;
 
     public ContractService(ContractRepository contractRepository,
+                           ContractClauseRepository contractClauseRepository,
+                           ContractServiceItemRepository contractServiceItemRepository,
+                           ContractProductItemRepository contractProductItemRepository,
                            CustomerRepository customerRepository,
                            CompanyRepository companyRepository,
                            OrganizationRepository organizationRepository) {
         this.contractRepository = contractRepository;
+        this.contractClauseRepository = contractClauseRepository;
+        this.contractServiceItemRepository = contractServiceItemRepository;
+        this.contractProductItemRepository = contractProductItemRepository;
         this.customerRepository = customerRepository;
         this.companyRepository = companyRepository;
         this.organizationRepository = organizationRepository;
@@ -92,8 +110,12 @@ public class ContractService {
 
         Contract saved = contractRepository.save(header);
 
+        List<ContractClause> clauses = persistClauses(request.clauses(), saved.getUuid());
+        List<ContractServiceItem> serviceItems = persistServiceItems(request.serviceItems(), saved.getUuid());
+        List<ContractProductItem> productItems = persistProductItems(request.productItems(), saved.getUuid());
+
         ClientResolved client = resolveClient(saved.getCustomerUuid(), saved.getCompanyUuid());
-        return ContractMapper.toResponse(saved, client.type(), client.name(), client.code());
+        return ContractMapper.toResponse(saved, client.type(), client.name(), client.code(), clauses, serviceItems, productItems);
     }
 
     // ---------------------------------------------------------------------
@@ -103,8 +125,11 @@ public class ContractService {
     @Transactional(readOnly = true)
     public ContractResponse getById(UUID id) {
         Contract c = loadContract(id);
+        List<ContractClause> clauses = contractClauseRepository.findByContractUuidOrderByCreatedAtAsc(id);
+        List<ContractServiceItem> serviceItems = contractServiceItemRepository.findByContractUuidOrderByCreatedAtAsc(id);
+        List<ContractProductItem> productItems = contractProductItemRepository.findByContractUuidOrderByCreatedAtAsc(id);
         ClientResolved client = resolveClient(c.getCustomerUuid(), c.getCompanyUuid());
-        return ContractMapper.toResponse(c, client.type(), client.name(), client.code());
+        return ContractMapper.toResponse(c, client.type(), client.name(), client.code(), clauses, serviceItems, productItems);
     }
 
     @Transactional(readOnly = true)
@@ -113,8 +138,12 @@ public class ContractService {
         Contract c = contractRepository
                 .findByPrefixAndSequenceAndYear(parsed.prefix, parsed.sequence, parsed.year)
                 .orElseThrow(() -> new ContractNotFoundException(code));
+        UUID id = c.getUuid();
+        List<ContractClause> clauses = contractClauseRepository.findByContractUuidOrderByCreatedAtAsc(id);
+        List<ContractServiceItem> serviceItems = contractServiceItemRepository.findByContractUuidOrderByCreatedAtAsc(id);
+        List<ContractProductItem> productItems = contractProductItemRepository.findByContractUuidOrderByCreatedAtAsc(id);
         ClientResolved client = resolveClient(c.getCustomerUuid(), c.getCompanyUuid());
-        return ContractMapper.toResponse(c, client.type(), client.name(), client.code());
+        return ContractMapper.toResponse(c, client.type(), client.name(), client.code(), clauses, serviceItems, productItems);
     }
 
     /**
@@ -213,8 +242,38 @@ public class ContractService {
         ContractMapper.applyUpdate(c, request);
         Contract saved = contractRepository.save(c);
 
+        // Substituição completa da lista de cláusulas, quando enviada
+        List<ContractClause> clauses;
+        if (request.clauses() != null) {
+            contractClauseRepository.deleteByContractUuid(id);
+            contractClauseRepository.flush();
+            clauses = persistClauses(request.clauses(), saved.getUuid());
+        } else {
+            clauses = contractClauseRepository.findByContractUuidOrderByCreatedAtAsc(id);
+        }
+
+        // Substituição completa da lista de itens de serviço, quando enviada
+        List<ContractServiceItem> serviceItems;
+        if (request.serviceItems() != null) {
+            contractServiceItemRepository.deleteByContractUuid(id);
+            contractServiceItemRepository.flush();
+            serviceItems = persistServiceItems(request.serviceItems(), saved.getUuid());
+        } else {
+            serviceItems = contractServiceItemRepository.findByContractUuidOrderByCreatedAtAsc(id);
+        }
+
+        // Substituição completa da lista de itens de produto, quando enviada
+        List<ContractProductItem> productItems;
+        if (request.productItems() != null) {
+            contractProductItemRepository.deleteByContractUuid(id);
+            contractProductItemRepository.flush();
+            productItems = persistProductItems(request.productItems(), saved.getUuid());
+        } else {
+            productItems = contractProductItemRepository.findByContractUuidOrderByCreatedAtAsc(id);
+        }
+
         ClientResolved client = resolveClient(saved.getCustomerUuid(), saved.getCompanyUuid());
-        return ContractMapper.toResponse(saved, client.type(), client.name(), client.code());
+        return ContractMapper.toResponse(saved, client.type(), client.name(), client.code(), clauses, serviceItems, productItems);
     }
 
     // ---------------------------------------------------------------------
@@ -233,8 +292,7 @@ public class ContractService {
         }
         c.setStatus(ContractStatus.EM_ANDAMENTO);
         Contract saved = contractRepository.save(c);
-        ClientResolved client = resolveClient(saved.getCustomerUuid(), saved.getCompanyUuid());
-        return ContractMapper.toResponse(saved, client.type(), client.name(), client.code());
+        return buildFullResponse(saved);
     }
 
     /**
@@ -250,8 +308,7 @@ public class ContractService {
         }
         c.setStatus(ContractStatus.CONCLUIDA);
         Contract saved = contractRepository.save(c);
-        ClientResolved client = resolveClient(saved.getCustomerUuid(), saved.getCompanyUuid());
-        return ContractMapper.toResponse(saved, client.type(), client.name(), client.code());
+        return buildFullResponse(saved);
     }
 
     /**
@@ -268,8 +325,7 @@ public class ContractService {
         }
         c.setStatus(ContractStatus.EM_ANDAMENTO);
         Contract saved = contractRepository.save(c);
-        ClientResolved client = resolveClient(saved.getCustomerUuid(), saved.getCompanyUuid());
-        return ContractMapper.toResponse(saved, client.type(), client.name(), client.code());
+        return buildFullResponse(saved);
     }
 
     // ---------------------------------------------------------------------
@@ -348,6 +404,63 @@ public class ContractService {
 
     private static String formatSequence(long sequence) {
         return String.format("%03d", sequence);
+    }
+
+    /**
+     * Persiste a lista de cláusulas de um contrato, associando cada uma
+     * ao UUID do contrato informado. Retorna a lista de entidades
+     * recém-persistidas (com UUIDs gerados).
+     */
+    private List<ContractClause> persistClauses(List<ContractClauseRequest> requests, UUID contractUuid) {
+        return requests.stream()
+                .map(req -> contractClauseRepository.save(
+                        ContractMapper.toClauseEntity(req, contractUuid)))
+                .toList();
+    }
+
+    /**
+     * Persiste a lista de itens de serviço de um contrato, associando
+     * cada um ao UUID do contrato informado. Retorna a lista de entidades
+     * recém-persistidas (com UUIDs gerados).
+     */
+    private List<ContractServiceItem> persistServiceItems(
+            List<ContractServiceItemRequest> requests, UUID contractUuid) {
+        if (requests == null) {
+            return List.of();
+        }
+        return requests.stream()
+                .map(req -> contractServiceItemRepository.save(
+                        ContractMapper.toServiceItemEntity(req, contractUuid)))
+                .toList();
+    }
+
+    /**
+     * Persiste a lista de itens de produto de um contrato, associando
+     * cada um ao UUID do contrato informado. Retorna a lista de entidades
+     * recém-persistidas (com UUIDs gerados).
+     */
+    private List<ContractProductItem> persistProductItems(
+            List<ContractProductItemRequest> requests, UUID contractUuid) {
+        if (requests == null) {
+            return List.of();
+        }
+        return requests.stream()
+                .map(req -> contractProductItemRepository.save(
+                        ContractMapper.toProductItemEntity(req, contractUuid)))
+                .toList();
+    }
+
+    /**
+     * Constrói a resposta completa a partir da entidade, carregando todos
+     * os agregados (cláusulas, itens de serviço, itens de produto).
+     */
+    private ContractResponse buildFullResponse(Contract c) {
+        UUID id = c.getUuid();
+        List<ContractClause> clauses = contractClauseRepository.findByContractUuidOrderByCreatedAtAsc(id);
+        List<ContractServiceItem> serviceItems = contractServiceItemRepository.findByContractUuidOrderByCreatedAtAsc(id);
+        List<ContractProductItem> productItems = contractProductItemRepository.findByContractUuidOrderByCreatedAtAsc(id);
+        ClientResolved client = resolveClient(c.getCustomerUuid(), c.getCompanyUuid());
+        return ContractMapper.toResponse(c, client.type(), client.name(), client.code(), clauses, serviceItems, productItems);
     }
 
     /**

@@ -18,6 +18,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
@@ -155,14 +156,6 @@ public class Contract extends OrganizationScopedEntity {
     private String description;
 
     /**
-     * Cláusula contratual. Campo de texto destinado a uma cláusula
-     * específica (ex.: condições gerais, rescisão, foro). Pensado para um
-     * <code>input</code> largo no formulário — <b>não</b> é rich text.
-     */
-    @Column(name = "clause", columnDefinition = "TEXT")
-    private String clause;
-
-    /**
      * Descrição dos serviços prestados no contrato. <b>Opcional</b>,
      * bloco de texto livre (sem linhas/itens estruturados nesta versão —
      * segue o padrão pedido pelo usuário, idêntico ao campo de serviços
@@ -195,6 +188,13 @@ public class Contract extends OrganizationScopedEntity {
      */
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
+
+    /**
+     * Valor total do contrato (preenchimento manual pelo usuário).
+     * Opcional — sem cálculo automático.
+     */
+    @Column(name = "total_value", precision = 12, scale = 2)
+    private BigDecimal totalValue;
 
     // ---------------------------------------------------------------------
     // Código formatado

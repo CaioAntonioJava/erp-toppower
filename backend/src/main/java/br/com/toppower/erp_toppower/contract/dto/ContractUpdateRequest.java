@@ -3,7 +3,9 @@ package br.com.toppower.erp_toppower.contract.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -47,9 +49,11 @@ public record ContractUpdateRequest(
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         String description,
 
-        @Schema(description = "Nova cláusula contratual.",
+        @Schema(description = "Nova lista de cláusulas (substitui a anterior por completo). "
+                + "Se informada, deve conter ao menos uma cláusula.",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        String clause,
+        @Valid
+        List<ContractClauseRequest> clauses,
 
         @Schema(description = "Nova descrição dos serviços. Envie string vazia para limpar.",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
@@ -61,6 +65,23 @@ public record ContractUpdateRequest(
 
         @Schema(description = "Nova data de início da vigência (yyyy-MM-dd).",
                 example = "2026-07-10", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        LocalDate startDate
+        LocalDate startDate,
+
+        @Schema(description = "Nova lista de itens de serviço (substitui a anterior "
+                + "por completo). Envie lista vazia para limpar.",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        @Valid
+        List<ContractServiceItemRequest> serviceItems,
+
+        @Schema(description = "Nova lista de itens de produto (substitui a anterior "
+                + "por completo). Envie lista vazia para limpar.",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        @Valid
+        List<ContractProductItemRequest> productItems,
+
+        @Schema(description = "Novo valor total do contrato (preenchimento manual). "
+                + "Envie null para não alterar, zero para limpar.",
+                example = "15000.00", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        BigDecimal totalValue
 ) {
 }

@@ -5,9 +5,10 @@ import {
   useState,
   type FormEvent,
 } from 'react'
-import { Loader2, MapPin } from 'lucide-react'
+import { Loader2, MapPin, Plus, Trash2 } from 'lucide-react'
 import { Input } from '../ui/Input'
 import { Select } from '../ui/Select'
+import { Button } from '../ui/Button'
 import { Alert } from '../ui/Alert'
 import { Spinner } from '../ui/Spinner'
 import { RichTextEditor } from '../ui/RichTextEditor'
@@ -17,6 +18,7 @@ import { getCep } from '../../api/cep.api'
 import { getCustomer } from '../../api/customer.api'
 import { getCompany } from '../../api/company.api'
 import { searchContractsClients } from '../../api/contract.api'
+import { searchProducts } from '../../api/product.api'
 import { BRAZILIAN_STATES } from '../../lib/brazilianStates'
 import { maskZipCode } from '../../lib/documents'
 import { useOrganization } from '../../context/OrganizationContext'
@@ -24,10 +26,14 @@ import type { ClientSummaryResponse } from '../../types/quotation'
 import type {
   ContractAddressRequest,
   ContractClientType,
+  ContractClauseRequest,
   ContractCreateRequest,
+  ContractProductItemRequest,
   ContractResponse,
+  ContractServiceItemRequest,
   ContractUpdateRequest,
 } from '../../types/contract'
+import type { ProductResponse } from '../../types/product'
 
 interface ContractFormProps {
   /** Contrato existente (modo edição). Quando omitido, é cadastro novo. */
@@ -54,6 +60,30 @@ type ClientSearchResult = {
   code: string
   document: string
   type: ContractClientType
+}
+
+/** Linha do editor de cláusulas (estado local). */
+interface ClauseDraft {
+  rowKey: string
+  description: string
+}
+
+/** Linha de item de serviço (estado local). */
+interface ServiceItemDraft {
+  rowKey: string
+  description: string
+}
+
+/** Linha de item de produto (estado local). */
+interface ProductItemDraft {
+  rowKey: string
+  productUuid: string
+  productLabel: string
+  quantity: string
+}
+
+function nextRowKey(): string {
+  return `row_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
 }
 
 const UF_OPTIONS = BRAZILIAN_STATES.map((s) => ({
@@ -166,12 +196,52 @@ export function ContractForm({
       setDescription(defaultDesc)
     }
   }, [isEdit, activeOrganizationRich, description])
-  const [clause, setClause] = useState<string>(contract?.clause ?? '')
+  const [clauses, setClauses] = useState<ClauseDraft[]>(() => {
+    if (contract?.clauses && contract.clauses.length > 0) {
+      return contract.clauses.map((c) => ({
+        rowKey: nextRowKey(),
+        description: c.description,
+      }))
+    }
+    return [{ rowKey: nextRowKey(), description: '' }]
+  })
   const [servicesDescription, setServicesDescription] = useState<string>(
     contract?.servicesDescription ?? '',
   )
   const [productsDescription, setProductsDescription] = useState<string>(
     contract?.productsDescription ?? '',
+  )
+
+  // === Itens de serviço ===
+  const [serviceItems, setServiceItems] = useState<ServiceItemDraft[]>(() => {
+    if (contract?.serviceItems && contract.serviceItems.length > 0) {
+      return contract.serviceItems.map((s) => ({
+        rowKey: nextRowKey(),
+        description: s.description,
+      }))
+    }
+    return []
+  })
+
+  // === Itens de produto ===
+  const [productItems, setProductItems] = useState<ProductItemDraft[]>(() => {
+    if (contract?.productItems && contract.productItems.length > 0) {
+      return contract.productItems.map((p) => ({
+        rowKey: nextRowKey(),
+        productUuid: p.productUuid,
+        productLabel: '',
+        quantity: String(p.quantity),
+      }))
+    }
+    return []
+  })
+  const [productOptions, setProductOptions] = useState<ProductResponse[]>([])
+  const [productSearching, setProductSearching] = useState(false)
+  const productTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // === Valor total ===
+  const [totalValue, setTotalValue] = useState<string>(
+    contract?.totalValue != null ? String(contract.totalValue) : '',
   )
 
   // === Título do contrato ===
@@ -264,13 +334,86 @@ export function ContractForm({
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientUuid, clientType])
+  }, [clientUuid, clientType, hasAddress])
 
-  // === Preenchimento automático da cláusula com dados do cliente ===
-  // Removido: a feature de placeholders/substituição automática foi
-  // descontinuada. O campo de cláusula agora é apenas um campo de texto
-  // livre que o usuário preenche manualmente (ou cola de um template
-  // externo). O template da Organization também foi removido.
+  // === handlers de cláusulas ===
+  function addClause() {
+    setClauses((prev) => [
+      ...prev,
+      { rowKey: nextRowKey(), description: '' },
+    ])
+  }
+  function removeClause(rowKey: string) {
+    setClauses((prev) => prev.filter((c) => c.rowKey !== rowKey))
+  }
+  function updateClause(rowKey: string, description: string) {
+    setClauses((prev) =>
+      prev.map((c) => (c.rowKey === rowKey ? { ...c, description } : c)),
+    )
+  }
+
+  // === handlers de itens de serviço ===
+  function addServiceItem() {
+    setServiceItems((prev) => [
+      ...prev,
+      { rowKey: nextRowKey(), description: '' },
+    ])
+  }
+  function removeServiceItem(rowKey: string) {
+    setServiceItems((prev) => prev.filter((s) => s.rowKey !== rowKey))
+  }
+  function updateServiceItem(rowKey: string, description: string) {
+    setServiceItems((prev) =>
+      prev.map((s) => (s.rowKey === rowKey ? { ...s, description } : s)),
+    )
+  }
+
+  // === handlers de itens de produto ===
+  function addProductItem() {
+    setProductItems((prev) => [
+      ...prev,
+      {
+        rowKey: nextRowKey(),
+        productUuid: '',
+        productLabel: '',
+        quantity: '',
+      },
+    ])
+  }
+  function removeProductItem(rowKey: string) {
+    setProductItems((prev) => prev.filter((p) => p.rowKey !== rowKey))
+  }
+  function patchProductItem(
+    rowKey: string,
+    patch: Partial<ProductItemDraft>,
+  ) {
+    setProductItems((prev) =>
+      prev.map((p) => (p.rowKey === rowKey ? { ...p, ...patch } : p)),
+    )
+  }
+
+  const handleProductQuery = useCallback((query: string) => {
+    if (productTimerRef.current) {
+      clearTimeout(productTimerRef.current)
+      productTimerRef.current = null
+    }
+    if (query.trim().length < 2) {
+      setProductOptions([])
+      setProductSearching(false)
+      return
+    }
+    setProductSearching(true)
+    productTimerRef.current = setTimeout(async () => {
+      try {
+        const results = await searchProducts({ query: query.trim(), size: 10 })
+        setProductOptions(results.content)
+      } catch {
+        setProductOptions([])
+      } finally {
+        setProductSearching(false)
+      }
+    }, 300)
+  }, [])
 
   const handleCepBlur = useCallback(async () => {
     setCepError(null)
@@ -299,14 +442,34 @@ export function ContractForm({
     if (!clientUuid) errs.clientUuid = 'Selecione um cliente ou empresa.'
     if (!description.trim()) errs.description = 'Descrição do contrato é obrigatória.'
     if (description.length > 4000) errs.description = 'Descrição deve ter no máximo 4000 caracteres.'
-    if (!clause.trim()) errs.clause = 'Cláusula é obrigatória.'
-    if (clause.length > 4000) errs.clause = 'Cláusula deve ter no máximo 4000 caracteres.'
+    const validClauses = clauses.filter((c) => c.description.trim() !== '')
+    if (validClauses.length === 0) {
+      errs.clauses = 'O contrato deve ter ao menos uma cláusula.'
+    } else {
+      clauses.forEach((c, idx) => {
+        if (c.description.trim() !== '' && c.description.length > 4000) {
+          errs[`clauses.${idx}`] = 'Cláusula deve ter no máximo 4000 caracteres.'
+        }
+      })
+    }
     if (hasAddress && address.zipCode) {
       const digits = address.zipCode.replace(/\D/g, '')
       if (digits.length !== 8) {
         errs['address.zipCode'] = 'CEP deve conter 8 dígitos.'
       }
     }
+    // Valida itens de serviço
+    serviceItems.forEach((s, idx) => {
+      if (s.description.trim() !== '' && s.description.length > 2000) {
+        errs[`serviceItems.${idx}`] = 'Descrição do serviço deve ter no máximo 2000 caracteres.'
+      }
+    })
+    // Valida itens de produto
+    productItems.forEach((p, idx) => {
+      if (p.productUuid && (!p.quantity || Number(p.quantity) <= 0)) {
+        errs[`productItems.${idx}.quantity`] = 'Quantidade deve ser maior que zero.'
+      }
+    })
     return errs
   }
 
@@ -335,6 +498,25 @@ export function ContractForm({
     const customerUuid = clientType === 'CUSTOMER' ? clientUuid : null
     const companyUuid = clientType === 'COMPANY' ? clientUuid : null
 
+    const clausesPayload: ContractClauseRequest[] = clauses
+      .filter((c) => c.description.trim() !== '')
+      .map((c) => ({ description: c.description.trim() }))
+
+    const serviceItemsPayload: ContractServiceItemRequest[] = serviceItems
+      .filter((s) => s.description.trim() !== '')
+      .map((s) => ({ description: s.description.trim() }))
+
+    const productItemsPayload: ContractProductItemRequest[] = productItems
+      .filter((p) => p.productUuid !== '' && p.quantity !== '')
+      .map((p) => ({
+        productUuid: p.productUuid,
+        quantity: Number(p.quantity),
+      }))
+
+    const totalValueNum = totalValue.trim()
+      ? Number(totalValue.trim().replace(',', '.'))
+      : null
+
     setSubmitting(true)
     try {
       if (isEdit) {
@@ -343,9 +525,12 @@ export function ContractForm({
           companyUuid,
           address: addressPayload,
           description: description.trim(),
-          clause: clause.trim(),
+          clauses: clausesPayload.length > 0 ? clausesPayload : undefined,
           servicesDescription: servicesDescription.trim() || '',
           productsDescription: productsDescription.trim() || '',
+          serviceItems: serviceItemsPayload.length > 0 ? serviceItemsPayload : undefined,
+          productItems: productItemsPayload.length > 0 ? productItemsPayload : undefined,
+          totalValue: totalValueNum,
           startDate,
         }
         await onSaveUpdate(payload)
@@ -355,9 +540,12 @@ export function ContractForm({
           companyUuid,
           address: addressPayload,
           description: description.trim(),
-          clause: clause.trim(),
+          clauses: clausesPayload,
           servicesDescription: servicesDescription.trim() || null,
           productsDescription: productsDescription.trim() || null,
+          serviceItems: serviceItemsPayload.length > 0 ? serviceItemsPayload : null,
+          productItems: productItemsPayload.length > 0 ? productItemsPayload : null,
+          totalValue: totalValueNum,
           startDate,
         }
         await onSaveCreate(payload)
@@ -521,26 +709,71 @@ export function ContractForm({
         ) : null}
       </section>
 
-      {/* Cláusula */}
+      {/* Cláusulas */}
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <h3 className="mb-1 text-base font-semibold">Cláusula</h3>
+        <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-base font-semibold">Cláusulas</h3>
+          <Button type="button" variant="secondary" onClick={addClause}>
+            <Plus className="h-4 w-4" />
+            Adicionar cláusula
+          </Button>
+        </div>
         <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
-          Cláusula contratual — input largo de texto livre.
+          Cláusulas contratuais — cada cláusula é um texto livre. Adicione
+          quantas forem necessárias.
         </p>
-        <textarea
-          value={clause}
-          onChange={(e) => setClause(e.target.value)}
-          onBlur={() => markAllTouched()}
-          rows={6}
-          maxLength={4000}
-          placeholder="As partes acordam que..."
-          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-        />
-        {shouldShowError('clause', fieldErrors.clause) ? (
-          <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">
-            {fieldErrors.clause}
+
+        {shouldShowError('clauses', fieldErrors.clauses) ? (
+          <p className="mb-3 text-sm text-red-600 dark:text-red-400">
+            {fieldErrors.clauses}
           </p>
         ) : null}
+
+        {clauses.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+            Nenhuma cláusula. Clique em <strong>Adicionar cláusula</strong> para
+            começar.
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {clauses.map((c, idx) => (
+              <div
+                key={c.rowKey}
+                className="flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/50"
+              >
+                <div className="flex-1">
+                  <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+                    Cláusula {idx + 1}
+                  </label>
+                  <input
+                    type="text"
+                    value={c.description}
+                    onChange={(e) => updateClause(c.rowKey, e.target.value)}
+                    onBlur={() => markAllTouched()}
+                    maxLength={4000}
+                    placeholder="Digite a cláusula..."
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                  />
+                  {shouldShowError(`clauses.${idx}`, fieldErrors[`clauses.${idx}`]) ? (
+                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                      {fieldErrors[`clauses.${idx}`]}
+                    </p>
+                  ) : null}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeClause(c.rowKey)}
+                  disabled={clauses.length <= 1}
+                  aria-label="Remover cláusula"
+                  title="Remover cláusula"
+                  className="mt-5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-slate-500 hover:bg-slate-200 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-slate-700 dark:hover:text-red-400"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Endereço (opcional) */}
@@ -664,12 +897,68 @@ export function ContractForm({
         )}
       </section>
 
-      {/* Serviços */}
+      {/* Serviços — Itens + Descrição */}
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <h3 className="mb-1 text-base font-semibold">Serviços</h3>
+        <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-base font-semibold">Serviços</h3>
+          <Button type="button" variant="secondary" onClick={addServiceItem}>
+            <Plus className="h-4 w-4" />
+            Adicionar serviço
+          </Button>
+        </div>
         <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
-          Bloco de texto descrevendo os serviços do contrato. Opcional —
-          sem preço, sem linhas estruturadas.
+          Itens de serviço do contrato. Cada item é uma descrição livre —
+          sem preço. Opcional.
+        </p>
+
+        {serviceItems.length === 0 ? (
+          <div className="mb-4 rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+            Nenhum item de serviço. Clique em <strong>Adicionar serviço</strong> para
+            começar.
+          </div>
+        ) : (
+          <div className="mb-4 flex flex-col gap-3">
+            {serviceItems.map((s, idx) => (
+              <div
+                key={s.rowKey}
+                className="flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/50"
+              >
+                <div className="flex-1">
+                  <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+                    Serviço {idx + 1}
+                  </label>
+                  <input
+                    type="text"
+                    value={s.description}
+                    onChange={(e) => updateServiceItem(s.rowKey, e.target.value)}
+                    onBlur={() => markAllTouched()}
+                    maxLength={2000}
+                    placeholder="Digite a descrição do serviço..."
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                  />
+                  {shouldShowError(`serviceItems.${idx}`, fieldErrors[`serviceItems.${idx}`]) ? (
+                    <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                      {fieldErrors[`serviceItems.${idx}`]}
+                    </p>
+                  ) : null}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeServiceItem(s.rowKey)}
+                  disabled={serviceItems.length <= 1}
+                  aria-label="Remover serviço"
+                  title="Remover serviço"
+                  className="mt-5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-slate-500 hover:bg-slate-200 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-slate-700 dark:hover:text-red-400"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <p className="mb-2 text-sm font-medium text-slate-600 dark:text-slate-300">
+          Descrição dos serviços
         </p>
         <RichTextEditor
           value={servicesDescription}
@@ -680,11 +969,131 @@ export function ContractForm({
         />
       </section>
 
-      {/* Produtos */}
+      {/* Produtos — Itens + Descrição */}
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <h3 className="mb-1 text-base font-semibold">Produtos</h3>
+        <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-base font-semibold">Produtos</h3>
+          <Button type="button" variant="secondary" onClick={addProductItem}>
+            <Plus className="h-4 w-4" />
+            Adicionar produto
+          </Button>
+        </div>
         <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
-          Bloco de texto descrevendo os produtos do contrato. Opcional.
+          Itens de produto do contrato. Selecione o produto e informe a
+          quantidade. Opcional.
+        </p>
+
+        {productItems.length === 0 ? (
+          <div className="mb-4 rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+            Nenhum item de produto. Clique em <strong>Adicionar produto</strong> para
+            começar.
+          </div>
+        ) : (
+          <div className="mb-4 flex flex-col gap-3">
+            {productItems.map((p, idx) => (
+              <div
+                key={p.rowKey}
+                className="flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/50"
+              >
+                <div className="flex-1 space-y-2">
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">
+                    Produto {idx + 1}
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={p.productLabel}
+                      onChange={(e) => {
+                        patchProductItem(p.rowKey, {
+                          productLabel: e.target.value,
+                          productUuid: '',
+                        })
+                        handleProductQuery(e.target.value)
+                      }}
+                      placeholder="Buscar produto por nome ou código…"
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                    />
+                    {productSearching ? (
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                        <Spinner size="sm" />
+                      </span>
+                    ) : null}
+                    {productOptions.length > 0 && !p.productUuid ? (
+                      <ul className="absolute z-10 mt-1 max-h-40 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white text-sm shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                        {productOptions.map((prod) => (
+                          <li key={prod.uuid}>
+                            <button
+                              type="button"
+                              className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800"
+                              onClick={() => {
+                                patchProductItem(p.rowKey, {
+                                  productUuid: prod.uuid,
+                                  productLabel: prod.code
+                                    ? `${prod.code} — ${prod.name}`
+                                    : prod.name,
+                                })
+                                setProductOptions([])
+                              }}
+                            >
+                              <span className="flex-1">
+                                <span className="block font-medium text-slate-900 dark:text-slate-100">
+                                  {prod.name}
+                                </span>
+                                {prod.code ? (
+                                  <span className="block text-xs text-slate-500 dark:text-slate-400">
+                                    {prod.code}
+                                  </span>
+                                ) : null}
+                              </span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+                  <div className="grid grid-cols-[1fr_120px] gap-2">
+                    <div />
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+                        Quantidade
+                      </label>
+                      <input
+                        type="number"
+                        step="0.0001"
+                        min="0.0001"
+                        value={p.quantity}
+                        onChange={(e) =>
+                          patchProductItem(p.rowKey, { quantity: e.target.value })
+                        }
+                        onBlur={() => markAllTouched()}
+                        placeholder="0,0000"
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                      />
+                      {shouldShowError(`productItems.${idx}.quantity`, fieldErrors[`productItems.${idx}.quantity`]) ? (
+                        <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                          {fieldErrors[`productItems.${idx}.quantity`]}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeProductItem(p.rowKey)}
+                  disabled={productItems.length <= 1}
+                  aria-label="Remover produto"
+                  title="Remover produto"
+                  className="mt-5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-slate-500 hover:bg-slate-200 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-slate-700 dark:hover:text-red-400"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <p className="mb-2 text-sm font-medium text-slate-600 dark:text-slate-300">
+          Descrição dos produtos
         </p>
         <RichTextEditor
           value={productsDescription}
@@ -693,6 +1102,24 @@ export function ContractForm({
           maxLength={4000}
           aria-label="Descrição dos produtos"
         />
+      </section>
+
+      {/* Valor total */}
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <h3 className="mb-1 text-base font-semibold">Valor total</h3>
+        <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+          Valor total do contrato (preenchimento manual). Opcional.
+        </p>
+        <div className="max-w-xs">
+          <Input
+            label="Valor total (R$)"
+            type="text"
+            inputMode="decimal"
+            value={totalValue}
+            onChange={(e) => setTotalValue(e.target.value)}
+            placeholder="0,00"
+          />
+        </div>
       </section>
 
       {/* Botão oculto — submit feito pelo botão na página externa (form="contract-form"). */}
