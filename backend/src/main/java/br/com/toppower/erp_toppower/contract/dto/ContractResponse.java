@@ -120,7 +120,12 @@ public record ContractResponse(
                 example = "30 dias úteis",
                 maxLength = 500,
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        String deliveryDeadline
+        String deliveryDeadline,
+
+        @Schema(description = "Bloco de texto adicional ao final do contrato (opcional). "
+                + "Renderizado após a Cláusula 3, antes do valor total.",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        String additionalDescription
 ) {
 
     /**

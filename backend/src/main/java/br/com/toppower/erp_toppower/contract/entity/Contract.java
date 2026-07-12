@@ -184,6 +184,18 @@ public class Contract extends OrganizationScopedEntity {
     private String deliveryDeadline;
 
     /**
+     * Bloco de texto adicional ao final do contrato. <b>Opcional</b>,
+     * rich text (HTML) — segue o mesmo padrão de
+     * {@link #description}, {@link #servicesDescription} e
+     * {@link #productsDescription}. Aparece no formulário abaixo da
+     * seção "Cláusula 3" e antes de "Valor total", e é renderizado no
+     * PDF na mesma posição. Persistido como {@code TEXT} sem limite
+     * rígido.
+     */
+    @Column(name = "additional_description", columnDefinition = "TEXT")
+    private String additionalDescription;
+
+    /**
      * Status atual do contrato no seu ciclo de vida. Padrão
      * {@link ContractStatus#ABERTA} na criação.
      */

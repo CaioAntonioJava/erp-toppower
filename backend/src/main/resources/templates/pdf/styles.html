@@ -117,6 +117,8 @@
     /* ===== Painéis lado a lado (cliente + condições, etc.) =====
        Estrutura em tabela de 2 colunas com gap simulado por padding.
        OpenHTMLtoPDF não tem flex, então usamos table + valign:top. */
+
+
     .panel-row {
       width: 100%;
       border-collapse: collapse;
@@ -154,18 +156,25 @@
     border-bottom:1px solid #f1f5f9;
     }
 
-    /* ===== Tabela chave/valor (kv) ===== */
+/* ===== Tabela chave/valor (kv) ===== */
     table.kv {
       width: 100%;
+      /* table-layout: auto deixa o renderer dimensionar a coluna de
+         labels pela largura real do texto, em vez de reservar 130px
+         fixos. Isso elimina o gap excessivo entre o label e o valor
+         quando o label é curto (ex.: "VENDEDOR:" seguido de espaço
+         curto até o valor). */
+      table-layout: auto;
       border-collapse: collapse;
+      border-spacing: 0 0;
     }
     table.kv td{
-    padding:2px 0;
+    padding:3px 0;
     vertical-align:top;
     font-size:8pt;
     }
-    table.kv td.k {
-      width:34%;
+   table.kv td.k {
+    width:1%;
 
     color:#64748b;
 
@@ -175,14 +184,15 @@
 
     text-transform:uppercase;
 
-    letter-spacing:.5px;
+    letter-spacing:.0px;
 
     white-space:nowrap;
 
     padding-right:10px;
-    }
+}
     table.kv td.v {
-      font-weight:bold;
+    width:auto;
+    font-weight:bold;
 
     color:#0f172a;
 
@@ -190,14 +200,33 @@
 
     line-height:1.35;
 
-    padding-left:2px;
+    padding-left:4px;
 
     word-break:break-word;
-    }
+}
 
-    /* ===========================================================
+/* ===========================================================
    LIMITADORES DE TEXTO
-   =========================================================== */
+   ===========================================================
+   Classes utilitárias que truncam um bloco de texto a um número
+   máximo de linhas visíveis. Usadas principalmente no nome do
+   cliente (painel Cliente) — o requisito é "no MÁXIMO 2 linhas;
+   1 linha é sempre preferida". A combinação com `overflow:hidden`
+   garante que nomes excessivamente longos (ex.: razão social com
+   80+ chars) sejam cortados em vez de estourarem o painel ou
+   empurrarem as seções seguintes para baixo.
+
+   Cálculo:
+     max-height = N × font-size × line-height
+   Para `td.v` (font-size 7pt, line-height 1.35):
+     1 linha → 1.35em (≈ 1 × 7pt × 1.35)
+     2 linhas → 2.7em
+     3 linhas → 4.05em
+   Os valores abaixo usam 1.4em / 2.8em / 4.2em (levemente folgados)
+   para absorver variações de métricas de fonte entre plataformas
+   sem cortar uma linha que cabe — a folga é de ~0.05em por linha,
+   imperceptível visualmente.
+*/
 
 .text-limit-1{
     max-height:1.4em;
@@ -284,6 +313,34 @@
 
     .num { text-align: right; }
     .money { font-family: "Courier New", monospace; }
+
+    /* ===== Tabela de produtos em "fonte de máquina" =====
+       Espelha o layout tradicional de documentos comerciais em PDF:
+       cabeçalho em CAIXA ALTA e fonte monoespaçada em toda a linha
+       (cabeçalho + células numéricas e de descrição). Aplicada nas
+       três visões que listam produtos (cotação, pedido de venda e
+       proposta técnica). Combinar com .grid já existente preserva o
+       zebrado, paginação e bordas padrão.
+
+       A fonte monoespaçada ocupa mais espaço horizontal que a
+       proporcional — sem `white-space: nowrap` os valores monetários
+       (`R$ 2.240,00`) podem quebrar entre o símbolo e o número,
+       desalinhando a coluna. Forçamos nowrap para garantir uma única
+       linha por célula e reduzimos a fonte em ~1pt (8.5pt → 7.5pt;
+       7pt → 6.5pt no cabeçalho) para que o valor completo caiba nas
+       larguras padrão das colunas sem estourar. */
+    table.grid.products thead th,
+    table.grid.products tbody td {
+      font-family: "Courier New", monospace;
+      white-space: nowrap;
+    }
+    table.grid.products thead th {
+      text-transform: uppercase;
+      font-size: 6.5pt;
+    }
+    table.grid.products tbody td {
+      font-size: 7.5pt;
+    }
 
     /* ===== Totais (card destacado à direita) ===== */
     .totals {

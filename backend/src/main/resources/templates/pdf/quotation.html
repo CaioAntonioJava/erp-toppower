@@ -25,67 +25,73 @@
   </span>
 </div>
 
-<!-- Cliente + Condições (lado a lado).
+<!-- Cliente + Condições (empilhados, um abaixo do outro).
      Cada label/valor opcional só é renderizado se o dado correspondente
-     estiver preenchido no cadastro — campo em branco = linha omitida. -->
-<table class="panel-row">
-  <tbody>
-  <tr>
-    <td style="width:50%;">
-      <div class="panel">
-        <div class="panel-title">Cliente</div>
-        <table class="kv">
-          <tr>
-            <td class="k">Nome:</td>
-            <td class="v break-word" th:utext="${clientNameHtml != null ? clientNameHtml : '—'}">—</td>
-          </tr>
-          <tr class="group-gap" th:if="${attentionHtml != null}">
+     estiver preenchido no cadastro — campo em branco = linha omitida.
+
+     A regra CSS .text-limit-2 corta o nome do cliente a 2 linhas no
+     máximo (1 linha é o caso típico, renderizado sem <br/> pelo
+     SoftBreak). -->
+<div class="panel" style="margin-bottom:12px;">
+    <div class="panel-title">Cliente</div>
+
+    <table class="kv">
+
+        <colgroup>
+            <col style="width:95px"/>
+            <col/>
+        </colgroup>
+
+        <tr>
+            <td colspan="2"
+                class="v break-word text-limit-2"
+                style="font-weight:bold; font-size:8pt"
+                th:utext="${clientNameHtml != null ? clientNameHtml : '—'}">—</td>
+        </tr>
+
+        <tr class="group-gap" th:if="${attentionHtml != null}">
             <td class="k">Aos cuidados de:</td>
             <td class="v break-word" th:utext="${attentionHtml}">—</td>
-          </tr>
-          <tr class="group-gap" th:if="${quotation.sellerName != null and !quotation.sellerName.isBlank()}">
+        </tr>
+
+        <tr class="group-gap" th:if="${quotation.sellerName != null and !quotation.sellerName.isBlank()}">
             <td class="k">Vendedor:</td>
             <td class="v break-word" th:text="${quotation.sellerName}">—</td>
-          </tr>
-        </table>
-      </div>
-    </td>
-    <td style="width:50%;">
-      <div class="panel">
-        <div class="panel-title">Condições</div>
-        <table class="kv">
-          <tr>
-            <td class="k">Pagamento:</td>
-            <td class="v" th:text="${quotation.paymentCondition != null ? quotation.paymentCondition.displayName : '—'}">—</td>
-          </tr>
-          <tr class="group-gap">
-            <td class="k">Tipo de frete:</td>
-            <td class="v" th:text="${quotation.freightType != null ? quotation.freightType.name() : '—'}">—</td>
-          </tr>
-          <tr class="group-gap"
-              th:if="${quotation.discountType != null and quotation.discount != null}">
-            <td class="k">Desconto:</td>
-            <td class="v"
-                th:text="${quotation.discountType.name() == 'PERCENT'
-                           ? quotation.discount + '%'
-                           : 'R$ ' + #numbers.formatDecimal(quotation.discount, 1, 'POINT', 2, 'COMMA')}">—</td>
-          </tr>
-          <tr class="group-gap" th:if="${quotation.freightValue != null}">
-            <td class="k">Valor do frete:</td>
-            <td class="v money"
-                th:text="${'R$ ' + #numbers.formatDecimal(quotation.freightValue, 1, 'POINT', 2, 'COMMA')}">—</td>
-          </tr>
-          <tr class="group-gap"
-              th:if="${quotation.carrierName != null and !quotation.carrierName.isBlank()}">
-            <td class="k">Transportadora:</td>
-            <td class="v break-word" th:text="${quotation.carrierName}">—</td>
-          </tr>
-        </table>
-      </div>
-    </td>
-  </tr>
-  </tbody>
-</table>
+        </tr>
+
+    </table>
+</div>
+<div class="panel">
+  <div class="panel-title">Condições</div>
+  <table class="kv">
+    <tr>
+      <td class="k">Pagamento:</td>
+      <td class="v" th:text="${quotation.paymentCondition != null ? quotation.paymentCondition.displayName : '—'}">—</td>
+    </tr>
+    <tr class="group-gap">
+      <td class="k">Tipo de frete:</td>
+      <td class="v" th:text="${quotation.freightType != null ? quotation.freightType.name() : '—'}">—</td>
+    </tr>
+    <tr class="group-gap"
+        th:if="${quotation.discountType != null and quotation.discount != null}">
+      <td class="k">Desconto:</td>
+      <td class="v"
+          th:text="${quotation.discountType.name() == 'PERCENT'
+                     ? quotation.discount + '%'
+                     : 'R$ ' + #numbers.formatDecimal(quotation.discount, 1, 'POINT', 2, 'COMMA')}">—</td>
+    </tr>
+    <tr class="group-gap" th:if="${quotation.freightValue != null}">
+      <td class="k">Valor do frete:</td>
+      <td class="v"
+          th:text="${'R$ ' + #numbers.formatDecimal(quotation.freightValue, 1, 'POINT', 2, 'COMMA')}">—</td>
+    </tr>
+    <tr class="group-gap"
+        th:if="${quotation.carrierName != null and !quotation.carrierName.isBlank()}">
+      <td class="k">Transportadora:</td>
+      <td class="v break-word" th:text="${quotation.carrierName}">—</td>
+    </tr>
+  </table>
+</div>
 
 <!-- Itens -->
 <div class="section" th:if="${!#lists.isEmpty(quotation.items)}">

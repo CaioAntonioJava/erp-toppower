@@ -150,6 +150,7 @@ public final class ContractMapper {
         c.setServicesDescription(request.servicesDescription());
         c.setProductsDescription(request.productsDescription());
         c.setDeliveryDeadline(emptyToNull(request.deliveryDeadline()));
+        c.setAdditionalDescription(emptyToNull(request.additionalDescription()));
         c.setStartDate(request.startDate());
         c.setTotalValue(request.totalValue());
         return c;
@@ -183,6 +184,9 @@ public final class ContractMapper {
         }
         if (request.deliveryDeadline() != null) {
             c.setDeliveryDeadline(emptyToNull(request.deliveryDeadline()));
+        }
+        if (request.additionalDescription() != null) {
+            c.setAdditionalDescription(emptyToNull(request.additionalDescription()));
         }
         if (request.startDate() != null) {
             c.setStartDate(request.startDate());
@@ -247,7 +251,8 @@ public final class ContractMapper {
                 serviceItems.stream().map(ContractMapper::toServiceItemResponse).toList(),
                 productItems.stream().map(ContractMapper::toProductItemResponse).toList(),
                 c.getTotalValue(),
-                c.getDeliveryDeadline());
+                c.getDeliveryDeadline(),
+                c.getAdditionalDescription());
     }
 
     /**

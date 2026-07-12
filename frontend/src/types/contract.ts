@@ -162,6 +162,8 @@ export interface ContractResponse {
   totalValue: number | null
   /** Prazo de entrega do contrato (texto livre, opcional). */
   deliveryDeadline: string | null
+  /** Bloco de texto adicional ao final do contrato (opcional, rich text). */
+  additionalDescription: string | null
 }
 
 /** Resumo do contrato para listagens paginadas. */
@@ -199,6 +201,8 @@ export interface ContractCreateRequest {
   totalValue?: number | null
   /** Prazo de entrega (texto livre, opcional). */
   deliveryDeadline?: string | null
+  /** Descrição adicional ao final do contrato (rich text, opcional). */
+  additionalDescription?: string | null
   startDate?: string | null
 }
 
@@ -222,6 +226,8 @@ export interface ContractUpdateRequest {
   totalValue?: number | null
   /** Novo prazo de entrega (texto livre). null = não alterar, "" = limpar. */
   deliveryDeadline?: string | null
+  /** Nova descrição adicional (rich text). null = não alterar, "" = limpar. */
+  additionalDescription?: string | null
   startDate?: string | null
 }
 

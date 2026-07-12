@@ -31,45 +31,77 @@
   </span>
 </div>
 
-<!-- Cliente + Responsável técnico (lado a lado).
-     Cada label/valor opcional só é renderizado se o dado correspondente
-     estiver preenchido — campo em branco = linha omitida. -->
-<table class="panel-row">
-  <tbody>
-  <tr>
-    <td style="width:50%;">
-      <div class="panel">
-        <div class="panel-title">Cliente</div>
-        <table class="kv">
-          <tr>
-            <td class="k">Tipo de cliente:</td>
-            <td class="v" th:text="${proposal.clientType.name()}">CUSTOMER</td>
-          </tr>
-          <tr>
-            <td class="k">Cliente:</td>
-            <td class="v" th:utext="${clientNameHtml != null ? clientNameHtml : '—'}">—</td>
-          </tr>
-        </table>
-      </div>
-    </td>
-    <td style="width:50%;">
-      <div class="panel">
-        <div class="panel-title">Responsável técnico</div>
-        <table class="kv">
-          <tr th:if="${proposal.technicalResponsible != null and !proposal.technicalResponsible.isBlank()}">
-            <td class="k">Responsável:</td>
-            <td class="v" th:text="${proposal.technicalResponsible}">—</td>
-          </tr>
-          <tr th:if="${proposal.email != null and !proposal.email.isBlank()}">
-            <td class="k">E-mail:</td>
-            <td class="v" th:text="${proposal.email}">—</td>
-          </tr>
-        </table>
-      </div>
-    </td>
-  </tr>
-  </tbody>
-</table>
+<!-- Cliente + Responsável técnico + Condições (empilhados, um abaixo
+     do outro). Cada label/valor opcional só é renderizado se o dado
+     correspondente estiver preenchido — campo em branco = linha omitida.
+
+     A regra CSS .text-limit-2 corta o nome do cliente a 2 linhas no
+     máximo (1 linha é o caso típico, renderizado sem <br/> pelo
+     SoftBreak). -->
+<div class="panel" style="margin-bottom:12px;">
+  <div class="panel-title">Cliente</div>
+  <table class="kv">
+    <tr>
+      <td class="k">Tipo de cliente:</td>
+      <td class="v" th:text="${proposal.clientType.name()}">CUSTOMER</td>
+    </tr>
+    <tr>
+      <td class="v break-word text-limit-2" style="font-weight:bold;"
+          th:utext="${clientNameHtml != null ? clientNameHtml : '—'}">—</td>
+    </tr>
+  </table>
+</div>
+<div class="panel" style="margin-bottom:12px;">
+  <div class="panel-title">Responsável técnico</div>
+  <table class="kv">
+    <tr th:if="${proposal.technicalResponsible != null and !proposal.technicalResponsible.isBlank()}">
+      <td class="k">Responsável:</td>
+      <td class="v" th:text="${proposal.technicalResponsible}">—</td>
+    </tr>
+    <tr th:if="${proposal.email != null and !proposal.email.isBlank()}">
+      <td class="k">E-mail:</td>
+      <td class="v" th:text="${proposal.email}">—</td>
+    </tr>
+  </table>
+</div>
+<!-- Condições — cada linha só aparece se o dado estiver preenchido. -->
+<div class="panel">
+  <div class="panel-title">Condições</div>
+  <table class="kv">
+    <tr>
+      <td class="k">Condição de pagamento:</td>
+      <td class="v" th:text="${proposal.paymentCondition != null ? proposal.paymentCondition.displayName : '—'}">—</td>
+    </tr>
+    <tr class="group-gap">
+      <td class="k">Tipo de entrega:</td>
+      <td class="v" th:text="${proposal.deliveryType != null ? proposal.deliveryType.name() : '—'}">—</td>
+    </tr>
+    <tr class="group-gap" th:if="${proposal.discountType != null and proposal.discount != null}">
+      <td class="k">Desconto:</td>
+      <td class="v"
+          th:text="${proposal.discountType.name() == 'PERCENT'
+                     ? #numbers.formatDecimal(proposal.discount, 1, 'POINT', 2, 'COMMA') + '%'
+                     : 'R$ ' + #numbers.formatDecimal(proposal.discount, 1, 'POINT', 2, 'COMMA')}">—</td>
+    </tr>
+    <tr class="group-gap" th:if="${proposal.freightValue != null}">
+      <td class="k">Valor do frete:</td>
+      <td class="v"
+          th:text="${'R$ ' + #numbers.formatDecimal(proposal.freightValue, 1, 'POINT', 2, 'COMMA')}">—</td>
+    </tr>
+    <tr class="group-gap" th:if="${proposal.carrierName != null and !proposal.carrierName.isBlank()}">
+      <td class="k">Transportadora:</td>
+      <td class="v" th:text="${proposal.carrierName}">—</td>
+    </tr>
+    <tr class="group-gap" th:if="${proposal.deliveryDeadline != null and !proposal.deliveryDeadline.isBlank()}">
+      <td class="k">Prazo de entrega:</td>
+      <td class="v" th:text="${proposal.deliveryDeadline}">—</td>
+    </tr>
+    <tr class="group-gap" th:if="${proposal.validity != null and !proposal.validity.isBlank()}">
+      <td class="k">Validade da proposta:</td>
+      <td class="v" th:text="${proposal.validity}">—</td>
+    </tr>
+  </table>
+</div>
 
 <!-- Objetivos -->
 <div class="section" th:if="${!#lists.isEmpty(proposal.objectives)}">
@@ -106,45 +138,6 @@
     <span th:if="${proposal.address.zipCode != null and !proposal.address.zipCode.isBlank()}"
           th:text="' — CEP ' + ${proposal.address.zipCode}"></span>
   </div>
-</div>
-
-<!-- Condições — cada linha só aparece se o dado estiver preenchido. -->
-<div class="section">
-  <div class="section-title">Condições</div>
-  <table class="kv">
-    <tr>
-      <td class="k">Condição de pagamento:</td>
-      <td class="v" th:text="${proposal.paymentCondition != null ? proposal.paymentCondition.displayName : '—'}">—</td>
-    </tr>
-    <tr>
-      <td class="k">Tipo de entrega:</td>
-      <td class="v" th:text="${proposal.deliveryType != null ? proposal.deliveryType.name() : '—'}">—</td>
-    </tr>
-    <tr th:if="${proposal.discountType != null and proposal.discount != null}">
-      <td class="k">Desconto:</td>
-      <td class="v"
-          th:text="${proposal.discountType.name() == 'PERCENT'
-                     ? #numbers.formatDecimal(proposal.discount, 1, 'POINT', 2, 'COMMA') + '%'
-                     : 'R$ ' + #numbers.formatDecimal(proposal.discount, 1, 'POINT', 2, 'COMMA')}">—</td>
-    </tr>
-    <tr th:if="${proposal.freightValue != null}">
-      <td class="k">Valor do frete:</td>
-      <td class="v money"
-          th:text="${'R$ ' + #numbers.formatDecimal(proposal.freightValue, 1, 'POINT', 2, 'COMMA')}">—</td>
-    </tr>
-    <tr th:if="${proposal.carrierName != null and !proposal.carrierName.isBlank()}">
-      <td class="k">Transportadora:</td>
-      <td class="v" th:text="${proposal.carrierName}">—</td>
-    </tr>
-    <tr th:if="${proposal.deliveryDeadline != null and !proposal.deliveryDeadline.isBlank()}">
-      <td class="k">Prazo de entrega:</td>
-      <td class="v" th:text="${proposal.deliveryDeadline}">—</td>
-    </tr>
-    <tr th:if="${proposal.validity != null and !proposal.validity.isBlank()}">
-      <td class="k">Validade da proposta:</td>
-      <td class="v" th:text="${proposal.validity}">—</td>
-    </tr>
-  </table>
 </div>
 
 <!-- Descrição -->

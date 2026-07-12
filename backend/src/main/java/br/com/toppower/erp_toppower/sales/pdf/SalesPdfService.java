@@ -76,11 +76,35 @@ public class SalesPdfService {
                             + "': " + ex.getMessage(), ex);
         }
 
-        // OpenHTMLtoPDF usa um parser XML estrito que rejeita tags HTML
-        // não-fechadas como <br> (exige <br/>). Conteúdo dinâmico vindo
-        // de th:utext (observações, descrições) pode conter <br> sem
-        // barra final, então normalizamos antes de enviar ao renderizador.
+        // OpenHTMLtoPDF usa um parser XML estrito:
+        //  (1) rejeita tags HTML não-fechadas como <br> (exige <br/>).
+        //      Conteúdo dinâmico vindo de th:utext (observações,
+        //      descrições, cláusulas) pode conter <br> sem barra final,
+        //      então normalizamos antes de enviar ao renderizador.
+        //  (2) não declara entidades HTML nomeadas como &nbsp; — apenas
+        //      as 5 entidades XML padrão (&amp;, &lt;, &gt;, &quot;,
+        //      &apos;). Conteúdo rich text (editores WYSIWYG) costuma
+        //      serializar espaços não-quebráveis como &nbsp;, o que
+        //      estoura o SAXParser com "The entity 'nbsp' was
+        //      referenced, but not declared". Substituímos pelas formas
+        //      numéricas (&#160;) que o XML aceita sem precisar de DTD.
         xhtml = xhtml.replaceAll("(?i)<br(\\s[^>]*)?>", "<br$1/>");
+        xhtml = xhtml
+                .replace("&nbsp;", "&#160;")
+                .replace("&copy;", "&#169;")
+                .replace("&reg;", "&#174;")
+                .replace("&trade;", "&#8482;")
+                .replace("&mdash;", "&#8212;")
+                .replace("&ndash;", "&#8211;")
+                .replace("&hellip;", "&#8230;")
+                .replace("&laquo;", "&#171;")
+                .replace("&raquo;", "&#187;")
+                .replace("&lsquo;", "&#8216;")
+                .replace("&rsquo;", "&#8217;")
+                .replace("&ldquo;", "&#8220;")
+                .replace("&rdquo;", "&#8221;")
+                .replace("&bull;", "&#8226;")
+                .replace("&middot;", "&#183;");
 
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             PdfRendererBuilder builder = new PdfRendererBuilder();

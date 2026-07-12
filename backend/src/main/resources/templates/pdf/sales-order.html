@@ -24,65 +24,59 @@
   </span>
 </div>
 
-<!-- Cliente + Condições (lado a lado).
+<!-- Cliente + Condições (empilhados, um abaixo do outro).
      Cada label/valor opcional só é renderizado se o dado correspondente
-     estiver preenchido no cadastro — campo em branco = linha omitida. -->
-<table class="panel-row">
-  <tbody>
-  <tr>
-    <td style="width:50%;">
-      <div class="panel">
-        <div class="panel-title">Cliente</div>
-        <table class="kv">
-          <tr>
-            <td class="k">Nome:</td>
-            <td class="v break-word" th:utext="${clientNameHtml != null ? clientNameHtml : '—'}">—</td>
-          </tr>
-          <tr th:if="${attentionHtml != null}">
-            <td class="k">Aos cuidados de:</td>
-            <td class="v break-word" th:utext="${attentionHtml}">—</td>
-          </tr>
-          <tr th:if="${order.sellerName != null and !order.sellerName.isBlank()}">
-            <td class="k">Vendedor:</td>
-            <td class="v break-word" th:text="${order.sellerName}">—</td>
-          </tr>
-        </table>
-      </div>
-    </td>
-    <td style="width:50%;">
-      <div class="panel">
-        <div class="panel-title">Condições</div>
-        <table class="kv">
-          <tr>
-            <td class="k">Pagamento:</td>
-            <td class="v" th:text="${order.paymentCondition != null ? order.paymentCondition.displayName : '—'}">—</td>
-          </tr>
-          <tr>
-            <td class="k">Tipo de frete:</td>
-            <td class="v" th:text="${order.freightType != null ? order.freightType.name() : '—'}">—</td>
-          </tr>
-          <tr th:if="${order.discountType != null and order.discount != null}">
-            <td class="k">Desconto:</td>
-            <td class="v"
-                th:text="${order.discountType.name() == 'PERCENT'
-                           ? order.discount + '%'
-                           : 'R$ ' + #numbers.formatDecimal(order.discount, 1, 'POINT', 2, 'COMMA')}">—</td>
-          </tr>
-          <tr th:if="${order.freightValue != null}">
-            <td class="k">Valor do frete:</td>
-            <td class="v money"
-                th:text="${'R$ ' + #numbers.formatDecimal(order.freightValue, 1, 'POINT', 2, 'COMMA')}">—</td>
-          </tr>
-          <tr th:if="${order.carrierName != null and !order.carrierName.isBlank()}">
-            <td class="k">Transportadora:</td>
-            <td class="v break-word" th:text="${order.carrierName}">—</td>
-          </tr>
-        </table>
-      </div>
-    </td>
-  </tr>
-  </tbody>
-</table>
+     estiver preenchido no cadastro — campo em branco = linha omitida.
+
+     A regra CSS .text-limit-2 corta o nome do cliente a 2 linhas no
+     máximo (1 linha é o caso típico, renderizado sem <br/> pelo
+     SoftBreak). -->
+<div class="panel" style="margin-bottom:12px;">
+  <div class="panel-title">Cliente</div>
+  <table class="kv">
+    <tr>
+      <td class="v break-word text-limit-2" style="font-weight:bold;"
+          th:utext="${clientNameHtml != null ? clientNameHtml : '—'}">—</td>
+    </tr>
+    <tr th:if="${attentionHtml != null}">
+      <td class="k">Aos cuidados de:</td>
+      <td class="v break-word" th:utext="${attentionHtml}">—</td>
+    </tr>
+    <tr th:if="${order.sellerName != null and !order.sellerName.isBlank()}">
+      <td class="k">Vendedor:</td>
+      <td class="v break-word" th:text="${order.sellerName}">—</td>
+    </tr>
+  </table>
+</div>
+<div class="panel">
+  <div class="panel-title">Condições</div>
+  <table class="kv">
+    <tr>
+      <td class="k">Pagamento:</td>
+      <td class="v" th:text="${order.paymentCondition != null ? order.paymentCondition.displayName : '—'}">—</td>
+    </tr>
+    <tr>
+      <td class="k">Tipo de frete:</td>
+      <td class="v" th:text="${order.freightType != null ? order.freightType.name() : '—'}">—</td>
+    </tr>
+    <tr th:if="${order.discountType != null and order.discount != null}">
+      <td class="k">Desconto:</td>
+      <td class="v"
+          th:text="${order.discountType.name() == 'PERCENT'
+                     ? order.discount + '%'
+                     : 'R$ ' + #numbers.formatDecimal(order.discount, 1, 'POINT', 2, 'COMMA')}">—</td>
+    </tr>
+    <tr th:if="${order.freightValue != null}">
+      <td class="k">Valor do frete:</td>
+      <td class="v"
+          th:text="${'R$ ' + #numbers.formatDecimal(order.freightValue, 1, 'POINT', 2, 'COMMA')}">—</td>
+    </tr>
+    <tr th:if="${order.carrierName != null and !order.carrierName.isBlank()}">
+      <td class="k">Transportadora:</td>
+      <td class="v break-word" th:text="${order.carrierName}">—</td>
+    </tr>
+  </table>
+</div>
 
 <!-- Itens -->
 <div class="section" th:if="${!#lists.isEmpty(order.items)}">

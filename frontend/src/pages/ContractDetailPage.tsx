@@ -391,6 +391,18 @@ export function ContractDetailPage() {
             </section>
           ) : null}
 
+          {/* Descrição adicional — bloco rich text opcional ao final do
+              contrato, após a Cláusula 3. Renderiza o HTML persistido. */}
+          {contract.additionalDescription ? (
+            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <h2 className="mb-1 text-base font-semibold">Descrição adicional</h2>
+              <div
+                className="prose prose-sm mt-1 max-w-none text-slate-700 dark:prose-invert dark:text-slate-300"
+                dangerouslySetInnerHTML={{ __html: contract.additionalDescription }}
+              />
+            </section>
+          ) : null}
+
           {/* Prazo de entrega */}
           {contract.deliveryDeadline ? (
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">

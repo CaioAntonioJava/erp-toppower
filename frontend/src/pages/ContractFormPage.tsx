@@ -124,8 +124,10 @@ export function ContractFormPage() {
   async function handleCreate(payload: ContractCreateRequest) {
     setSaving(true)
     try {
-      const created = await createContract(payload)
-      navigate(`/contracts/${created.uuid}/edit`, { replace: true })
+      await createContract(payload)
+      // Após criar um novo contrato, volta direto para a lista
+      // (não abre a tela de detalhe do contrato recém-criado).
+      navigate('/contracts', { replace: true })
     } finally {
       setSaving(false)
     }

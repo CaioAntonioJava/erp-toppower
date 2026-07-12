@@ -211,6 +211,9 @@ export function ContractForm({
   const [productsDescription, setProductsDescription] = useState<string>(
     contract?.productsDescription ?? '',
   )
+  const [additionalDescription, setAdditionalDescription] = useState<string>(
+    contract?.additionalDescription ?? '',
+  )
 
   // === Itens de serviço ===
   const [serviceItems, setServiceItems] = useState<ServiceItemDraft[]>(() => {
@@ -555,6 +558,7 @@ export function ContractForm({
           productItems: productItemsPayload.length > 0 ? productItemsPayload : undefined,
           totalValue: totalValueNum,
           deliveryDeadline: deliveryDeadline.trim() || null,
+          additionalDescription: additionalDescription.trim() || '',
           startDate,
         }
         await onSaveUpdate(payload)
@@ -571,6 +575,7 @@ export function ContractForm({
           productItems: productItemsPayload.length > 0 ? productItemsPayload : null,
           totalValue: totalValueNum,
           deliveryDeadline: deliveryDeadline.trim() || null,
+          additionalDescription: additionalDescription.trim() || null,
           startDate,
         }
         await onSaveCreate(payload)
@@ -1300,6 +1305,24 @@ export function ContractForm({
             ))}
           </div>
         )}
+      </section>
+
+      {/* Descrição adicional — bloco rich text opcional exibido após
+          as cláusulas e antes do valor total, no formulário, na página
+          de detalhe e no PDF. */}
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <h3 className="mb-1 text-base font-semibold">Descrição adicional</h3>
+        <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+          Bloco de texto opcional exibido após as cláusulas contratuais
+          e antes do valor total. Use o editor para formatar.
+        </p>
+        <RichTextEditor
+          value={additionalDescription}
+          onChange={setAdditionalDescription}
+          onBlur={() => markAllTouched()}
+          maxLength={4000}
+          aria-label="Descrição adicional"
+        />
       </section>
 
       {/* Valor total */}

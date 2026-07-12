@@ -39,6 +39,7 @@ import type {
   SalesOrderUpdateRequest,
 } from '../../types/salesOrder'
 import {
+  applyProfitMargin,
   calculateItemTotalPrice,
   calculateSalesOrderTotals,
 } from '../../types/salesOrder'
@@ -852,6 +853,10 @@ export function SalesOrderForm({
                   it.discountType,
                   profitMarginNumber,
                 )}
+                // Preço unitário já com margem aplicado — calculado
+                // localmente (espelha `SalesOrderMapper.applyProfitMargin`).
+                // Quando a margem está vazia/zero, devolve o próprio preço.
+                unitPriceWithMargin={applyProfitMargin(it.unitPrice, profitMarginNumber)}
                 fieldErrors={fieldErrors}
                 productOptions={productOptions}
                 productSearching={
@@ -1075,6 +1080,12 @@ interface ItemRowProps {
   item: ItemDraft
   /** Total líquido da linha (calculado localmente). */
   lineTotal: number
+  /**
+   * Preço unitário já com a margem de lucro aplicada, calculado
+   * localmente (espelha `SalesOrderMapper.applyProfitMargin`). Quando
+   * a margem é nula/zero, é igual ao `item.unitPrice`.
+   */
+  unitPriceWithMargin: number
   fieldErrors: Record<string, string>
   productOptions: ProductResponse[]
   productSearching: boolean
@@ -1099,6 +1110,7 @@ function ItemRow({
   isFirst,
   item,
   lineTotal,
+  unitPriceWithMargin,
   fieldErrors,
   productOptions,
   productSearching,
@@ -1119,21 +1131,17 @@ function ItemRow({
   const quantityError = showError(quantityField, fieldErrors[quantityField])
   const unitPriceError = showError(unitPriceField, fieldErrors[unitPriceField])
 
-  // Estado local de exibição para os campos monetários (Preço e Desconto).
-  // Permite mostrar o valor formatado com 2 casas decimais (ex.: "80,00")
-  // mesmo quando o número armazenado for 80. O estado é sincronizado com
-  // o número externo sempre que ele muda (ex.: ao selecionar um produto,
-  // que sobrescreve o preço) e formatado no blur.
-  const [unitPriceDisplay, setUnitPriceDisplay] = useState<string>(
-    item.unitPrice != null ? formatBRLValue(item.unitPrice) : '',
-  )
+  // Estado local de exibição para o campo de Desconto. Permite mostrar o
+  // valor formatado com 2 casas decimais (ex.: "80,00") mesmo quando o
+  // número armazenado for 80. O estado é sincronizado com o número
+  // externo sempre que ele muda e formatado no blur.
+  //
+  // O campo Preço passou a ser readonly e reflete o valor já com a
+  // margem de lucro aplicada (vindo da prop `unitPriceWithMargin`); por
+  // isso não precisa mais de estado de exibição próprio.
   const [discountDisplay, setDiscountDisplay] = useState<string>(
     item.discount != null ? formatBRLValue(item.discount) : '',
   )
-
-  useEffect(() => {
-    setUnitPriceDisplay(item.unitPrice != null ? formatBRLValue(item.unitPrice) : '')
-  }, [item.unitPrice])
 
   useEffect(() => {
     setDiscountDisplay(item.discount != null ? formatBRLValue(item.discount) : '')
@@ -1268,32 +1276,33 @@ function ItemRow({
         />
       </div>
 
-      {/* Preço Unit */}
+      {/* Preço Unit (readonly — mostra o valor COM margem de lucro aplicada) */}
       <div role="cell" className="min-w-0">
         {isFirst ? <label className={labelCls}>Preço</label> : null}
         <input
           type="text"
           inputMode="decimal"
-          aria-label="Preço unitário"
+          aria-label="Preço unitário (com margem de lucro aplicada)"
           placeholder="0,00"
-          value={unitPriceDisplay}
-          onChange={(e) => {
-            setUnitPriceDisplay(e.target.value)
-            const v = parseNumber(e.target.value)
-            onPatch({ unitPrice: v ?? 0 })
-          }}
-          onBlur={() => {
-            // Normaliza para 2 casas decimais no formato brasileiro
-            // (vírgula): "80" → "80,00"; "45,9" → "45,90".
-            const formatted = formatBRLValue(unitPriceDisplay)
-            setUnitPriceDisplay(formatted)
-            const n = parseNumber(formatted)
-            onPatch({ unitPrice: n ?? 0 })
-            getBlurHandler(unitPriceField)()
-          }}
-          className={[inputBase, 'text-right', unitPriceError ? inputError : ''].join(' ')}
-          required
+          value={formatBRLValue(unitPriceWithMargin)}
+          // Readonly: o preço unitário exibido reflete a margem de lucro
+          // aplicada localmente (espelha `SalesOrderMapper.applyProfitMargin`).
+          // A margem é controlada pelo campo global "Margem de lucro (%)"
+          // e o preço base continua sendo o valor original armazenado em
+          // `item.unitPrice` (enviado ao backend no submit).
+          readOnly
+          className={[
+            inputBase,
+            'text-right',
+            'bg-slate-50 dark:bg-slate-800 cursor-not-allowed',
+            unitPriceError ? inputError : '',
+          ].join(' ')}
         />
+        {item.unitPrice !== unitPriceWithMargin ? (
+          <p className="mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">
+            Base {brlFormatter.format(item.unitPrice)} + margem
+          </p>
+        ) : null}
       </div>
 
       {/* Desconto */}

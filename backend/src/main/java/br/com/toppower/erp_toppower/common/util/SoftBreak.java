@@ -5,30 +5,34 @@ package br.com.toppower.erp_toppower.common.util;
  * strings longas — tipicamente razão social / nome fantasia de clientes
  * — usadas na renderização de PDFs e relatórios.
  *
- * <p>O objetivo é puramente visual: quando um nome é grande demais
- * para caber em uma linha da coluna onde está sendo renderizado, ele
- * quebra de forma <b>harmoniosa</b> (em fronteiras semânticas) em vez
- * de quebrar no meio de uma cláusula jurídica.</p>
+ * <p>O objetivo é puramente visual: <b>uma única linha é sempre
+ * preferida</b>; a quebra explícita via {@code <br/>} é usada apenas
+ * como último recurso, quando o nome é longo o suficiente para que
+ * a quebra natural do renderer produza resultado ruim (palavra órfã
+ * na última linha, sufixo societário isolado na linha 3, etc.).</p>
+ *
+     * <p>O renderer do PDF (OpenHTMLtoPDF) já faz wrap natural em
+     * fronteiras de palavra, e o template limita o bloco a 2 linhas via
+     * CSS ({@code max-height: 2.8em; overflow: hidden}). O painel do
+     * cliente agora ocupa a largura total da página, então nomes
+     * comuns cabem em 1 linha. Insere-se {@code <br/>} <b>só</b> em
+     * nomes muito longos (≥ 80 chars), para ancorar o sufixo
+     * societário na última linha visível.</p>
  *
  * <p>Estratégia:</p>
  * <ol>
- *   <li>Detecta sufixos societários brasileiros comuns
- *       ({@code LTDA}, {@code S.A.}, {@code ME}, {@code EPP},
- *       {@code EIRELI}, {@code S/S}, {@code LTDA.}, {@code S.A},
- *       {@code SA}, {@code MEI}, {@code EP}, {@code SCP},
- *       {@code SS}, {@code SLU}, {@code SPE}, etc.) <b>no final</b> da
- *       string e insere um {@code <br/>} imediatamente antes deles — o
- *       sufixo vai para a última linha, o nome principal fica nas
- *       linhas anteriores.</li>
- *   <li>Para nomes <b>com</b> sufixo societário e &gt; 60 chars,
- *       quebra também pelos conectivos "E" e vírgula — partindo do
- *       pressuposto de que é uma razão social longa (ex.:
- *       "INDUSTRIAS E COMERCIO X LTDA").</li>
- *   <li>Para nomes <b>sem</b> sufixo societário (nomes de pessoa,
- *       nomes fantasia curtos), não quebra por "E" / vírgula — esses
- *       caracteres aparecem em nomes próprios e a quebra polui a
- *       leitura. Só quebramos por {@code -} e {@code /} em nomes
- *       realmente enormes (&gt; 70 chars).</li>
+ *   <li>Nomes curtos/médios (até o limiar {@link #LONG_NAME_THRESHOLD})
+ *       → devolvidos intactos. O renderer quebra naturalmente em
+ *       1 linha (caso típico) ou 2 linhas (caso marginal). Sem
+ *       {@code <br/>} algum.</li>
+ *   <li>Nomes longos COM sufixo societário ({@code LTDA},
+ *       {@code S.A.}, {@code ME}, ...) → insere {@code <br/>} antes
+ *       do sufixo para que "LTDA" fique na última linha visível, em
+ *       vez de ser jogado para a linha 3 (que seria cortada pela
+ *       regra CSS de 2 linhas).</li>
+ *   <li>Nomes longos SEM sufixo societário e com separadores fortes
+ *       ({@code -}, {@code /}, {@code &}) → quebra por esses
+ *       separadores para evitar word-break no meio de palavra.</li>
  * </ol>
  *
  * <p>Esta classe é deliberadamente pequena e sem dependências para
@@ -57,43 +61,38 @@ public final class SoftBreak {
     };
 
     /**
-     * Limite mínimo de caracteres para a heurística de separadores
-     * internos "fortes" ({@code -}, {@code /}) em nomes SEM sufixo
-     * societário. Nomes mais curtos que isso ficam intactos — isso
-     * evita que nomes de pessoa como "LEONARDO NETTO" (14 chars)
-     * recebam qualquer quebra.
+     * Limite mínimo de caracteres a partir do qual a string é
+     * considerada "longa" e justificaria a inserção de {@code <br/>}.
+     *
+     * <p>O painel do cliente agora ocupa a largura total da página
+     * útil do A4 (~17cm), onde uma linha a 7pt comporta ~145
+     * caracteres. Ajustamos o limiar em 80 chars para ficar bem
+     * abaixo da capacidade de 1 linha, garantindo que nomes médios
+     * sejam deixados para o wrap natural — uma linha quase sempre
+     * é suficiente. A quebra explícita só entra em nomes
+     * genuinamente longos (razões sociais com 80+ chars).</p>
      */
-    private static final int MIN_LENGTH_FOR_INTERNAL_BREAKS_NO_SUFFIX = 70;
-
-    /**
-     * Limite mínimo de caracteres para a heurística de separadores
-     * "E" e vírgula (conectivos) em nomes COM sufixo societário. É
-     * menor que o de nomes sem sufixo porque a presença do sufixo
-     * já indica que é uma razão social longa, e queremos quebrar
-     * "INDUSTRIAS E COMERCIO X LTDA" em vez de manter tudo numa linha
-     * que não cabe na coluna.
-     */
-    private static final int MIN_LENGTH_FOR_CONNECTOR_BREAKS_WITH_SUFFIX = 60;
+    private static final int LONG_NAME_THRESHOLD = 80;
 
     /**
      * Aplica quebras harmoniosas em uma string. Retorna a string
-     * original se ela for nula, vazia, ou já curta o suficiente para
-     * não precisar de tratamento.
+     * original se ela for nula, vazia, ou curta o suficiente para
+     * caber naturalmente em até 2 linhas no painel do PDF (caso
+     * comum — wrap natural do renderer já resolve).
      *
-     * <p>Estratégia refinada (vs. versão anterior, que quebrava nomes
-     * curtos como "LEONARDO NETTO" letra por letra):</p>
+     * <p>Estratégia (vs. versão anterior, que quebrava
+     * <b>sempre</b> antes do sufixo societário):</p>
      * <ol>
-     *   <li>Se o nome terminar com sufixo societário (LTDA, S.A., ME,
-     *       EIRELI etc.) → vai pra última linha. Em seguida, se for
-     *       longo o suficiente, quebra também pelos conectivos "E" /
-     *       vírgulas. Esta é a heurística "agressiva", reservada a
-     *       razões sociais.</li>
-     *   <li>Caso contrário (nome de pessoa, nome fantasia curto) →
-     *       nenhuma quebra por "E" / vírgula. Só quebramos por
-     *       {@code -} e {@code /} em nomes realmente enormes
-     *       (&gt; 70 chars), que é virtualmente impossível para um
-     *       nome de pessoa mas acontece com nomes fantasia muito
-     *       longos.</li>
+     *   <li>Nomes até {@link #LONG_NAME_THRESHOLD} chars → ficam
+     *       intactos. O renderer quebra em 1 ou 2 linhas conforme a
+     *       largura disponível; nenhuma intervenção manual.</li>
+     *   <li>Nomes longos COM sufixo societário (LTDA, S.A., ME,
+     *       EIRELI etc.) → {@code <br/>} antes do sufixo, ancorando-o
+     *       na última linha visível (a regra CSS limita o bloco a
+     *       2 linhas).</li>
+     *   <li>Nomes longos SEM sufixo societário mas com separadores
+     *       "fortes" ({@code -}, {@code /}, {@code &}) → quebra por
+     *       esses separadores.</li>
      * </ol>
      *
      * @param name nome a ser quebrado (pode ser {@code null})
@@ -105,26 +104,25 @@ public final class SoftBreak {
         }
         String trimmed = name.trim();
 
-        boolean hasTrailingSuffix = hasTrailingSociedadeSuffix(trimmed);
-
-        // 1) Sufixo societário no final → vai pra última linha.
-        String result = hasTrailingSuffix
-                ? breakBeforeTrailingSuffix(trimmed)
-                : trimmed;
-
-        // 2) Separadores semânticos internos — só se o nome for grande
-        //    o suficiente E (tiver sufixo OU for realmente enorme).
-        boolean allowConnectors = hasTrailingSuffix
-                && result.length() >= MIN_LENGTH_FOR_CONNECTOR_BREAKS_WITH_SUFFIX;
-        boolean allowHardSeparators = hasTrailingSuffix
-                ? result.length() >= MIN_LENGTH_FOR_CONNECTOR_BREAKS_WITH_SUFFIX
-                : result.length() >= MIN_LENGTH_FOR_INTERNAL_BREAKS_NO_SUFFIX;
-
-        if (allowHardSeparators) {
-            result = breakBeforeInternalSeparators(result, allowConnectors);
+        // Nomes curtos/médios: zero intervenção. O renderer quebra
+        // naturalmente em até 2 linhas (regra CSS) e a primeira
+        // opção é sempre 1 linha.
+        if (trimmed.length() < LONG_NAME_THRESHOLD) {
+            return trimmed;
         }
 
-        return result;
+        boolean hasTrailingSuffix = hasTrailingSociedadeSuffix(trimmed);
+
+        // Nome longo COM sufixo societário → ancorar o sufixo na
+        // última linha visível para que ele não vire palavra órfã
+        // numa eventual linha 3 (cortada pelo max-height).
+        if (hasTrailingSuffix) {
+            return breakBeforeTrailingSuffix(trimmed);
+        }
+
+        // Nome longo SEM sufixo, com separadores fortes → quebrar
+        // neles para evitar word-break no meio de palavra.
+        return breakBeforeInternalSeparators(trimmed, false);
     }
 
     /**

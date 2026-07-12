@@ -28,8 +28,12 @@
   <div class="section-title">Cliente</div>
   <table class="kv">
     <tr>
-      <td class="k">Cliente:</td>
-      <td class="v" th:utext="${customerNameHtml != null ? customerNameHtml : '—'}">—</td>
+      <!-- text-limit-2: nome do cliente a no MÁXIMO 2 linhas; 1 linha
+           é o caso típico (renderizado sem <br/> pelo SoftBreak).
+           A largura da seção é a página inteira, então nomes
+           enormes cabem confortavelmente em 1 linha. -->
+      <td class="v break-word text-limit-2" style="font-weight:bold;"
+          th:utext="${customerNameHtml != null ? customerNameHtml : '—'}">—</td>
     </tr>
   </table>
 </div>

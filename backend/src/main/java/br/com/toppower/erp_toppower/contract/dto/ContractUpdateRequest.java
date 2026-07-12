@@ -91,6 +91,11 @@ public record ContractUpdateRequest(
                 maxLength = 500,
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         @Size(max = 500, message = "Prazo de entrega deve ter no máximo {max} caracteres")
-        String deliveryDeadline
+        String deliveryDeadline,
+
+        @Schema(description = "Nova descrição adicional do contrato. "
+                + "Envie string vazia para limpar, null para não alterar.",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        String additionalDescription
 ) {
 }
