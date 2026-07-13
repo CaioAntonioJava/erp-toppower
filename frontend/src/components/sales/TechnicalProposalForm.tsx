@@ -207,18 +207,7 @@ export function TechnicalProposalForm({
       return proposal.serviceItems.map((s) => ({
         rowKey: nextRowKey(),
         description: s.description,
-        // Em edição, `price` persistido já vem com a margem de lucro
-        // embutida. Se o usássemos como preço base, o backend
-        // reaplicaria a margem sobre o snapshot majorado na próxima
-        // chamada de simulate/save, duplicando o valor. Por isso
-        // carregamos `basePrice` (preço original sem margem) como
-        // ponto de partida.
-        price:
-          s.basePrice != null
-            ? formatBRLValue(s.basePrice)
-            : s.price != null
-              ? formatBRLValue(s.price)
-              : '',
+        price: s.price != null ? formatBRLValue(s.price) : '',
       }))
     }
     // Em modo create, iniciamos com uma linha vazia.
@@ -236,13 +225,7 @@ export function TechnicalProposalForm({
         productUuid: p.productUuid,
         productLabel: '',
         unitType: null,
-        // Em edição, `unitPrice` persistido já vem com a margem de
-        // lucro embutida. Se o usássemos como preço base, o backend
-        // reaplicaria a margem sobre o snapshot majorado na próxima
-        // chamada de simulate/save, duplicando o valor. Por isso
-        // carregamos `baseUnitPrice` (preço original sem margem) como
-        // ponto de partida.
-        unitPrice: formatBRLValue(p.baseUnitPrice ?? p.unitPrice),
+        unitPrice: formatBRLValue(p.unitPrice),
         quantity: String(p.quantity),
         discountType: p.discountType ?? null,
         discount: p.discount != null ? formatBRLValue(p.discount) : '',

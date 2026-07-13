@@ -41,7 +41,7 @@ function validateAddress(a: Address): Partial<Record<keyof Address, string>> {
   } else if (!isValidUf(a.state)) {
     errs.state = 'UF inválida.'
   }
-  if (a.zipCode.trim()) {
+  if (a.zipCode?.trim()) {
     if (a.zipCode.replace(/\D/g, '').length !== 8) {
       errs.zipCode = 'CEP deve conter 8 dígitos.'
     }
