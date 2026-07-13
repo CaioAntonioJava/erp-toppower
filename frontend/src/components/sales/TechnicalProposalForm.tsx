@@ -104,7 +104,7 @@ function todayIso(): string {
 
 const UF_OPTIONS = BRAZILIAN_STATES.map((s) => ({
   value: s.uf,
-  label: `${s.uf} — ${s.name}`,
+  label: s.uf,
 }))
 
 export function TechnicalProposalForm({
@@ -1106,6 +1106,33 @@ export function TechnicalProposalForm({
         {hasAddress ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Input
+              label="CEP"
+              value={address.zipCode ?? ''}
+              onChange={(e) =>
+                setAddress((a) => ({
+                  ...a,
+                  zipCode: maskZipCode(e.target.value),
+                }))
+              }
+              onBlur={() => {
+                void handleCepBlur()
+              }}
+              error={cepLookupError ?? undefined}
+              hint={
+                cepLoading
+                  ? 'Buscando endereço na base local...'
+                  : 'Digite o CEP para preenchimento automático.'
+              }
+              disabled={cepLoading}
+              maxLength={9}
+              placeholder="00000-000"
+              rightAdornment={
+                cepLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                ) : null
+              }
+            />
+            <Input
               label="Logradouro"
               value={address.street ?? ''}
               onChange={(e) =>
@@ -1151,35 +1178,8 @@ export function TechnicalProposalForm({
               onChange={(e) =>
                 setAddress((a) => ({ ...a, state: e.target.value }))
               }
-              options={[{ value: '', label: 'Selecione…' }, ...UF_OPTIONS]}
+              options={[{ value: '', label: 'UF' }, ...UF_OPTIONS]}
               aria-label="UF"
-            />
-            <Input
-              label="CEP"
-              value={address.zipCode ?? ''}
-              onChange={(e) =>
-                setAddress((a) => ({
-                  ...a,
-                  zipCode: maskZipCode(e.target.value),
-                }))
-              }
-              onBlur={() => {
-                void handleCepBlur()
-              }}
-              error={cepLookupError ?? undefined}
-              hint={
-                cepLoading
-                  ? 'Buscando endereço na base local...'
-                  : 'Digite o CEP para preenchimento automático.'
-              }
-              disabled={cepLoading}
-              maxLength={9}
-              placeholder="00000-000"
-              rightAdornment={
-                cepLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
-                ) : null
-              }
             />
           </div>
         ) : null}

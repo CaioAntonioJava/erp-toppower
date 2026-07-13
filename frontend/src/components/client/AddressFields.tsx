@@ -22,7 +22,7 @@ interface AddressFieldsProps {
 
 const UF_OPTIONS = BRAZILIAN_STATES.map((s) => ({
   value: s.uf,
-  label: `${s.uf} — ${s.name}`,
+  label: s.uf,
 }))
 
 // IDs internos de cada campo, usados para rastrear o estado "tocado".
@@ -119,57 +119,7 @@ export function AddressFields({
   return (
     <div className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-12 lg:gap-5">
-        {/* Linha 1 — Logradouro (largo) + Número + Complemento */}
-        <Input
-          label="Logradouro"
-          value={value.street}
-          onChange={(e) => patch('street', e.target.value)}
-          onBlur={onBlurField('street')}
-          error={showError('street', errors.street)}
-          disabled={disabled}
-          required
-          className="sm:col-span-6"
-        />
-        <Input
-          label="Número"
-          value={value.number}
-          onChange={(e) => patch('number', e.target.value)}
-          onBlur={onBlurField('number')}
-          error={showError('number', errors.number)}
-          disabled={disabled}
-          required
-          className="sm:col-span-2"
-        />
-        <Input
-          label="Complemento"
-          value={value.complement ?? ''}
-          onChange={(e) => patch('complement', e.target.value)}
-          onBlur={onBlurField('complement')}
-          error={showError('complement', errors.complement)}
-          disabled={disabled}
-          className="sm:col-span-4"
-        />
-
-        {/* Linha 2 — Bairro + Cidade + CEP */}
-        <Input
-          label="Bairro"
-          value={value.neighborhood ?? ''}
-          onChange={(e) => patch('neighborhood', e.target.value)}
-          onBlur={onBlurField('neighborhood')}
-          error={showError('neighborhood', errors.neighborhood)}
-          disabled={disabled}
-          className="sm:col-span-4"
-        />
-        <Input
-          label="Cidade"
-          value={value.city}
-          onChange={(e) => patch('city', e.target.value)}
-          onBlur={onBlurField('city')}
-          error={showError('city', errors.city)}
-          disabled={disabled}
-          required
-          className="sm:col-span-5"
-        />
+        {/* Linha 1 — CEP + Logradouro + Número */}
         <Input
           label="CEP"
           value={value.zipCode}
@@ -193,6 +143,56 @@ export function AddressFields({
               <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
             ) : null
           }
+        />
+        <Input
+          label="Logradouro"
+          value={value.street}
+          onChange={(e) => patch('street', e.target.value)}
+          onBlur={onBlurField('street')}
+          error={showError('street', errors.street)}
+          disabled={disabled}
+          required
+          className="sm:col-span-6"
+        />
+        <Input
+          label="Número"
+          value={value.number}
+          onChange={(e) => patch('number', e.target.value)}
+          onBlur={onBlurField('number')}
+          error={showError('number', errors.number)}
+          disabled={disabled}
+          required
+          className="sm:col-span-3"
+        />
+
+        {/* Linha 2 — Complemento + Bairro + Cidade */}
+        <Input
+          label="Complemento"
+          value={value.complement ?? ''}
+          onChange={(e) => patch('complement', e.target.value)}
+          onBlur={onBlurField('complement')}
+          error={showError('complement', errors.complement)}
+          disabled={disabled}
+          className="sm:col-span-4"
+        />
+        <Input
+          label="Bairro"
+          value={value.neighborhood ?? ''}
+          onChange={(e) => patch('neighborhood', e.target.value)}
+          onBlur={onBlurField('neighborhood')}
+          error={showError('neighborhood', errors.neighborhood)}
+          disabled={disabled}
+          className="sm:col-span-4"
+        />
+        <Input
+          label="Cidade"
+          value={value.city}
+          onChange={(e) => patch('city', e.target.value)}
+          onBlur={onBlurField('city')}
+          error={showError('city', errors.city)}
+          disabled={disabled}
+          required
+          className="sm:col-span-4"
         />
 
         {/* Linha 3 — UF */}

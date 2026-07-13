@@ -88,7 +88,7 @@ function nextRowKey(): string {
 
 const UF_OPTIONS = BRAZILIAN_STATES.map((s) => ({
   value: s.uf,
-  label: `${s.uf} — ${s.name}`,
+  label: s.uf,
 }))
 
 const CLIENT_TYPE_OPTIONS = [
@@ -835,7 +835,7 @@ export function ContractForm({
 
         {hasAddress ? (
           <div className="space-y-3">
-            <div className="grid gap-3 sm:grid-cols-[1fr_120px]">
+            <div className="grid gap-3 sm:grid-cols-[1fr_1fr_120px]">
               <Input
                 label="CEP"
                 value={address.zipCode ?? ''}
@@ -860,19 +860,6 @@ export function ContractForm({
                 placeholder="00000-000"
               />
               <Input
-                label="UF"
-                value={address.state ?? ''}
-                onChange={(e) =>
-                  setAddress((prev) => ({
-                    ...prev,
-                    state: e.target.value.toUpperCase().slice(0, 2),
-                  }))
-                }
-                maxLength={2}
-              />
-            </div>
-            <div className="grid gap-3 sm:grid-cols-[1fr_120px]">
-              <Input
                 label="Logradouro"
                 value={address.street ?? ''}
                 onChange={(e) =>
@@ -888,7 +875,7 @@ export function ContractForm({
                 placeholder="S/N"
               />
             </div>
-            <div className="grid gap-3 sm:grid-cols-[1fr_1fr]">
+            <div className="grid gap-3 sm:grid-cols-[1fr_1fr_1fr]">
               <Input
                 label="Complemento"
                 value={address.complement ?? ''}
@@ -909,8 +896,6 @@ export function ContractForm({
                   }))
                 }
               />
-            </div>
-            <div className="grid gap-3 sm:grid-cols-[1fr_120px]">
               <Input
                 label="Cidade"
                 value={address.city ?? ''}
@@ -918,9 +903,11 @@ export function ContractForm({
                   setAddress((prev) => ({ ...prev, city: e.target.value }))
                 }
               />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-[120px]">
               <Select
                 label="UF"
-                options={[{ value: '', label: 'Selecione…' }, ...UF_OPTIONS]}
+                options={[{ value: '', label: 'UF' }, ...UF_OPTIONS]}
                 value={address.state ?? ''}
                 onChange={(e) =>
                   setAddress((prev) => ({ ...prev, state: e.target.value }))
