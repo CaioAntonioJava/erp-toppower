@@ -1393,6 +1393,9 @@ function ItemRow({
           <option value="UNIDADE">UN</option>
           <option value="METROS">MT</option>
           <option value="BOBINA">BOB</option>
+          <option value="PECAS">PC</option>
+          <option value="QUILOS">KG</option>
+          <option value="ROLO">RL</option>
         </select>
       </div>
 

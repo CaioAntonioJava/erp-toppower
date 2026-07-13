@@ -22,7 +22,7 @@ public record ProductResponse(
         String code,
 
         @Schema(description = "Unidade de medida.",
-                allowableValues = {"UNIDADE", "METROS", "BOBINA"},
+                allowableValues = {"UNIDADE", "METROS", "BOBINA", "PECAS", "QUILOS", "ROLO"},
                 requiredMode = Schema.RequiredMode.REQUIRED)
         UnitType unitType,
 

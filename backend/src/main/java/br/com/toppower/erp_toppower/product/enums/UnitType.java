@@ -6,9 +6,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * Unidade de medida em que um {@code Product} é comercializado/controlado.
  */
 @Schema(name = "UnitType", description = "Unidade de medida do produto.",
-        allowableValues = {"UNIDADE", "METROS", "BOBINA"})
+        allowableValues = {"UNIDADE", "METROS", "BOBINA", "PECAS", "QUILOS", "ROLO"})
 public enum UnitType {
     UNIDADE,
     METROS,
-    BOBINA
+    BOBINA,
+    PECAS,
+    QUILOS,
+    ROLO
 }

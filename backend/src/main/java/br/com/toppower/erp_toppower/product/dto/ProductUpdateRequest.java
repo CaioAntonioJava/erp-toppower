@@ -29,7 +29,7 @@ public record ProductUpdateRequest(
         String code,
 
         @Schema(description = "Nova unidade de medida.",
-                allowableValues = {"UNIDADE", "METROS", "BOBINA"})
+                allowableValues = {"UNIDADE", "METROS", "BOBINA", "PECAS", "QUILOS", "ROLO"})
         UnitType unitType,
 
         @Schema(description = "Novo status do produto.",

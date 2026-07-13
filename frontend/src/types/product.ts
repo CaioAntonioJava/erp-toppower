@@ -15,13 +15,16 @@ export type ProductStatus = RegistrationStatus
  * Unidade de medida em que o produto é comercializado/controlado.
  * Espelha br.com.toppower...product.enums.UnitType.
  */
-export type UnitType = 'UNIDADE' | 'METROS' | 'BOBINA'
+export type UnitType = 'UNIDADE' | 'METROS' | 'BOBINA' | 'PECAS' | 'QUILOS' | 'ROLO'
 
 /** Rótulos em português para cada `UnitType`. */
 export const UNIT_TYPE_LABELS: Record<UnitType, string> = {
   UNIDADE: 'Unidade',
   METROS: 'Metros',
   BOBINA: 'Bobina',
+  PECAS: 'Peças',
+  QUILOS: 'Quilos',
+  ROLO: 'Rolo',
 }
 
 /** Opções prontas para uso com o componente `Select`. */

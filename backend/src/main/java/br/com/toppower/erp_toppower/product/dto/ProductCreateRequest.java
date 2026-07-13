@@ -31,7 +31,7 @@ public record ProductCreateRequest(
 
         @Schema(description = "Unidade de medida em que o produto é comercializado.",
                 example = "METROS",
-                allowableValues = {"UNIDADE", "METROS", "BOBINA"},
+                allowableValues = {"UNIDADE", "METROS", "BOBINA", "PECAS", "QUILOS", "ROLO"},
                 requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull(message = "Unidade de medida é obrigatória")
         UnitType unitType,
