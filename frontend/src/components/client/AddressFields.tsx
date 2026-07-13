@@ -91,7 +91,7 @@ export function AddressFields({
    * abaixo do campo, sem bloquear o formulário.
    */
   async function handleCepBlur() {
-    const digits = value.zipCode.replace(/\D/g, '')
+    const digits = (value.zipCode ?? '').replace(/\D/g, '')
     if (digits.length !== 8) return
     setCepLoading(true)
     setCepLookupError(null)
@@ -135,7 +135,6 @@ export function AddressFields({
               : 'Digite o CEP para preenchimento automático.'
           }
           disabled={disabled || cepLoading}
-          required
           maxLength={9}
           className="sm:col-span-3"
           rightAdornment={

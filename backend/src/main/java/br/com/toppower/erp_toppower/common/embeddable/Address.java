@@ -69,8 +69,8 @@ public class Address {
     /**
      * CEP (Código de Endereçamento Postal).
      * 8 dígitos (formato: "12345678" ou "12345-678").
-     * Obrigatório.
+     * Opcional.
      */
-    @Column(name = "zip_code", nullable = false, length = 9)
+    @Column(name = "zip_code", length = 9)
     private String zipCode;
 }

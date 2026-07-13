@@ -42,10 +42,10 @@ function validateAddress(a: Address): Partial<Record<keyof Address, string>> {
   } else if (!isValidUf(a.state)) {
     errs.state = 'UF inválida.'
   }
-  if (!a.zipCode.trim()) {
-    errs.zipCode = 'CEP é obrigatório.'
-  } else if (a.zipCode.replace(/\D/g, '').length !== 8) {
-    errs.zipCode = 'CEP deve conter 8 dígitos.'
+  if (a.zipCode.trim()) {
+    if (a.zipCode.replace(/\D/g, '').length !== 8) {
+      errs.zipCode = 'CEP deve conter 8 dígitos.'
+    }
   }
   return errs
 }
@@ -151,7 +151,7 @@ export function CompanyForm({
       number: address.number.trim(),
       city: address.city.trim(),
       state: address.state.trim().toUpperCase(),
-      zipCode: address.zipCode.trim(),
+      zipCode: address.zipCode?.trim() || undefined,
       complement: address.complement?.trim() || undefined,
       neighborhood: address.neighborhood?.trim() || undefined,
     }

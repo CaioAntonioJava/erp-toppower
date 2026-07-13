@@ -12,7 +12,7 @@ export interface Address {
   neighborhood?: string
   city: string
   state: string
-  zipCode: string
+  zipCode?: string
 }
 
 /** Resposta de empresa. Espelha br.com.toppower...company.dto.CompanyResponse. */

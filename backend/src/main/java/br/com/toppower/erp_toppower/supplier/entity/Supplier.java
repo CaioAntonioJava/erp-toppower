@@ -111,7 +111,7 @@ public class Supplier extends OrganizationScopedEntity {
             @AttributeOverride(name = "neighborhood", column = @Column(name = "address_neighborhood", length = 100)),
             @AttributeOverride(name = "city", column = @Column(name = "address_city", nullable = false, length = 100)),
             @AttributeOverride(name = "state", column = @Column(name = "address_state", nullable = false, length = 2)),
-            @AttributeOverride(name = "zipCode", column = @Column(name = "address_zip_code", nullable = false, length = 9))
+            @AttributeOverride(name = "zipCode", column = @Column(name = "address_zip_code", length = 9))
     })
     private Address address;
 

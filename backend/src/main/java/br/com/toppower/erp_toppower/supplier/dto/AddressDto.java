@@ -38,8 +38,7 @@ public record AddressDto(
                 message = "UF inválida")
         String state,
 
-        @Schema(description = "CEP (8 dígitos).", example = "01310-100", requiredMode = Schema.RequiredMode.REQUIRED, minLength = 8, maxLength = 9)
-        @NotBlank(message = "CEP é obrigatório")
+        @Schema(description = "CEP (8 dígitos).", example = "01310-100", requiredMode = Schema.RequiredMode.NOT_REQUIRED, minLength = 8, maxLength = 9)
         @Pattern(regexp = "\\d{5}-?\\d{3}", message = "CEP deve estar no formato 00000-000 ou conter 8 dígitos")
         String zipCode
 ) {
