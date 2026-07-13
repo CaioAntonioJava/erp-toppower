@@ -74,7 +74,6 @@
 
     /* ===== Cabeçalho do documento (barra de acento + título) ===== */
     .doc-accent {
-      border-top: 3px solid #0277fd;
       margin-top: 16px;
       margin-bottom: 0;
       padding: 0;
@@ -101,6 +100,9 @@
     /* ===== Seções ===== */
     .section {
       margin-top: 14px;
+      page-break-inside: avoid;
+    }
+    .clause-item {
       page-break-inside: avoid;
     }
     .section-title {
@@ -361,20 +363,37 @@ table.kv td.v {
       padding-bottom: 8px;
     }
 
-	    /* ===== Observações ===== */
-	    .notes {
-	      font-size: 8.5pt;
-	      color: #334155;
-	      white-space: pre-wrap;
-	      line-height: 1.5;
-	    }
-	    /* No PDF o fundo é sempre branco, então forçamos texto escuro
-	       mesmo quando o usuário aplicou cor branca (ou qualquer outra)
-	       no editor rico do frontend. */
-	    .notes * {
-	      color: #0f172a !important;
-	      background-color: transparent !important;
-	    }
+		    /* ===== Observações ===== */
+		    .notes {
+		      font-size: 8.5pt;
+		      color: #334155;
+		      white-space: pre-wrap;
+		      line-height: 1.5;
+		    }
+		    /* No PDF o fundo é sempre branco, então forçamos texto escuro
+		       mesmo quando o usuário aplicou cor branca (ou qualquer outra)
+		       no editor rico do frontend. */
+		    .notes * {
+		      color: #0f172a !important;
+		      background-color: transparent !important;
+		    }
+
+		    /* ===== Descrições de cláusulas ===== */
+		    .clause-text {
+		      font-size: 12pt;
+		      font-weight: bold;
+		      color: #0f172a;
+		      text-transform: uppercase;
+		      letter-spacing: 0.5px;
+		      margin-top: 8px;
+		      margin-bottom: 2px;
+		      white-space: pre-wrap;
+		      line-height: 1.5;
+		    }
+		    .clause-text * {
+		      color: #0f172a !important;
+		      background-color: transparent !important;
+		    }
 
     /* ===== Listas (objetivos da proposta técnica) ===== */
     .obj-list {

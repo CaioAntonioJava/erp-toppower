@@ -32,7 +32,7 @@
            é o caso típico (renderizado sem <br/> pelo SoftBreak).
            A largura da seção é a página inteira, então nomes
            enormes cabem confortavelmente em 1 linha. -->
-      <td class="v break-word text-limit-2" style="font-weight:bold;"
+      <td class="v break-word text-limit-2" style="font-weight:bold; font-size:15pt; color:#0f172a; text-transform:uppercase; letter-spacing:0.5px;"
           th:utext="${customerNameHtml != null ? customerNameHtml : '—'}">—</td>
     </tr>
   </table>
@@ -50,7 +50,7 @@
                 or (contract.address.city != null and !contract.address.city.isBlank())
                 or (contract.address.state != null and !contract.address.state.isBlank())
                 or (contract.address.zipCode != null and !contract.address.zipCode.isBlank()))}">
-  <div class="section-title">Endereço</div>
+  <div class="section-title">Endereço da Obra</div>
   <div class="addr-block">
     <span th:if="${contract.address.street != null and !contract.address.street.isBlank()}">
       <span th:text="${contract.address.street}"></span><span th:if="${contract.address.number != null and !contract.address.number.isBlank()}" th:text="', ' + ${contract.address.number}"></span>
@@ -75,7 +75,7 @@
 
 <!--
   Cláusulas (Cláusula 1 + Cláusula 2 + Cláusula 3)
-  ---------------------------------------------------------------------
+  =====================================================================
   O array `contract.clauses` é uma lista linear única persistida no
   backend. Aqui no PDF a lista é dividida em três caixas puramente
   para espelhar o layout do formulário: o primeiro terço vai para a
@@ -94,10 +94,8 @@
        clausesFirst=${contract.clauses.subList(0, firstThirdEnd)},
        clausesSecond=${contract.clauses.subList(firstThirdEnd, secondThirdEnd)},
        clausesThird=${contract.clauses.subList(secondThirdEnd, contract.clauses.size())}">
-  <div class="section-title" th:if="${!clausesFirst.isEmpty()}">Cláusula 1</div>
   <div th:each="clause, iter : ${clausesFirst}" class="clause-item">
-    <div class="clause-number" th:text="'Cláusula ' + (iter.index + 1) + ':'">Cláusula 1:</div>
-    <div class="notes" th:utext="${clause.description}">—</div>
+    <div class="clause-text" th:utext="${clause.description}">—</div>
   </div>
 </div>
 
@@ -108,8 +106,7 @@
   <div class="section-title">Serviços</div>
 
   <div th:if="${contract.serviceItems != null and !contract.serviceItems.isEmpty()}">
-    <div th:each="item, iter : ${contract.serviceItems}" class="clause-item">
-      <div class="clause-number" th:text="'Serviço ' + (iter.index + 1) + ':'">Serviço 1:</div>
+    <div th:each="item : ${contract.serviceItems}" class="clause-item">
       <div class="notes" th:utext="${item.description}">—</div>
     </div>
   </div>
@@ -147,10 +144,8 @@
        firstThirdEnd=${thirdSize},
        secondThirdEnd=${thirdSize * 2},
        clausesSecond=${contract.clauses.subList(firstThirdEnd, secondThirdEnd)}">
-  <div class="section-title" th:if="${!clausesSecond.isEmpty()}">Cláusula 2</div>
   <div th:each="clause, iter : ${clausesSecond}" class="clause-item">
-    <div class="clause-number" th:text="'Cláusula ' + (firstThirdEnd + iter.index + 1) + ':'">Cláusula 1:</div>
-    <div class="notes" th:utext="${clause.description}">—</div>
+    <div class="clause-text" th:utext="${clause.description}">—</div>
   </div>
 </div>
 
@@ -171,10 +166,8 @@
        thirdSize=${T(java.lang.Math).ceil(contract.clauses.size() / 3.0).intValue()},
        secondThirdEnd=${thirdSize * 2},
        clausesThird=${contract.clauses.subList(secondThirdEnd, contract.clauses.size())}">
-  <div class="section-title" th:if="${!clausesThird.isEmpty()}">Cláusula 3</div>
   <div th:each="clause, iter : ${clausesThird}" class="clause-item">
-    <div class="clause-number" th:text="'Cláusula ' + (secondThirdEnd + iter.index + 1) + ':'">Cláusula 1:</div>
-    <div class="notes" th:utext="${clause.description}">—</div>
+    <div class="clause-text" th:utext="${clause.description}">—</div>
   </div>
 </div>
 
@@ -182,7 +175,6 @@
   a "Cláusula 3" e antes de "Valor total", espelhando o formulário. -->
 <div class="section"
      th:if="${contract.additionalDescription != null and !contract.additionalDescription.isBlank()}">
-  <div class="section-title">Descrição adicional</div>
   <div class="notes" th:utext="${contract.additionalDescription}">—</div>
 </div>
 

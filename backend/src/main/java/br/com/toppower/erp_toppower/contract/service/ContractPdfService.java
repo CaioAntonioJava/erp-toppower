@@ -50,14 +50,10 @@ public class ContractPdfService {
         Map<String, Object> model = pdfModelBuilder.buildBaseModel();
         model.put("contract", contract);
 
-        // Nome com quebra "macia" — código + nome exibidos juntos no
-        // cabeçalho do cliente. Pré-computado em Java porque o template
-        // Thymeleaf não consegue chamar métodos estáticos arbitrários.
-        String customerName = contract.clientName();
-        if (contract.clientCode() != null && customerName != null) {
-            customerName = contract.clientCode() + " — " + customerName;
-        }
-        model.put("customerNameHtml", softBroken(customerName));
+        // Nome com quebra "macia" — apenas o nome/razão social do cliente,
+        // sem o código. Pré-computado em Java porque o template Thymeleaf
+        // não consegue chamar métodos estáticos arbitrários.
+        model.put("customerNameHtml", softBroken(contract.clientName()));
 
         return salesPdfService.render("pdf/contract", model);
     }
