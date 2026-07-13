@@ -40,16 +40,13 @@
      SoftBreak). -->
 <div class="panel" style="margin-bottom:12px;">
   <div class="panel-title">Cliente</div>
-  <table class="kv">
-    <tr>
-      <td class="k">Tipo de cliente:</td>
-      <td class="v" th:text="${proposal.clientType.name()}">CUSTOMER</td>
-    </tr>
-    <tr>
-      <td class="v break-word text-limit-2" style="font-weight:bold;"
-          th:utext="${clientNameHtml != null ? clientNameHtml : '—'}">—</td>
-    </tr>
-  </table>
+    <div style="
+        font-size:9pt;
+        font-weight:bold;
+        margin:8px 0;
+        white-space:nowrap;">
+        <span th:text="${order.clientName}"></span>
+    </div>
 </div>
 <div class="panel" style="margin-bottom:12px;">
   <div class="panel-title">Responsável técnico</div>
