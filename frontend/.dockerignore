@@ -1,0 +1,12 @@
+# Ignora tudo que não é necessário no build da imagem do frontend.
+node_modules/
+dist/
+*.log
+build.log
+tsc*.log
+tscheck*.log
+typecheck.log
+oxlintrc.json
+README.md
+Dockerfile
+.dockerignore

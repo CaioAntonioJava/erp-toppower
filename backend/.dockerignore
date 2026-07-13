@@ -1,0 +1,21 @@
+# Ignora tudo que não é necessário no build da imagem do backend.
+target/
+.idea/
+*.log
+*.iml
+.mvn/
+mvnw
+mvnw.cmd
+HELP.md
+postman/
+uploads/
+.env
+.env.example
+compile*.log
+clean_compile.log
+instance*.log
+spring*.log
+startup.log
+java_files.txt
+Dockerfile
+.dockerignore
