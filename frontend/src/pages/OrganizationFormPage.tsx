@@ -12,6 +12,7 @@ import {
 import { Button } from '../components/ui/Button'
 import { BackButton } from '../components/ui/BackButton'
 import { Input } from '../components/ui/Input'
+import { Select } from '../components/ui/Select'
 import { Spinner } from '../components/ui/Spinner'
 import { Alert } from '../components/ui/Alert'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
@@ -27,6 +28,12 @@ import {
 } from '../api/organization.api'
 import type { OrganizationResponse, OrganizationUpdateRequest } from '../types/api'
 import { toApiError } from '../lib/errors'
+import { BRAZILIAN_STATES } from '../lib/brazilianStates'
+
+const UF_OPTIONS = BRAZILIAN_STATES.map((s) => ({
+  value: s.uf,
+  label: s.uf,
+}))
 
 type Mode = 'loading' | 'create' | 'view'
 
@@ -512,11 +519,11 @@ export function OrganizationFormPage() {
               maxLength={100}
               className="sm:col-span-2"
             />
-            <Input
+            <Select
               label="UF"
               value={form.state ?? ''}
-              onChange={(e) => updateField('state', e.target.value.toUpperCase())}
-              maxLength={2}
+              onChange={(e) => updateField('state', e.target.value)}
+              options={[{ value: '', label: 'UF' }, ...UF_OPTIONS]}
               className="sm:col-span-1"
             />
           </div>
