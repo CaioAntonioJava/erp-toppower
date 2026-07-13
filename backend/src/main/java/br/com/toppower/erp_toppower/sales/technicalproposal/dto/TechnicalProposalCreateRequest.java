@@ -8,7 +8,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
@@ -92,14 +91,6 @@ public record TechnicalProposalCreateRequest(
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         @Valid
         List<TechnicalProposalProductItemRequest> productItems,
-
-        @Schema(description = "Margem de lucro aplicada sobre o subtotal dos itens (em %). "
-                + "Ex.: 10.00 = 10%.",
-                example = "10.00", requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotNull(message = "Margem de lucro é obrigatória")
-        @DecimalMin(value = "0.00", message = "Margem de lucro não pode ser negativa")
-        @Digits(integer = 3, fraction = 2, message = "Margem de lucro inválida")
-        BigDecimal profitMargin,
 
         @Schema(description = "Tipo de aplicação do desconto global (AMOUNT = R$ fixo, PERCENT = %). "
                 + "Quando omitido, a proposta não tem desconto global.",

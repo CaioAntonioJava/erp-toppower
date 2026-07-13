@@ -496,14 +496,6 @@ export function TechnicalProposalDetailPage() {
               </div>
               <div>
                 <dt className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  Margem de lucro
-                </dt>
-                <dd className="mt-1 text-lg font-semibold text-slate-900 dark:text-slate-100">
-                  {proposal.profitMargin}%
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
                   Desconto global ({proposal.discountType ? DISCOUNT_TYPE_LABELS[proposal.discountType] : '—'})
                 </dt>
                 <dd className="mt-1 text-lg font-semibold text-slate-900 dark:text-slate-100">

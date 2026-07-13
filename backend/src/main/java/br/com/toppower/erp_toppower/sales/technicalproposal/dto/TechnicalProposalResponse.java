@@ -108,10 +108,6 @@ public record TechnicalProposalResponse(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         List<TechnicalProposalProductItemResponse> productItems,
 
-        @Schema(description = "Margem de lucro aplicada sobre o subtotal dos itens (em %).",
-                example = "10.00", requiredMode = Schema.RequiredMode.REQUIRED)
-        BigDecimal profitMargin,
-
         @Schema(description = "Tipo de aplicação do desconto global.",
                 allowableValues = {"AMOUNT", "PERCENT"},
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
@@ -162,7 +158,7 @@ public record TechnicalProposalResponse(
                 example = "290.00", requiredMode = Schema.RequiredMode.REQUIRED)
         BigDecimal productsSubtotal,
 
-        @Schema(description = "Subtotal geral (serviços + produtos), antes da margem e do desconto global.",
+        @Schema(description = "Subtotal geral (serviços + produtos), antes do desconto global.",
                 example = "640.00", requiredMode = Schema.RequiredMode.REQUIRED)
         BigDecimal subtotal,
 
@@ -170,7 +166,7 @@ public record TechnicalProposalResponse(
                 example = "50.00", requiredMode = Schema.RequiredMode.REQUIRED)
         BigDecimal globalDiscountValue,
 
-        @Schema(description = "Total final (subtotal com margem, menos desconto global, mais frete).",
+        @Schema(description = "Total final (subtotal, menos desconto global, mais frete).",
                 example = "649.00", requiredMode = Schema.RequiredMode.REQUIRED)
         BigDecimal total,
 

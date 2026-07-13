@@ -31,12 +31,6 @@ public record TechnicalProposalSimulateRequest(
         @Valid
         List<TechnicalProposalProductItemRequest> productItems,
 
-        @Schema(description = "Margem de lucro aplicada sobre o subtotal dos itens (em %).",
-                example = "10.00", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        @DecimalMin(value = "0.00", message = "Margem de lucro não pode ser negativa")
-        @Digits(integer = 3, fraction = 2, message = "Margem de lucro inválida")
-        BigDecimal profitMargin,
-
         @Schema(description = "Tipo de aplicação do desconto global.",
                 allowableValues = {"AMOUNT", "PERCENT"},
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)

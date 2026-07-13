@@ -53,26 +53,10 @@ public class TechnicalProposalServiceItem extends OrganizationScopedEntity {
     private String description;
 
     /**
-     * Preço do serviço prestado, <b>com a margem de lucro</b> da proposta
-     * já embutida (snapshot final). Opcional — pode ser nulo quando o
+     * Preço do serviço prestado. Opcional — pode ser nulo quando o
      * serviço é gratuito/incluso. Entra no somatório do subtotal da
      * proposta.
-     *
-     * <p>Para edição o frontend usa {@link #basePrice} (preço original
-     * enviado pelo usuário, sem margem) como ponto de partida, evitando
-     * reaplicar a margem sobre o snapshot.</p>
      */
     @Column(name = "price", precision = 10, scale = 2)
     private BigDecimal price;
-
-    /**
-     * Preço original do serviço, <b>sem a margem de lucro</b> aplicada.
-     * É o valor enviado pelo usuário no formulário e o ponto de partida
-     * para a aplicação da margem no momento da criação/atualização.
-     *
-     * <p>Persistido separadamente de {@link #price} para que a edição
-     * da proposta não reaplique a margem sobre o snapshot já majorado.</p>
-     */
-    @Column(name = "base_price", precision = 10, scale = 2)
-    private BigDecimal basePrice;
 }

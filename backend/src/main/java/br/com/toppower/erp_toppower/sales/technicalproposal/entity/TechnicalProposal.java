@@ -63,12 +63,10 @@ import java.util.UUID;
  * <h2>Regra de composição do total</h2>
  * <ol>
  *   <li>subtotal = soma dos preços dos serviços + soma dos totais líquidos
- *       dos produtos — ambos já com a margem de lucro embutida pelo
- *       {@code TechnicalProposalMapper} no momento da
- *       criação/atualização do item;</li>
- *   <li>desconto global: aplicado sobre o valor já com margem, como valor
+ *       dos produtos;</li>
+ *   <li>desconto global: aplicado sobre o subtotal, como valor
  *       fixo (R$) ou percentual (%);</li>
- *   <li>frete: somado ao final, não participa da margem nem do desconto.</li>
+ *   <li>frete: somado ao final, não participa do desconto.</li>
  * </ol>
  */
 @Entity
@@ -224,29 +222,6 @@ public class TechnicalProposal extends OrganizationScopedEntity {
     private LocalDate deliveryDate;
 
     /**
-     * Margem de lucro aplicada na proposta, expressa em porcentagem
-     * (ex.: {@code 10.00} = 10%). Obrigatória.
-     *
-     * <p>É aplicada <b>item a item</b> pelo
-     * {@code TechnicalProposalMapper} no momento da
-     * criação/atualização: o {@code unitPrice} de cada
-     * {@link TechnicalProposalProductItem} e o {@code price} de cada
-     * {@link TechnicalProposalServiceItem} são majorados pelo fator
-     * {@code (1 + profitMargin / 100)}, e o {@code totalPrice} do item
-     * de produto é recalculado sobre esse preço majorado, líquido do
-     * desconto da própria linha. Com isso, o {@link #total} da proposta
-     * passa a ser simplesmente
-     * {@code subtotal − desconto global + frete}, sendo {@code subtotal}
-     * a soma dos itens já com margem embutida.</p>
-     *
-     * <p>Nota: registros criados antes da refatoração podem ter
-     * {@code unitPrice}/{@code totalPrice}/{@code price} sem margem —
-     * esses itens não serão retroativamente recalculados.</p>
-     */
-    @Column(name = "profit_margin", nullable = false, precision = 5, scale = 2)
-    private BigDecimal profitMargin;
-
-    /**
      * Tipo de aplicação do desconto global ({@link #discount}). Nulo
      * quando não há desconto.
      */
@@ -262,8 +237,8 @@ public class TechnicalProposal extends OrganizationScopedEntity {
     private BigDecimal discount;
 
     /**
-     * Valor do frete informado manualmente. É somado ao total após a
-     * margem e o desconto global — nunca participa de nenhum dos dois.
+     * Valor do frete informado manualmente. É somado ao total após o
+     * desconto global — nunca participa do desconto.
      */
     @Column(name = "freight_value", precision = 10, scale = 2)
     private BigDecimal freightValue;
@@ -334,16 +309,14 @@ public class TechnicalProposal extends OrganizationScopedEntity {
     /**
      * Total final da proposta: {@code subtotal − desconto global + frete},
      * sendo {@code subtotal} a soma dos itens (preços de serviço + totais
-     * líquidos dos produtos), todos já com a margem de lucro embutida
-     * pelo {@code TechnicalProposalMapper} no momento da
-     * criação/atualização dos itens.
+     * líquidos dos produtos).
      */
     @Transient
     private BigDecimal total = BigDecimal.ZERO;
 
     /**
      * Valor em R$ do desconto global efetivamente aplicado, derivado da
-     * diferença entre o subtotal com margem e o subtotal já descontado.
+     * diferença entre o subtotal e o subtotal já descontado.
      */
     @Transient
     private BigDecimal globalDiscountValue = BigDecimal.ZERO;
@@ -371,15 +344,12 @@ public class TechnicalProposal extends OrganizationScopedEntity {
      * serviço após carregar os itens, antes de mapear a entidade para o
      * DTO de resposta.
      *
-     * <p>Cada {@code serviceItem.price} e cada {@code productItem.totalPrice}
-     * já carrega a margem de lucro embutida pelo
-     * {@code TechnicalProposalMapper}, de modo que a composição do total
-     * se resume a:</p>
+     * <p>A composição do total se resume a:</p>
      * <ul>
      *   <li>{@code subtotal} = soma dos preços dos serviços + soma dos
-     *       totais líquidos dos produtos (já com margem);</li>
+     *       totais líquidos dos produtos;</li>
      *   <li>{@code total} = {@code subtotal} menos o desconto global
-     *       (aplicado sobre o valor já com margem), e somado ao
+     *       (aplicado sobre o subtotal), e somado ao
      *       {@link #freightValue}.</li>
      * </ul>
      *
@@ -393,9 +363,9 @@ public class TechnicalProposal extends OrganizationScopedEntity {
         this.subtotal = this.servicesSubtotal.add(this.productsSubtotal)
                 .setScale(2, RoundingMode.HALF_UP);
 
-        // total = subtotal (já com margem embutida nos itens) − desconto global
-        // + frete. O desconto global é aplicado sobre o valor já com margem;
-        // o frete é somado ao final, sem participar da margem nem do desconto.
+        // total = subtotal − desconto global + frete. O desconto global é
+        // aplicado sobre o subtotal; o frete é somado ao final, sem
+        // participar do desconto.
         BigDecimal discounted = PricingMath.applyGlobalDiscount(
                 this.subtotal, this.discount, this.discountType);
         BigDecimal freight = (freightValue != null) ? freightValue : BigDecimal.ZERO;

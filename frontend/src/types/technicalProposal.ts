@@ -115,14 +115,8 @@ export interface TechnicalProposalServiceItemRequest {
 export interface TechnicalProposalServiceItemResponse {
   uuid: string
   description: string
-  /** Preço final (com margem de lucro embutida). */
+  /** Preço do serviço prestado. */
   price: number | null
-  /**
-   * Preço original enviado pelo usuário (sem margem de lucro).
-   * É o valor usado como ponto de partida na edição — reaplicar a margem
-   * sobre `price` causaria duplicação.
-   */
-  basePrice: number | null
 }
 
 /** Linha de produto enviada na criação/edição. */
@@ -139,14 +133,8 @@ export interface TechnicalProposalProductItemResponse {
   uuid: string
   productUuid: string
   quantity: number
-  /** Preço unitário final (com margem de lucro embutida). */
+  /** Preço unitário do produto (snapshot no momento da emissão). */
   unitPrice: number
-  /**
-   * Preço unitário original enviado pelo usuário (sem margem de lucro).
-   * É o valor usado como ponto de partida na edição — reaplicar a margem
-   * sobre `unitPrice` causaria duplicação.
-   */
-  baseUnitPrice: number
   lineSubtotal: number
   discountType: DiscountType | null
   discount: number | null
@@ -185,7 +173,6 @@ export interface TechnicalProposalResponse {
   deliveryDate: string | null
   serviceItems: TechnicalProposalServiceItemResponse[]
   productItems: TechnicalProposalProductItemResponse[]
-  profitMargin: number
   discountType: DiscountType | null
   discount: number | null
   freightValue: number | null
@@ -243,7 +230,6 @@ export interface TechnicalProposalCreateRequest {
   endDate?: string | null
   serviceItems?: TechnicalProposalServiceItemRequest[] | null
   productItems?: TechnicalProposalProductItemRequest[] | null
-  profitMargin: number
   discountType?: DiscountType | null
   discount?: number | null
   freightValue?: number | null
@@ -271,7 +257,6 @@ export interface TechnicalProposalUpdateRequest {
   endDate?: string | null
   serviceItems?: TechnicalProposalServiceItemRequest[] | null
   productItems?: TechnicalProposalProductItemRequest[] | null
-  profitMargin?: number | null
   discountType?: DiscountType | null
   discount?: number | null
   freightValue?: number | null
@@ -311,7 +296,6 @@ export interface TechnicalProposalFilters {
 export interface TechnicalProposalSimulateRequest {
   serviceItems?: TechnicalProposalServiceItemRequest[] | null
   productItems?: TechnicalProposalProductItemRequest[] | null
-  profitMargin?: number | null
   discountType?: DiscountType | null
   discount?: number | null
   freightValue?: number | null

@@ -149,9 +149,6 @@ export function TechnicalProposalForm({
     proposal?.startDate ?? todayIso(),
   )
   const [endDate, setEndDate] = useState<string>(proposal?.endDate ?? '')
-  const [profitMargin, setProfitMargin] = useState<string>(
-    proposal?.profitMargin != null ? String(proposal.profitMargin) : '',
-  )
   const [discountType, setDiscountType] = useState<DiscountType | ''>(
     proposal?.discountType ?? '',
   )
@@ -569,7 +566,6 @@ export function TechnicalProposalForm({
       const payload = {
         serviceItems: servicePayload.length > 0 ? servicePayload : null,
         productItems: productPayload.length > 0 ? productPayload : null,
-        profitMargin: parseNumber(profitMargin) ?? 0,
         ...(discountType !== ''
           ? { discountType, discount: parseNumber(discount) ?? 0 }
           : {}),
@@ -596,7 +592,6 @@ export function TechnicalProposalForm({
     discountType,
     discount,
     freightValue,
-    profitMargin,
     deliveryType,
   ])
 
@@ -691,13 +686,6 @@ export function TechnicalProposalForm({
       }
     }
 
-    const margin = parseNumber(profitMargin)
-    if (margin == null) {
-      errs.profitMargin = 'Margem de lucro é obrigatória.'
-    } else if (margin < 0) {
-      errs.profitMargin = 'Margem de lucro não pode ser negativa.'
-    }
-
     if (startDate.trim() === '') {
       errs.startDate = 'Data de início é obrigatória.'
     }
@@ -771,7 +759,6 @@ export function TechnicalProposalForm({
           serviceItems: servicePayload.length > 0 ? servicePayload : null,
           productItems: productPayload.length > 0 ? productPayload : null,
           address: addressPayload,
-          profitMargin: parseNumber(profitMargin) ?? 0,
         }
         if (clientType === 'CUSTOMER') {
           payload.customerUuid = clientUuid
@@ -801,7 +788,6 @@ export function TechnicalProposalForm({
       } else {
         const payload: TechnicalProposalCreateRequest = {
           objectives: objectivesPayload,
-          profitMargin: parseNumber(profitMargin) ?? 0,
         }
         if (clientType === 'CUSTOMER') {
           payload.customerUuid = clientUuid
@@ -1032,8 +1018,8 @@ export function TechnicalProposalForm({
           </div>
         </div>
 
-        {/* Datas + margem de lucro na mesma linha */}
-        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+        {/* Datas na mesma linha */}
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <Input
             label="Data de início"
             type="date"
@@ -1051,21 +1037,6 @@ export function TechnicalProposalForm({
             onBlur={getBlurHandler('endDate')}
             error={shouldShowError('endDate', fieldErrors.endDate)}
             hint="Opcional — prevista/real do serviço."
-          />
-          <Input
-            label="Margem de lucro (%)"
-            type="number"
-            inputMode="decimal"
-            step="0.01"
-            min={0}
-            placeholder="0,00"
-            aria-label="Margem de lucro (%)"
-            value={profitMargin}
-            onChange={(e) => setProfitMargin(e.target.value)}
-            onBlur={getBlurHandler('profitMargin')}
-            error={shouldShowError('profitMargin', fieldErrors.profitMargin)}
-            rightAdornment={<span aria-hidden>%</span>}
-            required
           />
         </div>
 

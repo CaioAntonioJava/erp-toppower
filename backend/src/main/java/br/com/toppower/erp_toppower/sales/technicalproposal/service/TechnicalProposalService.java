@@ -38,7 +38,6 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -119,11 +118,9 @@ public class TechnicalProposalService {
         List<TechnicalProposalObjective> objectives = persistObjectives(
                 request.objectives(), savedHeader.getUuid());
         List<TechnicalProposalServiceItem> serviceItems = persistServiceItems(
-                request.serviceItems(), savedHeader.getUuid(),
-                savedHeader.getProfitMargin());
+                request.serviceItems(), savedHeader.getUuid());
         List<TechnicalProposalProductItem> productItems = persistProductItems(
-                request.productItems(), savedHeader.getUuid(),
-                savedHeader.getProfitMargin());
+                request.productItems(), savedHeader.getUuid());
 
         savedHeader.recalculateTotals(serviceItems, productItems);
 
@@ -314,12 +311,10 @@ public class TechnicalProposalService {
                 ? persistObjectives(request.objectives(), saved.getUuid())
                 : objectiveRepository.findByTechnicalProposalUuidOrderByCreatedAtAsc(id);
         List<TechnicalProposalServiceItem> serviceItems = servicesSent
-                ? persistServiceItems(request.serviceItems(), saved.getUuid(),
-                        saved.getProfitMargin())
+                ? persistServiceItems(request.serviceItems(), saved.getUuid())
                 : serviceItemRepository.findByTechnicalProposalUuidOrderByCreatedAtAsc(id);
         List<TechnicalProposalProductItem> productItems = productsSent
-                ? persistProductItems(request.productItems(), saved.getUuid(),
-                        saved.getProfitMargin())
+                ? persistProductItems(request.productItems(), saved.getUuid())
                 : productItemRepository.findByTechnicalProposalUuidOrderByCreatedAtAsc(id);
 
         saved.recalculateTotals(serviceItems, productItems);
@@ -404,14 +399,12 @@ public class TechnicalProposalService {
         List<TechnicalProposalServiceItem> serviceItems = (request.serviceItems() == null)
                 ? List.of()
                 : request.serviceItems().stream()
-                        .map(req -> TechnicalProposalMapper.toServiceItemEntity(req, header.getUuid(),
-                                header.getProfitMargin()))
+                        .map(req -> TechnicalProposalMapper.toServiceItemEntity(req, header.getUuid()))
                         .toList();
         List<TechnicalProposalProductItem> productItems = (request.productItems() == null)
                 ? List.of()
                 : request.productItems().stream()
-                        .map(req -> TechnicalProposalMapper.toProductItemEntity(req, header.getUuid(),
-                                header.getProfitMargin()))
+                        .map(req -> TechnicalProposalMapper.toProductItemEntity(req, header.getUuid()))
                         .toList();
 
         header.recalculateTotals(serviceItems, productItems);
@@ -524,31 +517,27 @@ public class TechnicalProposalService {
     }
 
     private List<TechnicalProposalServiceItem> persistServiceItems(
-            List<TechnicalProposalServiceItemRequest> requests, UUID technicalProposalUuid,
-            BigDecimal profitMargin) {
+            List<TechnicalProposalServiceItemRequest> requests, UUID technicalProposalUuid) {
         if (requests == null || requests.isEmpty()) {
             return List.of();
         }
         List<TechnicalProposalServiceItem> items = new ArrayList<>(requests.size());
         for (TechnicalProposalServiceItemRequest req : requests) {
             items.add(serviceItemRepository.save(
-                    TechnicalProposalMapper.toServiceItemEntity(req, technicalProposalUuid,
-                            profitMargin)));
+                    TechnicalProposalMapper.toServiceItemEntity(req, technicalProposalUuid)));
         }
         return items;
     }
 
     private List<TechnicalProposalProductItem> persistProductItems(
-            List<TechnicalProposalProductItemRequest> requests, UUID technicalProposalUuid,
-            BigDecimal profitMargin) {
+            List<TechnicalProposalProductItemRequest> requests, UUID technicalProposalUuid) {
         if (requests == null || requests.isEmpty()) {
             return List.of();
         }
         List<TechnicalProposalProductItem> items = new ArrayList<>(requests.size());
         for (TechnicalProposalProductItemRequest req : requests) {
             items.add(productItemRepository.save(
-                    TechnicalProposalMapper.toProductItemEntity(req, technicalProposalUuid,
-                            profitMargin)));
+                    TechnicalProposalMapper.toProductItemEntity(req, technicalProposalUuid)));
         }
         return items;
     }

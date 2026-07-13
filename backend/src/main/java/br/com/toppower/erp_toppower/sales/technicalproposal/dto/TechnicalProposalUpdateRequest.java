@@ -87,12 +87,6 @@ public record TechnicalProposalUpdateRequest(
         @Valid
         List<TechnicalProposalProductItemRequest> productItems,
 
-        @Schema(description = "Nova margem de lucro (em %). Ex.: 10.00 = 10%.",
-                example = "10.00", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        @DecimalMin(value = "0.00", message = "Margem de lucro não pode ser negativa")
-        @Digits(integer = 3, fraction = 2, message = "Margem de lucro inválida")
-        BigDecimal profitMargin,
-
         @Schema(description = "Novo tipo de desconto global.",
                 allowableValues = {"AMOUNT", "PERCENT"},
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)

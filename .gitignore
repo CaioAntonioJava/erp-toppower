@@ -1,5 +1,8 @@
 # Artefatos temporários de execução local (não versionar)
 /PID
+# ZCode - arquivos de configuração e planos
+.zcode/
+.zcode*
 # Uploads locais (logos das Organizations)
 /uploads/
 /backend/uploads/

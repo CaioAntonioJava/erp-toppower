@@ -37,7 +37,7 @@ public record TechnicalProposalSimulateResponse(
                 example = "50.00", requiredMode = Schema.RequiredMode.REQUIRED)
         BigDecimal globalDiscountValue,
 
-        @Schema(description = "Total final (subtotal com margem, menos desconto global, mais frete).",
+        @Schema(description = "Total final (subtotal, menos desconto global, mais frete).",
                 example = "649.00", requiredMode = Schema.RequiredMode.REQUIRED)
         BigDecimal total
 ) {

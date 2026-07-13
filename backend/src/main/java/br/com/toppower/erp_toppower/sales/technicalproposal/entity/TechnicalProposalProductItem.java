@@ -59,30 +59,11 @@ public class TechnicalProposalProductItem extends OrganizationScopedEntity {
 
     /**
      * Preço unitário do produto <b>no momento da emissão</b> da proposta
-     * (snapshot). Já reflete a margem de lucro da proposta embutida —
-     * o valor final exibido no PDF e na listagem. Não é atualizado
-     * quando o preço do {@code Product} muda depois.
-     *
-     * <p>Para edição o frontend usa {@link #baseUnitPrice} (preço
-     * original enviado pelo usuário, sem margem) como ponto de partida,
-     * evitando reaplicar a margem sobre o snapshot.</p>
+     * (snapshot). Não é atualizado quando o preço do {@code Product}
+     * muda depois.
      */
     @Column(name = "unit_price", nullable = false, precision = 10, scale = 2)
     private BigDecimal unitPrice;
-
-    /**
-     * Preço unitário original do produto, <b>sem a margem de lucro</b>
-     * aplicada. É o valor enviado pelo usuário no formulário e o ponto
-     * de partida para a aplicação da margem no momento da
-     * criação/atualização.
-     *
-     * <p>Persistido separadamente de {@link #unitPrice} para que a
-     * edição da proposta não reaplique a margem sobre o snapshot já
-     * majorado. O cálculo do {@link #totalPrice} continua usando
-     * {@code unitPrice} (com margem).</p>
-     */
-    @Column(name = "base_unit_price", nullable = false, precision = 10, scale = 2)
-    private BigDecimal baseUnitPrice;
 
     /**
      * Tipo de aplicação do desconto desta linha ({@link #discount}).

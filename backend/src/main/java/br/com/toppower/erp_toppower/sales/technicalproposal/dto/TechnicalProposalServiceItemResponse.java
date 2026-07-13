@@ -21,16 +21,9 @@ public record TechnicalProposalServiceItemResponse(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         String description,
 
-        @Schema(description = "Preço final do serviço (snapshot, com margem de lucro embutida). "
+        @Schema(description = "Preço do serviço prestado. "
                 + "Pode ser nulo quando o serviço é gratuito/incluso.",
                 example = "350.00", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        BigDecimal price,
-
-        @Schema(description = "Preço original enviado pelo usuário (sem margem de lucro). "
-                + "Pode ser nulo quando o serviço é gratuito/incluso. É o valor que o "
-                + "formulário usa como ponto de partida na edição — aplicar a margem "
-                + "sobre o `price` causaria duplicação.",
-                example = "304.35", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        BigDecimal basePrice
+        BigDecimal price
 ) {
 }
