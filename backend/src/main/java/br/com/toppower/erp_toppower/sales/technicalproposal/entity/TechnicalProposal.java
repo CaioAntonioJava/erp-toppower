@@ -156,20 +156,18 @@ public class TechnicalProposal extends OrganizationScopedEntity {
     private Address address;
 
     /**
-     * Objetivos do serviço prestado — descrições curtas, de uma linha,
-     * do que se propõe a executar. Mantidos como uma lista persistida em
-     * {@link TechnicalProposalObjective} separada desta entidade, em
-     * consonância com o restante do projeto (serviços/produtos). O serviço
-     * carrega a lista e a expõe no DTO de resposta.
-     */
-    // (sem campo persistido aqui — relacionamento por UUID na entidade filha)
-
-    /**
      * Descrição detalhada do serviço prestado, usada para formalização.
-     * Texto livre mais longo que os objetivos.
+     * Texto livre.
      */
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
+
+    /**
+     * Número da revisão da proposta técnica. Campo numérico opcional,
+     * utilizado para controle de versão do documento.
+     */
+    @Column(name = "revision")
+    private Integer revision;
 
     /**
      * Nome do responsável técnico pela proposta. <b>Opcional</b> — campo
@@ -196,21 +194,12 @@ public class TechnicalProposal extends OrganizationScopedEntity {
     private TechnicalProposalStatus status;
 
     /**
-     * Data de início da proposta (data comercial, não timestamp).
-     * Obrigatória; recebe {@code LocalDate.now()} no {@link #onPrePersist()}
-     * caso não tenha sido informada.
+     * Data da proposta (data comercial, não timestamp).
+     * Sempre definida como {@code LocalDate.now()} no momento da criação,
+     * representando a data de emissão do documento.
      */
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
-
-    /**
-     * Data de término prevista/real do serviço, informada manualmente pelo
-     * usuário no formulário. <b>Opcional</b> — distinta da
-     * {@link #deliveryDate}, que é preenchida automaticamente quando a
-     * proposta passa ao status {@link TechnicalProposalStatus#CONCLUIDA}.
-     */
-    @Column(name = "end_date")
-    private LocalDate endDate;
 
     /**
      * Data de entrega, preenchida automaticamente quando a proposta passa
@@ -417,8 +406,9 @@ public class TechnicalProposal extends OrganizationScopedEntity {
         if (status == null) {
             status = TechnicalProposalStatus.ABERTA;
         }
-        if (startDate == null) {
-            startDate = LocalDate.now();
-        }
+        // A data da proposta é sempre a data atual no momento da
+        // persistência, independentemente de qualquer valor informado
+        // externamente.
+        startDate = LocalDate.now();
     }
 }

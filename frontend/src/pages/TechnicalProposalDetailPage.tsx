@@ -149,13 +149,7 @@ export function TechnicalProposalDetailPage() {
             <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
               <span className="font-mono">{proposal.code}</span>
               <span aria-hidden>•</span>
-              <span>Início: {formatDate(proposal.startDate)}</span>
-              {proposal.endDate ? (
-                <>
-                  <span aria-hidden>•</span>
-                  <span>Término: {formatDate(proposal.endDate)}</span>
-                </>
-              ) : null}
+              <span>Data: {formatDate(proposal.startDate)}</span>
               {proposal.deliveryDate ? (
                 <>
                   <span aria-hidden>•</span>
@@ -253,22 +247,6 @@ export function TechnicalProposalDetailPage() {
                 </dd>
               </div>
               <div className="sm:col-span-2 lg:col-span-3">
-                <dt className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  Objetivos
-                </dt>
-                <dd className="mt-1">
-                  {proposal.objectives.length === 0 ? (
-                    <span className="text-slate-500 dark:text-slate-400">—</span>
-                  ) : (
-                    <ul className="list-inside list-disc space-y-1 text-slate-900 dark:text-slate-100">
-                      {proposal.objectives.map((o) => (
-                        <li key={o.id}>{o.description}</li>
-                      ))}
-                    </ul>
-                  )}
-                </dd>
-              </div>
-              <div>
                 <dt className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
                   Prazo de entrega
                 </dt>

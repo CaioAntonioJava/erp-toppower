@@ -7,11 +7,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -44,15 +42,13 @@ public record TechnicalProposalUpdateRequest(
         @Valid
         TechnicalProposalAddressRequest address,
 
-        @Schema(description = "Nova lista de objetivos (substitui a anterior por completo). Se informada, deve conter ao menos um item.",
-                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        @NotEmpty(message = "A lista de objetivos não pode ser vazia quando informada")
-        @Valid
-        List<TechnicalProposalObjectiveRequest> objectives,
-
         @Schema(description = "Nova descrição detalhada do serviço prestado.",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         String description,
+
+        @Schema(description = "Novo número da revisão da proposta técnica (opcional). Envie nulo para remover.",
+                example = "1", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        Integer revision,
 
         @Schema(description = "Novo nome do responsável técnico. Envie string vazia para limpar.",
                 maxLength = 150,
@@ -65,14 +61,6 @@ public record TechnicalProposalUpdateRequest(
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         @Size(max = 200, message = "E-mail deve ter no máximo {max} caracteres")
         String email,
-
-        @Schema(description = "Nova data de início (yyyy-MM-dd).",
-                example = "2026-07-05", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        LocalDate startDate,
-
-        @Schema(description = "Nova data de término (yyyy-MM-dd). Envie nulo para remover.",
-                example = "2026-07-15", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        LocalDate endDate,
 
         @Schema(description = "Nova lista de serviços (substitui a anterior por completo). "
                 + "Se informada, o service valida a consistência.",

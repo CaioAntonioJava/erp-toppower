@@ -64,13 +64,13 @@ public record TechnicalProposalResponse(
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         TechnicalProposalAddressResponse address,
 
-        @Schema(description = "Objetivos do serviço prestado.",
-                requiredMode = Schema.RequiredMode.REQUIRED)
-        List<TechnicalProposalObjectiveResponse> objectives,
-
         @Schema(description = "Descrição detalhada do serviço prestado.",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         String description,
+
+        @Schema(description = "Número da revisão da proposta técnica (opcional).",
+                example = "1", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        Integer revision,
 
         @Schema(description = "Nome do responsável técnico pela proposta (opcional).",
                 example = "João da Silva",
@@ -87,13 +87,10 @@ public record TechnicalProposalResponse(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         TechnicalProposalStatus status,
 
-        @Schema(description = "Data de início.", example = "2026-07-05",
+        @Schema(description = "Data da proposta (data de emissão, sempre a data atual).",
+                example = "2026-07-14",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         LocalDate startDate,
-
-        @Schema(description = "Data de término prevista/real (informada manualmente).",
-                example = "2026-07-15", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        LocalDate endDate,
 
         @Schema(description = "Data de entrega (preenchida ao concluir).",
                 example = "2026-07-15", requiredMode = Schema.RequiredMode.NOT_REQUIRED)

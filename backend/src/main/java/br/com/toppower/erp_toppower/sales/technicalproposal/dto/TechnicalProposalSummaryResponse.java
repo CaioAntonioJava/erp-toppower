@@ -6,7 +6,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
 
 /**
  * Resumo de uma proposta técnica usado na listagem paginada. Não traz
@@ -41,22 +40,14 @@ public record TechnicalProposalSummaryResponse(
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         String clientCode,
 
-        @Schema(description = "Objetivos do serviço prestado (resumo).",
-                requiredMode = Schema.RequiredMode.REQUIRED)
-        List<TechnicalProposalObjectiveResponse> objectives,
-
         @Schema(description = "Status atual da proposta.",
                 allowableValues = {"ABERTA", "EM_ANDAMENTO", "CONCLUIDA"},
                 requiredMode = Schema.RequiredMode.REQUIRED)
         TechnicalProposalStatus status,
 
-        @Schema(description = "Data de início.", example = "2026-07-05",
+        @Schema(description = "Data da proposta (data de emissão).", example = "2026-07-14",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         LocalDate startDate,
-
-        @Schema(description = "Data de término prevista/real (informada manualmente).",
-                example = "2026-07-15", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        LocalDate endDate,
 
         @Schema(description = "Data de entrega (preenchida ao concluir).",
                 example = "2026-07-15", requiredMode = Schema.RequiredMode.NOT_REQUIRED)

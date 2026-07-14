@@ -10,7 +10,6 @@ import br.com.toppower.erp_toppower.organization.repository.OrganizationReposito
 import br.com.toppower.erp_toppower.product.repository.ProductRepository;
 import br.com.toppower.erp_toppower.sales.technicalproposal.dto.NextTechnicalProposalCodeResponse;
 import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalCreateRequest;
-import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalObjectiveRequest;
 import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalProductItemRequest;
 import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalResponse;
 import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalServiceItemRequest;
@@ -19,7 +18,6 @@ import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposa
 import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalSummaryResponse;
 import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalUpdateRequest;
 import br.com.toppower.erp_toppower.sales.technicalproposal.entity.TechnicalProposal;
-import br.com.toppower.erp_toppower.sales.technicalproposal.entity.TechnicalProposalObjective;
 import br.com.toppower.erp_toppower.sales.technicalproposal.entity.TechnicalProposalProductItem;
 import br.com.toppower.erp_toppower.sales.technicalproposal.entity.TechnicalProposalServiceItem;
 import br.com.toppower.erp_toppower.sales.technicalproposal.enums.TechnicalProposalStatus;
@@ -28,7 +26,6 @@ import br.com.toppower.erp_toppower.sales.technicalproposal.exception.TechnicalP
 import br.com.toppower.erp_toppower.sales.technicalproposal.exception.TechnicalProposalClientNotFoundException;
 import br.com.toppower.erp_toppower.sales.technicalproposal.exception.TechnicalProposalNotFoundException;
 import br.com.toppower.erp_toppower.sales.technicalproposal.mapper.TechnicalProposalMapper;
-import br.com.toppower.erp_toppower.sales.technicalproposal.repository.TechnicalProposalObjectiveRepository;
 import br.com.toppower.erp_toppower.sales.technicalproposal.repository.TechnicalProposalProductItemRepository;
 import br.com.toppower.erp_toppower.sales.technicalproposal.repository.TechnicalProposalRepository;
 import br.com.toppower.erp_toppower.sales.technicalproposal.repository.TechnicalProposalServiceItemRepository;
@@ -68,7 +65,6 @@ import java.util.List;
 public class TechnicalProposalService {
 
     private final TechnicalProposalRepository repository;
-    private final TechnicalProposalObjectiveRepository objectiveRepository;
     private final TechnicalProposalServiceItemRepository serviceItemRepository;
     private final TechnicalProposalProductItemRepository productItemRepository;
     private final CustomerRepository customerRepository;
@@ -78,7 +74,6 @@ public class TechnicalProposalService {
     private final OrganizationRepository organizationRepository;
 
     public TechnicalProposalService(TechnicalProposalRepository repository,
-                                    TechnicalProposalObjectiveRepository objectiveRepository,
                                     TechnicalProposalServiceItemRepository serviceItemRepository,
                                     TechnicalProposalProductItemRepository productItemRepository,
                                     CustomerRepository customerRepository,
@@ -87,7 +82,6 @@ public class TechnicalProposalService {
                                     CarrierRepository carrierRepository,
                                     OrganizationRepository organizationRepository) {
         this.repository = repository;
-        this.objectiveRepository = objectiveRepository;
         this.serviceItemRepository = serviceItemRepository;
         this.productItemRepository = productItemRepository;
         this.customerRepository = customerRepository;
@@ -105,7 +99,6 @@ public class TechnicalProposalService {
     public TechnicalProposalResponse create(TechnicalProposalCreateRequest request) {
         validateClientReference(request.customerId(), request.companyId(), true);
         validateCarrierReference(request.carrierId(), true);
-        validateObjectives(request.objectives());
         validateItemsPresence(request.serviceItems(), request.productItems());
         validateProductItems(request.productItems(), true);
 
@@ -114,8 +107,6 @@ public class TechnicalProposalService {
 
         TechnicalProposal savedHeader = repository.save(header);
 
-        List<TechnicalProposalObjective> objectives = persistObjectives(
-                request.objectives(), savedHeader.getId());
         List<TechnicalProposalServiceItem> serviceItems = persistServiceItems(
                 request.serviceItems(), savedHeader.getId());
         List<TechnicalProposalProductItem> productItems = persistProductItems(
@@ -125,7 +116,7 @@ public class TechnicalProposalService {
 
         ClientResolved client = resolveClient(savedHeader);
         CarrierResolved carrier = resolveCarrier(savedHeader);
-        return TechnicalProposalMapper.toResponse(savedHeader, objectives,
+        return TechnicalProposalMapper.toResponse(savedHeader,
                 serviceItems, productItems, client.name(), client.code(),
                 carrier.name());
     }
@@ -198,9 +189,8 @@ public class TechnicalProposalService {
         if (codeLike == null || codeLike.isBlank()) {
             Page<TechnicalProposalSummaryResponse> mapped = page.map(tp -> {
                 loadItemsAndRecalc(tp);
-                List<TechnicalProposalObjective> objs = loadObjectives(tp);
                 ClientResolved client = resolveClient(tp);
-                return TechnicalProposalMapper.toSummary(tp, objs, client.name(), client.code());
+                return TechnicalProposalMapper.toSummary(tp, client.name(), client.code());
             });
             return PagedResponse.from(mapped);
         }
@@ -210,9 +200,8 @@ public class TechnicalProposalService {
                 .filter(tp -> tp.formattedCode().toLowerCase().contains(needle))
                 .map(tp -> {
                     loadItemsAndRecalc(tp);
-                    List<TechnicalProposalObjective> objs = loadObjectives(tp);
                     ClientResolved client = resolveClient(tp);
-                    return TechnicalProposalMapper.toSummary(tp, objs, client.name(), client.code());
+                    return TechnicalProposalMapper.toSummary(tp, client.name(), client.code());
                 })
                 .toList();
         // Sem recontar totalElements após filtro em memória: usamos o
@@ -235,11 +224,6 @@ public class TechnicalProposalService {
         List<TechnicalProposalProductItem> productItems = productItemRepository
                 .findByTechnicalProposalIdOrderByCreatedAtAsc(tp.getId());
         tp.recalculateTotals(serviceItems, productItems);
-    }
-
-    private List<TechnicalProposalObjective> loadObjectives(TechnicalProposal tp) {
-        return objectiveRepository
-                .findByTechnicalProposalIdOrderByCreatedAtAsc(tp.getId());
     }
 
     // ---------------------------------------------------------------------
@@ -268,14 +252,8 @@ public class TechnicalProposalService {
             validateCarrierReference(request.carrierId(), false);
         }
 
-        boolean objectivesSent = request.objectives() != null;
         boolean servicesSent = request.serviceItems() != null;
         boolean productsSent = request.productItems() != null;
-
-        // Valida a nova lista de objetivos, quando enviada.
-        if (objectivesSent) {
-            validateObjectives(request.objectives());
-        }
 
         // Se alguma lista foi enviada, valida presença mínima entre as duas.
         if (servicesSent || productsSent) {
@@ -290,10 +268,6 @@ public class TechnicalProposalService {
         }
 
         // Substituição completa das listas, quando enviadas
-        if (objectivesSent) {
-            objectiveRepository.deleteByTechnicalProposalId(id);
-            objectiveRepository.flush();
-        }
         if (servicesSent) {
             serviceItemRepository.deleteByTechnicalProposalId(id);
             serviceItemRepository.flush();
@@ -306,9 +280,6 @@ public class TechnicalProposalService {
         TechnicalProposalMapper.applyUpdate(tp, request);
         TechnicalProposal saved = repository.save(tp);
 
-        List<TechnicalProposalObjective> objectives = objectivesSent
-                ? persistObjectives(request.objectives(), saved.getId())
-                : objectiveRepository.findByTechnicalProposalIdOrderByCreatedAtAsc(id);
         List<TechnicalProposalServiceItem> serviceItems = servicesSent
                 ? persistServiceItems(request.serviceItems(), saved.getId())
                 : serviceItemRepository.findByTechnicalProposalIdOrderByCreatedAtAsc(id);
@@ -319,7 +290,7 @@ public class TechnicalProposalService {
         saved.recalculateTotals(serviceItems, productItems);
         ClientResolved client = resolveClient(saved);
         CarrierResolved carrier = resolveCarrier(saved);
-        return TechnicalProposalMapper.toResponse(saved, objectives,
+        return TechnicalProposalMapper.toResponse(saved,
                 serviceItems, productItems, client.name(), client.code(),
                 carrier.name());
     }
@@ -442,8 +413,6 @@ public class TechnicalProposalService {
     }
 
     private TechnicalProposalResponse toResponseWithItems(TechnicalProposal tp) {
-        List<TechnicalProposalObjective> objectives = objectiveRepository
-                .findByTechnicalProposalIdOrderByCreatedAtAsc(tp.getId());
         List<TechnicalProposalServiceItem> serviceItems = serviceItemRepository
                 .findByTechnicalProposalIdOrderByCreatedAtAsc(tp.getId());
         List<TechnicalProposalProductItem> productItems = productItemRepository
@@ -451,7 +420,7 @@ public class TechnicalProposalService {
         tp.recalculateTotals(serviceItems, productItems);
         ClientResolved client = resolveClient(tp);
         CarrierResolved carrier = resolveCarrier(tp);
-        return TechnicalProposalMapper.toResponse(tp, objectives,
+        return TechnicalProposalMapper.toResponse(tp,
                 serviceItems, productItems, client.name(), client.code(),
                 carrier.name());
     }
@@ -502,19 +471,6 @@ public class TechnicalProposalService {
         return String.format("%03d", sequence);
     }
 
-    private List<TechnicalProposalObjective> persistObjectives(
-            List<TechnicalProposalObjectiveRequest> requests, Long technicalProposalId) {
-        if (requests == null || requests.isEmpty()) {
-            return List.of();
-        }
-        List<TechnicalProposalObjective> items = new ArrayList<>(requests.size());
-        for (TechnicalProposalObjectiveRequest req : requests) {
-            items.add(objectiveRepository.save(
-                    TechnicalProposalMapper.toObjectiveEntity(req, technicalProposalId)));
-        }
-        return items;
-    }
-
     private List<TechnicalProposalServiceItem> persistServiceItems(
             List<TechnicalProposalServiceItemRequest> requests, Long technicalProposalId) {
         if (requests == null || requests.isEmpty()) {
@@ -539,32 +495,6 @@ public class TechnicalProposalService {
                     TechnicalProposalMapper.toProductItemEntity(req, technicalProposalId)));
         }
         return items;
-    }
-
-    /**
-     * Valida a lista de objetivos: deve ser não-nula, não-vazia e cada
-     * descrição deve respeitar o tamanho máximo (validação de bean
-     * já feita pelo {@code @Valid}, mas checamos aqui para lançar
-     * exceção de negócio com mensagem amigável antes de chegar ao
-     * controller).
-     */
-    private void validateObjectives(List<TechnicalProposalObjectiveRequest> objectives) {
-        if (objectives == null || objectives.isEmpty()) {
-            throw new TechnicalProposalBusinessException(
-                    "A proposta técnica deve ter ao menos um objetivo.");
-        }
-        for (int i = 0; i < objectives.size(); i++) {
-            TechnicalProposalObjectiveRequest o = objectives.get(i);
-            if (o.description() == null || o.description().isBlank()) {
-                throw new TechnicalProposalBusinessException(
-                        "Objetivo #" + (i + 1) + ": descrição é obrigatória.");
-            }
-            if (o.description().length() > 500) {
-                throw new TechnicalProposalBusinessException(
-                        "Objetivo #" + (i + 1)
-                                + ": descrição deve ter no máximo 500 caracteres.");
-            }
-        }
     }
 
     /**

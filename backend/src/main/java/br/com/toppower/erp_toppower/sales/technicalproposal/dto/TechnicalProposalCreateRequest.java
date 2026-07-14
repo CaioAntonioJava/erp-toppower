@@ -7,11 +7,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -47,15 +45,13 @@ public record TechnicalProposalCreateRequest(
         @Valid
         TechnicalProposalAddressRequest address,
 
-        @Schema(description = "Objetivos do serviço prestado — descrições curtas. A proposta deve ter ao menos um objetivo.",
-                requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotEmpty(message = "A proposta deve ter ao menos um objetivo")
-        @Valid
-        List<TechnicalProposalObjectiveRequest> objectives,
-
         @Schema(description = "Descrição detalhada do serviço prestado (formalização).",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         String description,
+
+        @Schema(description = "Número da revisão da proposta técnica (opcional).",
+                example = "1", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        Integer revision,
 
         @Schema(description = "Nome do responsável técnico pela proposta. Opcional.",
                 example = "João da Silva",
@@ -70,14 +66,6 @@ public record TechnicalProposalCreateRequest(
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         @Size(max = 200, message = "E-mail deve ter no máximo {max} caracteres")
         String email,
-
-        @Schema(description = "Data de início da proposta (yyyy-MM-dd). Se omitida, usa a data atual.",
-                example = "2026-07-05", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        LocalDate startDate,
-
-        @Schema(description = "Data de término prevista/real do serviço (yyyy-MM-dd). Opcional — informada manualmente.",
-                example = "2026-07-15", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        LocalDate endDate,
 
         @Schema(description = "Itens da lista de serviços prestados. Opcional, mas ao menos um item "
                 + "(serviço ou produto) deve ser informado.",

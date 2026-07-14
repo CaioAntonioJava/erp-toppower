@@ -206,13 +206,7 @@ export function TechnicalProposalFormPage() {
             <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
               <span className="font-mono">{proposal.code}</span>
               <span aria-hidden>•</span>
-              <span>Início: {proposal.startDate}</span>
-              {proposal.endDate ? (
-                <>
-                  <span aria-hidden>•</span>
-                  <span>Término: {proposal.endDate}</span>
-                </>
-              ) : null}
+              <span>Data: {proposal.startDate}</span>
               {proposal.deliveryDate ? (
                 <>
                   <span aria-hidden>•</span>

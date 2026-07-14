@@ -42,7 +42,6 @@ import type {
   TechnicalProposalAddressRequest,
   TechnicalProposalClientType,
   TechnicalProposalCreateRequest,
-  TechnicalProposalObjectiveRequest,
   TechnicalProposalProductItemRequest,
   TechnicalProposalResponse,
   TechnicalProposalServiceItemRequest,
@@ -58,12 +57,6 @@ interface TechnicalProposalFormProps {
   initialCode?: string | null
   onSaveCreate: (payload: TechnicalProposalCreateRequest) => Promise<void>
   onSaveUpdate: (payload: TechnicalProposalUpdateRequest) => Promise<void>
-}
-
-/** Linha do editor de objetivos (estado local). */
-interface ObjectiveDraft {
-  rowKey: string
-  description: string
 }
 
 /** Linha do editor de serviços (estado local). */
@@ -94,14 +87,6 @@ function nextRowKey(): string {
   return `row_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
 }
 
-function todayIso(): string {
-  const d = new Date()
-  const yyyy = d.getFullYear()
-  const mm = String(d.getMonth() + 1).padStart(2, '0')
-  const dd = String(d.getDate()).padStart(2, '0')
-  return `${yyyy}-${mm}-${dd}`
-}
-
 const UF_OPTIONS = BRAZILIAN_STATES.map((s) => ({
   value: s.uf,
   label: s.uf,
@@ -123,21 +108,11 @@ export function TechnicalProposalForm({
     proposal?.customerId ?? proposal?.companyId ?? null,
   )
   const [clientLabel, setClientLabel] = useState<string>('')
-  const [objectives, setObjectives] = useState<ObjectiveDraft[]>(() => {
-    if (proposal?.objectives && proposal.objectives.length > 0) {
-      return proposal.objectives.map((o) => ({
-        rowKey: nextRowKey(),
-        description: o.description,
-      }))
-    }
-    // Em modo create, iniciamos com uma linha vazia.
-    if (!proposal) {
-      return [{ rowKey: nextRowKey(), description: '' }]
-    }
-    return []
-  })
   const [description, setDescription] = useState<string>(
     proposal?.description ?? '',
+  )
+  const [revision, setRevision] = useState<string>(
+    proposal?.revision != null ? String(proposal.revision) : '',
   )
   const [technicalResponsible, setTechnicalResponsible] = useState<string>(
     proposal?.technicalResponsible ?? '',
@@ -145,10 +120,6 @@ export function TechnicalProposalForm({
   const [responsibleEmail, setResponsibleEmail] = useState<string>(
     proposal?.email ?? '',
   )
-  const [startDate, setStartDate] = useState<string>(
-    proposal?.startDate ?? todayIso(),
-  )
-  const [endDate, setEndDate] = useState<string>(proposal?.endDate ?? '')
   const [discountType, setDiscountType] = useState<DiscountType | ''>(
     proposal?.discountType ?? '',
   )
@@ -423,22 +394,6 @@ export function TechnicalProposalForm({
     }, 300)
   }, [])
 
-  // === handlers de objetivos ===
-  function addObjective() {
-    setObjectives((prev) => [
-      ...prev,
-      { rowKey: nextRowKey(), description: '' },
-    ])
-  }
-  function removeObjective(rowKey: string) {
-    setObjectives((prev) => prev.filter((o) => o.rowKey !== rowKey))
-  }
-  function updateObjective(rowKey: string, patch: Partial<ObjectiveDraft>) {
-    setObjectives((prev) =>
-      prev.map((o) => (o.rowKey === rowKey ? { ...o, ...patch } : o)),
-    )
-  }
-
   // === handlers de itens de serviço ===
   function addServiceItem() {
     setServiceItems((prev) => [
@@ -592,20 +547,6 @@ export function TechnicalProposalForm({
     if (!clientId) {
       errs.clientId = 'Selecione um cliente.'
     }
-    // Validação de objetivos: ao menos um preenchido.
-    const validObjectives = objectives.filter(
-      (o) => o.description.trim() !== '',
-    )
-    if (validObjectives.length === 0) {
-      errs.objectives = 'A proposta deve ter ao menos um objetivo.'
-    } else {
-      objectives.forEach((o, idx) => {
-        if (o.description.trim() !== '' && o.description.length > 500) {
-          errs[`objectives.${idx}`] =
-            'Objetivo deve ter no máximo 500 caracteres.'
-        }
-      })
-    }
 
     if (notes.length > 2000) {
       errs.notes = 'Observações devem ter no máximo 2000 caracteres.'
@@ -669,10 +610,6 @@ export function TechnicalProposalForm({
       }
     }
 
-    if (startDate.trim() === '') {
-      errs.startDate = 'Data de início é obrigatória.'
-    }
-
     if (deliveryDeadline.length > 50) {
       errs.deliveryDeadline =
         'Prazo de entrega deve ter no máximo 50 caracteres.'
@@ -712,10 +649,6 @@ export function TechnicalProposalForm({
         return base
       })
 
-    const objectivesPayload: TechnicalProposalObjectiveRequest[] = objectives
-      .filter((o) => o.description.trim() !== '')
-      .map((o) => ({ description: o.description.trim() }))
-
     const addressPayload: TechnicalProposalAddressRequest | null = hasAddress
       ? {
           street: address.street?.trim() || null,
@@ -731,14 +664,12 @@ export function TechnicalProposalForm({
     try {
       if (isEdit) {
         const payload: TechnicalProposalUpdateRequest = {
-          objectives: objectivesPayload,
           description: description.trim() ? description.trim() : null,
+          revision: revision.trim() ? Number(revision) : null,
           technicalResponsible: technicalResponsible.trim()
             ? technicalResponsible.trim()
             : null,
           email: responsibleEmail.trim() ? responsibleEmail.trim() : null,
-          startDate,
-          endDate: endDate.trim() ? endDate : null,
           serviceItems: servicePayload.length > 0 ? servicePayload : null,
           productItems: productPayload.length > 0 ? productPayload : null,
           address: addressPayload,
@@ -770,7 +701,6 @@ export function TechnicalProposalForm({
         reset()
       } else {
         const payload: TechnicalProposalCreateRequest = {
-          objectives: objectivesPayload,
         }
         if (clientType === 'CUSTOMER') {
           payload.customerId = clientId ? Number(clientId) : null
@@ -778,11 +708,10 @@ export function TechnicalProposalForm({
           payload.companyId = clientId ? Number(clientId) : null
         }
         if (description.trim()) payload.description = description.trim()
+        if (revision.trim()) payload.revision = Number(revision)
         if (technicalResponsible.trim())
           payload.technicalResponsible = technicalResponsible.trim()
         if (responsibleEmail.trim()) payload.email = responsibleEmail.trim()
-        if (startDate.trim()) payload.startDate = startDate
-        if (endDate.trim()) payload.endDate = endDate
         if (servicePayload.length > 0) payload.serviceItems = servicePayload
         if (productPayload.length > 0) payload.productItems = productPayload
         if (hasAddress && addressPayload) payload.address = addressPayload
@@ -824,15 +753,15 @@ export function TechnicalProposalForm({
       {formError ? <Alert variant="error">{formError}</Alert> : null}
       {success ? <Alert variant="success">{success}</Alert> : null}
 
-      {/* Cabeçalho — cliente + código + objetivo */}
+      {/* Cabeçalho — cliente + código */}
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <h3 className="mb-1 text-base font-semibold">Cliente e objetivo</h3>
+        <h3 className="mb-1 text-base font-semibold">Cliente</h3>
         <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
-          Selecione o tipo de cliente (PF ou PJ), busque pelo nome ou código,
-          informe o objetivo e a data de início do serviço.
+          Selecione o tipo de cliente (PF ou PJ), busque pelo nome ou código
+          e informe a data de início do serviço.
         </p>
 
-        <div className="grid gap-4 sm:grid-cols-[180px_180px_1fr]">
+        <div className="grid gap-4 sm:grid-cols-[180px_100px_180px_1fr]">
           <Input
             label="Código da proposta"
             value={code}
@@ -843,6 +772,15 @@ export function TechnicalProposalForm({
             readOnly
             disabled
             className="max-w-[200px]"
+          />
+          <Input
+            label="Revisão"
+            type="number"
+            min={0}
+            value={revision}
+            onChange={(e) => setRevision(e.target.value)}
+            placeholder="0"
+            hint="Opcional"
           />
           <Select
             label="Tipo de cliente"
@@ -955,71 +893,6 @@ export function TechnicalProposalForm({
             error={shouldShowError('email', fieldErrors.email)}
             maxLength={200}
             placeholder="Ex.: joao.silva@empresa.com"
-          />
-        </div>
-
-        {/* Objetivos (lista dinâmica) */}
-        <div className="mt-4">
-          <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-              Objetivos
-              <span className="ml-0.5 text-red-500">*</span>
-            </label>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={addObjective}
-            >
-              <Plus className="h-4 w-4" />
-              Adicionar objetivo
-            </Button>
-          </div>
-          <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">
-            Liste os objetivos do serviço prestado. Ao menos um é obrigatório.
-          </p>
-
-          {fieldErrors.objectives ? (
-            <p className="mb-2 text-sm text-red-600 dark:text-red-400">
-              {fieldErrors.objectives}
-            </p>
-          ) : null}
-
-          <div className="flex flex-col gap-2">
-            {objectives.map((o, idx) => (
-              <ObjectiveRow
-                key={o.rowKey}
-                index={idx}
-                isFirst={idx === 0}
-                draft={o}
-                error={fieldErrors[`objectives.${idx}`]}
-                onChange={(patch) => updateObjective(o.rowKey, patch)}
-                onRemove={() => removeObjective(o.rowKey)}
-                canRemove={objectives.length > 1}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Datas na mesma linha */}
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <Input
-            label="Data de início"
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            onBlur={getBlurHandler('startDate')}
-            error={shouldShowError('startDate', fieldErrors.startDate)}
-            required
-          />
-          <Input
-            label="Data de término"
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            onBlur={getBlurHandler('endDate')}
-            error={shouldShowError('endDate', fieldErrors.endDate)}
-            hint="Opcional — prevista/real do serviço."
           />
         </div>
 
@@ -1422,68 +1295,6 @@ export function TechnicalProposalForm({
         ) : null}
       </section>
     </form>
-  )
-}
-
-// =====================================================================
-// Subcomponente: linha de objetivo
-// =====================================================================
-
-interface ObjectiveRowProps {
-  index: number
-  isFirst: boolean
-  draft: ObjectiveDraft
-  error?: string
-  onChange: (patch: Partial<ObjectiveDraft>) => void
-  onRemove: () => void
-  canRemove: boolean
-}
-
-function ObjectiveRow({
-  index,
-  draft,
-  error,
-  onChange,
-  onRemove,
-  canRemove,
-}: ObjectiveRowProps) {
-  return (
-    <div className="flex items-start gap-2 rounded-md border border-slate-200 p-2 dark:border-slate-700">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-slate-100 font-mono text-xs font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-        {String(index + 1).padStart(2, '0')}
-      </div>
-      <div className="min-w-0 flex-1">
-        <input
-          type="text"
-          aria-label={`Objetivo ${index + 1}`}
-          placeholder="Ex.: Substituição de quadro elétrico."
-          value={draft.description}
-          onChange={(e) => onChange({ description: e.target.value })}
-          maxLength={500}
-          className={[
-            'h-9 w-full min-w-0 rounded-md border bg-white px-2 text-sm text-slate-900 outline-none',
-            'placeholder:text-slate-400 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500',
-            'focus:border-focus focus:ring-1 focus:ring-focus/30 transition-colors duration-200',
-            error
-              ? 'border-red-500 focus:border-red-500 focus:ring-red-500/30'
-              : 'border-slate-300 dark:border-slate-700',
-          ].join(' ')}
-        />
-        {error ? (
-          <p className="mt-1 text-xs text-red-600 dark:text-red-400">{error}</p>
-        ) : null}
-      </div>
-      <button
-        type="button"
-        onClick={onRemove}
-        disabled={!canRemove}
-        aria-label="Remover objetivo"
-        title="Remover objetivo"
-        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-red-400"
-      >
-        <Trash2 className="h-4 w-4" />
-      </button>
-    </div>
   )
 }
 

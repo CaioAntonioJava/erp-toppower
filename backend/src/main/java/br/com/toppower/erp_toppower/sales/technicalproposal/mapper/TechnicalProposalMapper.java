@@ -5,8 +5,6 @@ import br.com.toppower.erp_toppower.sales.quotation.enums.DiscountType;
 import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalAddressRequest;
 import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalAddressResponse;
 import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalCreateRequest;
-import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalObjectiveRequest;
-import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalObjectiveResponse;
 import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalProductItemRequest;
 import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalProductItemResponse;
 import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalResponse;
@@ -17,7 +15,6 @@ import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposa
 import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalSummaryResponse;
 import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalUpdateRequest;
 import br.com.toppower.erp_toppower.sales.technicalproposal.entity.TechnicalProposal;
-import br.com.toppower.erp_toppower.sales.technicalproposal.entity.TechnicalProposalObjective;
 import br.com.toppower.erp_toppower.sales.technicalproposal.entity.TechnicalProposalProductItem;
 import br.com.toppower.erp_toppower.sales.technicalproposal.entity.TechnicalProposalServiceItem;
 
@@ -192,24 +189,6 @@ public final class TechnicalProposalMapper {
     }
 
     // ---------------------------------------------------------------------
-    // Objetivos
-    // ---------------------------------------------------------------------
-
-    public static TechnicalProposalObjective toObjectiveEntity(
-            TechnicalProposalObjectiveRequest request, Long technicalProposalId) {
-        TechnicalProposalObjective objective = new TechnicalProposalObjective();
-        objective.setTechnicalProposalId(technicalProposalId);
-        objective.setDescription(request.description());
-        return objective;
-    }
-
-    public static TechnicalProposalObjectiveResponse toObjectiveResponse(
-            TechnicalProposalObjective objective) {
-        return new TechnicalProposalObjectiveResponse(
-                objective.getId(), objective.getDescription());
-    }
-
-    // ---------------------------------------------------------------------
     // Header
     // ---------------------------------------------------------------------
 
@@ -224,8 +203,8 @@ public final class TechnicalProposalMapper {
         applyHeader(tp, request.customerId(), request.companyId(),
                 toAddress(request.address()),
                 request.description(),
+                request.revision(),
                 request.technicalResponsible(), request.email(),
-                request.startDate(), request.endDate(),
                 request.discountType(), request.discount(),
                 request.freightValue(), request.deliveryDeadline(),
                 request.paymentCondition(), request.validity(),
@@ -246,8 +225,6 @@ public final class TechnicalProposalMapper {
         tp.setCustomerId(null);
         tp.setCompanyId(null);
         tp.setDescription(null);
-        tp.setStartDate(null);
-        tp.setEndDate(null);
         tp.setDiscountType(request.discountType());
         tp.setDiscount(request.discount());
         tp.setFreightValue(request.freightValue());
@@ -281,17 +258,14 @@ public final class TechnicalProposalMapper {
         if (request.description() != null) {
             tp.setDescription(request.description());
         }
+        if (request.revision() != null) {
+            tp.setRevision(request.revision());
+        }
         if (request.technicalResponsible() != null) {
             tp.setTechnicalResponsible(emptyToNull(request.technicalResponsible()));
         }
         if (request.email() != null) {
             tp.setEmail(emptyToNull(request.email()));
-        }
-        if (request.startDate() != null) {
-            tp.setStartDate(request.startDate());
-        }
-        if (request.endDate() != null) {
-            tp.setEndDate(request.endDate());
         }
         if (request.discountType() != null) {
             tp.setDiscountType(request.discountType());
@@ -323,9 +297,8 @@ public final class TechnicalProposalMapper {
 
     private static void applyHeader(TechnicalProposal tp, Long customerId, Long companyId,
                                     Address address, String description,
+                                    Integer revision,
                                     String technicalResponsible, String email,
-                                    java.time.LocalDate startDate,
-                                    java.time.LocalDate endDate,
                                     DiscountType discountType,
                                     BigDecimal discount, BigDecimal freightValue,
                                     String deliveryDeadline,
@@ -337,10 +310,9 @@ public final class TechnicalProposalMapper {
         tp.setCompanyId(companyId);
         tp.setAddress(address);
         tp.setDescription(description);
+        tp.setRevision(revision);
         tp.setTechnicalResponsible(technicalResponsible);
         tp.setEmail(email);
-        tp.setStartDate(startDate);
-        tp.setEndDate(endDate);
         tp.setDiscountType(discountType);
         tp.setDiscount(discount);
         tp.setFreightValue(freightValue);
@@ -378,7 +350,6 @@ public final class TechnicalProposalMapper {
      */
     public static TechnicalProposalResponse toResponse(
             TechnicalProposal tp,
-            List<TechnicalProposalObjective> objectives,
             List<TechnicalProposalServiceItem> serviceItems,
             List<TechnicalProposalProductItem> productItems,
             String clientName, String clientCode,
@@ -401,13 +372,12 @@ public final class TechnicalProposalMapper {
                 clientName,
                 clientCode,
                 toAddressResponse(tp.getAddress()),
-                objectives.stream().map(TechnicalProposalMapper::toObjectiveResponse).toList(),
                 tp.getDescription(),
+                tp.getRevision(),
                 tp.getTechnicalResponsible(),
                 tp.getEmail(),
                 tp.getStatus(),
                 tp.getStartDate(),
-                tp.getEndDate(),
                 tp.getDeliveryDate(),
                 serviceItems.stream().map(TechnicalProposalMapper::toServiceItemResponse).toList(),
                 productItems.stream().map(TechnicalProposalMapper::toProductItemResponse).toList(),
@@ -456,7 +426,6 @@ public final class TechnicalProposalMapper {
      */
     public static TechnicalProposalSummaryResponse toSummary(
             TechnicalProposal tp,
-            List<TechnicalProposalObjective> objectives,
             String clientName, String clientCode) {
         TechnicalProposalResponse.ClientType clientType =
                 (tp.getCustomerId() != null)
@@ -473,10 +442,8 @@ public final class TechnicalProposalMapper {
                 clientId,
                 clientName,
                 clientCode,
-                objectives.stream().map(TechnicalProposalMapper::toObjectiveResponse).toList(),
                 tp.getStatus(),
                 tp.getStartDate(),
-                tp.getEndDate(),
                 tp.getDeliveryDate(),
                 tp.getTotal(),
                 tp.getPaymentCondition());

@@ -185,7 +185,6 @@ export function TechnicalProposalsListPage() {
                 <th className="px-4 py-3 font-medium">Código</th>
                 <th className="px-4 py-3 font-medium">Início</th>
                 <th className="px-4 py-3 font-medium">Cliente</th>
-                <th className="px-4 py-3 font-medium">Objetivo</th>
                 <th className="px-4 py-3 font-medium">Total</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 text-right font-medium">Ações</th>
@@ -194,7 +193,7 @@ export function TechnicalProposalsListPage() {
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center">
+                  <td colSpan={6} className="px-4 py-12 text-center">
                     <div className="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400">
                       <Spinner size="sm" /> Carregando…
                     </div>
@@ -202,7 +201,7 @@ export function TechnicalProposalsListPage() {
                 </tr>
               ) : (data?.content ?? []).length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center">
+                  <td colSpan={6} className="px-4 py-12 text-center">
                     <div className="flex flex-col items-center gap-2 text-slate-500 dark:text-slate-400">
                       <FileText className="h-8 w-8 opacity-60" />
                       <p className="text-sm">Nenhuma proposta técnica encontrada.</p>
@@ -237,11 +236,6 @@ export function TechnicalProposalsListPage() {
                           ? TECHNICAL_PROPOSAL_CLIENT_TYPE_LABELS[tp.clientType]
                           : ''}
                       </div>
-                    </td>
-                    <td className="max-w-[280px] truncate px-4 py-3 text-slate-600 dark:text-slate-300">
-                      {tp.objectives.length > 0
-                        ? tp.objectives.map((o) => o.description).join(' • ')
-                        : '—'}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 font-mono text-xs font-semibold text-slate-700 dark:text-slate-200">
                       {brlFormatter.format(tp.total)}

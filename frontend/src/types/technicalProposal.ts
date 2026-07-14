@@ -62,21 +62,6 @@ export const TECHNICAL_PROPOSAL_CLIENT_TYPE_LABELS: Record<
 }
 
 // =====================================================================
-// Objetivos
-// =====================================================================
-
-/** Linha de objetivo enviada na criação/edição. */
-export interface TechnicalProposalObjectiveRequest {
-  description: string
-}
-
-/** Linha de objetivo retornada pela API. */
-export interface TechnicalProposalObjectiveResponse {
-  id: number
-  description: string
-}
-
-// =====================================================================
 // Endereço (opcional)
 // =====================================================================
 
@@ -159,16 +144,16 @@ export interface TechnicalProposalResponse {
   clientName: string | null
   clientCode: string | null
   address: TechnicalProposalAddressResponse | null
-  objectives: TechnicalProposalObjectiveResponse[]
   description: string | null
+  /** Número da revisão da proposta técnica (opcional). */
+  revision: number | null
   /** Nome do responsável técnico (opcional). */
   technicalResponsible: string | null
   /** E-mail de contato do responsável técnico (opcional, campo livre). */
   email: string | null
   status: TechnicalProposalStatus
+  /** Data da proposta (data de emissão, sempre a data atual). */
   startDate: string
-  /** Data de término prevista/real, informada manualmente. */
-  endDate: string | null
   /** Data de entrega, preenchida automaticamente ao concluir. */
   deliveryDate: string | null
   serviceItems: TechnicalProposalServiceItemResponse[]
@@ -204,11 +189,9 @@ export interface TechnicalProposalSummaryResponse {
   clientId: number | null
   clientName: string | null
   clientCode: string | null
-  objectives: TechnicalProposalObjectiveResponse[]
   status: TechnicalProposalStatus
+  /** Data da proposta (data de emissão, sempre a data atual). */
   startDate: string
-  /** Data de término prevista/real, informada manualmente. */
-  endDate: string | null
   /** Data de entrega, preenchida automaticamente ao concluir. */
   deliveryDate: string | null
   total: number
@@ -220,14 +203,13 @@ export interface TechnicalProposalCreateRequest {
   customerId?: number | null
   companyId?: number | null
   address?: TechnicalProposalAddressRequest | null
-  objectives: TechnicalProposalObjectiveRequest[]
   description?: string | null
+  /** Número da revisão da proposta técnica (opcional). */
+  revision?: number | null
   /** Nome do responsável técnico (opcional). */
   technicalResponsible?: string | null
   /** E-mail de contato do responsável técnico (opcional, sem validação de formato). */
   email?: string | null
-  startDate?: string | null
-  endDate?: string | null
   serviceItems?: TechnicalProposalServiceItemRequest[] | null
   productItems?: TechnicalProposalProductItemRequest[] | null
   discountType?: DiscountType | null
@@ -247,14 +229,13 @@ export interface TechnicalProposalUpdateRequest {
   customerId?: number | null
   companyId?: number | null
   address?: TechnicalProposalAddressRequest | null
-  objectives?: TechnicalProposalObjectiveRequest[] | null
   description?: string | null
+  /** Número da revisão da proposta técnica (opcional). Envie nulo para remover. */
+  revision?: number | null
   /** Nome do responsável técnico. string vazia = limpar. */
   technicalResponsible?: string | null
   /** E-mail do responsável técnico. string vazia = limpar. */
   email?: string | null
-  startDate?: string | null
-  endDate?: string | null
   serviceItems?: TechnicalProposalServiceItemRequest[] | null
   productItems?: TechnicalProposalProductItemRequest[] | null
   discountType?: DiscountType | null

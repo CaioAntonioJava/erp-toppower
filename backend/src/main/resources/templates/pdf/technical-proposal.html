@@ -18,12 +18,8 @@
   Status:
   <span th:text="${proposal.status.name()}">ABERTA</span>
   <span th:if="${proposal.startDate != null}">
-    &#160;•&#160; Início em
+    &#160;•&#160; Data da proposta:
     <span th:text="${#temporals.format(proposal.startDate, 'dd/MM/yyyy')}">--/--/----</span>
-  </span>
-  <span th:if="${proposal.endDate != null}">
-    &#160;•&#160; Término:
-    <span th:text="${#temporals.format(proposal.endDate, 'dd/MM/yyyy')}">--/--/----</span>
   </span>
   <span th:if="${proposal.deliveryDate != null}">
     &#160;•&#160; Entrega:
@@ -97,17 +93,7 @@
       <td class="k">Validade da proposta:</td>
       <td class="v" th:text="${proposal.validity}">—</td>
     </tr>
-  </table>
-</div>
-
-<!-- Objetivos -->
-<div class="section" th:if="${!#lists.isEmpty(proposal.objectives)}">
-  <div class="section-title">
-    Objetivos (<span th:text="${#lists.size(proposal.objectives)}">0</span>)
-  </div>
-  <ul class="obj-list">
-    <li th:each="o : ${proposal.objectives}" th:text="${o.description}">—</li>
-  </ul>
+	</table>
 </div>
 
 <!-- Endereço de execução.
