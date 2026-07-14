@@ -914,7 +914,7 @@ export function TechnicalProposalForm({
             value={description}
             onChange={setDescription}
             onBlur={getBlurHandler('description')}
-            maxLength={2000}
+            maxLength={1000}
             placeholder="Formalização do serviço prestado — escopo, etapas, condições…"
           />
           {shouldShowError('description', fieldErrors.description) ? (
@@ -923,7 +923,7 @@ export function TechnicalProposalForm({
             </p>
           ) : (
             <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
-              {description.length}/2000 caracteres (inclui formatação).
+              {description.length}/1000 caracteres (inclui formatação).
             </p>
           )}
         </div>
