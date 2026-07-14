@@ -43,7 +43,9 @@ public record TechnicalProposalUpdateRequest(
         TechnicalProposalAddressRequest address,
 
         @Schema(description = "Nova descrição detalhada do serviço prestado.",
+                maxLength = 2000,
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        @Size(max = 2000, message = "Descrição deve ter no máximo {max} caracteres")
         String description,
 
         @Schema(description = "Novo número da revisão da proposta técnica (opcional). Envie nulo para remover.",
