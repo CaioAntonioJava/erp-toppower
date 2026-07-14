@@ -1,10 +1,13 @@
 import { useState, type FormEvent } from 'react'
 import type {
+  ServiceCategory,
   ServiceTemplateCreateRequest,
   ServiceTemplateResponse,
   ServiceTemplateUpdateRequest,
 } from '../../types/servicetemplate'
+import { SERVICE_CATEGORIES } from '../../types/servicetemplate'
 import { Input } from '../ui/Input'
+import { Select } from '../ui/Select'
 import { RichTextEditor } from '../ui/RichTextEditor'
 import { Alert } from '../ui/Alert'
 import { toApiError } from '../../lib/errors'
@@ -36,11 +39,13 @@ export function ServiceTemplateForm({
 
   const [name, setName] = useState(serviceTemplate?.name ?? '')
   const [description, setDescription] = useState(serviceTemplate?.description ?? '')
+  const [category, setCategory] = useState<ServiceCategory>(serviceTemplate?.category ?? 'EXECUÇÃO_SPDA')
 
   function validateAll(): boolean {
     const errs: Record<string, string> = {}
 
     if (!name.trim()) errs.name = 'Nome é obrigatório.'
+    if (!category) errs.category = 'Categoria é obrigatória.'
 
     setFieldErrors(errs)
     return Object.keys(errs).length === 0
@@ -58,6 +63,7 @@ export function ServiceTemplateForm({
         const payload: ServiceTemplateUpdateRequest = {
           name: name.trim(),
           description: description || null,
+          category,
         }
         await onSaveUpdate(payload)
         setSuccess('Serviço atualizado com sucesso!')
@@ -66,6 +72,7 @@ export function ServiceTemplateForm({
         const payload: ServiceTemplateCreateRequest = {
           name: name.trim(),
           description: description || null,
+          category,
         }
         await onSaveCreate(payload)
         setSuccess('Serviço criado com sucesso!')
@@ -111,11 +118,30 @@ export function ServiceTemplateForm({
         </div>
       </section>
 
+      {/* Categoria */}
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <h3 className="mb-1 text-base font-semibold">Categoria</h3>
+        <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+          Classificação do serviço no catálogo.
+        </p>
+
+        <Select
+          label="Categoria"
+          value={category}
+          onChange={(e) => setCategory(e.target.value as ServiceCategory)}
+          onBlur={getBlurHandler('category')}
+          error={shouldShowError('category', fieldErrors.category)}
+          required
+          options={SERVICE_CATEGORIES}
+          placeholder="Selecione uma categoria"
+        />
+      </section>
+
       {/* Descrição */}
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <h3 className="mb-1 text-base font-semibold">Descrição</h3>
+        <h3 className="mb-1 text-base font-semibold">Descrição dos Serviços</h3>
         <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
-          Descrição detalhada do serviço com formatação rica. Este texto pode ser
+          Apresentação do serviço com formatação rica. Este texto pode ser
           reutilizado em propostas e contratos.
         </p>
 

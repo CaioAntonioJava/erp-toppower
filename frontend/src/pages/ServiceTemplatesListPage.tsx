@@ -12,6 +12,7 @@ import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Spinner } from '../components/ui/Spinner'
 import { Alert } from '../components/ui/Alert'
+import { Badge } from '../components/ui/Badge'
 import {
   listServiceTemplates,
   searchServiceTemplates,
@@ -35,6 +36,15 @@ function stripHtml(html: string | null | undefined): string {
   if (!html) return ''
   const doc = new DOMParser().parseFromString(html, 'text/html')
   return doc.body.textContent?.trim() ?? ''
+}
+
+/** Formata o valor do enum ServiceCategory para exibição amigável. */
+function formatCategory(cat: string | null | undefined): string {
+  if (!cat) return ''
+  const labels: Record<string, string> = {
+    EXECUÇÃO_SPDA: 'EXECUÇÃO SPDA',
+  }
+  return labels[cat] ?? cat
 }
 
 export function ServiceTemplatesListPage() {
@@ -130,6 +140,7 @@ export function ServiceTemplatesListPage() {
             <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-950/40 dark:text-slate-400">
               <tr>
                 <th className="px-4 py-3 font-medium">Nome</th>
+                <th className="px-4 py-3 font-medium">Categoria</th>
                 <th className="px-4 py-3 font-medium">Descrição</th>
                 <th className="px-4 py-3 font-medium">Atualizado em</th>
                 <th className="px-4 py-3 text-right font-medium">Ações</th>
@@ -138,7 +149,7 @@ export function ServiceTemplatesListPage() {
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {loading ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-12 text-center">
+                  <td colSpan={5} className="px-4 py-12 text-center">
                     <div className="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400">
                       <Spinner size="sm" /> Carregando…
                     </div>
@@ -146,7 +157,7 @@ export function ServiceTemplatesListPage() {
                 </tr>
               ) : items.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-12 text-center">
+                  <td colSpan={5} className="px-4 py-12 text-center">
                     <div className="flex flex-col items-center gap-2 text-slate-500 dark:text-slate-400">
                       <Wrench className="h-8 w-8 opacity-60" />
                       <p className="text-sm">Nenhum serviço encontrado.</p>
@@ -170,6 +181,13 @@ export function ServiceTemplatesListPage() {
                       <div className="font-medium text-slate-900 dark:text-slate-100">
                         {s.name}
                       </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      {s.category ? (
+                        <Badge tone="info">{formatCategory(s.category)}</Badge>
+                      ) : (
+                        <span className="text-slate-400">—</span>
+                      )}
                     </td>
                     <td className="max-w-xs truncate px-4 py-3 text-slate-600 dark:text-slate-400">
                       {s.description ? stripHtml(s.description) : <span className="text-slate-400">—</span>}

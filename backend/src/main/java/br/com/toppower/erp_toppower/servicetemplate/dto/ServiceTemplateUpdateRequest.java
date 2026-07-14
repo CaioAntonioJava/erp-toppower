@@ -1,5 +1,6 @@
 package br.com.toppower.erp_toppower.servicetemplate.dto;
 
+import br.com.toppower.erp_toppower.servicetemplate.enums.ServiceCategory;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Size;
 
@@ -14,6 +15,9 @@ public record ServiceTemplateUpdateRequest(
         String name,
 
         @Schema(description = "Nova descrição do serviço em HTML.")
-        String description
+        String description,
+
+        @Schema(description = "Nova categoria do serviço.", example = "EXECUÇÃO_SPDA")
+        ServiceCategory category
 ) {
 }

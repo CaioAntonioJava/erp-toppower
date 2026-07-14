@@ -14,6 +14,7 @@ public final class ServiceTemplateMapper {
         ServiceTemplate entity = new ServiceTemplate();
         entity.setName(request.name());
         entity.setDescription(request.description());
+        entity.setCategory(request.category());
         return entity;
     }
 
@@ -22,6 +23,7 @@ public final class ServiceTemplateMapper {
                 entity.getId(),
                 entity.getName(),
                 entity.getDescription(),
+                entity.getCategory(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt(),
                 entity.getCreatedBy(),
@@ -38,6 +40,9 @@ public final class ServiceTemplateMapper {
         }
         if (request.description() != null) {
             entity.setDescription(request.description());
+        }
+        if (request.category() != null) {
+            entity.setCategory(request.category());
         }
     }
 }

@@ -260,6 +260,7 @@ CREATE TABLE IF NOT EXISTS service_templates (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(200) NOT NULL,
     description TEXT,
+    category VARCHAR(50) NOT NULL,
     created_at DATETIME(6) NOT NULL,
     updated_at DATETIME(6) NOT NULL,
     created_by VARCHAR(100),
