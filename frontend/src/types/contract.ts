@@ -76,7 +76,7 @@ export interface ContractClauseRequest {
 
 /** Linha de cláusula de um contrato (response). */
 export interface ContractClauseResponse {
-  uuid: string
+  id: number
   description: string
 }
 
@@ -91,7 +91,7 @@ export interface ContractServiceItemRequest {
 
 /** Item de serviço de um contrato (response). */
 export interface ContractServiceItemResponse {
-  uuid: string
+  id: number
   description: string
 }
 
@@ -101,14 +101,14 @@ export interface ContractServiceItemResponse {
 
 /** Item de produto de um contrato (request) — referência + quantidade. */
 export interface ContractProductItemRequest {
-  productUuid: string
+  productId: number
   quantity: number
 }
 
 /** Item de produto de um contrato (response). */
 export interface ContractProductItemResponse {
-  uuid: string
-  productUuid: string
+  id: number
+  productId: number
   quantity: number
 }
 
@@ -118,7 +118,7 @@ export interface ContractProductItemResponse {
 
 /** Representação completa de um contrato. Espelha {@code ContractResponse}. */
 export interface ContractResponse {
-  uuid: string
+  id: number
   /** Prefixo do código (ex.: 'CT' ou 'CL'). */
   prefix: string
   /** Numeral sequencial do código (reseta por ano). */
@@ -127,14 +127,14 @@ export interface ContractResponse {
   year: number
   /** Código formatado completo (ex.: 'CT-001-2026'). */
   code: string
-  /** UUID do cliente pessoa física contratante. Presente quando {@link clientType} === 'CUSTOMER'. */
-  customerUuid: string | null
-  /** UUID da empresa (pessoa jurídica) contratante. Presente quando {@link clientType} === 'COMPANY'. */
-  companyUuid: string | null
+  /** ID do cliente pessoa física contratante. Presente quando {@link clientType} === 'CUSTOMER'. */
+  customerId: number | null
+  /** ID da empresa (pessoa jurídica) contratante. Presente quando {@link clientType} === 'COMPANY'. */
+  companyId: number | null
   /** Tipo do cliente referenciado pelo contrato. */
   clientType: ContractClientType
-  /** UUID efetivo do cliente (igual a {@link customerUuid} ou {@link companyUuid} conforme o tipo). */
-  clientUuid: string | null
+  /** ID efetivo do cliente (igual a {@link customerId} ou {@link companyId} conforme o tipo). */
+  clientId: number | null
   /** Nome de exibição do cliente (resolvido no backend). */
   clientName: string | null
   /** Código interno do cliente (resolvido no backend). */
@@ -168,11 +168,11 @@ export interface ContractResponse {
 
 /** Resumo do contrato para listagens paginadas. */
 export interface ContractSummaryResponse {
-  uuid: string
+  id: number
   code: string
   clientType: ContractClientType
-  /** UUID efetivo do cliente (PF ou PJ). */
-  clientUuid: string | null
+  /** ID efetivo do cliente (PF ou PJ). */
+  clientId: number | null
   clientName: string | null
   clientCode: string | null
   status: ContractStatus
@@ -183,10 +183,10 @@ export interface ContractSummaryResponse {
 
 /** Corpo de POST /api/v1/contracts. */
 export interface ContractCreateRequest {
-  /** Obrigatório se {@link companyUuid} não for informado. */
-  customerUuid?: string | null
-  /** Obrigatório se {@link customerUuid} não for informado. */
-  companyUuid?: string | null
+  /** Obrigatório se {@link companyId} não for informado. */
+  customerId?: number | null
+  /** Obrigatório se {@link customerId} não for informado. */
+  companyId?: number | null
   address?: ContractAddressRequest | null
   description: string
   /** Lista de cláusulas contratuais. O contrato deve ter ao menos uma. */
@@ -208,8 +208,8 @@ export interface ContractCreateRequest {
 
 /** Corpo de PATCH /api/v1/contracts/{id}. */
 export interface ContractUpdateRequest {
-  customerUuid?: string | null
-  companyUuid?: string | null
+  customerId?: number | null
+  companyId?: number | null
   address?: ContractAddressRequest | null
   description?: string | null
   /** Nova lista de cláusulas (substitui a anterior por completo). */
@@ -244,7 +244,7 @@ export interface ContractFilters {
   status?: ContractStatus
   startDate?: string
   endDate?: string
-  customerUuid?: string
+  customerId?: number
   code?: string
   page?: number
   size?: number

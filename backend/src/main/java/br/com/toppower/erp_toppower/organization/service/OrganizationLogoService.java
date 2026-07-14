@@ -18,7 +18,6 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Locale;
-import java.util.UUID;
 
 /**
  * Serviço responsável pelo upload/remoção do logo de uma Organization.
@@ -63,7 +62,7 @@ public class OrganizationLogoService {
      * {@code logoUrl} da Organization. Retorna a Organization atualizada.
      */
     @Transactional
-    public Organization uploadLogo(UUID organizationId, MultipartFile file) {
+    public Organization uploadLogo(Long organizationId, MultipartFile file) {
         validate(file);
 
         Organization org = organizationRepository.findById(organizationId)
@@ -71,7 +70,7 @@ public class OrganizationLogoService {
 
         String extension = resolveExtension(file);
         Path targetDir = logosDirectory();
-        Path targetFile = targetDir.resolve(org.getUuid() + "." + extension);
+        Path targetFile = targetDir.resolve(org.getId() + "." + extension);
 
         try (InputStream in = file.getInputStream()) {
             Files.createDirectories(targetDir);
@@ -81,14 +80,14 @@ public class OrganizationLogoService {
                     "Falha ao gravar o arquivo do logo: " + ex.getMessage());
         }
 
-        String publicUrl = "/logos/" + org.getUuid() + "." + extension;
+        String publicUrl = "/logos/" + org.getId() + "." + extension;
         org.setLogoUrl(publicUrl);
         Organization saved = organizationRepository.save(org);
 
         // Limpa versões anteriores (mesmo UUID mas extensão diferente —
         // ex.: admin trocou PNG por SVG). Best-effort: falha não aborta
         // o upload.
-        cleanupOtherExtensions(targetDir, org.getUuid().toString(), extension);
+        cleanupOtherExtensions(targetDir, org.getId().toString(), extension);
 
         return saved;
     }
@@ -98,7 +97,7 @@ public class OrganizationLogoService {
      * Organization não tem logo configurado.
      */
     @Transactional
-    public Organization deleteLogo(UUID organizationId) {
+    public Organization deleteLogo(Long organizationId) {
         Organization org = organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new OrganizationNotFoundException(organizationId));
 

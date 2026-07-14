@@ -13,7 +13,6 @@ import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Atualização parcial (PATCH) de uma proposta comercial.
@@ -29,10 +28,10 @@ import java.util.UUID;
 public record QuotationUpdateRequest(
 
         @Schema(description = "Novo UUID do cliente pessoa física.", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID customerUuid,
+        Long customerId,
 
         @Schema(description = "Novo UUID da empresa (pessoa jurídica).", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID companyUuid,
+        Long companyId,
 
         @Schema(description = "Novo valor para 'Aos cuidados de'.", maxLength = 150,
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
@@ -40,7 +39,7 @@ public record QuotationUpdateRequest(
         String attention,
 
         @Schema(description = "Novo UUID do vendedor responsável.", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID sellerUuid,
+        Long sellerId,
 
         @Schema(description = "Nova lista de itens (substitui a anterior por completo). "
                 + "Se informada, deve conter ao menos um item.",
@@ -95,6 +94,6 @@ public record QuotationUpdateRequest(
         @Schema(description = "Nova transportadora (Carrier) responsável pelo frete. "
                 + "Envie nulo para remover a transportadora vinculada.",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID carrierUuid
+        Long carrierId
 ) {
 }

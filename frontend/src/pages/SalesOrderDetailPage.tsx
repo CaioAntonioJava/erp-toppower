@@ -102,7 +102,7 @@ export function SalesOrderDetailPage() {
     let cancelled = false
     setLoading(true)
     setError(null)
-    getSalesOrder(id)
+    getSalesOrder(Number(id!))
       .then((data) => {
         if (cancelled) return
         setSalesOrder(data)
@@ -130,24 +130,24 @@ export function SalesOrderDetailPage() {
     if (!salesOrder) return
     let cancelled = false
 
-    // Produtos — dedupe por UUID para não buscar o mesmo item duas vezes.
-    const uniqueProductUuids = Array.from(
-      new Set(salesOrder.items.map((it) => it.productUuid)),
+    // Produtos — dedupe por ID para não buscar o mesmo item duas vezes.
+    const uniqueProductIds = Array.from(
+      new Set(salesOrder.items.map((it) => it.productId)),
     )
     const productEntriesPromise = Promise.all(
-      uniqueProductUuids.map(async (uuid) => {
+      uniqueProductIds.map(async (id) => {
         try {
-          const p = await getProduct(uuid)
+          const p = await getProduct(id)
           const label = p.code ? `${p.code} — ${p.name}` : p.name
-          return [uuid, label] as const
+          return [id, label] as const
         } catch {
-          return [uuid, null] as const
+          return [id, null] as const
         }
       }),
     ).then((entries) => {
       const map: Record<string, string> = {}
-      for (const [uuid, label] of entries) {
-        if (label != null) map[uuid] = label
+      for (const [id, label] of entries) {
+        if (label != null) map[id] = label
       }
       return map
     })
@@ -171,7 +171,7 @@ export function SalesOrderDetailPage() {
     setCanceling(true)
     setCancelError(null)
     try {
-      const updated = await cancelSalesOrder(salesOrder.uuid)
+      const updated = await cancelSalesOrder(salesOrder.id)
       setSalesOrder(updated)
       setConfirmCancel(false)
     } catch (err) {
@@ -186,7 +186,7 @@ export function SalesOrderDetailPage() {
     setAdvancing(true)
     setAdvanceError(null)
     try {
-      const updated = await advanceSalesOrderStatus(salesOrder.uuid)
+      const updated = await advanceSalesOrderStatus(salesOrder.id)
       setSalesOrder(updated)
     } catch (err) {
       setAdvanceError(toApiError(err).message)
@@ -229,17 +229,17 @@ export function SalesOrderDetailPage() {
   const next = nextStatus(salesOrder.status)
   const canAdvance = next != null
 
-  // UUID "curto" usado como fallback visual quando o nome real não está
+  // ID "curto" usado como fallback visual quando o nome real não está
   // disponível no payload (cliente inativado/removido após a criação).
-  const clientUuid =
+  const clientId =
     salesOrder.clientType === 'CUSTOMER'
-      ? salesOrder.customerUuid
-      : salesOrder.companyUuid
+      ? salesOrder.customerId
+      : salesOrder.companyId
   const clientDisplay = salesOrder.clientName
     ? (salesOrder.clientCode
         ? `${salesOrder.clientCode} — ${salesOrder.clientName}`
         : salesOrder.clientName)
-    : (clientUuid ? `${clientUuid.slice(0, 8)}…` : '—')
+    : (clientId ? `${String(clientId).slice(0, 8)}…` : '—')
 
   return (
     <div className="space-y-6">
@@ -263,7 +263,7 @@ export function SalesOrderDetailPage() {
           <Button
             variant="secondary"
             onClick={() =>
-              window.open(`/sales-orders/${salesOrder.uuid}/pdf`, '_blank')
+              window.open(`/sales-orders/${salesOrder.id}/pdf`, '_blank')
             }
           >
             <Printer className="h-4 w-4" />
@@ -281,7 +281,7 @@ export function SalesOrderDetailPage() {
           {canEdit ? (
             <Button
               variant="secondary"
-              onClick={() => navigate(`/sales-orders/${salesOrder.uuid}/edit`)}
+              onClick={() => navigate(`/sales-orders/${salesOrder.id}/edit`)}
             >
               <FileEdit className="h-4 w-4" />
               Editar
@@ -433,9 +433,9 @@ export function SalesOrderDetailPage() {
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {salesOrder.items.map((it) => {
-                const productLabel = productNames[it.productUuid]
+                const productLabel = productNames[it.productId]
                 return (
-                <tr key={it.uuid}>
+                <tr key={it.id}>
                   <td className="px-4 py-3">
                     {productLabel != null ? (
                       <span className="text-sm text-slate-800 dark:text-slate-200">
@@ -444,9 +444,9 @@ export function SalesOrderDetailPage() {
                     ) : (
                       <span
                         className="break-all font-mono text-xs text-slate-500 dark:text-slate-400"
-                        title={it.productUuid}
+                        title={String(it.productId)}
                       >
-                        {`${it.productUuid.slice(0, 8)}…`}
+                        {`${String(it.productId).slice(0, 8)}…`}
                       </span>
                     )}
                   </td>

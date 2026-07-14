@@ -6,7 +6,6 @@ import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
 /**
  * Item de produto de um contrato (request).
@@ -21,7 +20,7 @@ public record ContractProductItemRequest(
         @Schema(description = "UUID do produto cadastrado.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull(message = "Produto é obrigatório")
-        UUID productUuid,
+        Long productId,
 
         @Schema(description = "Quantidade contratada.",
                 example = "10.0000", requiredMode = Schema.RequiredMode.REQUIRED)

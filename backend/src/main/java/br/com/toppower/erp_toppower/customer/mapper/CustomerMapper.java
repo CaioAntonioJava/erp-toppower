@@ -59,7 +59,7 @@ public final class CustomerMapper {
 
     public static CustomerResponse toResponse(Customer customer) {
         return new CustomerResponse(
-                customer.getUuid(),
+                customer.getId(),
                 customer.getName(),
                 customer.getEmail(),
                 customer.getPhone(),

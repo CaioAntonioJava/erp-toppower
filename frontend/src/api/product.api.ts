@@ -57,7 +57,7 @@ export async function searchProducts(params: {
 }
 
 /** GET /products/{id} — detalhe. */
-export async function getProduct(id: string): Promise<ProductResponse> {
+export async function getProduct(id: number): Promise<ProductResponse> {
   const { data } = await api.get<ProductResponse>(`${BASE}/${id}`)
   return data
 }
@@ -72,7 +72,7 @@ export async function createProduct(
 
 /** PATCH /products/{id} — atualização parcial. */
 export async function updateProduct(
-  id: string,
+  id: number,
   payload: ProductUpdateRequest,
 ): Promise<ProductResponse> {
   const { data } = await api.patch<ProductResponse>(`${BASE}/${id}`, payload)
@@ -80,6 +80,6 @@ export async function updateProduct(
 }
 
 /** DELETE /products/{id} — inativação (soft delete). Retorna 204. */
-export async function inactivateProduct(id: string): Promise<void> {
+export async function inactivateProduct(id: number): Promise<void> {
   await api.delete(`${BASE}/${id}`)
 }

@@ -2,7 +2,6 @@ package br.com.toppower.erp_toppower.sales.quotation.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
-import java.util.UUID;
 
 /**
  * Resumo de um cliente (pessoa física ou jurídica) usado em
@@ -21,7 +20,7 @@ public record ClientSummaryResponse(
         QuotationResponse.ClientType type,
 
         @Schema(description = "UUID do cliente.", requiredMode = Schema.RequiredMode.REQUIRED)
-        UUID uuid,
+        Long id,
 
         @Schema(description = "Código interno (CLI000001, EMP000001, etc.).", example = "CLI000042",
                 requiredMode = Schema.RequiredMode.REQUIRED)

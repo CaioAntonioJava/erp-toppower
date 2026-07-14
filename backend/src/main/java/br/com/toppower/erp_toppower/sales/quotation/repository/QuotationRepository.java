@@ -10,10 +10,9 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
-import java.util.UUID;
 
 @Repository
-public interface QuotationRepository extends JpaRepository<Quotation, UUID>,
+public interface QuotationRepository extends JpaRepository<Quotation, Long>,
         JpaSpecificationExecutor<Quotation> {
 
     boolean existsByNumber(Long number);
@@ -26,7 +25,7 @@ public interface QuotationRepository extends JpaRepository<Quotation, UUID>,
      * existir em Organizations diferentes — a busca global por número não
      * distingue a empresa emissora.
      */
-    Optional<Quotation> findByNumberAndOrganizationUuid(Long number, UUID organizationUuid);
+    Optional<Quotation> findByNumberAndOrganizationId(Long number, Long organizationId);
 
     /**
      * Retorna o maior número de proposta já emitido para a Organization
@@ -44,8 +43,8 @@ public interface QuotationRepository extends JpaRepository<Quotation, UUID>,
      * (MAX). Segue o mesmo padrão de
      * {@code TechnicalProposalRepository.findMaxSequenceByYearAndOrganizationUuid}.</p>
      */
-    @Query("SELECT MAX(q.number) FROM Quotation q WHERE q.organizationUuid = :organizationUuid")
-    Long findMaxNumberByOrganizationUuid(@Param("organizationUuid") UUID organizationUuid);
+    @Query("SELECT MAX(q.number) FROM Quotation q WHERE q.organizationId = :organizationId")
+    Long findMaxNumberByOrganizationId(@Param("organizationId") Long organizationId);
 
     /**
      * Busca paginada por status (opcional).

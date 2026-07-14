@@ -22,7 +22,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Entidade que representa um pedido de venda emitido pela empresa para
@@ -31,11 +30,11 @@ import java.util.UUID;
  * <p>Pedidos podem nascer de duas formas:</p>
  * <ul>
  *   <li><b>Conversão de proposta</b> — snapshot dos dados de uma
- *       {@code Quotation} ATIVA, preservando {@link #quotationUuid} e
+ *       {@code Quotation} ATIVA, preservando {@link #quotationId} e
  *       {@link #quotationNumber} para rastreabilidade. Após a conversão
  *       o pedido evolui independentemente da proposta.</li>
  *   <li><b>Criação direta</b> — sem proposta de origem
- *       ({@link #quotationUuid} e {@link #quotationNumber} nulos).</li>
+ *       ({@link #quotationId} e {@link #quotationNumber} nulos).</li>
  * </ul>
  *
  * <p>O número do pedido é gerado pelo serviço de aplicação no momento
@@ -45,7 +44,7 @@ import java.util.UUID;
  * sistema.</p>
  *
  * <p>O comprador é referenciado por exatamente <b>um</b> dos campos
- * {@link #customerUuid} ou {@link #companyUuid}; o serviço de aplicação
+ * {@link #customerId} ou {@link #companyId}; o serviço de aplicação
  * é responsável por validar essa invariante antes de persistir.</p>
  *
  * <p>Os itens do pedido são mantidos em uma entidade separada
@@ -112,21 +111,21 @@ public class SalesOrder extends OrganizationScopedEntity {
      * Referência ao {@code Customer} (pessoa física) comprador do pedido.
      *
      * <p>Deve ser preenchido <b>apenas</b> quando o comprador for pessoa
-     * física, em conjunto com {@link #companyUuid} nulo. Validação da
+     * física, em conjunto com {@link #companyId} nulo. Validação da
      * invariante "exatamente um preenchido" é responsabilidade do
      * serviço de aplicação.</p>
      */
-    @Column(name = "customer_uuid")
-    private UUID customerUuid;
+    @Column(name = "customer_id")
+    private Long customerId;
 
     /**
      * Referência à {@code Company} (pessoa jurídica) compradora do pedido.
      *
      * <p>Deve ser preenchido <b>apenas</b> quando o comprador for pessoa
-     * jurídica, em conjunto com {@link #customerUuid} nulo.</p>
+     * jurídica, em conjunto com {@link #customerId} nulo.</p>
      */
-    @Column(name = "company_uuid")
-    private UUID companyUuid;
+    @Column(name = "company_id")
+    private Long companyId;
 
     /**
      * "Aos cuidados de:" — nome da pessoa de contato no lado do
@@ -145,8 +144,8 @@ public class SalesOrder extends OrganizationScopedEntity {
      * Referência ao {@code Seller} (vendedor) responsável pelo pedido.
      * Obrigatório.
      */
-    @Column(name = "seller_uuid", nullable = false)
-    private UUID sellerUuid;
+    @Column(name = "seller_id", nullable = false)
+    private Long sellerId;
 
     /**
      * Tipo de aplicação do desconto global ({@link #discount}).
@@ -206,19 +205,19 @@ public class SalesOrder extends OrganizationScopedEntity {
      * Referência à {@code Carrier} (transportadora) responsável pelo
      * frete do pedido. Opcional — documentos sem transportadora
      * permanecem com este campo nulo. Não há FK física (referência por
-     * UUID, padrão do projeto); a validação de existência é feita no
+     * ID, padrão do projeto); a validação de existência é feita no
      * service quando o campo é informado.
      */
-    @Column(name = "carrier_uuid")
-    private UUID carrierUuid;
+    @Column(name = "carrier_id")
+    private Long carrierId;
 
     /**
-     * UUID da {@code Quotation} que deu origem a este pedido. Nulo em
+     * ID da {@code Quotation} que deu origem a este pedido. Nulo em
      * pedidos criados diretamente (sem proposta de origem). Imutável
      * após a criação ({@code updatable = false}).
      */
-    @Column(name = "quotation_uuid", updatable = false)
-    private UUID quotationUuid;
+    @Column(name = "quotation_id", updatable = false)
+    private Long quotationId;
 
     /**
      * Número da {@code Quotation} que deu origem a este pedido (snapshot

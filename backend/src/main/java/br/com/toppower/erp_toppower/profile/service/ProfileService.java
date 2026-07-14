@@ -22,8 +22,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
-
 @Service
 public class ProfileService {
 
@@ -36,14 +34,14 @@ public class ProfileService {
     }
 
     @Transactional
-    public ProfileResponse create(ProfileCreateRequest request, UUID userId) {
+    public ProfileResponse create(ProfileCreateRequest request, Long userId) {
         if (profileRepository.existsByCpf(request.cpf())) {
             throw new DuplicateProfileCpfException(request.cpf());
         }
         if (profileRepository.existsByEmail(request.email())) {
             throw new DuplicateProfileEmailException(request.email());
         }
-        if (profileRepository.existsByUserUuid(userId)) {
+        if (profileRepository.existsByUserId(userId)) {
             throw new UserAlreadyHasProfileException(userId);
         }
 
@@ -77,7 +75,7 @@ public class ProfileService {
      * demais usuários só podem consultar o próprio.
      */
     @Transactional(readOnly = true)
-    public ProfileResponse getById(UUID id, UserDetailsImpl principal) {
+    public ProfileResponse getById(Long id, UserDetailsImpl principal) {
         Profile profile = profileRepository.findById(id)
                 .orElseThrow(() -> new ProfileNotFoundException(id));
         validateAccess(profile, principal);
@@ -89,11 +87,11 @@ public class ProfileService {
      * demais usuários só podem consultar o próprio.
      */
     @Transactional(readOnly = true)
-    public ProfileResponse getByUserId(UUID userId, UserDetailsImpl principal) {
-        if (!principal.isAdmin() && !principal.uuid().equals(userId)) {
+    public ProfileResponse getByUserId(Long userId, UserDetailsImpl principal) {
+        if (!principal.isAdmin() && !principal.id().equals(userId)) {
             throw new AccessDeniedException("Você só pode consultar o seu próprio perfil");
         }
-        return profileRepository.findByUserUuid(userId)
+        return profileRepository.findByUserId(userId)
                 .map(ProfileMapper::toResponse)
                 .orElseThrow(() -> new ProfileNotFoundException(userId));
     }
@@ -103,7 +101,7 @@ public class ProfileService {
      * demais usuários só podem alterar o próprio.
      */
     @Transactional
-    public ProfileResponse update(UUID id, ProfileUpdateRequest request, UserDetailsImpl principal) {
+    public ProfileResponse update(Long id, ProfileUpdateRequest request, UserDetailsImpl principal) {
         Profile profile = profileRepository.findById(id)
                 .orElseThrow(() -> new ProfileNotFoundException(id));
 
@@ -132,7 +130,7 @@ public class ProfileService {
      * Acesso restrito a administradores.
      */
     @Transactional
-    public void softDelete(UUID id, UserDetailsImpl principal) {
+    public void softDelete(Long id, UserDetailsImpl principal) {
         if (!principal.isAdmin()) {
             throw new AccessDeniedException("Apenas administradores podem inativar perfis");
         }
@@ -151,7 +149,7 @@ public class ProfileService {
         if (principal.isAdmin()) {
             return;
         }
-        if (profile.getUser() != null && profile.getUser().getUuid().equals(principal.uuid())) {
+        if (profile.getUser() != null && profile.getUser().getId().equals(principal.id())) {
             return;
         }
         throw new AccessDeniedException("Você só pode acessar o seu próprio perfil");

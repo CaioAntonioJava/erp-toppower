@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * Orquestra a geração do PDF de um contrato.
@@ -41,10 +40,10 @@ public class ContractPdfService {
     /**
      * Renderiza o PDF (A4) do contrato.
      *
-     * @param id UUID do contrato
+     * @param id ID do contrato
      * @return bytes do PDF gerado
      */
-    public byte[] renderPdf(UUID id) {
+    public byte[] renderPdf(Long id) {
         ContractResponse contract = contractService.getById(id);
 
         Map<String, Object> model = pdfModelBuilder.buildBaseModel();

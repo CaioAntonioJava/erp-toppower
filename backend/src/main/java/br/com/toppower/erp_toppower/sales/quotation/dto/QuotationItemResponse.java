@@ -4,7 +4,6 @@ import br.com.toppower.erp_toppower.sales.quotation.enums.DiscountType;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
 /**
  * Linha de produto retornada pela API, com o total líquido já calculado
@@ -14,10 +13,10 @@ import java.util.UUID;
 public record QuotationItemResponse(
 
         @Schema(description = "Identificador (UUID) da linha.", requiredMode = Schema.RequiredMode.REQUIRED)
-        UUID uuid,
+        Long id,
 
         @Schema(description = "Identificador (UUID) do produto referenciado.", requiredMode = Schema.RequiredMode.REQUIRED)
-        UUID productUuid,
+        Long productId,
 
         @Schema(description = "Quantidade do produto.", example = "2.00", requiredMode = Schema.RequiredMode.REQUIRED)
         BigDecimal quantity,

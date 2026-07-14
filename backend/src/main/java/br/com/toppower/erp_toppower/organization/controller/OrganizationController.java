@@ -38,16 +38,12 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/organizations")
 @RequiredArgsConstructor
 @Tag(name = "Organizations", description = "Cadastro de empresas (Organizations) e listagem do usuário autenticado.")
 public class OrganizationController {
-
-    private static final String UUID_REGEX =
-            "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
 
     private final OrganizationService organizationService;
     private final OrganizationLogoService organizationLogoService;
@@ -105,7 +101,7 @@ public class OrganizationController {
         return ResponseEntity.ok(organizationService.search(query, status, pageable));
     }
 
-    @GetMapping(value = "/{id:" + UUID_REGEX + "}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Buscar Organization por ID")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses({
@@ -113,11 +109,11 @@ public class OrganizationController {
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = OrganizationResponse.class))),
             @ApiResponse(responseCode = "404", description = "Organization não encontrada.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<OrganizationResponse> getById(@PathVariable UUID id) {
+    public ResponseEntity<OrganizationResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(organizationService.getById(id));
     }
 
-    @PatchMapping(value = "/{id:" + UUID_REGEX + "}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PatchMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Atualizar Organization (parcial)")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasRole('ADMIN')")
@@ -126,12 +122,12 @@ public class OrganizationController {
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = OrganizationResponse.class))),
             @ApiResponse(responseCode = "404", description = "Organization não encontrada.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<OrganizationResponse> update(@PathVariable UUID id,
+    public ResponseEntity<OrganizationResponse> update(@PathVariable Long id,
                                                       @Valid @RequestBody OrganizationUpdateRequest request) {
         return ResponseEntity.ok(organizationService.update(id, request));
     }
 
-    @DeleteMapping("/{id:" + UUID_REGEX + "}")
+    @DeleteMapping("/{id}")
     @Operation(summary = "Inativar Organization",
             description = "Define status como INATIVO. Não remove fisicamente.")
     @SecurityRequirement(name = "bearerAuth")
@@ -140,12 +136,12 @@ public class OrganizationController {
             @ApiResponse(responseCode = "204", description = "Organization inativada."),
             @ApiResponse(responseCode = "404", description = "Organization não encontrada.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<Void> inactivate(@PathVariable UUID id) {
+    public ResponseEntity<Void> inactivate(@PathVariable Long id) {
         organizationService.inactivate(id);
         return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping(value = "/{id:" + UUID_REGEX + "}/activate", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PatchMapping(value = "/{id}/activate", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Reativar Organization")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasRole('ADMIN')")
@@ -154,7 +150,7 @@ public class OrganizationController {
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = OrganizationResponse.class))),
             @ApiResponse(responseCode = "404", description = "Organization não encontrada.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<OrganizationResponse> activate(@PathVariable UUID id) {
+    public ResponseEntity<OrganizationResponse> activate(@PathVariable Long id) {
         return ResponseEntity.ok(organizationService.activate(id));
     }
 
@@ -162,13 +158,13 @@ public class OrganizationController {
     // Logo da Organization (admin-only)
     // =====================================================================
 
-    @PostMapping(value = "/{id:" + UUID_REGEX + "}/logo",
+    @PostMapping(value = "/{id}/logo",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Upload de logo da Organization",
             description = "Recebe um arquivo de imagem (PNG ou JPEG) e armazena em "
-                    + "<app.uploads.dir>/logos/<uuid>.<ext>. A URL pública "
-                    + "(ex.: /logos/<uuid>.png) é persistida no campo logoUrl "
+                    + "<app.uploads.dir>/logos/<id>.<ext>. A URL pública "
+                    + "(ex.: /logos/<id>.png) é persistida no campo logoUrl "
                     + "e usada como cabeçalho nos PDFs gerados pelo backend. "
                     + "Re-upload sobrescreve o anterior; extensões antigas são limpas. "
                     + "SVG não é aceito (o renderer de PDF não suporta).")
@@ -184,7 +180,7 @@ public class OrganizationController {
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<OrganizationResponse> uploadLogo(
-            @PathVariable UUID id,
+            @PathVariable Long id,
             @Parameter(description = "Arquivo de logo (PNG ou JPEG).",
                     content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE))
             @RequestPart("file") MultipartFile file) {
@@ -192,7 +188,7 @@ public class OrganizationController {
                 organizationLogoService.uploadLogo(id, file)));
     }
 
-    @DeleteMapping(value = "/{id:" + UUID_REGEX + "}/logo", produces = MediaType.APPLICATION_JSON_VALUE)
+    @DeleteMapping(value = "/{id}/logo", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Remover logo da Organization",
             description = "Apaga o arquivo do disco e zera o campo logoUrl. "
                     + "No-op se a Organization não tem logo configurado.")
@@ -205,7 +201,7 @@ public class OrganizationController {
             @ApiResponse(responseCode = "404", description = "Organization não encontrada.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<OrganizationResponse> deleteLogo(@PathVariable UUID id) {
+    public ResponseEntity<OrganizationResponse> deleteLogo(@PathVariable Long id) {
         return ResponseEntity.ok(br.com.toppower.erp_toppower.organization.mapper.OrganizationMapper.toResponse(
                 organizationLogoService.deleteLogo(id)));
     }

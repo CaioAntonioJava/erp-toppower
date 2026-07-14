@@ -25,7 +25,7 @@ export async function listUsers(): Promise<UserResponse[]> {
 
 /** PATCH /users/{id}/password — troca a senha do próprio usuário. */
 export async function changePassword(
-  userId: string,
+  userId: number,
   payload: ChangePasswordRequest,
 ): Promise<void> {
   await api.patch(`${BASE}/${userId}/password`, payload)
@@ -33,13 +33,13 @@ export async function changePassword(
 
 /** PATCH /users/{id}/reset-password — admin redefine a senha de qualquer usuário. */
 export async function resetUserPassword(
-  userId: string,
+  userId: number,
   payload: ResetPasswordRequest,
 ): Promise<void> {
   await api.patch(`${BASE}/${userId}/reset-password`, payload)
 }
 
 /** DELETE /users/{id} — exclui um usuário e seus vínculos (hard delete). Admin only. */
-export async function deleteUser(userId: string): Promise<void> {
+export async function deleteUser(userId: number): Promise<void> {
   await api.delete(`${BASE}/${userId}`)
 }

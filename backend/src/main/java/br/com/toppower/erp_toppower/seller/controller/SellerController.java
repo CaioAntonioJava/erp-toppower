@@ -33,16 +33,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.UUID;
-
 @RestController
 @RequestMapping("/api/v1/sellers")
 @RequiredArgsConstructor
 @Tag(name = "Vendedores", description = "Cadastro e gestão de vendedores com percentual de comissão.")
 public class SellerController {
-
-    private static final String UUID_REGEX =
-            "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
 
     private final SellerService sellerService;
 
@@ -79,9 +74,9 @@ public class SellerController {
         return ResponseEntity.ok(sellerService.getAll(status, pageable));
     }
 
-    @GetMapping(value = "/{id:" + UUID_REGEX + "}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Buscar vendedor por ID",
-            description = "Retorna um vendedor pelo UUID. Disponível para ADMIN e MANAGER — quem pode criar/editar também pode visualizar.")
+            description = "Retorna um vendedor pelo ID. Disponível para ADMIN e MANAGER — quem pode criar/editar também pode visualizar.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @ApiResponses({
@@ -90,11 +85,11 @@ public class SellerController {
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "404", description = "Vendedor não encontrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<SellerResponse> getById(@PathVariable UUID id) {
+    public ResponseEntity<SellerResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(sellerService.getById(id));
     }
 
-    @PatchMapping(value = "/{id:" + UUID_REGEX + "}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PatchMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Atualizar vendedor (parcial)",
             description = "Atualiza apenas os campos enviados. Todas as roles autenticadas. CPF/e-mail duplicado -> 409.")
     @SecurityRequirement(name = "bearerAuth")
@@ -107,12 +102,12 @@ public class SellerController {
             @ApiResponse(responseCode = "404", description = "Vendedor não encontrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "409", description = "CPF ou e-mail já cadastrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<SellerResponse> update(@PathVariable UUID id,
+    public ResponseEntity<SellerResponse> update(@PathVariable Long id,
                                                   @Valid @RequestBody SellerUpdateRequest request) {
         return ResponseEntity.ok(sellerService.update(id, request));
     }
 
-    @DeleteMapping("/{id:" + UUID_REGEX + "}")
+    @DeleteMapping("/{id}")
     @Operation(summary = "Inativar vendedor (soft delete)",
             description = "Define status como INATIVO. Não remove fisicamente o registro. " +
                     "Disponível para ADMIN e MANAGER. Resposta 204 No Content.")
@@ -123,12 +118,12 @@ public class SellerController {
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "404", description = "Vendedor não encontrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<Void> inactivate(@PathVariable UUID id) {
+    public ResponseEntity<Void> inactivate(@PathVariable Long id) {
         sellerService.softDelete(id);
         return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping(value = "/{id:" + UUID_REGEX + "}/activate", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PatchMapping(value = "/{id}/activate", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Reativar vendedor",
             description = "Define status como ATIVO, reativando um vendedor inativo. " +
                     "Disponível para ADMIN e MANAGER.")
@@ -140,7 +135,7 @@ public class SellerController {
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "404", description = "Vendedor não encontrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<SellerResponse> activate(@PathVariable UUID id) {
+    public ResponseEntity<SellerResponse> activate(@PathVariable Long id) {
         return ResponseEntity.ok(sellerService.activate(id));
     }
 }

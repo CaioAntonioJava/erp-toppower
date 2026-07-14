@@ -136,7 +136,7 @@ export const QUOTATION_CLIENT_TYPE_LABELS: Record<
  */
 export interface ClientSummaryResponse {
   type: QuotationClientType
-  uuid: string
+  id: number
   code: string
   name: string
   document: string
@@ -144,8 +144,8 @@ export interface ClientSummaryResponse {
 
 /** Linha de produto retornada pela API. Espelha QuotationItemResponse. */
 export interface QuotationItemResponse {
-  uuid: string
-  productUuid: string
+  id: number
+  productId: number
   quantity: number
   /** Preço unitário final (com margem de lucro embutida). */
   unitPrice: number
@@ -165,7 +165,7 @@ export interface QuotationItemResponse {
 
 /** Linha de produto enviada na criação/edição. Espelha QuotationItemRequest. */
 export interface QuotationItemRequest {
-  productUuid: string
+  productId: number
   quantity: number
   unitPrice: number
   discountType?: DiscountType
@@ -181,18 +181,18 @@ export interface QuotationItemRequest {
  * incrementa em +1 a cada nova emissão.</p>
  */
 export interface QuotationResponse {
-  uuid: string
+  id: number
   number: number
   issueDate: string
-  customerUuid: string | null
-  companyUuid: string | null
+  customerId: number | null
+  companyId: number | null
   clientType: QuotationClientType
   /** Nome de exibição do cliente (PF: nome; PJ: nome fantasia/razão social). Resolvido no backend. */
   clientName: string | null
   /** Código interno do cliente (ex.: "CLI000001", "EMP000001"). Resolvido no backend. */
   clientCode: string | null
   attention: string | null
-  sellerUuid: string
+  sellerId: number
   /** Nome do vendedor (resolvido no backend). */
   sellerName: string | null
   items: QuotationItemResponse[]
@@ -206,8 +206,8 @@ export interface QuotationResponse {
   freightType: FreightType | null
   /** Valor do frete (manual). */
   freightValue: number | null
-  /** UUID da transportadora (Carrier) responsável pelo frete. */
-  carrierUuid: string | null
+  /** ID da transportadora (Carrier) responsável pelo frete. */
+  carrierId: number | null
   /** Nome da transportadora (resolvido no backend). */
   carrierName: string | null
   /**
@@ -244,15 +244,15 @@ export interface QuotationResponse {
  * Espelha QuotationSummaryResponse no backend.
  */
 export interface QuotationSummaryResponse {
-  uuid: string
+  id: number
   number: number
   issueDate: string
   clientType: QuotationClientType
-  clientUuid: string
+  clientId: number
   clientName: string
   /** Código interno do cliente (ex.: "CLI000001", "EMP000001"). Resolvido no backend. */
   clientCode: string | null
-  sellerUuid: string
+  sellerId: number
   /** Nome do vendedor (resolvido no backend). */
   sellerName: string | null
   status: QuotationStatus
@@ -263,10 +263,10 @@ export interface QuotationSummaryResponse {
 
 /** Corpo de POST /api/v1/quotations. Espelha QuotationCreateRequest. */
 export interface QuotationCreateRequest {
-  customerUuid?: string | null
-  companyUuid?: string | null
+  customerId?: number | null
+  companyId?: number | null
   attention?: string | null
-  sellerUuid: string
+  sellerId: number
   items: QuotationItemRequest[]
   discountType?: DiscountType | null
   discount?: number | null
@@ -282,16 +282,16 @@ export interface QuotationCreateRequest {
    * na criação. Ex.: 10 = 10%.
    */
   profitMargin: number
-  /** UUID da transportadora (Carrier) responsável pelo frete. Opcional. */
-  carrierUuid?: string | null
+  /** ID da transportadora (Carrier) responsável pelo frete. Opcional. */
+  carrierId?: number | null
 }
 
 /** Corpo de PATCH /api/v1/quotations/{id}. Espelha QuotationUpdateRequest. */
 export interface QuotationUpdateRequest {
-  customerUuid?: string | null
-  companyUuid?: string | null
+  customerId?: number | null
+  companyId?: number | null
   attention?: string | null
-  sellerUuid?: string | null
+  sellerId?: number | null
   items?: QuotationItemRequest[]
   discountType?: DiscountType | null
   discount?: number | null
@@ -307,8 +307,8 @@ export interface QuotationUpdateRequest {
    * PATCH (quando omitida, mantém o valor atual). Ex.: 10 = 10%.
    */
   profitMargin?: number
-  /** UUID da transportadora (Carrier). null = remover a transportadora vinculada. */
-  carrierUuid?: string | null
+  /** ID da transportadora (Carrier). null = remover a transportadora vinculada. */
+  carrierId?: number | null
 }
 
 /** Resposta do endpoint /quotations/next-number. */
@@ -321,8 +321,8 @@ export interface QuotationFilters {
   status?: QuotationStatus
   startDate?: string
   endDate?: string
-  clientUuid?: string
-  sellerUuid?: string
+  clientId?: number
+  sellerId?: number
   number?: string
   page?: number
   size?: number
@@ -339,7 +339,7 @@ export interface QuotationFilters {
  * QuotationSimulateItemRequest no backend.
  */
 export interface QuotationSimulateItemRequest {
-  productUuid?: string | null
+  productId?: number | null
   quantity?: number | null
   unitPrice?: number | null
   discountType?: DiscountType | null
@@ -353,10 +353,10 @@ export interface QuotationSimulateItemRequest {
  * QuotationSimulateRequest no backend.
  */
 export interface QuotationSimulateRequest {
-  customerUuid?: string | null
-  companyUuid?: string | null
+  customerId?: number | null
+  companyId?: number | null
   attention?: string | null
-  sellerUuid?: string | null
+  sellerId?: number | null
   items?: QuotationSimulateItemRequest[] | null
   discountType?: DiscountType | null
   discount?: number | null

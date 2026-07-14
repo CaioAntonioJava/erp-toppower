@@ -3,14 +3,14 @@
 --
 -- Torna as constraints UNIQUE de número de proposta comercial (quotations.number)
 -- e número de pedido de venda (sales_orders.number) ESCOPADAS por Organization
--- (organization_uuid + number), em vez de globais.
+-- (organization_id + number), em vez de globais.
 --
 -- Motivo: a numeração de propostas comerciais e pedidos de venda passou a ser
 -- independente por empresa (multi-empresa). Cada Organization reinicia sua
 -- sequência (proposta em 1500, pedido em 1000), de modo que o mesmo número
 -- passa a poder existir em empresas diferentes. A constraint UNIQUE global
 -- (coluna `number` isolada) impede isso e deve ser substituída pela composta
--- (organization_uuid, number).
+-- (organization_id, number).
 --
 -- Colunas que PERMANECEM UNIQUE GLOBAL (intencional, fora do escopo):
 --   organizations.cnpj, organizations.proposal_prefix, products.code,
@@ -21,8 +21,8 @@
 --      (gerado pelo Hibernate com nome imprevisível, ex.: uk_quotation_number
 --      ou UK<hash>) em quotations.number e sales_orders.number.
 --   2) Cria as novas constraints UNIQUE COMPOSTAS:
---        uk_quotation_org_number     (organization_uuid, number)
---        uk_sales_order_org_number   (organization_uuid, number)
+--        uk_quotation_org_number     (organization_id, number)
+--        uk_sales_order_org_number   (organization_id, number)
 --
 -- Padrão PREPARE/EXECUTE dinâmico idêntico ao da V22, pois
 -- `ALTER TABLE ... DROP INDEX IF EXISTS` não é suportado no MySQL.
@@ -87,24 +87,24 @@ SET @sql = IF(@uk_name IS NOT NULL,
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- -----------------------------------------------------------------------------
--- 2. Cria as novas constraints UNIQUE COMPOSTAS (organization_uuid + number).
+-- 2. Cria as novas constraints UNIQUE COMPOSTAS (organization_id + number).
 --    Idempotente: só cria se o índice ainda não existir.
 -- -----------------------------------------------------------------------------
 
--- uk_quotation_org_number (organization_uuid, number)
+-- uk_quotation_org_number (organization_id, number)
 SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'quotations'
       AND INDEX_NAME = 'uk_quotation_org_number');
 SET @sql = IF(@has_idx = 0,
-    'CREATE UNIQUE INDEX uk_quotation_org_number ON quotations (organization_uuid, number)',
+    'CREATE UNIQUE INDEX uk_quotation_org_number ON quotations (organization_id, number)',
     'DO 0');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- uk_sales_order_org_number (organization_uuid, number)
+-- uk_sales_order_org_number (organization_id, number)
 SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'sales_orders'
       AND INDEX_NAME = 'uk_sales_order_org_number');
 SET @sql = IF(@has_idx = 0,
-    'CREATE UNIQUE INDEX uk_sales_order_org_number ON sales_orders (organization_uuid, number)',
+    'CREATE UNIQUE INDEX uk_sales_order_org_number ON sales_orders (organization_id, number)',
     'DO 0');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;

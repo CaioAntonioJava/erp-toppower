@@ -13,16 +13,15 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
 /**
- * Linha de um pedido de venda: um produto (referenciado por UUID) com
+ * Linha de um pedido de venda: um produto (referenciado por ID) com
  * sua quantidade, preço unitário e desconto próprios.
  *
  * <p>Cada item pertence a um único {@link SalesOrder}, identificado por
- * {@link #salesOrderUuid}. A relação não é mapeada via JPA (o projeto
+ * {@link #salesOrderId}. A relação não é mapeada via JPA (o projeto
  * não utiliza relacionamentos JPA para coleções); o serviço carrega os
- * itens com um {@code findBySalesOrderUuid} no repositório de itens.</p>
+ * itens com um {@code findBySalesOrderId} no repositório de itens.</p>
  *
  * <p>O campo {@link #totalPrice} armazena o <b>total líquido</b> da
  * linha, resultado de {@code (unitPrice * quantity) - discount}, onde
@@ -39,7 +38,7 @@ import java.util.UUID;
 @Table(
         name = "sales_order_items",
         indexes = {
-                @Index(name = "idx_sales_order_item_order", columnList = "sales_order_uuid")
+                @Index(name = "idx_sales_order_item_order", columnList = "sales_order_id")
         }
 )
 @Getter
@@ -48,18 +47,18 @@ import java.util.UUID;
 public class SalesOrderItem extends OrganizationScopedEntity {
 
     /**
-     * UUID do {@link SalesOrder} ao qual este item pertence.
+     * ID do {@link SalesOrder} ao qual este item pertence.
      * Imutável após a criação ({@code updatable = false}).
      */
-    @Column(name = "sales_order_uuid", nullable = false, updatable = false)
-    private UUID salesOrderUuid;
+    @Column(name = "sales_order_id", nullable = false, updatable = false)
+    private Long salesOrderId;
 
     /**
-     * UUID do {@code Product} referenciado pela linha.
+     * ID do {@code Product} referenciado pela linha.
      * Obrigatório.
      */
-    @Column(name = "product_uuid", nullable = false)
-    private UUID productUuid;
+    @Column(name = "product_id", nullable = false)
+    private Long productId;
 
     /**
      * Quantidade do produto nesta linha. Suporta até 4 casas decimais

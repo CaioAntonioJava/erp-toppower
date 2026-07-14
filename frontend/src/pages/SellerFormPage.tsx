@@ -53,7 +53,7 @@ export function SellerFormPage() {
     let cancelled = false
     setMode('loading')
     setLoadError(null)
-    getSeller(id)
+	    getSeller(Number(id!))
       .then((data) => {
         if (cancelled) return
         setSeller(data)
@@ -87,7 +87,7 @@ export function SellerFormPage() {
     if (!seller) return
     setSaving(true)
     try {
-      const updated = await updateSeller(seller.uuid, payload)
+      const updated = await updateSeller(seller.id, payload)
       setSeller(updated)
     } finally {
       setSaving(false)
@@ -100,15 +100,15 @@ export function SellerFormPage() {
     setToggleError(null)
     try {
       if (seller.status === 'ATIVO') {
-        await inactivateSeller(seller.uuid)
-        try {
-          const fresh = await getSeller(seller.uuid)
+        await inactivateSeller(seller.id)
+	        try {
+	          const fresh = await getSeller(seller.id)
           setSeller(fresh)
         } catch {
           setSeller({ ...seller, status: 'INATIVO' })
         }
       } else {
-        const updated = await activateSeller(seller.uuid)
+        const updated = await activateSeller(seller.id)
         setSeller(updated)
       }
     } catch (err) {

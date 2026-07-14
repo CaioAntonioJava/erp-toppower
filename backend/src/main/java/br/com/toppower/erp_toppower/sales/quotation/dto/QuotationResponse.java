@@ -10,7 +10,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Representação completa de uma proposta comercial retornada pela API,
@@ -20,7 +19,7 @@ import java.util.UUID;
 public record QuotationResponse(
 
         @Schema(description = "Identificador único (UUID) da proposta.", requiredMode = Schema.RequiredMode.REQUIRED)
-        UUID uuid,
+        Long id,
 
         @Schema(description = "Número sequencial da proposta (sem prefixo).", example = "1500",
                 requiredMode = Schema.RequiredMode.REQUIRED)
@@ -32,11 +31,11 @@ public record QuotationResponse(
 
         @Schema(description = "UUID do cliente pessoa física (presente quando o comprador for PF).",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID customerUuid,
+        Long customerId,
 
         @Schema(description = "UUID da empresa (presente quando o comprador for PJ).",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID companyUuid,
+        Long companyId,
 
         @Schema(description = "Tipo de cliente referenciado pela proposta.",
                 allowableValues = {"CUSTOMER", "COMPANY"},
@@ -58,7 +57,7 @@ public record QuotationResponse(
         String attention,
 
         @Schema(description = "UUID do vendedor.", requiredMode = Schema.RequiredMode.REQUIRED)
-        UUID sellerUuid,
+        Long sellerId,
 
         @Schema(description = "Nome do vendedor (resolvido no backend).",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
@@ -97,7 +96,7 @@ public record QuotationResponse(
 
         @Schema(description = "UUID da transportadora (Carrier) responsável pelo frete.",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID carrierUuid,
+        Long carrierId,
 
         @Schema(description = "Nome da transportadora (resolvido no backend a partir de carrierUuid).",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)

@@ -5,21 +5,20 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.UUID;
 
 @Repository
 public interface ContractClauseRepository
-        extends JpaRepository<ContractClause, UUID> {
+        extends JpaRepository<ContractClause, Long> {
 
     /**
      * Retorna todas as cláusulas de um contrato, ordenadas pela data de
      * criação (primeiro inserido primeiro).
      */
-    List<ContractClause> findByContractUuidOrderByCreatedAtAsc(UUID contractUuid);
+    List<ContractClause> findByContractIdOrderByCreatedAtAsc(Long contractId);
 
     /**
      * Remove todas as cláusulas de um contrato. Usado em substituição
      * completa da lista de cláusulas (update).
      */
-    void deleteByContractUuid(UUID contractUuid);
+    void deleteByContractId(Long contractId);
 }

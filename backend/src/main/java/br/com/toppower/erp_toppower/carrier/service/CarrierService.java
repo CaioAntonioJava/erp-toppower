@@ -14,8 +14,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
-
 @Service
 public class CarrierService {
 
@@ -43,14 +41,14 @@ public class CarrierService {
     }
 
     @Transactional(readOnly = true)
-    public CarrierResponse getById(UUID id) {
+    public CarrierResponse getById(Long id) {
         return carrierRepository.findById(id)
                 .map(CarrierMapper::toResponse)
                 .orElseThrow(() -> new CarrierNotFoundException(id));
     }
 
     @Transactional
-    public CarrierResponse update(UUID id, CarrierUpdateRequest request) {
+    public CarrierResponse update(Long id, CarrierUpdateRequest request) {
         Carrier carrier = carrierRepository.findById(id)
                 .orElseThrow(() -> new CarrierNotFoundException(id));
         CarrierMapper.applyUpdate(carrier, request);
@@ -59,7 +57,7 @@ public class CarrierService {
     }
 
     @Transactional
-    public void softDelete(UUID id) {
+    public void softDelete(Long id) {
         Carrier carrier = carrierRepository.findById(id)
                 .orElseThrow(() -> new CarrierNotFoundException(id));
         carrier.setStatus(CarrierStatus.INATIVO);
@@ -67,7 +65,7 @@ public class CarrierService {
     }
 
     @Transactional
-    public CarrierResponse activate(UUID id) {
+    public CarrierResponse activate(Long id) {
         Carrier carrier = carrierRepository.findById(id)
                 .orElseThrow(() -> new CarrierNotFoundException(id));
         carrier.setStatus(CarrierStatus.ATIVO);

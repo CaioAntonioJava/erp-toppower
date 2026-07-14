@@ -5,7 +5,7 @@ import type { RegistrationStatus } from '../types/registration'
 
 /** Transportadora atualmente selecionada (modo edição), opcional. */
 export interface CurrentCarrier {
-  uuid: string
+  id: number
   name?: string | null
 }
 
@@ -54,13 +54,13 @@ export function useActiveCarriers(current?: CurrentCarrier | null): {
   // registro. Sem isto, o select cairia no placeholder quando a carrier
   // não retorna no filtro de ATIVO.
   useEffect(() => {
-    if (!current?.uuid) return
+    if (!current?.id) return
     setCarriers((prev) => {
-      if (prev.some((c) => c.uuid === current.uuid)) return prev
+      if (prev.some((c) => c.id === current.id)) return prev
       return [
         ...prev,
         {
-          uuid: current.uuid,
+          id: current.id,
           name: current.name ?? '(transportadora removida)',
           status: 'INATIVO' as RegistrationStatus,
           createdAt: '',
@@ -70,7 +70,7 @@ export function useActiveCarriers(current?: CurrentCarrier | null): {
         },
       ]
     })
-  }, [current?.uuid, current?.name])
+  }, [current?.id, current?.name])
 
   return { carriers, carriersLoading }
 }

@@ -65,9 +65,10 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        # O frontend (em produção, no nginx) usa caminhos relativos /api
-        # que o próprio nginx faz proxy para o backend. Por isso basta /api.
-        VITE_API_URL: /api
+        # Vazio: os módulos em src/api já chamam /api/v1/... e o nginx
+        # faz proxy same-origin. Preencher com /api duplicaria o prefixo
+        # (/api/api/v1/...) e o backend responderia 403.
+        VITE_API_URL: ""
     container_name: erp-toppower-frontend
     restart: unless-stopped
     depends_on:

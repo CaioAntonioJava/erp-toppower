@@ -7,7 +7,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
-import java.util.UUID;
 
 /**
  * Repositório Spring Data JPA para {@link Contract}.
@@ -17,7 +16,7 @@ import java.util.UUID;
  * {@link org.springframework.data.jpa.domain.Specification}.</p>
  */
 @Repository
-public interface ContractRepository extends JpaRepository<Contract, UUID>,
+public interface ContractRepository extends JpaRepository<Contract, Long>,
         JpaSpecificationExecutor<Contract> {
 
     /**
@@ -38,7 +37,7 @@ public interface ContractRepository extends JpaRepository<Contract, UUID>,
      */
     @Query("""
             SELECT MAX(c.sequence) FROM Contract c
-            WHERE c.year = :year AND c.organizationUuid = :organizationUuid
+            WHERE c.year = :year AND c.organizationId = :organizationId
             """)
-    Long findMaxSequenceByYearAndOrganizationUuid(Integer year, UUID organizationUuid);
+    Long findMaxSequenceByYearAndOrganizationId(Integer year, Long organizationId);
 }

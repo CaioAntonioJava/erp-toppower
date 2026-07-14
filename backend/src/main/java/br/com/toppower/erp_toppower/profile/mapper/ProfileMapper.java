@@ -30,13 +30,13 @@ public final class ProfileMapper {
 
     public static ProfileResponse toResponse(Profile profile) {
         return new ProfileResponse(
-                profile.getUuid(),
+                profile.getId(),
                 profile.getName(),
                 profile.getEmail(),
                 profile.getPhone(),
                 profile.getCpf(),
                 profile.getStatus(),
-                profile.getUser() != null ? profile.getUser().getUuid() : null,
+                profile.getUser() != null ? profile.getUser().getId() : null,
                 profile.getCreatedAt(),
                 profile.getUpdatedAt(),
                 profile.getCreatedBy(),

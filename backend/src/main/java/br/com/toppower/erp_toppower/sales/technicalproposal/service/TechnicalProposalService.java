@@ -41,7 +41,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Regras de negócio do ciclo de vida de uma proposta técnica.
@@ -54,7 +53,7 @@ import java.util.UUID;
  *       sequência reiniciando a {@code 1} a cada novo ano <b>por
  *       Organization</b>, ano corrente;</li>
  *   <li>Validar a invariante de cliente (exatamente um entre
- *       {@code customerUuid} e {@code companyUuid});</li>
+ *       {@code customerId} e {@code companyId});</li>
  *   <li>Validar a existência do cliente e dos produtos referenciados;</li>
  *   <li>Garantir que a proposta tenha ao menos um item (serviço ou
  *       produto);</li>
@@ -104,8 +103,8 @@ public class TechnicalProposalService {
 
     @Transactional
     public TechnicalProposalResponse create(TechnicalProposalCreateRequest request) {
-        validateClientReference(request.customerUuid(), request.companyUuid(), true);
-        validateCarrierReference(request.carrierUuid(), true);
+        validateClientReference(request.customerId(), request.companyId(), true);
+        validateCarrierReference(request.carrierId(), true);
         validateObjectives(request.objectives());
         validateItemsPresence(request.serviceItems(), request.productItems());
         validateProductItems(request.productItems(), true);
@@ -116,11 +115,11 @@ public class TechnicalProposalService {
         TechnicalProposal savedHeader = repository.save(header);
 
         List<TechnicalProposalObjective> objectives = persistObjectives(
-                request.objectives(), savedHeader.getUuid());
+                request.objectives(), savedHeader.getId());
         List<TechnicalProposalServiceItem> serviceItems = persistServiceItems(
-                request.serviceItems(), savedHeader.getUuid());
+                request.serviceItems(), savedHeader.getId());
         List<TechnicalProposalProductItem> productItems = persistProductItems(
-                request.productItems(), savedHeader.getUuid());
+                request.productItems(), savedHeader.getId());
 
         savedHeader.recalculateTotals(serviceItems, productItems);
 
@@ -136,7 +135,7 @@ public class TechnicalProposalService {
     // ---------------------------------------------------------------------
 
     @Transactional(readOnly = true)
-    public TechnicalProposalResponse getById(UUID id) {
+    public TechnicalProposalResponse getById(Long id) {
         TechnicalProposal tp = repository.findById(id)
                 .orElseThrow(() -> new TechnicalProposalNotFoundException(id));
         return toResponseWithItems(tp);
@@ -158,7 +157,7 @@ public class TechnicalProposalService {
      * @param status      status da proposta (opcional)
      * @param startDate   data de início a partir de (opcional)
      * @param endDate     data de início até (opcional)
-     * @param clientUuid  UUID do cliente (PF ou PJ) (opcional)
+     * @param clientId  ID do cliente (PF ou PJ) (opcional)
      * @param codeLike    trecho do código (opcional)
      * @param pageable    paginação e ordenação
      */
@@ -166,7 +165,7 @@ public class TechnicalProposalService {
     public PagedResponse<TechnicalProposalSummaryResponse> search(TechnicalProposalStatus status,
                                                                    LocalDate startDate,
                                                                    LocalDate endDate,
-                                                                   UUID clientUuid,
+                                                                   Long clientId,
                                                                    String codeLike,
                                                                    Pageable pageable) {
         Specification<TechnicalProposal> spec = (root, query, cb) -> {
@@ -180,11 +179,11 @@ public class TechnicalProposalService {
             if (endDate != null) {
                 predicates.add(cb.lessThanOrEqualTo(root.get("startDate"), endDate));
             }
-            if (clientUuid != null) {
+            if (clientId != null) {
                 jakarta.persistence.criteria.Predicate byCustomer =
-                        cb.equal(root.get("customerUuid"), clientUuid);
+                        cb.equal(root.get("customerId"), clientId);
                 jakarta.persistence.criteria.Predicate byCompany =
-                        cb.equal(root.get("companyUuid"), clientUuid);
+                        cb.equal(root.get("companyId"), clientId);
                 predicates.add(cb.or(byCustomer, byCompany));
             }
             return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
@@ -232,15 +231,15 @@ public class TechnicalProposalService {
 
     private void loadItemsAndRecalc(TechnicalProposal tp) {
         List<TechnicalProposalServiceItem> serviceItems = serviceItemRepository
-                .findByTechnicalProposalUuidOrderByCreatedAtAsc(tp.getUuid());
+                .findByTechnicalProposalIdOrderByCreatedAtAsc(tp.getId());
         List<TechnicalProposalProductItem> productItems = productItemRepository
-                .findByTechnicalProposalUuidOrderByCreatedAtAsc(tp.getUuid());
+                .findByTechnicalProposalIdOrderByCreatedAtAsc(tp.getId());
         tp.recalculateTotals(serviceItems, productItems);
     }
 
     private List<TechnicalProposalObjective> loadObjectives(TechnicalProposal tp) {
         return objectiveRepository
-                .findByTechnicalProposalUuidOrderByCreatedAtAsc(tp.getUuid());
+                .findByTechnicalProposalIdOrderByCreatedAtAsc(tp.getId());
     }
 
     // ---------------------------------------------------------------------
@@ -248,7 +247,7 @@ public class TechnicalProposalService {
     // ---------------------------------------------------------------------
 
     @Transactional
-    public TechnicalProposalResponse update(UUID id, TechnicalProposalUpdateRequest request) {
+    public TechnicalProposalResponse update(Long id, TechnicalProposalUpdateRequest request) {
         TechnicalProposal tp = repository.findById(id)
                 .orElseThrow(() -> new TechnicalProposalNotFoundException(id));
 
@@ -258,15 +257,15 @@ public class TechnicalProposalService {
         }
 
         // Recalcula o cliente efetivo após o PATCH e valida
-        UUID effectiveCustomer = (request.customerUuid() != null)
-                ? request.customerUuid() : tp.getCustomerUuid();
-        UUID effectiveCompany = (request.companyUuid() != null)
-                ? request.companyUuid() : tp.getCompanyUuid();
+        Long effectiveCustomer = (request.customerId() != null)
+                ? request.customerId() : tp.getCustomerId();
+        Long effectiveCompany = (request.companyId() != null)
+                ? request.companyId() : tp.getCompanyId();
         validateClientReference(effectiveCustomer, effectiveCompany, false);
 
         // Valida a carrier apenas quando explicitamente informada.
-        if (request.carrierUuid() != null) {
-            validateCarrierReference(request.carrierUuid(), false);
+        if (request.carrierId() != null) {
+            validateCarrierReference(request.carrierId(), false);
         }
 
         boolean objectivesSent = request.objectives() != null;
@@ -292,15 +291,15 @@ public class TechnicalProposalService {
 
         // Substituição completa das listas, quando enviadas
         if (objectivesSent) {
-            objectiveRepository.deleteByTechnicalProposalUuid(id);
+            objectiveRepository.deleteByTechnicalProposalId(id);
             objectiveRepository.flush();
         }
         if (servicesSent) {
-            serviceItemRepository.deleteByTechnicalProposalUuid(id);
+            serviceItemRepository.deleteByTechnicalProposalId(id);
             serviceItemRepository.flush();
         }
         if (productsSent) {
-            productItemRepository.deleteByTechnicalProposalUuid(id);
+            productItemRepository.deleteByTechnicalProposalId(id);
             productItemRepository.flush();
         }
 
@@ -308,14 +307,14 @@ public class TechnicalProposalService {
         TechnicalProposal saved = repository.save(tp);
 
         List<TechnicalProposalObjective> objectives = objectivesSent
-                ? persistObjectives(request.objectives(), saved.getUuid())
-                : objectiveRepository.findByTechnicalProposalUuidOrderByCreatedAtAsc(id);
+                ? persistObjectives(request.objectives(), saved.getId())
+                : objectiveRepository.findByTechnicalProposalIdOrderByCreatedAtAsc(id);
         List<TechnicalProposalServiceItem> serviceItems = servicesSent
-                ? persistServiceItems(request.serviceItems(), saved.getUuid())
-                : serviceItemRepository.findByTechnicalProposalUuidOrderByCreatedAtAsc(id);
+                ? persistServiceItems(request.serviceItems(), saved.getId())
+                : serviceItemRepository.findByTechnicalProposalIdOrderByCreatedAtAsc(id);
         List<TechnicalProposalProductItem> productItems = productsSent
-                ? persistProductItems(request.productItems(), saved.getUuid())
-                : productItemRepository.findByTechnicalProposalUuidOrderByCreatedAtAsc(id);
+                ? persistProductItems(request.productItems(), saved.getId())
+                : productItemRepository.findByTechnicalProposalIdOrderByCreatedAtAsc(id);
 
         saved.recalculateTotals(serviceItems, productItems);
         ClientResolved client = resolveClient(saved);
@@ -333,7 +332,7 @@ public class TechnicalProposalService {
      * Inicia a execução: {@code ABERTA → EM_ANDAMENTO}.
      */
     @Transactional
-    public TechnicalProposalResponse start(UUID id) {
+    public TechnicalProposalResponse start(Long id) {
         TechnicalProposal tp = loadForStatusChange(id);
         if (tp.getStatus() != TechnicalProposalStatus.ABERTA) {
             throw new TechnicalProposalBusinessException(
@@ -349,7 +348,7 @@ public class TechnicalProposalService {
      * automaticamente a data de entrega com {@code LocalDate.now()}.
      */
     @Transactional
-    public TechnicalProposalResponse complete(UUID id) {
+    public TechnicalProposalResponse complete(Long id) {
         TechnicalProposal tp = loadForStatusChange(id);
         if (tp.getStatus() != TechnicalProposalStatus.EM_ANDAMENTO) {
             throw new TechnicalProposalBusinessException(
@@ -367,7 +366,7 @@ public class TechnicalProposalService {
      * de entrega. Útil para corrigir conclusões indevidas.
      */
     @Transactional
-    public TechnicalProposalResponse reopen(UUID id) {
+    public TechnicalProposalResponse reopen(Long id) {
         TechnicalProposal tp = loadForStatusChange(id);
         if (tp.getStatus() != TechnicalProposalStatus.CONCLUIDA) {
             throw new TechnicalProposalBusinessException(
@@ -399,12 +398,12 @@ public class TechnicalProposalService {
         List<TechnicalProposalServiceItem> serviceItems = (request.serviceItems() == null)
                 ? List.of()
                 : request.serviceItems().stream()
-                        .map(req -> TechnicalProposalMapper.toServiceItemEntity(req, header.getUuid()))
+                        .map(req -> TechnicalProposalMapper.toServiceItemEntity(req, header.getId()))
                         .toList();
         List<TechnicalProposalProductItem> productItems = (request.productItems() == null)
                 ? List.of()
                 : request.productItems().stream()
-                        .map(req -> TechnicalProposalMapper.toProductItemEntity(req, header.getUuid()))
+                        .map(req -> TechnicalProposalMapper.toProductItemEntity(req, header.getId()))
                         .toList();
 
         header.recalculateTotals(serviceItems, productItems);
@@ -425,10 +424,10 @@ public class TechnicalProposalService {
      */
     @Transactional(readOnly = true)
     public NextTechnicalProposalCodeResponse getNextCode() {
-        UUID orgUuid = OrganizationContext.require();
+        Long orgId = OrganizationContext.require();
         int year = LocalDate.now().getYear();
         String prefix = currentOrgProposalPrefix();
-        long sequence = generateNextSequence(year, orgUuid);
+        long sequence = generateNextSequence(year, orgId);
         String code = prefix + "-" + formatSequence(sequence) + "-" + year;
         return new NextTechnicalProposalCodeResponse(prefix, sequence, year, code);
     }
@@ -437,18 +436,18 @@ public class TechnicalProposalService {
     // Helpers
     // ---------------------------------------------------------------------
 
-    private TechnicalProposal loadForStatusChange(UUID id) {
+    private TechnicalProposal loadForStatusChange(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new TechnicalProposalNotFoundException(id));
     }
 
     private TechnicalProposalResponse toResponseWithItems(TechnicalProposal tp) {
         List<TechnicalProposalObjective> objectives = objectiveRepository
-                .findByTechnicalProposalUuidOrderByCreatedAtAsc(tp.getUuid());
+                .findByTechnicalProposalIdOrderByCreatedAtAsc(tp.getId());
         List<TechnicalProposalServiceItem> serviceItems = serviceItemRepository
-                .findByTechnicalProposalUuidOrderByCreatedAtAsc(tp.getUuid());
+                .findByTechnicalProposalIdOrderByCreatedAtAsc(tp.getId());
         List<TechnicalProposalProductItem> productItems = productItemRepository
-                .findByTechnicalProposalUuidOrderByCreatedAtAsc(tp.getUuid());
+                .findByTechnicalProposalIdOrderByCreatedAtAsc(tp.getId());
         tp.recalculateTotals(serviceItems, productItems);
         ClientResolved client = resolveClient(tp);
         CarrierResolved carrier = resolveCarrier(tp);
@@ -463,16 +462,16 @@ public class TechnicalProposalService {
      * Organization/ano e ano corrente.
      */
     private void applyNextCode(TechnicalProposal tp) {
-        UUID orgUuid = OrganizationContext.require();
+        Long orgId = OrganizationContext.require();
         int year = LocalDate.now().getYear();
-        long sequence = generateNextSequence(year, orgUuid);
+        long sequence = generateNextSequence(year, orgId);
         tp.setPrefix(currentOrgProposalPrefix());
         tp.setSequence(sequence);
         tp.setYear(year);
     }
 
-    private long generateNextSequence(int year, UUID organizationUuid) {
-        Long maxSequence = repository.findMaxSequenceByYearAndOrganizationUuid(year, organizationUuid);
+    private long generateNextSequence(int year, Long organizationId) {
+        Long maxSequence = repository.findMaxSequenceByYearAndOrganizationId(year, organizationId);
         return (maxSequence == null) ? 1L : maxSequence + 1L;
     }
 
@@ -485,10 +484,10 @@ public class TechnicalProposalService {
      * de gerar um código inválido como "-001-2026").
      */
     private String currentOrgProposalPrefix() {
-        UUID orgUuid = OrganizationContext.require();
-        Organization org = organizationRepository.findById(orgUuid)
+        Long orgId = OrganizationContext.require();
+        Organization org = organizationRepository.findById(orgId)
                 .orElseThrow(() -> new TechnicalProposalBusinessException(
-                        "Organization ativa não encontrada: " + orgUuid));
+                        "Organization ativa não encontrada: " + orgId));
         String prefix = org.getProposalPrefix();
         if (prefix == null || prefix.isBlank()) {
             throw new TechnicalProposalBusinessException(
@@ -504,40 +503,40 @@ public class TechnicalProposalService {
     }
 
     private List<TechnicalProposalObjective> persistObjectives(
-            List<TechnicalProposalObjectiveRequest> requests, UUID technicalProposalUuid) {
+            List<TechnicalProposalObjectiveRequest> requests, Long technicalProposalId) {
         if (requests == null || requests.isEmpty()) {
             return List.of();
         }
         List<TechnicalProposalObjective> items = new ArrayList<>(requests.size());
         for (TechnicalProposalObjectiveRequest req : requests) {
             items.add(objectiveRepository.save(
-                    TechnicalProposalMapper.toObjectiveEntity(req, technicalProposalUuid)));
+                    TechnicalProposalMapper.toObjectiveEntity(req, technicalProposalId)));
         }
         return items;
     }
 
     private List<TechnicalProposalServiceItem> persistServiceItems(
-            List<TechnicalProposalServiceItemRequest> requests, UUID technicalProposalUuid) {
+            List<TechnicalProposalServiceItemRequest> requests, Long technicalProposalId) {
         if (requests == null || requests.isEmpty()) {
             return List.of();
         }
         List<TechnicalProposalServiceItem> items = new ArrayList<>(requests.size());
         for (TechnicalProposalServiceItemRequest req : requests) {
             items.add(serviceItemRepository.save(
-                    TechnicalProposalMapper.toServiceItemEntity(req, technicalProposalUuid)));
+                    TechnicalProposalMapper.toServiceItemEntity(req, technicalProposalId)));
         }
         return items;
     }
 
     private List<TechnicalProposalProductItem> persistProductItems(
-            List<TechnicalProposalProductItemRequest> requests, UUID technicalProposalUuid) {
+            List<TechnicalProposalProductItemRequest> requests, Long technicalProposalId) {
         if (requests == null || requests.isEmpty()) {
             return List.of();
         }
         List<TechnicalProposalProductItem> items = new ArrayList<>(requests.size());
         for (TechnicalProposalProductItemRequest req : requests) {
             items.add(productItemRepository.save(
-                    TechnicalProposalMapper.toProductItemEntity(req, technicalProposalUuid)));
+                    TechnicalProposalMapper.toProductItemEntity(req, technicalProposalId)));
         }
         return items;
     }
@@ -570,25 +569,25 @@ public class TechnicalProposalService {
 
     /**
      * Valida a invariante do cliente: exatamente um entre
-     * {@code customerUuid} e {@code companyUuid} deve estar preenchido.
+     * {@code customerId} e {@code companyId} deve estar preenchido.
      * Quando {@code verifyExists} é verdadeiro (criação), também
      * verifica se o cliente existe no banco.
      */
-    private void validateClientReference(UUID customerUuid, UUID companyUuid, boolean verifyExists) {
-        if (customerUuid == null && companyUuid == null) {
+    private void validateClientReference(Long customerId, Long companyId, boolean verifyExists) {
+        if (customerId == null && companyId == null) {
             throw InvalidTechnicalProposalClientException.bothNull();
         }
-        if (customerUuid != null && companyUuid != null) {
+        if (customerId != null && companyId != null) {
             throw InvalidTechnicalProposalClientException.bothSet();
         }
         if (!verifyExists) {
             return;
         }
-        if (customerUuid != null && !customerRepository.existsById(customerUuid)) {
-            throw new TechnicalProposalClientNotFoundException(customerUuid, "CUSTOMER");
+        if (customerId != null && !customerRepository.existsById(customerId)) {
+            throw new TechnicalProposalClientNotFoundException(customerId, "CUSTOMER");
         }
-        if (companyUuid != null && !companyRepository.existsById(companyUuid)) {
-            throw new TechnicalProposalClientNotFoundException(companyUuid, "COMPANY");
+        if (companyId != null && !companyRepository.existsById(companyId)) {
+            throw new TechnicalProposalClientNotFoundException(companyId, "COMPANY");
         }
     }
 
@@ -628,10 +627,10 @@ public class TechnicalProposalService {
                                 + ": discount é obrigatório quando discountType é informado.");
             }
             if (verifyProductExists
-                    && it.productUuid() != null
-                    && !productRepository.existsById(it.productUuid())) {
+                    && it.productId() != null
+                    && !productRepository.existsById(it.productId())) {
                 throw new TechnicalProposalBusinessException(
-                        "Produto #" + (i + 1) + " não encontrado: " + it.productUuid());
+                        "Produto #" + (i + 1) + " não encontrado: " + it.productId());
             }
         }
     }
@@ -640,16 +639,16 @@ public class TechnicalProposalService {
      * Resolve o nome e o código de exibição do cliente referenciado pela
      * proposta (PF: nome; PJ: nome fantasia se houver, senão razão
      * social). Retorna {@code null} em ambos os campos quando o registro
-     * não existe mais, mantendo o UUID como referência no DTO.
+     * não existe mais, mantendo o ID como referência no DTO.
      */
     private ClientResolved resolveClient(TechnicalProposal tp) {
-        if (tp.getCustomerUuid() != null) {
-            return customerRepository.findById(tp.getCustomerUuid())
+        if (tp.getCustomerId() != null) {
+            return customerRepository.findById(tp.getCustomerId())
                     .map(c -> new ClientResolved(c.getName(), c.getCode()))
                     .orElse(ClientResolved.EMPTY);
         }
-        if (tp.getCompanyUuid() != null) {
-            return companyRepository.findById(tp.getCompanyUuid())
+        if (tp.getCompanyId() != null) {
+            return companyRepository.findById(tp.getCompanyId())
                     .map(c -> new ClientResolved(
                             c.getTradeName() != null && !c.getTradeName().isBlank()
                                     ? c.getTradeName()
@@ -664,26 +663,26 @@ public class TechnicalProposalService {
      * Valida a referência à transportadora (carrier): se não for nula,
      * verifica a existência no cadastro.
      */
-    private void validateCarrierReference(UUID carrierUuid, boolean verifyExists) {
-        if (carrierUuid == null) {
+    private void validateCarrierReference(Long carrierId, boolean verifyExists) {
+        if (carrierId == null) {
             return;
         }
-        if (verifyExists && !carrierRepository.existsById(carrierUuid)) {
+        if (verifyExists && !carrierRepository.existsById(carrierId)) {
             throw new TechnicalProposalBusinessException(
-                    "Transportadora não encontrada: " + carrierUuid);
+                    "Transportadora não encontrada: " + carrierId);
         }
     }
 
     /**
      * Resolve o nome da transportadora referenciada pela proposta
      * técnica. Retorna {@code null} quando a carrier não existe mais,
-     * mantendo o UUID como referência no DTO.
+     * mantendo o ID como referência no DTO.
      */
     private CarrierResolved resolveCarrier(TechnicalProposal tp) {
-        if (tp.getCarrierUuid() == null) {
+        if (tp.getCarrierId() == null) {
             return CarrierResolved.EMPTY;
         }
-        return carrierRepository.findById(tp.getCarrierUuid())
+        return carrierRepository.findById(tp.getCarrierId())
                 .map(c -> new CarrierResolved(c.getName()))
                 .orElse(CarrierResolved.EMPTY);
     }
@@ -703,7 +702,7 @@ public class TechnicalProposalService {
      */
     private List<TechnicalProposalServiceItemRequest> currentServiceRequests(TechnicalProposal tp) {
         return serviceItemRepository
-                .findByTechnicalProposalUuidOrderByCreatedAtAsc(tp.getUuid())
+                .findByTechnicalProposalIdOrderByCreatedAtAsc(tp.getId())
                 .stream()
                 .map(item -> new TechnicalProposalServiceItemRequest(
                         item.getDescription(), item.getPrice()))
@@ -717,10 +716,10 @@ public class TechnicalProposalService {
      */
     private List<TechnicalProposalProductItemRequest> currentProductRequests(TechnicalProposal tp) {
         return productItemRepository
-                .findByTechnicalProposalUuidOrderByCreatedAtAsc(tp.getUuid())
+                .findByTechnicalProposalIdOrderByCreatedAtAsc(tp.getId())
                 .stream()
                 .map(item -> new TechnicalProposalProductItemRequest(
-                        item.getProductUuid(),
+                        item.getProductId(),
                         item.getQuantity(),
                         item.getUnitPrice(),
                         item.getDiscountType(),

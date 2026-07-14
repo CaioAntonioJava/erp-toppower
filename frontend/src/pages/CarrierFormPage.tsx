@@ -50,7 +50,7 @@ export function CarrierFormPage() {
     let cancelled = false
     setMode('loading')
     setLoadError(null)
-    getCarrier(id)
+	    getCarrier(Number(id!))
       .then((data) => {
         if (cancelled) return
         setCarrier(data)
@@ -84,7 +84,7 @@ export function CarrierFormPage() {
     if (!carrier) return
     setSaving(true)
     try {
-      const updated = await updateCarrier(carrier.uuid, payload)
+      const updated = await updateCarrier(carrier.id, payload)
       setCarrier(updated)
     } finally {
       setSaving(false)
@@ -97,15 +97,15 @@ export function CarrierFormPage() {
     setToggleError(null)
     try {
       if (carrier.status === 'ATIVO') {
-        await inactivateCarrier(carrier.uuid)
-        try {
-          const fresh = await getCarrier(carrier.uuid)
+        await inactivateCarrier(carrier.id)
+	        try {
+	          const fresh = await getCarrier(carrier.id)
           setCarrier(fresh)
         } catch {
           setCarrier({ ...carrier, status: 'INATIVO' })
         }
       } else {
-        const updated = await activateCarrier(carrier.uuid)
+        const updated = await activateCarrier(carrier.id)
         setCarrier(updated)
       }
     } catch (err) {

@@ -4,19 +4,17 @@ import br.com.toppower.erp_toppower.user.enums.Role;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 
-import java.util.UUID;
-
 @Schema(name = "UserOrganizationAssignRequest",
         description = "Vincula um usuário a uma Organization com uma role de negócio.")
 public record UserOrganizationAssignRequest(
 
-        @Schema(description = "UUID do usuário.", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "ID do usuário.", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull(message = "userId é obrigatório")
-        UUID userId,
+        Long userId,
 
-        @Schema(description = "UUID da Organization.", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "ID da Organization.", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull(message = "organizationId é obrigatório")
-        UUID organizationId,
+        Long organizationId,
 
         @Schema(description = "Papel do usuário nesta Organization.",
                 example = "ROLE_MANAGER", allowableValues = {"ROLE_ADMIN", "ROLE_MANAGER"},

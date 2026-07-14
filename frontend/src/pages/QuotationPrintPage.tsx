@@ -25,7 +25,7 @@ export function QuotationPrintPage() {
   useEffect(() => {
     if (!id) return
     let cancelled = false
-    getQuotation(id)
+    getQuotation(Number(id!))
       .then((q) => {
         if (!cancelled) setTitle(`Proposta Comercial nº ${q.number}`)
       })
@@ -35,7 +35,7 @@ export function QuotationPrintPage() {
 
   const fetcher = useCallback(async () => {
     if (!id) throw new Error('ID da proposta ausente.')
-    return getQuotationPdf(id, 'inline')
+    return getQuotationPdf(Number(id!), 'inline')
   }, [id])
 
   return <PdfPreview title={title} fetcher={fetcher} />

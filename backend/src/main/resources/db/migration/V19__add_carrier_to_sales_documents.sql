@@ -8,7 +8,7 @@
 --   O módulo Carrier existe isolado (cadastro admin-only). Agora os
 --   formulários de Proposta Comercial, Proposta Técnica e Pedido de Venda
 --   permitem selecionar a transportadora e seu serviço. A coluna
---   `carrier_uuid` é opcional (NULL) — nem todo documento precisa ter
+--   `carrier_id` é opcional (NULL) — nem todo documento precisa ter
 --   transportadora vinculada.
 --
 --   Não há FK física (padrão do projeto: referências por UUID, sem
@@ -27,9 +27,9 @@
 SET @has_col = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
     WHERE TABLE_SCHEMA = DATABASE()
       AND TABLE_NAME = 'quotations'
-      AND COLUMN_NAME = 'carrier_uuid');
+      AND COLUMN_NAME = 'carrier_id');
 SET @sql = IF(@has_col = 0,
-    'ALTER TABLE quotations ADD COLUMN carrier_uuid BINARY(16) NULL AFTER freight_value',
+    'ALTER TABLE quotations ADD COLUMN carrier_id BIGINT NULL AFTER freight_value',
     'DO 0');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
@@ -37,9 +37,9 @@ PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @has_col = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
     WHERE TABLE_SCHEMA = DATABASE()
       AND TABLE_NAME = 'technical_proposals'
-      AND COLUMN_NAME = 'carrier_uuid');
+      AND COLUMN_NAME = 'carrier_id');
 SET @sql = IF(@has_col = 0,
-    'ALTER TABLE technical_proposals ADD COLUMN carrier_uuid BINARY(16) NULL AFTER delivery_type',
+    'ALTER TABLE technical_proposals ADD COLUMN carrier_id BIGINT NULL AFTER delivery_type',
     'DO 0');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
@@ -47,8 +47,8 @@ PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @has_col = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
     WHERE TABLE_SCHEMA = DATABASE()
       AND TABLE_NAME = 'sales_orders'
-      AND COLUMN_NAME = 'carrier_uuid');
+      AND COLUMN_NAME = 'carrier_id');
 SET @sql = IF(@has_col = 0,
-    'ALTER TABLE sales_orders ADD COLUMN carrier_uuid BINARY(16) NULL AFTER freight_value',
+    'ALTER TABLE sales_orders ADD COLUMN carrier_id BIGINT NULL AFTER freight_value',
     'DO 0');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;

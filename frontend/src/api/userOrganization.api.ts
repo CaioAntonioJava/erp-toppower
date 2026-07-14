@@ -19,13 +19,13 @@ export async function assignUserToOrganization(
 
 /** GET /api/v1/user-organizations/by-user/{userId} — lista vínculos do usuário. */
 export async function listOrganizationsByUser(
-  userId: string,
+  userId: number,
 ): Promise<UserOrganizationResponse[]> {
   const { data } = await api.get<UserOrganizationResponse[]>(`${BASE}/by-user/${userId}`)
   return data
 }
 
 /** DELETE /api/v1/user-organizations/{vinculoId} — remove um vínculo. */
-export async function removeUserOrganization(vinculoId: string): Promise<void> {
+export async function removeUserOrganization(vinculoId: number): Promise<void> {
   await api.delete(`${BASE}/${vinculoId}`)
 }

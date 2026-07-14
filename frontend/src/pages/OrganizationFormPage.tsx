@@ -96,7 +96,7 @@ export function OrganizationFormPage() {
     }
     let cancelled = false
     setMode('loading')
-    getOrganization(id)
+	    getOrganization(Number(id!))
       .then((data) => {
         if (cancelled) return
         setOrg(data)
@@ -144,7 +144,7 @@ export function OrganizationFormPage() {
     setSaveError(null)
     setSaveOk(false)
     try {
-      const updated = await updateOrganization(org.uuid, form)
+      const updated = await updateOrganization(org.id, form)
       setOrg(updated)
       setSaveOk(true)
     } catch (err) {
@@ -176,7 +176,7 @@ export function OrganizationFormPage() {
     }
 
     setUploadingLogo(true)
-    uploadOrganizationLogo(org.uuid, file)
+    uploadOrganizationLogo(org.id, file)
       .then((updated) => {
         setOrg(updated)
         setSaveOk(true)
@@ -194,7 +194,7 @@ export function OrganizationFormPage() {
     setRemovingLogo(true)
     setUploadError(null)
     try {
-      const updated = await deleteOrganizationLogo(org.uuid)
+      const updated = await deleteOrganizationLogo(org.id)
       setOrg(updated)
       setConfirmRemoveLogo(false)
     } catch (err) {
@@ -211,8 +211,8 @@ export function OrganizationFormPage() {
     setToggleError(null)
     try {
       const updated = org.status === 'ATIVO'
-        ? await inactivateOrganization(org.uuid).then(() => getOrganization(org.uuid))
-        : await activateOrganization(org.uuid)
+	        ? await inactivateOrganization(org.id).then(() => getOrganization(org.id))
+	        : await activateOrganization(org.id)
       setOrg(updated)
       setConfirmToggle(false)
     } catch (err) {

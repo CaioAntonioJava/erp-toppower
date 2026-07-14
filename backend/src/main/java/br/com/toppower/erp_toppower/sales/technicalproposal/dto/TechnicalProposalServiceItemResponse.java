@@ -3,7 +3,6 @@ package br.com.toppower.erp_toppower.sales.technicalproposal.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
 /**
  * Linha de serviço retornada pela API. O preço é informado pelo usuário
@@ -15,7 +14,7 @@ public record TechnicalProposalServiceItemResponse(
 
         @Schema(description = "Identificador (UUID) da linha.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        UUID uuid,
+        Long id,
 
         @Schema(description = "Descrição do serviço prestado.",
                 requiredMode = Schema.RequiredMode.REQUIRED)

@@ -43,7 +43,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Endpoints REST para gestão de contratos.
@@ -57,9 +56,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Tag(name = "Contratos", description = "Gestão de contratos emitidos pela empresa.")
 public class ContractController {
-
-    private static final String UUID_REGEX =
-            "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
 
     private final ContractService service;
     private final ContractPdfService pdfService;
@@ -147,8 +143,8 @@ public class ContractController {
             @RequestParam(value = "endDate", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
 
-            @Parameter(description = "UUID do cliente (PF).")
-            @RequestParam(value = "customerUuid", required = false) UUID customerUuid,
+            @Parameter(description = "ID do cliente (PF).")
+            @RequestParam(value = "customerId", required = false) Long customerId,
 
             @Parameter(description = "Trecho do código (ex.: 'CT-001' ou '2026').")
             @RequestParam(value = "code", required = false) String code,
@@ -159,7 +155,7 @@ public class ContractController {
             Pageable pageable) {
 
         return ResponseEntity.ok(service.search(
-                status, startDate, endDate, customerUuid, code, pageable));
+                status, startDate, endDate, customerId, code, pageable));
     }
 
     @GetMapping(value = "/by-code/{code}", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -184,7 +180,7 @@ public class ContractController {
         return ResponseEntity.ok(service.getByCode(code));
     }
 
-    @GetMapping(value = "/{id:" + UUID_REGEX + "}",
+    @GetMapping(value = "/{id}",
             produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Buscar contrato por ID",
             description = "Retorna o contrato completo, incluindo os blocos de texto e o "
@@ -200,11 +196,11 @@ public class ContractController {
             @ApiResponse(responseCode = "404", description = "Contrato não encontrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<ContractResponse> getById(@PathVariable UUID id) {
+    public ResponseEntity<ContractResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(service.getById(id));
     }
 
-    @PatchMapping(value = "/{id:" + UUID_REGEX + "}",
+    @PatchMapping(value = "/{id}",
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Atualizar contrato (parcial)",
@@ -229,7 +225,7 @@ public class ContractController {
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<ContractResponse> update(
-            @PathVariable UUID id,
+            @PathVariable Long id,
             @Valid @RequestBody ContractUpdateRequest request) {
         return ResponseEntity.ok(service.update(id, request));
     }
@@ -238,7 +234,7 @@ public class ContractController {
     // Transições de status
     // =====================================================================
 
-    @PostMapping(value = "/{id:" + UUID_REGEX + "}/start",
+    @PostMapping(value = "/{id}/start",
             produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Iniciar contrato (ABERTA → EM_ANDAMENTO)",
             description = "Transiciona o contrato do status ABERTA para EM_ANDAMENTO.")
@@ -256,11 +252,11 @@ public class ContractController {
                     description = "Contrato em estado que impede iniciar.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<ContractResponse> start(@PathVariable UUID id) {
+    public ResponseEntity<ContractResponse> start(@PathVariable Long id) {
         return ResponseEntity.ok(service.start(id));
     }
 
-    @PostMapping(value = "/{id:" + UUID_REGEX + "}/complete",
+    @PostMapping(value = "/{id}/complete",
             produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Concluir contrato (EM_ANDAMENTO → CONCLUIDA)",
             description = "Transiciona o contrato do status EM_ANDAMENTO para CONCLUIDA.")
@@ -278,11 +274,11 @@ public class ContractController {
                     description = "Contrato em estado que impede concluir.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<ContractResponse> complete(@PathVariable UUID id) {
+    public ResponseEntity<ContractResponse> complete(@PathVariable Long id) {
         return ResponseEntity.ok(service.complete(id));
     }
 
-    @PostMapping(value = "/{id:" + UUID_REGEX + "}/reopen",
+    @PostMapping(value = "/{id}/reopen",
             produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Reabrir contrato (CONCLUIDA → EM_ANDAMENTO)",
             description = "Reabre um contrato CONCLUIDO, voltando-o para EM_ANDAMENTO. Útil "
@@ -301,7 +297,7 @@ public class ContractController {
                     description = "Contrato em estado que impede reabrir.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<ContractResponse> reopen(@PathVariable UUID id) {
+    public ResponseEntity<ContractResponse> reopen(@PathVariable Long id) {
         return ResponseEntity.ok(service.reopen(id));
     }
 
@@ -387,7 +383,7 @@ public class ContractController {
      * Organization ativa). Suporta {@code disposition=inline} (default —
      * preview em iframe) e {@code attachment} (download).
      */
-    @GetMapping(value = "/{id:" + UUID_REGEX + "}/pdf",
+    @GetMapping(value = "/{id}/pdf",
             produces = MediaType.APPLICATION_PDF_VALUE)
     @Operation(summary = "Gerar PDF do contrato",
             description = "Retorna o PDF (A4) com cabeçalho do emissor (Organization ativa), "
@@ -405,7 +401,7 @@ public class ContractController {
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<byte[]> downloadPdf(
-            @PathVariable UUID id,
+            @PathVariable Long id,
             @Parameter(description = "Modo de disposição: 'inline' (preview) ou 'attachment' (download).",
                     schema = @Schema(allowableValues = {"inline", "attachment"}))
             @RequestParam(value = "disposition", defaultValue = "inline") String disposition) {

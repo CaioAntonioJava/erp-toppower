@@ -4,22 +4,21 @@ import br.com.toppower.erp_toppower.user.enums.Role;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
-import java.util.UUID;
 
 @Schema(name = "UserOrganizationResponse", description = "Vínculo usuário↔Organization.")
 public record UserOrganizationResponse(
 
-        @Schema(description = "UUID do vínculo.", requiredMode = Schema.RequiredMode.REQUIRED)
-        UUID uuid,
+        @Schema(description = "ID do vínculo.", requiredMode = Schema.RequiredMode.REQUIRED)
+        Long id,
 
-        @Schema(description = "UUID do usuário.", requiredMode = Schema.RequiredMode.REQUIRED)
-        UUID userUuid,
+        @Schema(description = "ID do usuário.", requiredMode = Schema.RequiredMode.REQUIRED)
+        Long userId,
 
         @Schema(description = "E-mail do usuário.", requiredMode = Schema.RequiredMode.REQUIRED)
         String userEmail,
 
-        @Schema(description = "UUID da Organization.", requiredMode = Schema.RequiredMode.REQUIRED)
-        UUID organizationUuid,
+        @Schema(description = "ID da Organization.", requiredMode = Schema.RequiredMode.REQUIRED)
+        Long organizationId,
 
         @Schema(description = "Razão social da Organization.", requiredMode = Schema.RequiredMode.REQUIRED)
         String organizationCorporateName,

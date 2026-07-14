@@ -2,7 +2,6 @@ package br.com.toppower.erp_toppower.sales.technicalproposal.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
-import java.util.UUID;
 
 /**
  * Linha de objetivo retornada pela API.
@@ -12,7 +11,7 @@ import java.util.UUID;
 public record TechnicalProposalObjectiveResponse(
         @Schema(description = "Identificador (UUID) da linha.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        UUID uuid,
+        Long id,
 
         @Schema(description = "Descrição do objetivo.",
                 requiredMode = Schema.RequiredMode.REQUIRED)

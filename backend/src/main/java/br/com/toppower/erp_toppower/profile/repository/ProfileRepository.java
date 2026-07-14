@@ -8,18 +8,17 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
-import java.util.UUID;
 
 @Repository
-public interface ProfileRepository extends JpaRepository<Profile, UUID> {
+public interface ProfileRepository extends JpaRepository<Profile, Long> {
 
     boolean existsByCpf(String cpf);
 
     boolean existsByEmail(String email);
 
-    boolean existsByUserUuid(UUID userUuid);
+    boolean existsByUserId(Long userId);
 
-    Optional<Profile> findByUserUuid(UUID userUuid);
+    Optional<Profile> findByUserId(Long userId);
 
     Page<Profile> findByStatus(ProfileStatus status, Pageable pageable);
 }

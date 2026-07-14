@@ -11,7 +11,7 @@
 --
 -- 3) Reescreve a UNIQUE KEY de `technical_proposals`: antes era global
 --    (prefix, sequence, year); agora passa a ser escopada por Organization
---    (organization_uuid, prefix, sequence, year), para que cada empresa
+--    (organization_id, prefix, sequence, year), para que cada empresa
 --    tenha sua própria sequência e possa reiniciar a contagem
 --    independentemente a cada ano.
 --
@@ -95,7 +95,7 @@ PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 --      exatamente 3 colunas e NON_UNIQUE=0.
 --    - Cria a nova UK escopada por Organization
 --      (uk_technical_proposal_org_code) com 4 colunas
---      (organization_uuid, prefix, sequence, year).
+--      (organization_id, prefix, sequence, year).
 -- -----------------------------------------------------------------------------
 
 -- 5a. Dropa uk_technical_proposal_code (3 colunas, NON_UNIQUE=0, != PRIMARY)
@@ -122,11 +122,11 @@ SET @sql = IF(@uk_name IS NOT NULL,
     'DO 0');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- 5b. Cria uk_technical_proposal_org_code (organization_uuid, prefix, sequence, year)
+-- 5b. Cria uk_technical_proposal_org_code (organization_id, prefix, sequence, year)
 SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'technical_proposals'
       AND INDEX_NAME = 'uk_technical_proposal_org_code');
 SET @sql = IF(@has_idx = 0,
-    'CREATE UNIQUE INDEX uk_technical_proposal_org_code ON technical_proposals (organization_uuid, prefix, sequence, year)',
+    'CREATE UNIQUE INDEX uk_technical_proposal_org_code ON technical_proposals (organization_id, prefix, sequence, year)',
     'DO 0');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;

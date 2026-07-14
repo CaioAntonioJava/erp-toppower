@@ -8,7 +8,7 @@ import type {
 const BASE = '/api/v1/profiles'
 
 /** GET /profiles/user/{userId} — perfil vinculado a um usuário. */
-export async function getProfileByUserId(userId: string): Promise<ProfileResponse> {
+export async function getProfileByUserId(userId: number): Promise<ProfileResponse> {
   const { data } = await api.get<ProfileResponse>(
     `${BASE}/user/${userId}`,
   )
@@ -25,7 +25,7 @@ export async function createProfile(
 
 /** PATCH /profiles/{id} — atualização parcial do perfil. */
 export async function updateProfile(
-  id: string,
+  id: number,
   payload: ProfileUpdateRequest,
 ): Promise<ProfileResponse> {
   const { data } = await api.patch<ProfileResponse>(`${BASE}/${id}`, payload)

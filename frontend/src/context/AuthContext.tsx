@@ -67,7 +67,7 @@ async function loadUserFromToken(): Promise<AuthenticatedUser | null> {
  * Retorna `true` se existir, `false` se 404.
  * Outros erros propagam para serem tratados pelo caller.
  */
-async function checkHasProfile(userId: string): Promise<boolean> {
+async function checkHasProfile(userId: number): Promise<boolean> {
   try {
     await getProfileByUserId(userId)
     return true
@@ -111,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (!cancelled) setHasProfile(true)
         } else {
           try {
-            const ok = await checkHasProfile(u.uuid)
+            const ok = await checkHasProfile(u.id)
             if (!cancelled) setHasProfile(ok)
           } catch {
             // Em caso de erro de rede, marca como null para permitir retry
@@ -143,7 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return true
     }
     try {
-      const ok = await checkHasProfile(user.uuid)
+      const ok = await checkHasProfile(user.id)
       setHasProfile(ok)
       return ok
     } catch {
@@ -162,7 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Pré-seleciona a Organization default do usuário (ou limpa se nenhuma).
       // O OrganizationContext lê essa chave no refresh para definir a ativa.
       if (response.defaultOrganizationId) {
-        localStorage.setItem(ORGANIZATION_KEY, response.defaultOrganizationId)
+	        localStorage.setItem(ORGANIZATION_KEY, String(response.defaultOrganizationId))
       } else {
         localStorage.removeItem(ORGANIZATION_KEY)
       }
@@ -175,7 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Verifica o perfil em paralelo ao prosseguir com o login
       setHasProfile(null)
       try {
-        const ok = await checkHasProfile(response.user.uuid)
+        const ok = await checkHasProfile(response.user.id)
         setHasProfile(ok)
       } catch {
         setHasProfile(null)

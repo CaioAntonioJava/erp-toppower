@@ -18,7 +18,7 @@ export function ContractPrintPage() {
   useEffect(() => {
     if (!id) return
     let cancelled = false
-    getContract(id)
+    getContract(Number(id!))
       .then((c) => {
         if (!cancelled) setTitle(`Contrato nº ${c.code}`)
       })
@@ -30,7 +30,7 @@ export function ContractPrintPage() {
 
   const fetcher = useCallback(async () => {
     if (!id) throw new Error('ID do contrato ausente.')
-    return getContractPdf(id, 'inline')
+    return getContractPdf(Number(id!), 'inline')
   }, [id])
 
   return <PdfPreview title={title} fetcher={fetcher} />

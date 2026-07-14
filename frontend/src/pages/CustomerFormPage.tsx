@@ -53,7 +53,7 @@ export function CustomerFormPage() {
     let cancelled = false
     setMode('loading')
     setLoadError(null)
-    getCustomer(id)
+	    getCustomer(Number(id!))
       .then((data) => {
         if (cancelled) return
         setCustomer(data)
@@ -87,7 +87,7 @@ export function CustomerFormPage() {
     if (!customer) return
     setSaving(true)
     try {
-      const updated = await updateCustomer(customer.uuid, payload)
+      const updated = await updateCustomer(customer.id, payload)
       setCustomer(updated)
     } finally {
       setSaving(false)
@@ -100,15 +100,15 @@ export function CustomerFormPage() {
     setToggleError(null)
     try {
       if (customer.status === 'ATIVO') {
-        await inactivateCustomer(customer.uuid)
-        try {
-          const fresh = await getCustomer(customer.uuid)
+        await inactivateCustomer(customer.id)
+	        try {
+	          const fresh = await getCustomer(customer.id)
           setCustomer(fresh)
         } catch {
           setCustomer({ ...customer, status: 'INATIVO' })
         }
       } else {
-        const updated = await activateCustomer(customer.uuid)
+        const updated = await activateCustomer(customer.id)
         setCustomer(updated)
       }
     } catch (err) {

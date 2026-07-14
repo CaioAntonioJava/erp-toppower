@@ -11,7 +11,7 @@ import { toApiError } from '../lib/errors'
 
 /** Entidade mínima que o hook precisa para seleção, auditoria e toggle. */
 export interface EntityListItem {
-  uuid: string
+  id: number
   status: RegistrationStatus
 }
 
@@ -28,8 +28,8 @@ export interface EntityListApi<T> {
     page: number
     size: number
   }) => Promise<PagedResponse<T>>
-  inactivate: (id: string) => Promise<void>
-  activate: (id: string) => Promise<T>
+  inactivate: (id: number) => Promise<void>
+  activate: (id: number) => Promise<T>
 }
 
 interface UseEntityListOptions<T> {
@@ -56,7 +56,7 @@ export function useEntityList<T extends EntityListItem>({
   const [error, setError] = useState<string | null>(null)
 
   // --- seleção em massa (ADMIN) ---
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(() => new Set())
   const [bulkRunning, setBulkRunning] = useState(false)
   const [bulkFeedback, setBulkFeedback] = useState<{
     ok: number
@@ -139,9 +139,9 @@ export function useEntityList<T extends EntityListItem>({
   // mudou) são removidos em silêncio.
   useEffect(() => {
     if (selectedIds.size === 0 || !data) return
-    const visible = new Set(data.content.map((c) => c.uuid))
+    const visible = new Set(data.content.map((c) => c.id))
     setSelectedIds((prev) => {
-      const next = new Set<string>()
+      const next = new Set<number>()
       prev.forEach((id) => {
         if (visible.has(id)) next.add(id)
       })
@@ -157,9 +157,9 @@ export function useEntityList<T extends EntityListItem>({
     setError(null)
     try {
       if (confirmSingle.status === 'ATIVO') {
-        await api.inactivate(confirmSingle.uuid)
+        await api.inactivate(confirmSingle.id)
       } else {
-        await api.activate(confirmSingle.uuid)
+        await api.activate(confirmSingle.id)
       }
       setConfirmSingle(null)
       await load()
@@ -200,7 +200,7 @@ export function useEntityList<T extends EntityListItem>({
     await load()
   }
 
-  function toggleSelect(id: string) {
+  function toggleSelect(id: number) {
     setSelectedIds((prev) => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
@@ -211,7 +211,7 @@ export function useEntityList<T extends EntityListItem>({
 
   function toggleSelectAllVisible() {
     if (!data) return
-    const visibleIds = data.content.map((c) => c.uuid)
+    const visibleIds = data.content.map((c) => c.id)
     const allSelected = visibleIds.every((id) => selectedIds.has(id))
     setSelectedIds((prev) => {
       const next = new Set(prev)
@@ -228,17 +228,17 @@ export function useEntityList<T extends EntityListItem>({
 
   const items = data?.content ?? []
   const visibleIds = useMemo(
-    () => new Set(items.map((c) => c.uuid)),
+    () => new Set(items.map((c) => c.id)),
     [items],
   )
   const allVisibleSelected =
-    items.length > 0 && items.every((c) => selectedIds.has(c.uuid))
+    items.length > 0 && items.every((c) => selectedIds.has(c.id))
   const hasSelection = selectedIds.size > 0
   const selectedActiveCount = items
-    .filter((c) => selectedIds.has(c.uuid) && c.status === 'ATIVO')
+    .filter((c) => selectedIds.has(c.id) && c.status === 'ATIVO')
     .length
   const selectedInactiveCount = items
-    .filter((c) => selectedIds.has(c.uuid) && c.status === 'INATIVO')
+    .filter((c) => selectedIds.has(c.id) && c.status === 'INATIVO')
     .length
   const hasOffpageSelection =
     selectedIds.size > visibleIds.size ||

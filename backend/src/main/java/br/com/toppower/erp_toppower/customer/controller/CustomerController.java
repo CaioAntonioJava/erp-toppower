@@ -34,16 +34,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.UUID;
-
 @RestController
 @RequestMapping("/api/v1/customers")
 @RequiredArgsConstructor
 @Tag(name = "Clientes PF", description = "Cadastro e gestão de clientes pessoa física com endereço embutido.")
 public class CustomerController {
-
-    private static final String UUID_REGEX =
-            "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
 
     private final CustomerService customerService;
 
@@ -125,9 +120,9 @@ public class CustomerController {
         return ResponseEntity.ok(customerService.search(query, status, pageable));
     }
 
-    @GetMapping(value = "/{id:" + UUID_REGEX + "}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Buscar cliente PF por ID",
-            description = "Retorna um cliente pelo UUID. Disponível para ADMIN e MANAGER — quem pode criar/editar também pode visualizar.")
+            description = "Retorna um cliente pelo ID. Disponível para ADMIN e MANAGER — quem pode criar/editar também pode visualizar.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @ApiResponses({
@@ -136,11 +131,11 @@ public class CustomerController {
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "404", description = "Cliente não encontrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<CustomerResponse> getById(@PathVariable UUID id) {
+    public ResponseEntity<CustomerResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(customerService.getById(id));
     }
 
-    @PatchMapping(value = "/{id:" + UUID_REGEX + "}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PatchMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Atualizar cliente PF (parcial)",
             description = "Atualiza apenas os campos enviados. O CPF NÃO pode ser alterado. " +
                     "Para enviar um novo endereço, inclua o sub-objeto 'address' completo (substitui o anterior).")
@@ -153,12 +148,12 @@ public class CustomerController {
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "404", description = "Cliente não encontrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<CustomerResponse> update(@PathVariable UUID id,
+    public ResponseEntity<CustomerResponse> update(@PathVariable Long id,
                                                   @Valid @RequestBody CustomerUpdateRequest request) {
         return ResponseEntity.ok(customerService.update(id, request));
     }
 
-    @DeleteMapping("/{id:" + UUID_REGEX + "}")
+    @DeleteMapping("/{id}")
     @Operation(summary = "Inativar cliente PF (soft delete)",
             description = "Define status como INATIVO. Não remove fisicamente o registro. Todas as roles.")
     @SecurityRequirement(name = "bearerAuth")
@@ -168,12 +163,12 @@ public class CustomerController {
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "404", description = "Cliente não encontrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<Void> inactivate(@PathVariable UUID id) {
+    public ResponseEntity<Void> inactivate(@PathVariable Long id) {
         customerService.softDelete(id);
         return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping(value = "/{id:" + UUID_REGEX + "}/activate", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PatchMapping(value = "/{id}/activate", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Reativar cliente PF",
             description = "Define status como ATIVO, reativando um cliente inativo. Todas as roles.")
     @SecurityRequirement(name = "bearerAuth")
@@ -184,7 +179,7 @@ public class CustomerController {
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "404", description = "Cliente não encontrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<CustomerResponse> activate(@PathVariable UUID id) {
+    public ResponseEntity<CustomerResponse> activate(@PathVariable Long id) {
         return ResponseEntity.ok(customerService.activate(id));
     }
 }

@@ -63,7 +63,7 @@ public final class CompanyMapper {
 
     public static CompanyResponse toResponse(Company company) {
         return new CompanyResponse(
-                company.getUuid(),
+                company.getId(),
                 company.getLegalName(),
                 company.getTradeName(),
                 company.getCode(),

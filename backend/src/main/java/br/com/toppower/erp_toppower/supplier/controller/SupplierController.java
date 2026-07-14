@@ -33,16 +33,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.UUID;
-
 @RestController
 @RequestMapping("/api/v1/suppliers")
 @RequiredArgsConstructor
 @Tag(name = "Fornecedores", description = "Cadastro e gestão de fornecedores (PJ) com endereço embutido.")
 public class SupplierController {
-
-    private static final String UUID_REGEX =
-            "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
 
     private final SupplierService supplierService;
 
@@ -106,9 +101,9 @@ public class SupplierController {
         return ResponseEntity.ok(supplierService.search(query, status, pageable));
     }
 
-    @GetMapping(value = "/{id:" + UUID_REGEX + "}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Buscar fornecedor por ID",
-            description = "Retorna um fornecedor pelo UUID. Disponível para ADMIN e MANAGER — quem pode criar/editar também pode visualizar.")
+            description = "Retorna um fornecedor pelo ID. Disponível para ADMIN e MANAGER — quem pode criar/editar também pode visualizar.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @ApiResponses({
@@ -117,11 +112,11 @@ public class SupplierController {
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "404", description = "Fornecedor não encontrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<SupplierResponse> getById(@PathVariable UUID id) {
+    public ResponseEntity<SupplierResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(supplierService.getById(id));
     }
 
-    @PatchMapping(value = "/{id:" + UUID_REGEX + "}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PatchMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Atualizar fornecedor (parcial)",
             description = "Atualiza apenas os campos enviados. O CNPJ (taxId) NÃO pode ser alterado. " +
                     "Para enviar um novo endereço, inclua o sub-objeto 'address' completo (substitui o anterior).")
@@ -134,12 +129,12 @@ public class SupplierController {
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "404", description = "Fornecedor não encontrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<SupplierResponse> update(@PathVariable UUID id,
+    public ResponseEntity<SupplierResponse> update(@PathVariable Long id,
                                                   @Valid @RequestBody SupplierUpdateRequest request) {
         return ResponseEntity.ok(supplierService.update(id, request));
     }
 
-    @DeleteMapping("/{id:" + UUID_REGEX + "}")
+    @DeleteMapping("/{id}")
     @Operation(summary = "Inativar fornecedor (soft delete)",
             description = "Define status como INATIVO. Não remove fisicamente o registro.")
     @SecurityRequirement(name = "bearerAuth")
@@ -149,12 +144,12 @@ public class SupplierController {
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "404", description = "Fornecedor não encontrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<Void> inactivate(@PathVariable UUID id) {
+    public ResponseEntity<Void> inactivate(@PathVariable Long id) {
         supplierService.softDelete(id);
         return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping(value = "/{id:" + UUID_REGEX + "}/activate", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PatchMapping(value = "/{id}/activate", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Reativar fornecedor",
             description = "Define status como ATIVO, reativando um fornecedor inativo.")
     @SecurityRequirement(name = "bearerAuth")
@@ -165,7 +160,7 @@ public class SupplierController {
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "404", description = "Fornecedor não encontrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<SupplierResponse> activate(@PathVariable UUID id) {
+    public ResponseEntity<SupplierResponse> activate(@PathVariable Long id) {
         return ResponseEntity.ok(supplierService.activate(id));
     }
 }

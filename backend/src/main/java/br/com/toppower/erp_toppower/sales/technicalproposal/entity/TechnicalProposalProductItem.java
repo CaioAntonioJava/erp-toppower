@@ -13,11 +13,10 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
 /**
  * Linha de produto de uma proposta técnica: um produto (referenciado por
- * UUID) com sua quantidade, preço unitário e desconto próprios.
+ * ID) com sua quantidade, preço unitário e desconto próprios.
  *
  * <p>Análogo ao {@code QuotationItem} do módulo de propostas comerciais.
  * O campo {@link #totalPrice} armazena o <b>total líquido</b> da linha,
@@ -29,7 +28,7 @@ import java.util.UUID;
 @Table(
         name = "technical_proposal_product_items",
         indexes = {
-                @Index(name = "idx_tp_product_item_proposal", columnList = "technical_proposal_uuid")
+                @Index(name = "idx_tp_product_item_proposal", columnList = "technical_proposal_id")
         }
 )
 @Getter
@@ -38,17 +37,17 @@ import java.util.UUID;
 public class TechnicalProposalProductItem extends OrganizationScopedEntity {
 
     /**
-     * UUID da {@link TechnicalProposal} à qual este item pertence.
+     * ID da {@link TechnicalProposal} à qual este item pertence.
      * Imutável após a criação ({@code updatable = false}).
      */
-    @Column(name = "technical_proposal_uuid", nullable = false, updatable = false)
-    private UUID technicalProposalUuid;
+    @Column(name = "technical_proposal_id", nullable = false, updatable = false)
+    private Long technicalProposalId;
 
     /**
-     * UUID do {@code Product} referenciado pela linha. Obrigatório.
+     * ID do {@code Product} referenciado pela linha. Obrigatório.
      */
-    @Column(name = "product_uuid", nullable = false)
-    private UUID productUuid;
+    @Column(name = "product_id", nullable = false)
+    private Long productId;
 
     /**
      * Quantidade do produto nesta linha. Suporta até 4 casas decimais

@@ -121,7 +121,7 @@ export function ProfilePage() {
     if (!user) return
     let cancelled = false
     setLoadState('loading')
-    getProfileByUserId(user.uuid)
+    getProfileByUserId(user.id)
       .then((data) => {
         if (cancelled) return
         setProfile(data)
@@ -185,7 +185,7 @@ export function ProfilePage() {
           cpf: cpf.trim(),
           status,
         }
-        const updated = await updateProfile(profile.uuid, payload)
+        const updated = await updateProfile(profile.id, payload)
         setProfile(updated)
         setSuccess('Perfil atualizado com sucesso!')
       }
@@ -213,7 +213,7 @@ export function ProfilePage() {
     if (!user) return
     setSavingPwd(true)
     try {
-      await changePassword(user.uuid, {
+      await changePassword(user.id, {
         currentPassword: currentPwd,
         newPassword: newPwd,
       })

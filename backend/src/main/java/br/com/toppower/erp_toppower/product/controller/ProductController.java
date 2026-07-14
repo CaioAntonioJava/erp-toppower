@@ -25,16 +25,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.UUID;
-
 @RestController
 @RequestMapping("/api/v1/products")
 @RequiredArgsConstructor
 @Tag(name = "Produtos", description = "Cadastro e gestao de produtos.")
 public class ProductController {
-
-    private static final String UUID_REGEX =
-            "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
 
     private final ProductService productService;
 
@@ -71,8 +66,8 @@ public class ProductController {
         return ResponseEntity.ok(productService.getAll(status, pageable));
     }
 
-    @GetMapping(value = "/{id:" + UUID_REGEX + "}", produces = MediaType.APPLICATION_JSON_VALUE)
-    @Operation(summary = "Buscar produto por ID", description = "Retorna um produto pelo UUID.")
+    @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Buscar produto por ID", description = "Retorna um produto pelo ID.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @ApiResponses({
@@ -81,11 +76,11 @@ public class ProductController {
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "404", description = "Produto não encontrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<ProductResponse> getById(@PathVariable UUID id) {
+    public ResponseEntity<ProductResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(productService.getById(id));
     }
 
-    @PatchMapping(value = "/{id:" + UUID_REGEX + "}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PatchMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Atualizar produto (parcial)",
             description = "Atualiza apenas os campos enviados. Todas as roles autenticadas. Código duplicado -> 409.")
     @SecurityRequirement(name = "bearerAuth")
@@ -98,11 +93,11 @@ public class ProductController {
             @ApiResponse(responseCode = "404", description = "Produto não encontrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "409", description = "Código já cadastrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<ProductResponse> update(@PathVariable UUID id, @Valid @RequestBody ProductUpdateRequest request) {
+    public ResponseEntity<ProductResponse> update(@PathVariable Long id, @Valid @RequestBody ProductUpdateRequest request) {
         return ResponseEntity.ok(productService.update(id, request));
     }
 
-    @DeleteMapping("/{id:" + UUID_REGEX + "}")
+    @DeleteMapping("/{id}")
     @Operation(summary = "Inativar produto (soft delete)",
             description = "Define status como INATIVO. Todas as roles autenticadas. Resposta 204 No Content.")
     @SecurityRequirement(name = "bearerAuth")
@@ -113,7 +108,7 @@ public class ProductController {
             @ApiResponse(responseCode = "404", description = "Produto não encontrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
 
-    public ResponseEntity<Void> inactivate(@PathVariable UUID id) {
+    public ResponseEntity<Void> inactivate(@PathVariable Long id) {
         productService.softDelete(id);
         return ResponseEntity.noContent().build();
     }

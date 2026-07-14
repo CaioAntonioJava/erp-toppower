@@ -76,7 +76,7 @@ interface ServiceDraft {
 /** Linha do editor de produtos (estado local). */
 interface ProductDraft {
   rowKey: string
-  productUuid: string
+  productId: number | ''
   productLabel: string
   unitType: UnitType | null
   unitPrice: string
@@ -119,8 +119,8 @@ export function TechnicalProposalForm({
   const [clientType, setClientType] = useState<TechnicalProposalClientType>(
     proposal?.clientType ?? 'CUSTOMER',
   )
-  const [clientUuid, setClientUuid] = useState<string>(
-    proposal?.customerUuid ?? proposal?.companyUuid ?? '',
+  const [clientId, setClientId] = useState<number | null>(
+    proposal?.customerId ?? proposal?.companyId ?? null,
   )
   const [clientLabel, setClientLabel] = useState<string>('')
   const [objectives, setObjectives] = useState<ObjectiveDraft[]>(() => {
@@ -170,8 +170,8 @@ export function TechnicalProposalForm({
     proposal?.freightValue != null ? formatBRLValue(proposal.freightValue) : '',
   )
   // Transportadora (Carrier) responsável pelo frete. Opcional.
-  const [carrierUuid, setCarrierUuid] = useState<string>(
-    proposal?.carrierUuid ?? '',
+  const [carrierId, setCarrierId] = useState<number | null>(
+    proposal?.carrierId ?? null,
   )
   const [notes, setNotes] = useState<string>(proposal?.notes ?? '')
 
@@ -222,7 +222,7 @@ export function TechnicalProposalForm({
     if (proposal?.productItems && proposal.productItems.length > 0) {
       return proposal.productItems.map((p) => ({
         rowKey: nextRowKey(),
-        productUuid: p.productUuid,
+        productId: p.productId,
         productLabel: '',
         unitType: null,
         unitPrice: formatBRLValue(p.unitPrice),
@@ -252,8 +252,8 @@ export function TechnicalProposalForm({
 
   // Carrega transportadoras ativas (com fallback da selecionada em edição).
   const { carriers, carriersLoading } = useActiveCarriers(
-    proposal?.carrierUuid
-      ? { uuid: proposal.carrierUuid, name: proposal.carrierName }
+    proposal?.carrierId
+      ? { id: proposal.carrierId, name: proposal.carrierName }
       : null,
   )
 
@@ -274,9 +274,9 @@ export function TechnicalProposalForm({
           ? `${proposal.clientCode} — ${proposal.clientName}`
           : proposal.clientName,
       )
-    } else if (proposal.customerUuid || proposal.companyUuid) {
-      const uuid = proposal.customerUuid ?? proposal.companyUuid ?? ''
-      setClientLabel(`${uuid.slice(0, 8)}…`)
+    } else if (proposal.customerId || proposal.companyId) {
+      const id = proposal.customerId ?? proposal.companyId ?? 0
+      setClientLabel(`${String(id).slice(0, 8)}…`)
     }
     setClientOptions([])
   }, [proposal])
@@ -285,17 +285,17 @@ export function TechnicalProposalForm({
   useEffect(() => {
     if (!proposal) return
     let cancelled = false
-    const uniqueUuids = Array.from(
-      new Set(proposal.productItems.map((p) => p.productUuid)),
+    const uniqueIds = Array.from(
+      new Set(proposal.productItems.map((p) => p.productId)),
     )
-    if (uniqueUuids.length === 0) return
+    if (uniqueIds.length === 0) return
     Promise.all(
-      uniqueUuids.map(async (uuid) => {
+      uniqueIds.map(async (id) => {
         try {
-          const p = await getProduct(uuid)
-          return [uuid, p] as const
+          const p = await getProduct(id)
+          return [id, p] as const
         } catch {
-          return [uuid, null] as const
+          return [id, null] as const
         }
       }),
     )
@@ -303,7 +303,7 @@ export function TechnicalProposalForm({
         if (cancelled) return
         setProductItems((prev) =>
           prev.map((it) => {
-            const found = entries.find(([uuid]) => uuid === it.productUuid)
+            const found = entries.find(([id]) => id === it.productId)
             const product = found?.[1]
             if (product) {
               return {
@@ -316,7 +316,7 @@ export function TechnicalProposalForm({
             }
             return {
               ...it,
-              productLabel: it.productLabel || `${it.productUuid.slice(0, 8)}…`,
+              productLabel: it.productLabel || `${String(it.productId).slice(0, 8)}…`,
             }
           }),
         )
@@ -338,7 +338,7 @@ export function TechnicalProposalForm({
    */
   useEffect(() => {
     if (!hasAddress) return
-    if (!clientUuid) return
+    if (!clientId) return
     // Guarda: só preenche se TODOS os campos estiverem vazios. Evita
     // sobrescrever endereço persistido em edição ou digitado pelo
     // usuário (inclusive via lookup de CEP).
@@ -357,8 +357,8 @@ export function TechnicalProposalForm({
     ;(async () => {
       try {
         const client = clientType === 'CUSTOMER'
-          ? await getCustomer(clientUuid)
-          : await getCompany(clientUuid)
+          ? await getCustomer(clientId)
+          : await getCompany(clientId)
         if (cancelled) return
         const a = client.address
         setAddress({
@@ -379,7 +379,7 @@ export function TechnicalProposalForm({
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasAddress, clientUuid, clientType])
+  }, [hasAddress, clientId, clientType])
 
   // Debounce do typeahead de clientes.
   const clientDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -461,7 +461,7 @@ export function TechnicalProposalForm({
       ...prev,
       {
         rowKey: nextRowKey(),
-        productUuid: '',
+        productId: '',
         productLabel: '',
         unitType: null,
         unitPrice: '',
@@ -481,7 +481,7 @@ export function TechnicalProposalForm({
   }
   function selectProduct(rowKey: string, p: ProductResponse) {
     updateProductItem(rowKey, {
-      productUuid: p.uuid,
+      productId: p.id,
       productLabel: p.name,
       unitType: p.unitType,
       unitPrice: formatBRLValue(p.price),
@@ -535,10 +535,10 @@ export function TechnicalProposalForm({
           price: parseNumber(s.price) ?? null,
         }))
       const productPayload = productItems
-        .filter((p) => p.productUuid !== '')
+        .filter((p) => p.productId !== '')
         .map((p) => {
           const base: TechnicalProposalProductItemRequest = {
-            productUuid: p.productUuid,
+            productId: p.productId || 0,
             quantity: parseNumber(p.quantity) ?? 0,
             unitPrice: parseNumber(p.unitPrice) ?? 0,
           }
@@ -589,8 +589,8 @@ export function TechnicalProposalForm({
   function validateAll(): boolean {
     const errs: Record<string, string> = {}
 
-    if (!clientUuid) {
-      errs.clientUuid = 'Selecione um cliente.'
+    if (!clientId) {
+      errs.clientId = 'Selecione um cliente.'
     }
     // Validação de objetivos: ao menos um preenchido.
     const validObjectives = objectives.filter(
@@ -623,14 +623,14 @@ export function TechnicalProposalForm({
     const validServices = serviceItems.filter(
       (s) => s.description.trim() !== '',
     )
-    const validProducts = productItems.filter((p) => p.productUuid !== '')
+    const validProducts = productItems.filter((p) => p.productId !== '')
     if (validServices.length === 0 && validProducts.length === 0) {
       errs.items = 'A proposta deve ter ao menos um serviço ou produto.'
     }
 
     // Validações de itens de produto.
     productItems.forEach((p, idx) => {
-      if (!p.productUuid) {
+      if (!p.productId) {
         errs[`products.${idx}.product`] = 'Selecione um produto.'
       }
       const qty = parseNumber(p.quantity)
@@ -700,10 +700,10 @@ export function TechnicalProposalForm({
       }))
 
     const productPayload: TechnicalProposalProductItemRequest[] = productItems
-      .filter((p) => p.productUuid !== '')
+      .filter((p) => p.productId !== '')
       .map((p) => {
         const base: TechnicalProposalProductItemRequest = {
-          productUuid: p.productUuid,
+          productId: p.productId || 0,
           quantity: parseNumber(p.quantity) ?? 0,
           unitPrice: parseNumber(p.unitPrice) ?? 0,
         }
@@ -744,11 +744,11 @@ export function TechnicalProposalForm({
           address: addressPayload,
         }
         if (clientType === 'CUSTOMER') {
-          payload.customerUuid = clientUuid
-          payload.companyUuid = null
+          payload.customerId = clientId ? Number(clientId) : null
+          payload.companyId = null
         } else {
-          payload.companyUuid = clientUuid
-          payload.customerUuid = null
+          payload.companyId = clientId ? Number(clientId) : null
+          payload.customerId = null
         }
         if (discountType !== '') {
           payload.discountType = discountType
@@ -763,7 +763,7 @@ export function TechnicalProposalForm({
         payload.deliveryType = deliveryType === '' ? null : deliveryType
         payload.deliveryDeadline = deliveryDeadline.trim() || null
         payload.validity = validity.trim() || null
-        payload.carrierUuid = carrierUuid || null
+        payload.carrierId = carrierId || null
 
         await onSaveUpdate(payload)
         setSuccess('Proposta atualizada com sucesso!')
@@ -773,9 +773,9 @@ export function TechnicalProposalForm({
           objectives: objectivesPayload,
         }
         if (clientType === 'CUSTOMER') {
-          payload.customerUuid = clientUuid
+          payload.customerId = clientId ? Number(clientId) : null
         } else {
-          payload.companyUuid = clientUuid
+          payload.companyId = clientId ? Number(clientId) : null
         }
         if (description.trim()) payload.description = description.trim()
         if (technicalResponsible.trim())
@@ -796,7 +796,7 @@ export function TechnicalProposalForm({
         if (deliveryType !== '') payload.deliveryType = deliveryType
         if (deliveryDeadline.trim()) payload.deliveryDeadline = deliveryDeadline.trim()
         if (validity.trim()) payload.validity = validity.trim()
-        payload.carrierUuid = carrierUuid || null
+        payload.carrierId = carrierId || null
 
         await onSaveCreate(payload)
         setSuccess('Proposta criada com sucesso!')
@@ -849,7 +849,7 @@ export function TechnicalProposalForm({
             value={clientType}
             onChange={(e) => {
               setClientType(e.target.value as TechnicalProposalClientType)
-              setClientUuid('')
+              setClientId(null)
               setClientLabel('')
               setClientOptions([])
             }}
@@ -876,10 +876,10 @@ export function TechnicalProposalForm({
                 value={clientLabel}
                 onChange={(e) => {
                   setClientLabel(e.target.value)
-                  setClientUuid('')
+                  setClientId(null)
                   handleClientQuery(e.target.value)
                 }}
-                onBlur={getBlurHandler('clientUuid')}
+                onBlur={getBlurHandler('clientId')}
                 hint={
                   clientLabel.trim().length > 0 && clientLabel.trim().length < 2
                     ? 'Digite ao menos 2 caracteres para buscar.'
@@ -893,15 +893,15 @@ export function TechnicalProposalForm({
                 </span>
               ) : null}
             </div>
-            {clientOptions.length > 0 && !clientUuid ? (
+            {clientOptions.length > 0 && !clientId ? (
               <ul className="mt-1 max-h-56 overflow-y-auto rounded-lg border border-slate-200 bg-white text-sm shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 {clientOptions.map((c) => (
-                  <li key={c.uuid}>
+                  <li key={c.id}>
                     <button
                       type="button"
                       className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800"
                       onClick={() => {
-                        setClientUuid(c.uuid)
+                        setClientId(c.id)
                         setClientLabel(
                           `${c.code ? `${c.code} — ` : ''}${c.name}${c.document ? ` (${c.document})` : ''}`,
                         )
@@ -925,9 +925,9 @@ export function TechnicalProposalForm({
                 ))}
               </ul>
             ) : null}
-            {shouldShowError('clientUuid', fieldErrors.clientUuid) ? (
+            {shouldShowError('clientId', fieldErrors.clientId) ? (
               <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">
-                {fieldErrors.clientUuid}
+                {fieldErrors.clientId}
               </p>
             ) : null}
           </div>
@@ -1325,8 +1325,8 @@ export function TechnicalProposalForm({
                 'freightValue',
                 fieldErrors.freightValue,
               )}
-              carrierUuid={carrierUuid}
-              onCarrierUuidChange={setCarrierUuid}
+              carrierId={carrierId}
+              onCarrierIdChange={setCarrierId}
               carriers={carriers}
               carriersLoading={carriersLoading}
               freightTypeLabel="Tipo de entrega"
@@ -1679,7 +1679,7 @@ function ProductRow({
           placeholder="Buscar produto por nome ou código…"
           value={draft.productLabel}
           onChange={(e) => {
-            onPatch({ productLabel: e.target.value, productUuid: '' })
+            onPatch({ productLabel: e.target.value, productId: '' })
             onQuery(e.target.value)
           }}
           className={inputBase}
@@ -1690,10 +1690,10 @@ function ProductRow({
             <Spinner size="sm" />
           </span>
         ) : null}
-        {productOptions.length > 0 && !draft.productUuid ? (
+        {productOptions.length > 0 && !draft.productId ? (
           <ul className="absolute left-0 right-0 top-full z-20 mt-1 max-h-56 overflow-y-auto rounded-lg border border-slate-200 bg-white text-sm shadow-lg dark:border-slate-700 dark:bg-slate-900">
             {productOptions.map((p) => (
-              <li key={p.uuid}>
+              <li key={p.id}>
                 <button
                   type="button"
                   className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800"

@@ -9,8 +9,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.UUID;
-
 /**
  * Linha de objetivo de uma proposta técnica: uma descrição livre de um
  * dos objetivos do serviço prestado.
@@ -18,16 +16,16 @@ import java.util.UUID;
  * <p>Uma proposta técnica pode ter <b>vários</b> objetivos, cada um em
  * uma linha deste agregado. Cada item pertence a uma única
  * {@link TechnicalProposal}, identificada por
- * {@link #technicalProposalUuid}. A relação não é mapeada via JPA (o
+ * {@link #technicalProposalId}. A relação não é mapeada via JPA (o
  * projeto não utiliza relacionamentos JPA para coleções); o serviço
- * carrega os itens com um {@code findByTechnicalProposalUuid} no
+ * carrega os itens com um {@code findByTechnicalProposalId} no
  * repositório.</p>
  */
 @Entity
 @Table(
         name = "technical_proposal_objectives",
         indexes = {
-                @Index(name = "idx_tp_objective_proposal", columnList = "technical_proposal_uuid")
+                @Index(name = "idx_tp_objective_proposal", columnList = "technical_proposal_id")
         }
 )
 @Getter
@@ -36,11 +34,11 @@ import java.util.UUID;
 public class TechnicalProposalObjective extends OrganizationScopedEntity {
 
     /**
-     * UUID da {@link TechnicalProposal} à qual este objetivo pertence.
+     * ID da {@link TechnicalProposal} à qual este objetivo pertence.
      * Imutável após a criação ({@code updatable = false}).
      */
-    @Column(name = "technical_proposal_uuid", nullable = false, updatable = false)
-    private UUID technicalProposalUuid;
+    @Column(name = "technical_proposal_id", nullable = false, updatable = false)
+    private Long technicalProposalId;
 
     /**
      * Descrição do objetivo do serviço prestado (texto livre).

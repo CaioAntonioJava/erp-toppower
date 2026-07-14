@@ -5,21 +5,20 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.UUID;
 
 @Repository
 public interface TechnicalProposalObjectiveRepository
-        extends JpaRepository<TechnicalProposalObjective, UUID> {
+        extends JpaRepository<TechnicalProposalObjective, Long> {
 
     /**
      * Retorna todos os objetivos de uma proposta, ordenados pela data de
      * criação (primeiro inserido primeiro).
      */
-    List<TechnicalProposalObjective> findByTechnicalProposalUuidOrderByCreatedAtAsc(UUID technicalProposalUuid);
+    List<TechnicalProposalObjective> findByTechnicalProposalIdOrderByCreatedAtAsc(Long technicalProposalId);
 
     /**
      * Remove todos os objetivos de uma proposta. Usado em substituição
      * completa da lista de objetivos (update).
      */
-    void deleteByTechnicalProposalUuid(UUID technicalProposalUuid);
+    void deleteByTechnicalProposalId(Long technicalProposalId);
 }

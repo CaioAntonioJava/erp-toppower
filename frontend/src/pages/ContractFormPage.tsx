@@ -43,7 +43,7 @@ export function ContractFormPage() {
   // sempre que a Organization ativa muda (cada empresa tem seu próprio
   // prefixo de contrato, ex.: CT-001-2026 vs CL-001-2026).
   const { activeOrganization, revision } = useOrganization()
-  const activeOrganizationUuid = activeOrganization?.uuid ?? null
+  const activeOrganizationId = activeOrganization?.id ?? null
   const isAdmin = user?.role === 'ROLE_ADMIN'
 
   const [mode, setMode] = useState<Mode>('loading')
@@ -70,7 +70,7 @@ export function ContractFormPage() {
   // caso o UUID permaneça igual entre seleções sucessivas.
   useEffect(() => {
     if (id) return
-    if (!activeOrganizationUuid) {
+    if (!activeOrganizationId) {
       setMode('create')
       setNextCode(null)
       setNextCodeError(null)
@@ -97,7 +97,7 @@ export function ContractFormPage() {
     return () => {
       cancelled = true
     }
-  }, [id, activeOrganizationUuid, revision])
+  }, [id, activeOrganizationId, revision])
 
   // Modo VIEW/EDIT: carrega o contrato pelo ID.
   useEffect(() => {
@@ -105,7 +105,7 @@ export function ContractFormPage() {
     let cancelled = false
     setMode('loading')
     setLoadError(null)
-    getContract(id)
+	    getContract(Number(id!))
       .then((data) => {
         if (cancelled) return
         setContract(data)
@@ -137,7 +137,7 @@ export function ContractFormPage() {
     if (!contract) return
     setSaving(true)
     try {
-      const updated = await updateContract(contract.uuid, payload)
+      const updated = await updateContract(contract.id, payload)
       setContract(updated)
     } finally {
       setSaving(false)
@@ -149,13 +149,13 @@ export function ContractFormPage() {
   }
 
   async function runTransition(
-    fn: (uuid: string) => Promise<ContractResponse>,
+    fn: (id: number) => Promise<ContractResponse>,
   ) {
     if (!contract) return
     setTransitioning(true)
     setTransitionError(null)
     try {
-      const updated = await fn(contract.uuid)
+      const updated = await fn(contract.id)
       setContract(updated)
       setConfirmStart(false)
       setConfirmComplete(false)
@@ -344,13 +344,13 @@ export function ContractFormPage() {
           ) : null}
           <fieldset disabled={readOnly} className={readOnly ? 'opacity-70' : ''}>
             {/*
-              key = `${activeOrganizationUuid}-${mode}-${id ?? 'new'}` força
+              key = `${activeOrganizationId}-${mode}-${id ?? 'new'}` força
               o remount do form sempre que a Organization ativa muda
               (cada empresa tem seu próprio prefixo de contrato e sua
               própria sequência) ou quando o modo/produto carregado muda.
             */}
             <ContractForm
-              key={`${activeOrganizationUuid ?? 'no-org'}-${mode}-${id ?? 'new'}`}
+              key={`${activeOrganizationId ?? 'no-org'}-${mode}-${id ?? 'new'}`}
               contract={canEdit ? contract ?? undefined : undefined}
               initialCode={mode === 'create' ? nextCode : null}
               onSaveCreate={handleCreate}

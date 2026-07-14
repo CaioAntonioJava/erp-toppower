@@ -17,7 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.UUID;
 
 @Service
 public class UserOrganizationService {
@@ -41,7 +40,7 @@ public class UserOrganizationService {
         Organization org = organizationRepository.findById(request.organizationId())
                 .orElseThrow(() -> new OrganizationNotFoundException(request.organizationId()));
 
-        if (userOrganizationRepository.existsByUserUuidAndOrganizationUuid(
+        if (userOrganizationRepository.existsByUserIdAndOrganizationId(
                 request.userId(), request.organizationId())) {
             throw new DuplicateUserOrganizationException();
         }
@@ -55,8 +54,8 @@ public class UserOrganizationService {
 
         if (makeDefault) {
             // Garante unicidade de default: desmarca as outras do mesmo usuário.
-            userOrganizationRepository.findByUserUuid(request.userId()).stream()
-                    .filter(other -> other.isDefault() && !other.getUuid().equals(uo.getUuid()))
+            userOrganizationRepository.findByUserId(request.userId()).stream()
+                    .filter(other -> other.isDefault() && !other.getId().equals(uo.getId()))
                     .forEach(other -> other.setDefault(false));
         }
 
@@ -65,24 +64,24 @@ public class UserOrganizationService {
     }
 
     @Transactional(readOnly = true)
-    public List<UserOrganizationResponse> listByUser(UUID userId) {
+    public List<UserOrganizationResponse> listByUser(Long userId) {
         if (!userRepository.existsById(userId)) {
             throw new UserNotFoundException(userId);
         }
-        return userOrganizationRepository.findByUserUuid(userId).stream()
+        return userOrganizationRepository.findByUserId(userId).stream()
                 .map(UserOrganizationMapper::toResponse)
                 .toList();
     }
 
     @Transactional
-    public UserOrganizationResponse setDefault(UUID userId, UUID organizationId) {
+    public UserOrganizationResponse setDefault(Long userId, Long organizationId) {
         UserOrganization target = userOrganizationRepository
-                .findByUserUuidAndOrganizationUuid(userId, organizationId)
+                .findByUserIdAndOrganizationId(userId, organizationId)
                 .orElseThrow(() -> new UserOrganizationNotFoundException(null));
 
         // Desmarca as outras.
-        userOrganizationRepository.findByUserUuid(userId).stream()
-                .filter(other -> other.isDefault() && !other.getUuid().equals(target.getUuid()))
+        userOrganizationRepository.findByUserId(userId).stream()
+                .filter(other -> other.isDefault() && !other.getId().equals(target.getId()))
                 .forEach(other -> other.setDefault(false));
         target.setDefault(true);
 
@@ -90,9 +89,9 @@ public class UserOrganizationService {
     }
 
     @Transactional
-    public void unassign(UUID userOrganizationUuid) {
-        UserOrganization uo = userOrganizationRepository.findById(userOrganizationUuid)
-                .orElseThrow(() -> new UserOrganizationNotFoundException(userOrganizationUuid));
+    public void unassign(Long userOrganizationId) {
+        UserOrganization uo = userOrganizationRepository.findById(userOrganizationId)
+                .orElseThrow(() -> new UserOrganizationNotFoundException(userOrganizationId));
         userOrganizationRepository.delete(uo);
     }
 }

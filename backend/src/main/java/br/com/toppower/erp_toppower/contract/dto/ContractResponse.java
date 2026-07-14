@@ -7,7 +7,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Representação completa de um contrato retornada pela API.
@@ -18,7 +17,7 @@ public record ContractResponse(
 
         @Schema(description = "Identificador único (UUID) do contrato.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        UUID uuid,
+        Long id,
 
         @Schema(description = "Prefixo do código (ex.: \"CT\" ou \"CL\").",
                 example = "CT", requiredMode = Schema.RequiredMode.REQUIRED)
@@ -39,12 +38,12 @@ public record ContractResponse(
         @Schema(description = "UUID do cliente pessoa física contratante "
                 + "(presente quando o cliente for PF).",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID customerUuid,
+        Long customerId,
 
         @Schema(description = "UUID da empresa (pessoa jurídica) contratante "
                 + "(presente quando o cliente for PJ).",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID companyUuid,
+        Long companyId,
 
         @Schema(description = "Tipo do cliente referenciado pelo contrato.",
                 allowableValues = {"CUSTOMER", "COMPANY"},

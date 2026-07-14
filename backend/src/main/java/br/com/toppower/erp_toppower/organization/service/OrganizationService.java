@@ -23,7 +23,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.UUID;
 
 @Service
 public class OrganizationService {
@@ -58,7 +57,7 @@ public class OrganizationService {
     }
 
     @Transactional(readOnly = true)
-    public OrganizationResponse getById(UUID id) {
+    public OrganizationResponse getById(Long id) {
         return organizationRepository.findById(id)
                 .map(OrganizationMapper::toResponse)
                 .orElseThrow(() -> new OrganizationNotFoundException(id));
@@ -79,7 +78,7 @@ public class OrganizationService {
     }
 
     @Transactional
-    public OrganizationResponse update(UUID id, OrganizationUpdateRequest request) {
+    public OrganizationResponse update(Long id, OrganizationUpdateRequest request) {
         Organization org = organizationRepository.findById(id)
                 .orElseThrow(() -> new OrganizationNotFoundException(id));
         // Valida unicidade dos prefixos antes de aplicar: ignora quando o
@@ -99,7 +98,7 @@ public class OrganizationService {
     }
 
     @Transactional
-    public void inactivate(UUID id) {
+    public void inactivate(Long id) {
         Organization org = organizationRepository.findById(id)
                 .orElseThrow(() -> new OrganizationNotFoundException(id));
         org.setStatus(OrganizationStatus.INATIVO);
@@ -107,7 +106,7 @@ public class OrganizationService {
     }
 
     @Transactional
-    public OrganizationResponse activate(UUID id) {
+    public OrganizationResponse activate(Long id) {
         Organization org = organizationRepository.findById(id)
                 .orElseThrow(() -> new OrganizationNotFoundException(id));
         org.setStatus(OrganizationStatus.ATIVO);
@@ -147,16 +146,16 @@ public class OrganizationService {
                     .map(OrganizationMapper::toSummary)
                     .toList();
         }
-        List<UserOrganization> links = userOrganizationRepository.findActiveByUserUuid(principal.uuid());
-        UUID defaultOrgId = userOrganizationRepository
-                .findFirstByUserUuidAndIsDefaultTrue(principal.uuid())
-                .map(uo -> uo.getOrganization().getUuid())
+        List<UserOrganization> links = userOrganizationRepository.findActiveByUserId(principal.id());
+        Long defaultOrgId = userOrganizationRepository
+                .findFirstByUserIdAndIsDefaultTrue(principal.id())
+                .map(uo -> uo.getOrganization().getId())
                 .orElse(null);
         return links.stream()
                 .map(uo -> OrganizationMapper.toSummary(
                         uo.getOrganization(),
                         uo.getRole(),
-                        uo.getOrganization().getUuid().equals(defaultOrgId)))
+                        uo.getOrganization().getId().equals(defaultOrgId)))
                 .toList();
     }
 
@@ -166,17 +165,17 @@ public class OrganizationService {
      * primeira Organization ATIVA encontrada (ou null se nenhuma existir).
      */
     @Transactional(readOnly = true)
-    public UUID resolveDefaultOrganizationId(UserDetailsImpl principal) {
+    public Long resolveDefaultOrganizationId(UserDetailsImpl principal) {
         if (principal.isAdmin()) {
             return organizationRepository.findAll().stream()
                     .filter(o -> o.getStatus() == OrganizationStatus.ATIVO)
-                    .map(Organization::getUuid)
+                    .map(Organization::getId)
                     .findFirst()
                     .orElse(null);
         }
         return userOrganizationRepository
-                .findFirstByUserUuidAndIsDefaultTrue(principal.uuid())
-                .map(uo -> uo.getOrganization().getUuid())
+                .findFirstByUserIdAndIsDefaultTrue(principal.id())
+                .map(uo -> uo.getOrganization().getId())
                 .orElse(null);
     }
 

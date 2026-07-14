@@ -60,9 +60,9 @@ interface SalesOrderFormProps {
 
 /** Linha do editor de itens (estado local, antes de virar SalesOrderItemRequest). */
 interface ItemDraft {
-  /** Chave local para controle de lista. Diferente do uuid do backend. */
+  /** Chave local para controle de lista. Diferente do id do backend. */
   rowKey: string
-  productUuid: string
+  productId: number | ''
   productLabel: string
   /** Unidade de medida do produto (UN/MT/BOB) — definida ao selecionar o produto. */
   unitType: UnitType | null
@@ -110,13 +110,13 @@ export function SalesOrderForm({
   const [clientType, setClientType] = useState<SalesOrderClientType>(
     salesOrder?.clientType ?? 'CUSTOMER',
   )
-  const [clientUuid, setClientUuid] = useState<string>(
-    salesOrder?.customerUuid ?? salesOrder?.companyUuid ?? '',
+  const [clientId, setClientId] = useState<string>(
+    salesOrder?.customerId != null ? String(salesOrder.customerId) : salesOrder?.companyId != null ? String(salesOrder.companyId) : '',
   )
   const [clientLabel, setClientLabel] = useState<string>('')
   const [attention, setAttention] = useState<string>(salesOrder?.attention ?? '')
-  const [sellerUuid, setSellerUuid] = useState<string>(
-    salesOrder?.sellerUuid ?? '',
+  const [sellerId, setSellerId] = useState<number | null>(
+    salesOrder?.sellerId ?? null,
   )
   const [paymentCondition, setPaymentCondition] = useState<PaymentCondition | ''>(
     salesOrder?.paymentCondition ?? '',
@@ -130,8 +130,8 @@ export function SalesOrderForm({
     salesOrder?.freightValue != null ? formatBRLValue(salesOrder.freightValue) : '',
   )
   // Transportadora (Carrier) responsável pelo frete. Opcional.
-  const [carrierUuid, setCarrierUuid] = useState<string>(
-    salesOrder?.carrierUuid ?? '',
+  const [carrierId, setCarrierId] = useState<number | null>(
+    salesOrder?.carrierId ?? null,
   )
   const [notes, setNotes] = useState<string>(salesOrder?.notes ?? '')
   const [discountType, setDiscountType] = useState<DiscountType | ''>(
@@ -173,7 +173,7 @@ export function SalesOrderForm({
     if (salesOrder?.items && salesOrder.items.length > 0) {
       return salesOrder.items.map((it) => ({
         rowKey: nextRowKey(),
-        productUuid: it.productUuid,
+        productId: it.productId,
         // Rótulo inicial vazio — hidratado com o nome real via `getProduct`
         // no efeito abaixo. Exibir o UUID aqui faria o campo mostrá-lo até
         // a resolução (ou para sempre, se a busca falhar).
@@ -192,7 +192,7 @@ export function SalesOrderForm({
       return [
         {
           rowKey: nextRowKey(),
-          productUuid: '',
+          productId: '',
           productLabel: '',
           unitType: null,
           unitPrice: 0,
@@ -223,8 +223,8 @@ export function SalesOrderForm({
 
   // Carrega transportadoras ativas (com fallback da selecionada em edição).
   const { carriers, carriersLoading } = useActiveCarriers(
-    salesOrder?.carrierUuid
-      ? { uuid: salesOrder.carrierUuid, name: salesOrder.carrierName }
+    salesOrder?.carrierId
+      ? { id: salesOrder.carrierId, name: salesOrder.carrierName }
       : null,
   )
 
@@ -271,11 +271,11 @@ export function SalesOrderForm({
   // `SalesOrderDetailPage`).
   useEffect(() => {
     if (!salesOrder) return
-    const targetUuid =
+    const targetId =
       salesOrder.clientType === 'CUSTOMER'
-        ? salesOrder.customerUuid
-        : salesOrder.companyUuid
-    if (!targetUuid) return
+        ? salesOrder.customerId
+        : salesOrder.companyId
+    if (!targetId) return
 
     if (salesOrder.clientName) {
       setClientLabel(
@@ -284,14 +284,14 @@ export function SalesOrderForm({
           : salesOrder.clientName,
       )
     } else {
-      setClientLabel(`${targetUuid.slice(0, 8)}…`)
+      setClientLabel(`${String(targetId).slice(0, 8)}…`)
     }
     setClientOptions([])
   }, [salesOrder])
 
   // Hidrata o nome e a unidade de medida dos itens no modo edição.
   //
-  // O `SalesOrderResponse` carrega apenas o `productUuid` em cada item —
+  // O `SalesOrderResponse` carrega apenas o `productId` em cada item —
   // sem nome e sem unidade. Sem este efeito, o campo "Produto" de cada
   // linha ficava vazio. Aqui dedupamos os UUIDs e buscamos cada produto
   // uma vez, atualizando todas as linhas que o referenciam. Mantemos o
@@ -301,18 +301,18 @@ export function SalesOrderForm({
     if (!salesOrder) return
     let cancelled = false
 
-    const uniqueProductUuids = Array.from(
-      new Set(salesOrder.items.map((it) => it.productUuid)),
+    const uniqueProductIds = Array.from(
+      new Set(salesOrder.items.map((it) => it.productId)),
     )
-    if (uniqueProductUuids.length === 0) return
+    if (uniqueProductIds.length === 0) return
 
     Promise.all(
-      uniqueProductUuids.map(async (uuid) => {
+      uniqueProductIds.map(async (id) => {
         try {
-          const p = await getProduct(uuid)
-          return [uuid, p] as const
+          const p = await getProduct(id)
+          return [id, p] as const
         } catch {
-          return [uuid, null] as const
+          return [id, null] as const
         }
       }),
     )
@@ -320,7 +320,7 @@ export function SalesOrderForm({
         if (cancelled) return
         setItems((prev) =>
           prev.map((it) => {
-            const found = entries.find(([uuid]) => uuid === it.productUuid)
+            const found = entries.find(([id]) => id === it.productId)
             const product = found?.[1]
             if (product) {
               const label = product.code
@@ -332,10 +332,10 @@ export function SalesOrderForm({
                 unitType: product.unitType,
               }
             }
-            // Fallback: UUID curto mantém o campo visível.
+            // Fallback: ID curto mantém o campo visível.
             return {
               ...it,
-              productLabel: it.productLabel || `${it.productUuid.slice(0, 8)}…`,
+              productLabel: it.productLabel || `${String(it.productId).slice(0, 8)}…`,
             }
           }),
         )
@@ -420,7 +420,7 @@ export function SalesOrderForm({
       ...prev,
       {
         rowKey: nextRowKey(),
-        productUuid: '',
+        productId: '',
         productLabel: '',
         unitType: null,
         unitPrice: 0,
@@ -445,7 +445,7 @@ export function SalesOrderForm({
 
   function selectProduct(rowKey: string, p: ProductResponse) {
     updateItem(rowKey, {
-      productUuid: p.uuid,
+      productId: p.id,
       productLabel: p.name,
       unitType: p.unitType,
       // snapshot do preço atual do produto
@@ -481,18 +481,18 @@ export function SalesOrderForm({
   function validateAll(): boolean {
     const errs: Record<string, string> = {}
 
-    if (!clientUuid) {
-      errs.clientUuid = 'Selecione um cliente.'
+    if (!clientId) {
+      errs.clientId = 'Selecione um cliente.'
     }
-    if (!sellerUuid) {
-      errs.sellerUuid = 'Selecione o vendedor responsável.'
+    if (!sellerId) {
+      errs.sellerId = 'Selecione o vendedor responsável.'
     }
 
     if (items.length === 0) {
       errs.items = 'O pedido deve ter ao menos um item.'
     } else {
       items.forEach((it, idx) => {
-        if (!it.productUuid) {
+        if (!it.productId) {
           errs[`items.${idx}.product`] = 'Selecione um produto.'
         }
         if (!(it.quantity > 0)) {
@@ -566,7 +566,7 @@ export function SalesOrderForm({
 
     const itemsPayload: SalesOrderItemRequest[] = items.map((it) => {
       const base: SalesOrderItemRequest = {
-        productUuid: it.productUuid,
+        productId: it.productId || 0,
         quantity: it.quantity,
         unitPrice: it.unitPrice,
       }
@@ -579,15 +579,15 @@ export function SalesOrderForm({
       if (isEdit) {
         const payload: SalesOrderUpdateRequest = {
           attention: attention.trim() ? attention.trim() : null,
-          sellerUuid,
+          sellerId: sellerId || null,
           items: itemsPayload,
         }
         if (clientType === 'CUSTOMER') {
-          payload.customerUuid = clientUuid
-          payload.companyUuid = null
+          payload.customerId = clientId ? Number(clientId) : null
+          payload.companyId = null
         } else {
-          payload.companyUuid = clientUuid
-          payload.customerUuid = null
+          payload.companyId = clientId ? Number(clientId) : null
+          payload.customerId = null
         }
         if (discountType !== '') {
           payload.discountType = discountType
@@ -600,7 +600,7 @@ export function SalesOrderForm({
         payload.notes = notes.trim() ? notes.trim() : null
         payload.freightType = freightType === '' ? null : freightType
         payload.freightValue = parseNumber(freightValue)
-        payload.carrierUuid = carrierUuid || null
+        payload.carrierId = carrierId || null
         payload.profitMargin = profitMargin.trim()
           ? parseNumber(profitMargin)
           : null
@@ -610,13 +610,13 @@ export function SalesOrderForm({
         reset()
       } else {
         const payload: SalesOrderCreateRequest = {
-          sellerUuid,
+          sellerId: sellerId || 0,
           items: itemsPayload,
         }
         if (clientType === 'CUSTOMER') {
-          payload.customerUuid = clientUuid
+          payload.customerId = clientId ? Number(clientId) : null
         } else {
-          payload.companyUuid = clientUuid
+          payload.companyId = clientId ? Number(clientId) : null
         }
         if (attention.trim()) payload.attention = attention.trim()
         if (discountType !== '') {
@@ -631,7 +631,7 @@ export function SalesOrderForm({
         if (freightValue.trim()) {
           payload.freightValue = parseNumber(freightValue)
         }
-        payload.carrierUuid = carrierUuid || null
+        payload.carrierId = carrierId || null
         payload.profitMargin = profitMargin.trim()
           ? parseNumber(profitMargin)
           : null
@@ -693,7 +693,7 @@ export function SalesOrderForm({
             value={clientType}
             onChange={(e) => {
               setClientType(e.target.value as SalesOrderClientType)
-              setClientUuid('')
+              setClientId('')
               setClientLabel('')
               setClientOptions([])
             }}
@@ -720,10 +720,10 @@ export function SalesOrderForm({
                 value={clientLabel}
                 onChange={(e) => {
                   setClientLabel(e.target.value)
-                  setClientUuid('')
+                  setClientId('')
                   handleClientQuery(e.target.value)
                 }}
-                onBlur={getBlurHandler('clientUuid')}
+                onBlur={getBlurHandler('clientId')}
                 hint={
                   clientLabel.trim().length > 0 &&
                   clientLabel.trim().length < 2
@@ -738,15 +738,15 @@ export function SalesOrderForm({
                 </span>
               ) : null}
             </div>
-            {clientOptions.length > 0 && !clientUuid ? (
+            {clientOptions.length > 0 && !clientId ? (
               <ul className="mt-1 max-h-56 overflow-y-auto rounded-lg border border-slate-200 bg-white text-sm shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 {clientOptions.map((c) => (
-                  <li key={c.uuid}>
+                  <li key={c.id}>
                     <button
                       type="button"
                       className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800"
                       onClick={() => {
-                        setClientUuid(c.uuid)
+                        setClientId(String(c.id))
                         setClientLabel(
                           `${c.code ? `${c.code} — ` : ''}${c.name}${c.document ? ` (${c.document})` : ''}`,
                         )
@@ -770,9 +770,9 @@ export function SalesOrderForm({
                 ))}
               </ul>
             ) : null}
-            {shouldShowError('clientUuid', fieldErrors.clientUuid) ? (
+            {shouldShowError('clientId', fieldErrors.clientId) ? (
               <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">
-                {fieldErrors.clientUuid}
+                {fieldErrors.clientId}
               </p>
             ) : null}
           </div>
@@ -781,14 +781,14 @@ export function SalesOrderForm({
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <Select
             label="Vendedor"
-            value={sellerUuid}
-            onChange={(e) => setSellerUuid(e.target.value)}
-            onBlur={getBlurHandler('sellerUuid')}
-            error={shouldShowError('sellerUuid', fieldErrors.sellerUuid)}
+            value={sellerId ?? ''}
+            onChange={(e) => setSellerId(Number(e.target.value) || null)}
+            onBlur={getBlurHandler('sellerId')}
+            error={shouldShowError('sellerId', fieldErrors.sellerId)}
             required
             options={[
               { value: '', label: sellersLoading ? 'Carregando…' : 'Selecione…' },
-              ...sellers.map((s) => ({ value: s.uuid, label: s.name })),
+              ...sellers.map((s) => ({ value: String(s.id), label: s.name })),
             ]}
             aria-label="Vendedor responsável"
           />
@@ -972,8 +972,8 @@ export function SalesOrderForm({
                 'freightValue',
                 fieldErrors.freightValue,
               )}
-              carrierUuid={carrierUuid}
-              onCarrierUuidChange={setCarrierUuid}
+              carrierId={carrierId}
+              onCarrierIdChange={setCarrierId}
               carriers={carriers}
               carriersLoading={carriersLoading}
             />
@@ -1189,7 +1189,7 @@ function ItemRow({
           placeholder="Buscar produto por nome ou código…"
           value={item.productLabel}
           onChange={(e) => {
-            onPatch({ productLabel: e.target.value, productUuid: '' })
+            onPatch({ productLabel: e.target.value, productId: '' })
             onQuery(e.target.value)
           }}
           onBlur={getBlurHandler(productField)}
@@ -1201,10 +1201,10 @@ function ItemRow({
             <Spinner size="sm" />
           </span>
         ) : null}
-        {productOptions.length > 0 && !item.productUuid ? (
+        {productOptions.length > 0 && !item.productId ? (
           <ul className="absolute left-0 right-0 top-full z-20 mt-1 max-h-56 overflow-y-auto rounded-lg border border-slate-200 bg-white text-sm shadow-lg dark:border-slate-700 dark:bg-slate-900">
             {productOptions.map((p) => (
-              <li key={p.uuid}>
+              <li key={p.id}>
                 <button
                   type="button"
                   className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800"

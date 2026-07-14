@@ -18,7 +18,6 @@ import br.com.toppower.erp_toppower.sales.salesorder.entity.SalesOrderItem;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Conversões entre entidades do agregado {@code SalesOrder} e seus DTOs.
@@ -61,11 +60,11 @@ public final class SalesOrderMapper {
      * @param salesOrderUuid UUID do pedido
      * @param profitMargin  margem de lucro opcional; nula ou zero não aplica acréscimo
      */
-    public static SalesOrderItem toItemEntity(SalesOrderItemRequest request, UUID salesOrderUuid,
+    public static SalesOrderItem toItemEntity(SalesOrderItemRequest request, Long salesOrderId,
                                                BigDecimal profitMargin) {
         SalesOrderItem item = new SalesOrderItem();
-        item.setSalesOrderUuid(salesOrderUuid);
-        item.setProductUuid(request.productUuid());
+        item.setSalesOrderId(salesOrderId);
+        item.setProductId(request.productId());
         item.setQuantity(request.quantity());
         // Preço base (sem margem) — persistido para que a edição do
         // pedido não reaplique a margem sobre o snapshot.
@@ -105,12 +104,12 @@ public final class SalesOrderMapper {
      * @return item do pedido de venda
      */
     @Deprecated
-    public static SalesOrderItem fromQuotationItem(QuotationItem source, UUID salesOrderUuid,
+    public static SalesOrderItem fromQuotationItem(QuotationItem source, Long salesOrderId,
                                                     BigDecimal profitMargin) {
         // no-op: profit margin already embedded in QuotationItem.unitPrice/totalPrice
         SalesOrderItem item = new SalesOrderItem();
-        item.setSalesOrderUuid(salesOrderUuid);
-        item.setProductUuid(source.getProductUuid());
+        item.setSalesOrderId(salesOrderId);
+        item.setProductId(source.getProductId());
         item.setQuantity(source.getQuantity());
         item.setUnitPrice(source.getUnitPrice());
         // Preserva o preço base (sem margem) vindo da cotação, para
@@ -124,8 +123,8 @@ public final class SalesOrderMapper {
 
     public static SalesOrderItemResponse toItemResponse(SalesOrderItem item) {
         return new SalesOrderItemResponse(
-                item.getUuid(),
-                item.getProductUuid(),
+                item.getId(),
+                item.getProductId(),
                 item.getQuantity(),
                 item.getUnitPrice(),
                 item.getBaseUnitPrice(),
@@ -218,10 +217,10 @@ public final class SalesOrderMapper {
      */
     public static SalesOrder toEntity(SalesOrderCreateRequest request) {
         SalesOrder o = new SalesOrder();
-        applyHeader(o, request.customerUuid(), request.companyUuid(), request.attention(),
-                request.sellerUuid(), request.discountType(), request.discount(),
+        applyHeader(o, request.customerId(), request.companyId(), request.attention(),
+                request.sellerId(), request.discountType(), request.discount(),
                 request.paymentCondition(), request.notes(),
-                request.freightType(), request.freightValue(), request.carrierUuid());
+                request.freightType(), request.freightValue(), request.carrierId());
         o.setProfitMargin(request.profitMargin());
         return o;
     }
@@ -239,7 +238,7 @@ public final class SalesOrderMapper {
                                             List<QuotationItem> sourceItems,
                                             SalesOrderFromQuotationRequest override) {
         SalesOrder o = new SalesOrder();
-        o.setQuotationUuid(source.getUuid());
+        o.setQuotationId(source.getId());
         o.setQuotationNumber(source.getNumber());
 
         String attention = (override != null && override.attention() != null)
@@ -249,11 +248,11 @@ public final class SalesOrderMapper {
         String notes = (override != null && override.notes() != null)
                 ? override.notes() : source.getNotes();
 
-        applyHeader(o, source.getCustomerUuid(), source.getCompanyUuid(), attention,
-                source.getSellerUuid(), source.getDiscountType(), source.getDiscount(),
+        applyHeader(o, source.getCustomerId(), source.getCompanyId(), attention,
+                source.getSellerId(), source.getDiscountType(), source.getDiscount(),
                 payment, notes,
                 source.getFreightType(), source.getFreightValue(),
-                source.getCarrierUuid());
+                source.getCarrierId());
         return o;
     }
 
@@ -266,17 +265,17 @@ public final class SalesOrderMapper {
      * e os novos itens são inseridos.</p>
      */
     public static void applyUpdate(SalesOrder order, SalesOrderUpdateRequest request) {
-        if (request.customerUuid() != null) {
-            order.setCustomerUuid(request.customerUuid());
+        if (request.customerId() != null) {
+            order.setCustomerId(request.customerId());
         }
-        if (request.companyUuid() != null) {
-            order.setCompanyUuid(request.companyUuid());
+        if (request.companyId() != null) {
+            order.setCompanyId(request.companyId());
         }
         if (request.attention() != null) {
             order.setAttention(request.attention());
         }
-        if (request.sellerUuid() != null) {
-            order.setSellerUuid(request.sellerUuid());
+        if (request.sellerId() != null) {
+            order.setSellerId(request.sellerId());
         }
         if (request.discountType() != null) {
             order.setDiscountType(request.discountType());
@@ -299,27 +298,27 @@ public final class SalesOrderMapper {
         if (request.profitMargin() != null) {
             order.setProfitMargin(request.profitMargin());
         }
-        // carrierUuid admite null (remoção da transportadora vinculada).
-        order.setCarrierUuid(request.carrierUuid());
+        // carrierId admite null (remoção da transportadora vinculada).
+        order.setCarrierId(request.carrierId());
     }
 
-    private static void applyHeader(SalesOrder o, UUID customerUuid, UUID companyUuid,
-                                    String attention, UUID sellerUuid,
+    private static void applyHeader(SalesOrder o, Long customerId, Long companyId,
+                                    String attention, Long sellerId,
                                     DiscountType discountType, BigDecimal discount,
                                     PaymentCondition paymentCondition, String notes,
                                     FreightType freightType,
-                                    BigDecimal freightValue, UUID carrierUuid) {
-        o.setCustomerUuid(customerUuid);
-        o.setCompanyUuid(companyUuid);
+                                    BigDecimal freightValue, Long carrierId) {
+        o.setCustomerId(customerId);
+        o.setCompanyId(companyId);
         o.setAttention(attention);
-        o.setSellerUuid(sellerUuid);
+        o.setSellerId(sellerId);
         o.setDiscountType(discountType);
         o.setDiscount(discount);
         o.setPaymentCondition(paymentCondition);
         o.setNotes(notes);
         o.setFreightType(freightType);
         o.setFreightValue(freightValue);
-        o.setCarrierUuid(carrierUuid);
+        o.setCarrierId(carrierId);
     }
 
     /**
@@ -335,21 +334,21 @@ public final class SalesOrderMapper {
                                                 String sellerName, String clientName, String clientCode,
                                                 String carrierName) {
         SalesOrderResponse.ClientType clientType =
-                (order.getCustomerUuid() != null)
+                (order.getCustomerId() != null)
                         ? SalesOrderResponse.ClientType.CUSTOMER
                         : SalesOrderResponse.ClientType.COMPANY;
 
         return new SalesOrderResponse(
-                order.getUuid(),
+                order.getId(),
                 order.getNumber(),
                 order.getOrderDate(),
-                order.getCustomerUuid(),
-                order.getCompanyUuid(),
+                order.getCustomerId(),
+                order.getCompanyId(),
                 clientType,
                 clientName,
                 clientCode,
                 order.getAttention(),
-                order.getSellerUuid(),
+                order.getSellerId(),
                 sellerName,
                 items.stream().map(SalesOrderMapper::toItemResponse).toList(),
                 order.getDiscountType(),
@@ -358,10 +357,10 @@ public final class SalesOrderMapper {
                 order.getNotes(),
                 order.getFreightType(),
                 order.getFreightValue(),
-                order.getCarrierUuid(),
+                order.getCarrierId(),
                 carrierName,
                 order.getStatus(),
-                order.getQuotationUuid(),
+                order.getQuotationId(),
                 order.getQuotationNumber(),
                 order.getProfitMargin(),
                 order.getSubtotal(),
@@ -382,22 +381,22 @@ public final class SalesOrderMapper {
     public static SalesOrderSummaryResponse toSummary(SalesOrder order, String clientName,
                                                       String clientCode, String sellerName) {
         SalesOrderResponse.ClientType clientType =
-                (order.getCustomerUuid() != null)
+                (order.getCustomerId() != null)
                         ? SalesOrderResponse.ClientType.CUSTOMER
                         : SalesOrderResponse.ClientType.COMPANY;
-        UUID clientUuid = (order.getCustomerUuid() != null)
-                ? order.getCustomerUuid()
-                : order.getCompanyUuid();
+        Long clientId = (order.getCustomerId() != null)
+                ? order.getCustomerId()
+                : order.getCompanyId();
 
         return new SalesOrderSummaryResponse(
-                order.getUuid(),
+                order.getId(),
                 order.getNumber(),
                 order.getOrderDate(),
                 clientType,
-                clientUuid,
+                clientId,
                 clientName,
                 clientCode,
-                order.getSellerUuid(),
+                order.getSellerId(),
                 sellerName,
                 order.getStatus(),
                 order.getTotalQuantity(),

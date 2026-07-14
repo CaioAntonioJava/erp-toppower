@@ -36,7 +36,7 @@ import java.time.LocalDate;
  * {@code (organization_uuid, prefix, sequence, year)} é única no sistema
  * (constraint {@code uk_contract_org_code}).</p>
  *
- * <p>O cliente é referenciado pelo campo {@link #customerUuid}; esta
+ * <p>O cliente é referenciado pelo campo {@link #customerId}; esta
  * primeira versão do agregado atende apenas clientes pessoa física — a
  * referência a pessoas jurídicas ({@code Company}) pode ser adicionada em
  * uma evolução futura, mantendo o mesmo padrão de UUID.</p>
@@ -63,8 +63,8 @@ import java.time.LocalDate;
         indexes = {
                 @Index(name = "idx_contract_status", columnList = "status"),
                 @Index(name = "idx_contract_start_date", columnList = "start_date"),
-                @Index(name = "idx_contract_customer", columnList = "customer_uuid"),
-                @Index(name = "idx_contract_company", columnList = "company_uuid")
+                @Index(name = "idx_contract_customer", columnList = "customer_id"),
+                @Index(name = "idx_contract_company", columnList = "company_id")
         },
         uniqueConstraints = {
                 @UniqueConstraint(
@@ -107,19 +107,19 @@ public class Contract extends OrganizationScopedEntity {
 
     /**
      * Referência ao {@code Customer} (pessoa física) contratante.
-     * Opcional — exatamente <b>um</b> entre {@link #customerUuid} e
-     * {@link #companyUuid} deve estar preenchido (validação no service).
+     * Opcional — exatamente <b>um</b> entre {@link #customerId} e
+     * {@link #companyId} deve estar preenchido (validação no service).
      */
-    @Column(name = "customer_uuid")
-    private java.util.UUID customerUuid;
+    @Column(name = "customer_id")
+    private Long customerId;
 
     /**
      * Referência à {@code Company} (pessoa jurídica) contratante.
-     * Opcional — exatamente <b>um</b> entre {@link #customerUuid} e
+     * Opcional — exatamente <b>um</b> entre {@link #customerId} e
      * este campo deve estar preenchido (validação no service).
      */
-    @Column(name = "company_uuid")
-    private java.util.UUID companyUuid;
+    @Column(name = "company_id")
+    private Long companyId;
 
     /**
      * Endereço vinculado ao contrato (ex.: local de execução). <b>Opcional</b>

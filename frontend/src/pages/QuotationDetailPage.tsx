@@ -80,7 +80,7 @@ export function QuotationDetailPage() {
     let cancelled = false
     setLoading(true)
     setError(null)
-    getQuotation(id)
+    getQuotation(Number(id!))
       .then((data) => {
         if (cancelled) return
         setQuotation(data)
@@ -101,7 +101,7 @@ export function QuotationDetailPage() {
   // O `QuotationResponse` já traz o nome do cliente (`clientName`/`clientCode`)
   // e do vendedor (`sellerName`) resolvidos no backend. Apenas os nomes de
   // produtos ainda precisam ser hidratados no frontend, pois cada item traz
-  // apenas o `productUuid`. Mantemos o UUID curto como fallback caso a
+  // apenas o `productId`. Mantemos o ID curto como fallback caso a
   // resolução falhe (registro inativado, removido, ou erro de rede).
   const [productNames, setProductNames] = useState<Record<string, string>>({})
 
@@ -109,24 +109,24 @@ export function QuotationDetailPage() {
     if (!quotation) return
     let cancelled = false
 
-    // Produtos — dedupe por UUID para não buscar o mesmo item duas vezes.
-    const uniqueProductUuids = Array.from(
-      new Set(quotation.items.map((it) => it.productUuid)),
+    // Produtos — dedupe por ID para não buscar o mesmo item duas vezes.
+    const uniqueProductIds = Array.from(
+      new Set(quotation.items.map((it) => it.productId)),
     )
     const productEntriesPromise = Promise.all(
-      uniqueProductUuids.map(async (uuid) => {
+      uniqueProductIds.map(async (id) => {
         try {
-          const p = await getProduct(uuid)
+          const p = await getProduct(id)
           const label = p.code ? `${p.code} — ${p.name}` : p.name
-          return [uuid, label] as const
+          return [id, label] as const
         } catch {
-          return [uuid, null] as const
+          return [id, null] as const
         }
       }),
     ).then((entries) => {
       const map: Record<string, string> = {}
-      for (const [uuid, label] of entries) {
-        if (label != null) map[uuid] = label
+      for (const [id, label] of entries) {
+        if (label != null) map[id] = label
       }
       return map
     })
@@ -150,7 +150,7 @@ export function QuotationDetailPage() {
     setCanceling(true)
     setCancelError(null)
     try {
-      const updated = await cancelQuotation(quotation.uuid)
+      const updated = await cancelQuotation(quotation.id)
       setQuotation(updated)
       setConfirmCancel(false)
     } catch (err) {
@@ -165,9 +165,9 @@ export function QuotationDetailPage() {
     setConverting(true)
     setConvertError(null)
     try {
-      const order = await createSalesOrderFromQuotation(quotation.uuid)
+      const order = await createSalesOrderFromQuotation(quotation.id)
       // Navega para o detalhe do pedido recém-criado.
-      navigate(`/sales-orders/${order.uuid}`)
+      navigate(`/sales-orders/${order.id}`)
     } catch (err) {
       setConvertError(toApiError(err).message)
     } finally {
@@ -204,17 +204,17 @@ export function QuotationDetailPage() {
   // Apenas propostas ATIVAS podem ser convertidas em pedido (regra do backend).
   const canConvert = quotation.status === 'ATIVA'
 
-  // UUID "curto" usado como fallback visual quando o nome real não está
+  // ID "curto" usado como fallback visual quando o nome real não está
   // disponível no payload (cliente inativado/removido após a criação).
-  const clientUuid =
+  const clientId =
     quotation.clientType === 'CUSTOMER'
-      ? quotation.customerUuid
-      : quotation.companyUuid
+      ? quotation.customerId
+      : quotation.companyId
   const clientDisplay = quotation.clientName
     ? (quotation.clientCode
         ? `${quotation.clientCode} — ${quotation.clientName}`
         : quotation.clientName)
-    : (clientUuid ? `${clientUuid.slice(0, 8)}…` : '—')
+    : (clientId ? `${String(clientId).slice(0, 8)}…` : '—')
 
   return (
     <div className="space-y-6">
@@ -238,7 +238,7 @@ export function QuotationDetailPage() {
           <Button
             variant="secondary"
             onClick={() =>
-              window.open(`/quotations/${quotation.uuid}/pdf`, '_blank')
+              window.open(`/quotations/${quotation.id}/pdf`, '_blank')
             }
           >
             <Printer className="h-4 w-4" />
@@ -247,7 +247,7 @@ export function QuotationDetailPage() {
           {canEdit ? (
             <Button
               variant="secondary"
-              onClick={() => navigate(`/quotations/${quotation.uuid}/edit`)}
+              onClick={() => navigate(`/quotations/${quotation.id}/edit`)}
             >
               <FileEdit className="h-4 w-4" />
               Editar
@@ -407,9 +407,9 @@ export function QuotationDetailPage() {
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {quotation.items.map((it) => {
-                const productLabel = productNames[it.productUuid]
+                const productLabel = productNames[it.productId]
                 return (
-                <tr key={it.uuid}>
+                <tr key={it.id}>
                   <td className="px-4 py-3">
                     {productLabel != null ? (
                       <span className="text-sm text-slate-800 dark:text-slate-200">
@@ -418,9 +418,9 @@ export function QuotationDetailPage() {
                     ) : (
                       <span
                         className="break-all font-mono text-xs text-slate-500 dark:text-slate-400"
-                        title={it.productUuid}
+                        title={String(it.productId)}
                       >
-                        {`${it.productUuid.slice(0, 8)}…`}
+                        {`${String(it.productId).slice(0, 8)}…`}
                       </span>
                     )}
                   </td>

@@ -6,7 +6,6 @@ import br.com.toppower.erp_toppower.user.dto.UserResponse;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.List;
-import java.util.UUID;
 
 @Schema(name = "LoginResponse", description = "Resposta do login com o token JWT, dados do usuário e Organizations acessíveis.")
 public record LoginResponse(
@@ -31,15 +30,15 @@ public record LoginResponse(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         List<OrganizationSummary> organizations,
 
-        @Schema(description = "UUID da Organization default (pré-selecionada após o login). Pode ser null.",
+        @Schema(description = "ID da Organization default (pré-selecionada após o login). Pode ser null.",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID defaultOrganizationId
+        Long defaultOrganizationId
 ) {
     @Schema(name = "AuthenticatedUser", description = "Dados do usuário autenticado retornados pelo login.")
     public record AuthenticatedUser(
 
-            @Schema(description = "UUID do usuário.", requiredMode = Schema.RequiredMode.REQUIRED)
-            UUID uuid,
+            @Schema(description = "ID do usuário.", requiredMode = Schema.RequiredMode.REQUIRED)
+            Long id,
 
             @Schema(description = "E-mail do usuário.", requiredMode = Schema.RequiredMode.REQUIRED)
             String email,
@@ -51,12 +50,12 @@ public record LoginResponse(
             Role role
     ) {
         public static AuthenticatedUser from(UserResponse user) {
-            return new AuthenticatedUser(user.uuid(), user.email(), user.role());
+            return new AuthenticatedUser(user.id(), user.email(), user.role());
         }
     }
 
     public static LoginResponse of(String accessToken, long expiresIn, UserResponse user,
-                                   List<OrganizationSummary> organizations, UUID defaultOrganizationId) {
+                                   List<OrganizationSummary> organizations, Long defaultOrganizationId) {
         return new LoginResponse(accessToken, "Bearer", expiresIn,
                 AuthenticatedUser.from(user), organizations, defaultOrganizationId);
     }

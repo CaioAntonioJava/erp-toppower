@@ -26,8 +26,8 @@ public final class StockMovementMapper {
      */
     public static StockMovementResponse toResponse(StockMovement movement, Product product) {
         return new StockMovementResponse(
-                movement.getUuid(),
-                movement.getProductUuid(),
+                movement.getId(),
+                movement.getProductId(),
                 product != null ? product.getName() : null,
                 product != null ? product.getCode() : null,
                 movement.getQuantityChange(),
@@ -35,11 +35,11 @@ public final class StockMovementMapper {
                 movement.getStockAfter(),
                 movement.getType(),
                 movement.getSource(),
-                movement.getSourceUuid(),
+                movement.getSourceId(),
                 movement.getSourceNumber(),
                 movement.getReason(),
                 movement.isReversed(),
-                movement.getReversalOfUuid(),
+                movement.getReversalOfId(),
                 movement.getCreatedAt(),
                 movement.getCreatedBy()
         );

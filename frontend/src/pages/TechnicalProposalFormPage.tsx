@@ -45,7 +45,7 @@ export function TechnicalProposalFormPage() {
   // o `useEffect` só dispararia em mount e mostraria o prefixo errado
   // ao trocar de empresa no dropdown do Topbar.
   const { activeOrganization } = useOrganization()
-  const activeOrganizationUuid = activeOrganization?.uuid ?? null
+  const activeOrganizationId = activeOrganization?.id ?? null
   const isAdmin = user?.role === 'ROLE_ADMIN'
 
   const [mode, setMode] = useState<Mode>('loading')
@@ -71,7 +71,7 @@ export function TechnicalProposalFormPage() {
   // effect reaja à troca de empresa no Topbar.
   useEffect(() => {
     if (id) return
-    if (!activeOrganizationUuid) {
+    if (!activeOrganizationId) {
       // Sem Organization ativa: limpa o preview e fica aguardando.
       setMode('create')
       setNextCode(null)
@@ -92,7 +92,7 @@ export function TechnicalProposalFormPage() {
     return () => {
       cancelled = true
     }
-  }, [id, activeOrganizationUuid])
+  }, [id, activeOrganizationId])
 
   // Modo VIEW/EDIT: carrega a proposta pelo ID (imutável entre trocas de org,
   // pois a URL é específica). Em caso de erro, cai em modo create.
@@ -101,7 +101,7 @@ export function TechnicalProposalFormPage() {
     let cancelled = false
     setMode('loading')
     setLoadError(null)
-    getTechnicalProposal(id)
+	    getTechnicalProposal(Number(id!))
       .then((data) => {
         if (cancelled) return
         setProposal(data)
@@ -131,7 +131,7 @@ export function TechnicalProposalFormPage() {
     if (!proposal) return
     setSaving(true)
     try {
-      const updated = await updateTechnicalProposal(proposal.uuid, payload)
+      const updated = await updateTechnicalProposal(proposal.id, payload)
       setProposal(updated)
     } finally {
       setSaving(false)
@@ -143,13 +143,13 @@ export function TechnicalProposalFormPage() {
   }
 
   async function runTransition(
-    fn: (uuid: string) => Promise<TechnicalProposalResponse>,
+    fn: (id: number) => Promise<TechnicalProposalResponse>,
   ) {
     if (!proposal) return
     setTransitioning(true)
     setTransitionError(null)
     try {
-      const updated = await fn(proposal.uuid)
+      const updated = await fn(proposal.id)
       setProposal(updated)
       setConfirmStart(false)
       setConfirmComplete(false)
@@ -333,7 +333,7 @@ export function TechnicalProposalFormPage() {
           ) : null}
           <fieldset disabled={readOnly} className={readOnly ? 'opacity-70' : ''}>
             {/*
-              key = `${activeOrganizationUuid}-${mode}-${id ?? 'new'}` força
+              key = `${activeOrganizationId}-${mode}-${id ?? 'new'}` força
               o remount do form sempre que a Organization ativa muda
               (cada empresa tem seu próprio prefixo de proposta e sua
               própria sequência) ou quando o modo (create/view/edit) ou a
@@ -342,7 +342,7 @@ export function TechnicalProposalFormPage() {
               trocar de empresa pelo dropdown do Topbar.
             */}
             <TechnicalProposalForm
-              key={`${activeOrganizationUuid ?? 'no-org'}-${mode}-${id ?? 'new'}`}
+              key={`${activeOrganizationId ?? 'no-org'}-${mode}-${id ?? 'new'}`}
               proposal={canEdit ? proposal ?? undefined : undefined}
               initialCode={mode === 'create' ? nextCode : null}
               onSaveCreate={handleCreate}

@@ -10,7 +10,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Representação completa de um pedido de venda retornada pela API,
@@ -26,7 +25,7 @@ import java.util.UUID;
 public record SalesOrderResponse(
 
         @Schema(description = "Identificador único (UUID) do pedido.", requiredMode = Schema.RequiredMode.REQUIRED)
-        UUID uuid,
+        Long id,
 
         @Schema(description = "Número sequencial do pedido (sem prefixo).", example = "1000",
                 requiredMode = Schema.RequiredMode.REQUIRED)
@@ -38,11 +37,11 @@ public record SalesOrderResponse(
 
         @Schema(description = "UUID do cliente pessoa física (presente quando o comprador for PF).",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID customerUuid,
+        Long customerId,
 
         @Schema(description = "UUID da empresa (presente quando o comprador for PJ).",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID companyUuid,
+        Long companyId,
 
         @Schema(description = "Tipo de cliente referenciado pelo pedido.",
                 allowableValues = {"CUSTOMER", "COMPANY"},
@@ -64,7 +63,7 @@ public record SalesOrderResponse(
         String attention,
 
         @Schema(description = "UUID do vendedor.", requiredMode = Schema.RequiredMode.REQUIRED)
-        UUID sellerUuid,
+        Long sellerId,
 
         @Schema(description = "Nome do vendedor (resolvido no backend).",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
@@ -99,7 +98,7 @@ public record SalesOrderResponse(
 
         @Schema(description = "UUID da transportadora (Carrier) responsável pelo frete.",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID carrierUuid,
+        Long carrierId,
 
         @Schema(description = "Nome da transportadora (resolvido no backend a partir de carrierUuid).",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
@@ -112,7 +111,7 @@ public record SalesOrderResponse(
 
         @Schema(description = "UUID da proposta que deu origem ao pedido (nulo em criação direta).",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID quotationUuid,
+        Long quotationId,
 
         @Schema(description = "Número da proposta que deu origem ao pedido (nulo em criação direta).",
                 example = "1500", requiredMode = Schema.RequiredMode.NOT_REQUIRED)

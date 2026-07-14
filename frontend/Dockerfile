@@ -20,9 +20,11 @@ RUN npm ci
 # Copia o resto do código e gera os estáticos em dist/.
 COPY . .
 
-# Em produção, o navegador precisa apontar para o backend.
-# Passamos a URL pública do backend via var de build do Vite.
-ARG VITE_API_URL=/api
+# Em produção, o navegador faz requisições same-origin e o nginx
+# faz proxy de /api/ para o backend. Os módulos em src/api já usam
+# caminhos absolutos (/api/v1/...), portanto VITE_API_URL deve ficar
+# vazio para não duplicar o prefixo (/api/api/v1/...).
+ARG VITE_API_URL=
 ENV VITE_API_URL=${VITE_API_URL}
 RUN npm run build
 

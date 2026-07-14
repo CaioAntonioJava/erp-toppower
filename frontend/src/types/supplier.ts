@@ -10,7 +10,7 @@ export type { RegistrationStatus, Address }
  * Fornecedores não possuem `code` — o CNPJ (`taxId`) é o identificador fiscal.
  */
 export interface SupplierResponse {
-  uuid: string
+  id: number
   legalName: string
   tradeName: string | null
   /** CNPJ — imutável após o cadastro. */

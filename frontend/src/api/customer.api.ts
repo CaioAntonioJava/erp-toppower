@@ -57,7 +57,7 @@ export async function searchCustomers(params: {
 }
 
 /** GET /customers/{id} — detalhe. Requer ROLE_ADMIN no backend. */
-export async function getCustomer(id: string): Promise<CustomerResponse> {
+export async function getCustomer(id: number): Promise<CustomerResponse> {
   const { data } = await api.get<CustomerResponse>(`${BASE}/${id}`)
   return data
 }
@@ -82,7 +82,7 @@ export async function createCustomer(
 
 /** PATCH /customers/{id} — atualização parcial. */
 export async function updateCustomer(
-  id: string,
+  id: number,
   payload: CustomerUpdateRequest,
 ): Promise<CustomerResponse> {
   const { data } = await api.patch<CustomerResponse>(`${BASE}/${id}`, payload)
@@ -90,12 +90,12 @@ export async function updateCustomer(
 }
 
 /** DELETE /customers/{id} — inativação (soft delete). Retorna 204. */
-export async function inactivateCustomer(id: string): Promise<void> {
+export async function inactivateCustomer(id: number): Promise<void> {
   await api.delete(`${BASE}/${id}`)
 }
 
 /** PATCH /customers/{id}/activate — reativação. */
-export async function activateCustomer(id: string): Promise<CustomerResponse> {
+export async function activateCustomer(id: number): Promise<CustomerResponse> {
   const { data } = await api.patch<CustomerResponse>(
     `${BASE}/${id}/activate`,
   )

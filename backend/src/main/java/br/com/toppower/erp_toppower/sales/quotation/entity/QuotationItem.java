@@ -13,16 +13,15 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
 /**
- * Linha de uma proposta comercial: um produto (referenciado por UUID)
+ * Linha de uma proposta comercial: um produto (referenciado por ID)
  * com sua quantidade, preço unitário e desconto próprios.
  *
  * <p>Cada item pertence a uma única {@link Quotation}, identificada por
- * {@link #quotationUuid}. A relação não é mapeada via JPA (o projeto
+ * {@link #quotationId}. A relação não é mapeada via JPA (o projeto
  * não utiliza relacionamentos JPA para coleções); o serviço carrega
- * os itens com um {@code findByQuotationUuid} no repositório de itens.</p>
+ * os itens com um {@code findByQuotationId} no repositório de itens.</p>
  *
  * <p>O campo {@link #totalPrice} armazena o <b>total líquido</b> da
  * linha, resultado de {@code (unitPrice * quantity) - discount}, onde
@@ -35,7 +34,7 @@ import java.util.UUID;
 @Table(
         name = "quotation_items",
         indexes = {
-                @Index(name = "idx_quotation_item_quotation", columnList = "quotation_uuid")
+                @Index(name = "idx_quotation_item_quotation", columnList = "quotation_id")
         }
 )
 @Getter
@@ -44,18 +43,18 @@ import java.util.UUID;
 public class QuotationItem extends OrganizationScopedEntity {
 
     /**
-     * UUID da {@link Quotation} à qual este item pertence.
+     * ID da {@link Quotation} à qual este item pertence.
      * Imutável após a criação ({@code updatable = false}).
      */
-    @Column(name = "quotation_uuid", nullable = false, updatable = false)
-    private UUID quotationUuid;
+    @Column(name = "quotation_id", nullable = false, updatable = false)
+    private Long quotationId;
 
     /**
-     * UUID do {@code Product} referenciado pela linha.
+     * ID do {@code Product} referenciado pela linha.
      * Obrigatório.
      */
-    @Column(name = "product_uuid", nullable = false)
-    private UUID productUuid;
+    @Column(name = "product_id", nullable = false)
+    private Long productId;
 
     /**
      * Quantidade do produto nesta linha. Suporta até 4 casas decimais

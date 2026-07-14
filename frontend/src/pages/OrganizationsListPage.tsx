@@ -46,11 +46,11 @@ export function OrganizationsListPage() {
         const full = await Promise.all(
           summaries.map(async (s) => {
             try {
-              return await getOrganization(s.uuid)
+              return await getOrganization(s.id)
             } catch {
               // fallback: monta um OrganizationResponse mínimo a partir do summary
               return {
-                uuid: s.uuid,
+                id: s.id,
                 corporateName: s.corporateName,
                 tradeName: s.tradeName,
                 cnpj: s.cnpj,
@@ -81,15 +81,15 @@ export function OrganizationsListPage() {
     setToggleError(null)
     try {
       if (toggling.status === 'ATIVO') {
-        await inactivateOrganization(toggling.uuid)
+        await inactivateOrganization(toggling.id)
       } else {
-        await activateOrganization(toggling.uuid)
+        await activateOrganization(toggling.id)
       }
       // Re-busca o estado atual da org para pegar o status atualizado
-      const fresh = await getOrganization(toggling.uuid)
+      const fresh = await getOrganization(toggling.id)
       // Atualiza a lista in-place
       setItems((prev: OrganizationResponse[]) =>
-        prev.map((o) => (o.uuid === fresh.uuid ? fresh : o)),
+        prev.map((o) => (o.id === fresh.id ? fresh : o)),
       )
       setToggling(null)
     } catch (err) {
@@ -168,9 +168,9 @@ export function OrganizationsListPage() {
               ) : (
                 items.map((org) => (
                   <tr
-                    key={org.uuid}
-                    className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40"
-                    onClick={() => navigate(`/organizations/${org.uuid}`)}
+                    key={org.id}
+	                    className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40"
+	                    onClick={() => navigate(`/organizations/${org.id}`)}
                   >
                     <td className="px-4 py-3">
                       <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-md border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
@@ -214,7 +214,7 @@ export function OrganizationsListPage() {
                       <div className="flex items-center justify-end gap-1">
                         <Button
                           size="sm" variant="ghost"
-                          onClick={() => navigate(`/organizations/${org.uuid}`)}
+                          onClick={() => navigate(`/organizations/${org.id}`)}
                           title="Ver / editar" aria-label="Ver / editar"
                         >
                           <Eye className="h-4 w-4" />

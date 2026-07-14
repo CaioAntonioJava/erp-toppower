@@ -25,8 +25,8 @@ export async function listSalesOrders(
         status: filters.status,
         startDate: filters.startDate,
         endDate: filters.endDate,
-        clientUuid: filters.clientUuid,
-        sellerUuid: filters.sellerUuid,
+        clientId: filters.clientId,
+        sellerId: filters.sellerId,
         number: filters.number,
         quotationNumber: filters.quotationNumber,
       },
@@ -44,7 +44,7 @@ export async function getNextSalesOrderNumber(): Promise<number> {
 }
 
 /** GET /sales-orders/{id} — detalhe completo (com itens e totais). */
-export async function getSalesOrder(id: string): Promise<SalesOrderResponse> {
+export async function getSalesOrder(id: number): Promise<SalesOrderResponse> {
   const { data } = await api.get<SalesOrderResponse>(`${BASE}/${id}`)
   return data
 }
@@ -73,11 +73,11 @@ export async function createSalesOrder(
  * não houver sobrescritas, pois o backend aceita `required = false`.
  */
 export async function createSalesOrderFromQuotation(
-  quotationId: string,
+  quotationId: number,
   override?: SalesOrderFromQuotationRequest,
 ): Promise<SalesOrderResponse> {
   const { data } = await api.post<SalesOrderResponse>(
-    `${BASE}/from-quotation/${encodeURIComponent(quotationId)}`,
+    `${BASE}/from-quotation/${quotationId}`,
     override ?? {},
   )
   return data
@@ -85,7 +85,7 @@ export async function createSalesOrderFromQuotation(
 
 /** PATCH /sales-orders/{id} — atualização parcial. */
 export async function updateSalesOrder(
-  id: string,
+  id: number,
   payload: SalesOrderUpdateRequest,
 ): Promise<SalesOrderResponse> {
   const { data } = await api.patch<SalesOrderResponse>(
@@ -100,7 +100,7 @@ export async function updateSalesOrder(
  * o próximo estado do ciclo (ABERTO → FINALIZADO).
  */
 export async function advanceSalesOrderStatus(
-  id: string,
+  id: number,
 ): Promise<SalesOrderResponse> {
   const { data } = await api.patch<SalesOrderResponse>(
     `${BASE}/${id}/advance-status`,
@@ -113,7 +113,7 @@ export async function advanceSalesOrderStatus(
  * atualizado com status CANCELADO.
  */
 export async function cancelSalesOrder(
-  id: string,
+  id: number,
 ): Promise<SalesOrderResponse> {
   const { data } = await api.delete<SalesOrderResponse>(`${BASE}/${id}`)
   return data
@@ -125,7 +125,7 @@ export async function cancelSalesOrder(
  * preview ou `<a download>` para download direto.
  */
 export async function getSalesOrderPdf(
-  id: string,
+  id: number,
   disposition: 'inline' | 'attachment' = 'inline',
 ): Promise<{ blob: Blob; filename: string }> {
   const response = await api.get<Blob>(`${BASE}/${id}/pdf`, {

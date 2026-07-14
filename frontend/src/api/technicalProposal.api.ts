@@ -28,7 +28,7 @@ export async function listTechnicalProposals(
         status: filters.status,
         startDate: filters.startDate,
         endDate: filters.endDate,
-        clientUuid: filters.clientUuid,
+        clientId: filters.clientId,
         code: filters.code,
       },
     },
@@ -46,7 +46,7 @@ export async function getNextTechnicalProposalCode(): Promise<NextTechnicalPropo
 
 /** GET /technical-proposals/{id} — detalhe completo (com itens e totais). */
 export async function getTechnicalProposal(
-  id: string,
+  id: number,
 ): Promise<TechnicalProposalResponse> {
   const { data } = await api.get<TechnicalProposalResponse>(`${BASE}/${id}`)
   return data
@@ -83,7 +83,7 @@ export async function simulateTechnicalProposal(
 
 /** PATCH /technical-proposals/{id} — atualização parcial. */
 export async function updateTechnicalProposal(
-  id: string,
+  id: number,
   payload: TechnicalProposalUpdateRequest,
 ): Promise<TechnicalProposalResponse> {
   const { data } = await api.patch<TechnicalProposalResponse>(
@@ -95,7 +95,7 @@ export async function updateTechnicalProposal(
 
 /** POST /technical-proposals/{id}/start — ABERTA → EM_ANDAMENTO. */
 export async function startTechnicalProposal(
-  id: string,
+  id: number,
 ): Promise<TechnicalProposalResponse> {
   const { data } = await api.post<TechnicalProposalResponse>(
     `${BASE}/${id}/start`,
@@ -105,7 +105,7 @@ export async function startTechnicalProposal(
 
 /** POST /technical-proposals/{id}/complete — EM_ANDAMENTO → CONCLUIDA. */
 export async function completeTechnicalProposal(
-  id: string,
+  id: number,
 ): Promise<TechnicalProposalResponse> {
   const { data } = await api.post<TechnicalProposalResponse>(
     `${BASE}/${id}/complete`,
@@ -115,7 +115,7 @@ export async function completeTechnicalProposal(
 
 /** POST /technical-proposals/{id}/reopen — CONCLUIDA → EM_ANDAMENTO. */
 export async function reopenTechnicalProposal(
-  id: string,
+  id: number,
 ): Promise<TechnicalProposalResponse> {
   const { data } = await api.post<TechnicalProposalResponse>(
     `${BASE}/${id}/reopen`,
@@ -142,7 +142,7 @@ export async function searchTechnicalProposalClients(
  * preview ou `<a download>` para download direto.
  */
 export async function getTechnicalProposalPdf(
-  id: string,
+  id: number,
   disposition: 'inline' | 'attachment' = 'inline',
 ): Promise<{ blob: Blob; filename: string }> {
   const response = await api.get<Blob>(`${BASE}/${id}/pdf`, {

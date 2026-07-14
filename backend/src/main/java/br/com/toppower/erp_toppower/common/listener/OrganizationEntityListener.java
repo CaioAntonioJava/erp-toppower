@@ -4,20 +4,19 @@ import br.com.toppower.erp_toppower.common.context.OrganizationContext;
 
 import java.lang.reflect.Field;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Entity listener JPA que injeta automaticamente o {@code organization_uuid}
+ * Entity listener JPA que injeta automaticamente o {@code organization_id}
  * da entidade a partir do {@link OrganizationContext} no momento do persist.
  *
  * <p>Disparado em {@link jakarta.persistence.PrePersist}. Lê a Organization
  * corrente do {@link OrganizationContext} (populado pelo
  * {@code OrganizationContextFilter} a partir do header {@code X-Organization-Id})
- * e seta no campo {@code organizationUuid} da entidade.</p>
+ * e seta no campo {@code organizationId} da entidade.</p>
  *
  * <p>Segue o mesmo padrão de reflection cache do {@link UpperCaseFieldListener}:
- * o campo {@code organizationUuid} é resolvido por classe e cacheado em um
+ * o campo {@code organizationId} é resolvido por classe e cacheado em um
  * {@link ConcurrentHashMap}.</p>
  *
  * <p>Não sobrescreve valor já setado explicitamente pelo chamador (permite
@@ -26,7 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class OrganizationEntityListener {
 
-    /** Cache: Class -> campo {@code organizationUuid} (null se a classe não for organization-scoped). */
+    /** Cache: Class -> campo {@code organizationId} (null se a classe não for organization-scoped). */
     private static final Map<Class<?>, Field> FIELD_CACHE = new ConcurrentHashMap<>();
 
     @jakarta.persistence.PrePersist
@@ -45,24 +44,24 @@ public class OrganizationEntityListener {
                 // Já setado explicitamente pelo chamador — respeita.
                 return;
             }
-            UUID organizationUuid = OrganizationContext.get();
-            if (organizationUuid == null) {
+            Long organizationId = OrganizationContext.get();
+            if (organizationId == null) {
                 // Sem contexto de Organization (bootstrap/seed). Nesse caso o
                 // chamador deve ter setado o campo manualmente; se não o fez,
                 // a coluna fica NULL e o Hibernate filter a exclui das queries
                 // scoped — comportamento desejado (não vaza para nenhuma org).
                 return;
             }
-            orgField.set(entity, organizationUuid);
+            orgField.set(entity, organizationId);
         } catch (IllegalAccessException e) {
             throw new IllegalStateException(
-                    "Não foi possível setar o campo 'organizationUuid' da classe "
+                    "Não foi possível setar o campo 'organizationId' da classe "
                             + entity.getClass().getName(), e);
         }
     }
 
     /**
-     * Resolve o campo {@code organizationUuid} na hierarquia da classe (declarado
+     * Resolve o campo {@code organizationId} na hierarquia da classe (declarado
      * em {@code OrganizationScopedEntity}). Retorna {@code null} se a classe não
      * herdar de {@code OrganizationScopedEntity}.
      */
@@ -71,7 +70,7 @@ public class OrganizationEntityListener {
             Class<?> current = clazz;
             while (current != null && current != Object.class) {
                 for (Field field : current.getDeclaredFields()) {
-                    if ("organizationUuid".equals(field.getName())) {
+                    if ("organizationId".equals(field.getName())) {
                         return field;
                     }
                 }

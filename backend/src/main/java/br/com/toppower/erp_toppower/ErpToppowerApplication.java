@@ -12,6 +12,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 public class ErpToppowerApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(ErpToppowerApplication.class, args);
+
+        SpringApplication.run(ErpToppowerApplication.class, args);
 	}
 }

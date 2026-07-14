@@ -4,14 +4,13 @@ import br.com.toppower.erp_toppower.supplier.enums.SupplierStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
-import java.util.UUID;
 
 @Schema(name = "SupplierResponse", description = "Representação pública de um fornecedor retornado pela API.")
 public record SupplierResponse(
 
-        @Schema(description = "Identificador único (UUID) do fornecedor.",
+        @Schema(description = "Identificador único (ID) do fornecedor.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        UUID uuid,
+        Long id,
 
         @Schema(description = "Razão social.", requiredMode = Schema.RequiredMode.REQUIRED)
         String legalName,

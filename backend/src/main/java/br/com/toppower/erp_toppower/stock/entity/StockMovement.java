@@ -13,7 +13,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
 /**
  * Diário (ledger) de movimentações de estoque — o registro imutável de
@@ -44,9 +43,9 @@ import java.util.UUID;
 @NoArgsConstructor
 public class StockMovement extends OrganizationScopedEntity {
 
-    /** Produto cujo saldo foi alterado. Referência lógica por UUID (sem FK física). */
-    @Column(name = "product_uuid", nullable = false)
-    private UUID productUuid;
+    /** Produto cujo saldo foi alterado. Referência lógica por ID (sem FK física). */
+    @Column(name = "product_id", nullable = false)
+    private Long productId;
 
     /**
      * Variação aplicada ao saldo. Sinal segue o {@link MovementType}:
@@ -77,8 +76,8 @@ public class StockMovement extends OrganizationScopedEntity {
      * apenas para movimentações sem origem rastreável (ajustes manuais
      * avulsos futuros).
      */
-    @Column(name = "source_uuid")
-    private UUID sourceUuid;
+    @Column(name = "source_id")
+    private Long sourceId;
 
     /**
      * Número legível do documento de origem (ex.: {@code SalesOrder.number}).
@@ -102,27 +101,27 @@ public class StockMovement extends OrganizationScopedEntity {
      * Quando esta movimentação é um estorno, aponta para a movimentação
      * original que está sendo desfeita. Nulo para movimentações primárias.
      */
-    @Column(name = "reversal_of_uuid")
-    private UUID reversalOfUuid;
+    @Column(name = "reversal_of_id")
+    private Long reversalOfId;
 
     /**
      * Construtor de conveniência para movimentações primárias (não-estorno).
-     * {@code reversed} fica {@code false} e {@code reversalOfUuid} nulo.
+     * {@code reversed} fica {@code false} e {@code reversalOfId} nulo.
      */
-    public StockMovement(UUID productUuid, BigDecimal quantityChange,
+    public StockMovement(Long productId, BigDecimal quantityChange,
                          BigDecimal stockBefore, BigDecimal stockAfter,
                          MovementType type, MovementSource source,
-                         UUID sourceUuid, Long sourceNumber, String reason) {
-        this.productUuid = productUuid;
+                         Long sourceId, Long sourceNumber, String reason) {
+        this.productId = productId;
         this.quantityChange = quantityChange;
         this.stockBefore = stockBefore;
         this.stockAfter = stockAfter;
         this.type = type;
         this.source = source;
-        this.sourceUuid = sourceUuid;
+        this.sourceId = sourceId;
         this.sourceNumber = sourceNumber;
         this.reason = reason;
         this.reversed = false;
-        this.reversalOfUuid = null;
+        this.reversalOfId = null;
     }
 }

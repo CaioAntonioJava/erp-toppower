@@ -7,7 +7,7 @@ export type { RegistrationStatus, Address }
 
 /** Resposta de cliente PF. Espelha br.com.toppower...customer.dto.CustomerResponse. */
 export interface CustomerResponse {
-  uuid: string
+  id: number
   name: string
   email: string
   phone: string

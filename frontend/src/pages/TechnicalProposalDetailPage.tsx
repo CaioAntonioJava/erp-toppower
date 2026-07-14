@@ -77,21 +77,21 @@ export function TechnicalProposalDetailPage() {
     let cancelled = false
     setLoading(true)
     setError(null)
-    getTechnicalProposal(id)
+    getTechnicalProposal(Number(id!))
       .then((data) => {
         if (cancelled) return
         setProposal(data)
         // Hidrata nomes de produtos.
-        const uniqueUuids = Array.from(
-          new Set(data.productItems.map((p) => p.productUuid)),
+        const uniqueIds = Array.from(
+          new Set(data.productItems.map((p) => p.productId)),
         )
         Promise.all(
-          uniqueUuids.map(async (uuid) => {
+          uniqueIds.map(async (id) => {
             try {
-              const p = await getProduct(uuid)
-              return [uuid, p.name] as const
+              const p = await getProduct(id)
+              return [id, p.name] as const
             } catch {
-              return [uuid, uuid.slice(0, 8) + '…'] as const
+              return [id, String(id).slice(0, 8) + '…'] as const
             }
           }),
         ).then((entries) => {
@@ -112,13 +112,13 @@ export function TechnicalProposalDetailPage() {
   }, [id])
 
   async function runTransition(
-    fn: (uuid: string) => Promise<TechnicalProposalResponse>,
+    fn: (id: number) => Promise<TechnicalProposalResponse>,
   ) {
     if (!proposal) return
     setTransitioning(true)
     setTransitionError(null)
     try {
-      const updated = await fn(proposal.uuid)
+      const updated = await fn(proposal.id)
       setProposal(updated)
       setConfirmStart(false)
       setConfirmComplete(false)
@@ -175,7 +175,7 @@ export function TechnicalProposalDetailPage() {
                 variant="secondary"
                 onClick={() =>
                   window.open(
-                    `/technical-proposals/${proposal.uuid}/pdf`,
+                    `/technical-proposals/${proposal.id}/pdf`,
                     '_blank',
                   )
                 }
@@ -186,7 +186,7 @@ export function TechnicalProposalDetailPage() {
               <Button
                 variant="secondary"
                 onClick={() =>
-                  navigate(`/technical-proposals/${proposal.uuid}/edit`)
+                  navigate(`/technical-proposals/${proposal.id}/edit`)
                 }
               >
                 <Wrench className="h-4 w-4" />
@@ -262,7 +262,7 @@ export function TechnicalProposalDetailPage() {
                   ) : (
                     <ul className="list-inside list-disc space-y-1 text-slate-900 dark:text-slate-100">
                       {proposal.objectives.map((o) => (
-                        <li key={o.uuid}>{o.description}</li>
+                        <li key={o.id}>{o.description}</li>
                       ))}
                     </ul>
                   )}
@@ -397,7 +397,7 @@ export function TechnicalProposalDetailPage() {
                   </thead>
                   <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                     {proposal.serviceItems.map((s, idx) => (
-                      <tr key={s.uuid}>
+                      <tr key={s.id}>
                         <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400">
                           {String(idx + 1).padStart(2, '0')}
                         </td>
@@ -439,12 +439,12 @@ export function TechnicalProposalDetailPage() {
                   </thead>
                   <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                     {proposal.productItems.map((p, idx) => (
-                      <tr key={p.uuid}>
+                      <tr key={p.id}>
                         <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400">
                           {String(idx + 1).padStart(2, '0')}
                         </td>
                         <td className="px-4 py-3 text-slate-700 dark:text-slate-200">
-                          {productNames[p.productUuid] ?? p.productUuid.slice(0, 8) + '…'}
+                          {productNames[p.productId] ?? String(p.productId).slice(0, 8) + '…'}
                         </td>
                         <td className="px-4 py-3 text-right text-slate-700 dark:text-slate-200">
                           {p.quantity}

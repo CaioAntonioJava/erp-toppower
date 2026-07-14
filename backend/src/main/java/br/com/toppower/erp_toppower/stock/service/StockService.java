@@ -18,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Fachada única para todas as alterações de saldo de estoque. Centraliza
@@ -69,15 +68,15 @@ public class StockService {
      *         quantidade solicitada — a transação do chamador sofre rollback.
      */
     @Transactional
-    public StockMovement registrarSaida(UUID productUuid, BigDecimal quantity,
-                                        MovementSource source, UUID sourceUuid,
+    public StockMovement registrarSaida(Long productId, BigDecimal quantity,
+                                        MovementSource source, Long sourceId,
                                         Long sourceNumber, String reason) {
         if (quantity == null || quantity.signum() <= 0) {
             throw new IllegalArgumentException("Quantidade de saída deve ser positiva.");
         }
-        Product p = productRepository.findByUuidForUpdate(productUuid)
+        Product p = productRepository.findByIdForUpdate(productId)
                 .orElseThrow(() -> new IllegalStateException(
-                        "Produto " + productUuid + " não encontrado para baixa de estoque."));
+                        "Produto " + productId + " não encontrado para baixa de estoque."));
         BigDecimal before = p.getStockQuantity();
         if (before.compareTo(quantity) < 0) {
             throw new InsufficientStockException(p.getName(), p.getCode(), before, quantity);
@@ -87,13 +86,13 @@ public class StockService {
         productRepository.save(p);
 
         StockMovement movement = new StockMovement(
-                productUuid,
+                productId,
                 quantity.negate(),
                 before,
                 after,
                 MovementType.SAIDA,
                 source,
-                sourceUuid,
+                sourceId,
                 sourceNumber,
                 reason);
         return stockMovementRepository.save(movement);
@@ -107,10 +106,10 @@ public class StockService {
      */
     @Transactional
     public void registrarSaidaEmLote(List<SaidaItem> items, MovementSource source,
-                                     UUID sourceUuid, Long sourceNumber, String reason) {
+                                     Long sourceId, Long sourceNumber, String reason) {
         for (SaidaItem item : items) {
-            registrarSaida(item.productUuid(), item.quantity(),
-                    source, sourceUuid, sourceNumber, reason);
+            registrarSaida(item.productId(), item.quantity(),
+                    source, sourceId, sourceNumber, reason);
         }
     }
 
@@ -123,28 +122,28 @@ public class StockService {
      * uma movimentação {@link MovementType#ENTRADA}.
      */
     @Transactional
-    public StockMovement registrarEntrada(UUID productUuid, BigDecimal quantity,
-                                          MovementSource source, UUID sourceUuid,
+    public StockMovement registrarEntrada(Long productId, BigDecimal quantity,
+                                          MovementSource source, Long sourceId,
                                           Long sourceNumber, String reason) {
         if (quantity == null || quantity.signum() <= 0) {
             throw new IllegalArgumentException("Quantidade de entrada deve ser positiva.");
         }
-        Product p = productRepository.findByUuidForUpdate(productUuid)
+        Product p = productRepository.findByIdForUpdate(productId)
                 .orElseThrow(() -> new IllegalStateException(
-                        "Produto " + productUuid + " não encontrado para entrada de estoque."));
+                        "Produto " + productId + " não encontrado para entrada de estoque."));
         BigDecimal before = p.getStockQuantity();
         BigDecimal after = before.add(quantity);
         p.setStockQuantity(after);
         productRepository.save(p);
 
         StockMovement movement = new StockMovement(
-                productUuid,
+                productId,
                 quantity,
                 before,
                 after,
                 MovementType.ENTRADA,
                 source,
-                sourceUuid,
+                sourceId,
                 sourceNumber,
                 reason);
         return stockMovementRepository.save(movement);
@@ -171,9 +170,9 @@ public class StockService {
      * estornado (filtragem por {@code reversed=false}).
      */
     @Transactional
-    public void estornarSaidasPorOrigem(UUID sourceUuid, MovementSource source, String reason) {
+    public void estornarSaidasPorOrigem(Long sourceId, MovementSource source, String reason) {
         List<StockMovement> originals = stockMovementRepository
-                .findBySourceUuidAndSourceOrderByCreatedAtAsc(sourceUuid, source);
+                .findBySourceIdAndSourceOrderByCreatedAtAsc(sourceId, source);
 
         for (StockMovement original : originals) {
             if (original.isReversed() || original.getType() != MovementType.SAIDA) {
@@ -182,23 +181,23 @@ public class StockService {
             // quantidade da saída original era negativa; inverte para devolver.
             BigDecimal devolution = original.getQuantityChange().negate();
 
-            Product p = productRepository.findByUuidForUpdate(original.getProductUuid())
+            Product p = productRepository.findByIdForUpdate(original.getProductId())
                     .orElse(null);
             if (p == null) {
                 // Produto foi removido/inativado sem saldo: preserva o histórico,
                 // não bloqueia o cancelamento. A movimentação de estorno é
                 // registrada mesmo assim para auditoria.
                 StockMovement reversal = new StockMovement(
-                        original.getProductUuid(),
+                        original.getProductId(),
                         devolution,
                         original.getStockAfter(),
                         original.getStockAfter(),
                         MovementType.ESTORNO_SAIDA,
                         source,
-                        sourceUuid,
+                        sourceId,
                         original.getSourceNumber(),
                         reason);
-                reversal.setReversalOfUuid(original.getUuid());
+                reversal.setReversalOfId(original.getId());
                 stockMovementRepository.save(reversal);
                 original.setReversed(true);
                 stockMovementRepository.save(original);
@@ -211,16 +210,16 @@ public class StockService {
             productRepository.save(p);
 
             StockMovement reversal = new StockMovement(
-                    original.getProductUuid(),
+                    original.getProductId(),
                     devolution,
                     before,
                     after,
                     MovementType.ESTORNO_SAIDA,
                     source,
-                    sourceUuid,
+                    sourceId,
                     original.getSourceNumber(),
                     reason);
-            reversal.setReversalOfUuid(original.getUuid());
+            reversal.setReversalOfId(original.getId());
             stockMovementRepository.save(reversal);
 
             original.setReversed(true);
@@ -238,10 +237,10 @@ public class StockService {
      * baixar duas vezes o mesmo pedido em retomadas/duas chamadas.
      */
     @Transactional(readOnly = true)
-    public boolean existeSaidaNaoEstornada(UUID sourceUuid, MovementSource source) {
+    public boolean existeSaidaNaoEstornada(Long sourceId, MovementSource source) {
         return stockMovementRepository
-                .existsBySourceUuidAndSourceAndTypeAndReversedFalse(
-                        sourceUuid, source, MovementType.SAIDA);
+                .existsBySourceIdAndSourceAndTypeAndReversedFalse(
+                        sourceId, source, MovementType.SAIDA);
     }
 
     /**
@@ -249,7 +248,7 @@ public class StockService {
      * {@link #registrarSaidaEmLote}; o chamador monta a lista a partir
      * das linhas do documento de origem.
      */
-    public record SaidaItem(UUID productUuid, BigDecimal quantity) {
+    public record SaidaItem(Long productId, BigDecimal quantity) {
     }
 
     // ---------------------------------------------------------------------
@@ -262,10 +261,10 @@ public class StockService {
      * para todas as movimentações da página.
      */
     @Transactional(readOnly = true)
-    public PagedResponse<StockMovementResponse> historicoPorProduto(UUID productUuid, Pageable pageable) {
+    public PagedResponse<StockMovementResponse> historicoPorProduto(Long productId, Pageable pageable) {
         Page<StockMovement> page = stockMovementRepository
-                .findByProductUuidOrderByCreatedAtDesc(productUuid, pageable);
-        Product snapshot = productRepository.findById(productUuid).orElse(null);
+                .findByProductIdOrderByCreatedAtDesc(productId, pageable);
+        Product snapshot = productRepository.findById(productId).orElse(null);
         Page<StockMovementResponse> mapped = page.map(m -> StockMovementMapper.toResponse(m, snapshot));
         return PagedResponse.from(mapped);
     }
@@ -275,10 +274,10 @@ public class StockService {
      * momento da consulta.
      */
     @Transactional(readOnly = true)
-    public StockMovementResponse movimentacaoPorId(UUID movementUuid) {
-        StockMovement m = stockMovementRepository.findById(movementUuid)
-                .orElseThrow(() -> new StockMovementNotFoundException(movementUuid));
-        Product p = productRepository.findById(m.getProductUuid()).orElse(null);
+    public StockMovementResponse movimentacaoPorId(Long movementId) {
+        StockMovement m = stockMovementRepository.findById(movementId)
+                .orElseThrow(() -> new StockMovementNotFoundException(movementId));
+        Product p = productRepository.findById(m.getProductId()).orElse(null);
         return StockMovementMapper.toResponse(m, p);
     }
 }

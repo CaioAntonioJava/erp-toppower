@@ -41,16 +41,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/sales-orders")
 @RequiredArgsConstructor
 @Tag(name = "Pedidos de Venda", description = "Gestão de pedidos de venda (conversão de propostas ou criação direta).")
 public class SalesOrderController {
-
-    private static final String UUID_REGEX =
-            "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
 
     private final SalesOrderService salesOrderService;
     private final SalesOrderPdfService pdfService;
@@ -84,7 +80,7 @@ public class SalesOrderController {
         return ResponseEntity.status(HttpStatus.CREATED).body(salesOrderService.create(request));
     }
 
-    @PostMapping(value = "/from-quotation/{quotationId:" + UUID_REGEX + "}",
+    @PostMapping(value = "/from-quotation/{quotationId}",
             consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Converter proposta em pedido de venda",
             description = "Cria um pedido de venda a partir de uma proposta ATIVA, copiando cliente, "
@@ -108,7 +104,7 @@ public class SalesOrderController {
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<SalesOrderResponse> createFromQuotation(
-            @PathVariable UUID quotationId,
+            @PathVariable Long quotationId,
             @RequestBody(required = false) SalesOrderFromQuotationRequest override) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(salesOrderService.createFromQuotation(quotationId, override));
@@ -168,11 +164,11 @@ public class SalesOrderController {
             @RequestParam(value = "endDate", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
 
-            @Parameter(description = "UUID do cliente (PF ou PJ).")
-            @RequestParam(value = "clientUuid", required = false) UUID clientUuid,
+            @Parameter(description = "ID do cliente (PF ou PJ).")
+            @RequestParam(value = "clientId", required = false) Long clientId,
 
-            @Parameter(description = "UUID do vendedor.")
-            @RequestParam(value = "sellerUuid", required = false) UUID sellerUuid,
+            @Parameter(description = "ID do vendedor.")
+            @RequestParam(value = "sellerId", required = false) Long sellerId,
 
             @Parameter(description = "Trecho do número (ex.: '100' para 1000, 1001, ...).",
                     example = "100")
@@ -187,7 +183,7 @@ public class SalesOrderController {
             Pageable pageable) {
 
         return ResponseEntity.ok(salesOrderService.search(
-                status, startDate, endDate, clientUuid, sellerUuid, number, quotationNumber, pageable));
+                status, startDate, endDate, clientId, sellerId, number, quotationNumber, pageable));
     }
 
     @GetMapping(value = "/by-number/{number}", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -208,7 +204,7 @@ public class SalesOrderController {
         return ResponseEntity.ok(salesOrderService.getByNumber(number));
     }
 
-    @GetMapping(value = "/{id:" + UUID_REGEX + "}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Buscar pedido por ID",
             description = "Retorna o pedido com todos os itens e totais calculados.")
     @SecurityRequirement(name = "bearerAuth")
@@ -222,7 +218,7 @@ public class SalesOrderController {
             @ApiResponse(responseCode = "404", description = "Pedido não encontrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<SalesOrderResponse> getById(@PathVariable UUID id) {
+    public ResponseEntity<SalesOrderResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(salesOrderService.getById(id));
     }
 
@@ -230,14 +226,14 @@ public class SalesOrderController {
     // Atualização
     // =====================================================================
 
-    @PatchMapping(value = "/{id:" + UUID_REGEX + "}",
+    @PatchMapping(value = "/{id}",
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Atualizar pedido (parcial)",
             description = "Atualiza apenas os campos enviados. Ao enviar a lista de itens, "
                     + "os anteriores são removidos e os novos criados. Pedidos FINALIZADO "
                     + "ou CANCELADO não podem ser alterados. O número, a data de "
-                    + "emissão, o status e a origem (quotationUuid/quotationNumber) não "
+                    + "emissão, o status e a origem (quotationId/quotationNumber) não "
                     + "podem ser alterados por este endpoint.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
@@ -254,7 +250,7 @@ public class SalesOrderController {
             @ApiResponse(responseCode = "409", description = "Pedido em estado que impede edição.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<SalesOrderResponse> update(@PathVariable UUID id,
+    public ResponseEntity<SalesOrderResponse> update(@PathVariable Long id,
                                                     @Valid @RequestBody SalesOrderUpdateRequest request) {
         return ResponseEntity.ok(salesOrderService.update(id, request));
     }
@@ -263,7 +259,7 @@ public class SalesOrderController {
     // Transições de status
     // =====================================================================
 
-    @PatchMapping(value = "/{id:" + UUID_REGEX + "}/advance-status",
+    @PatchMapping(value = "/{id}/advance-status",
             produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Avançar status do pedido",
             description = "Avança o status do pedido para o próximo estado do ciclo: "
@@ -285,11 +281,11 @@ public class SalesOrderController {
             @ApiResponse(responseCode = "409", description = "Não há próximo status a partir do atual.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<SalesOrderResponse> advanceStatus(@PathVariable UUID id) {
+    public ResponseEntity<SalesOrderResponse> advanceStatus(@PathVariable Long id) {
         return ResponseEntity.ok(salesOrderService.advanceStatus(id));
     }
 
-    @DeleteMapping(value = "/{id:" + UUID_REGEX + "}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @DeleteMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Cancelar pedido (soft)",
             description = "Define o status do pedido como CANCELADO. Não remove fisicamente o "
                     + "registro. Cancelar um pedido FINALIZADO estorna automaticamente as "
@@ -309,7 +305,7 @@ public class SalesOrderController {
             @ApiResponse(responseCode = "409", description = "Pedido em estado que impede cancelamento.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<SalesOrderResponse> cancel(@PathVariable UUID id) {
+    public ResponseEntity<SalesOrderResponse> cancel(@PathVariable Long id) {
         return ResponseEntity.ok(salesOrderService.cancel(id));
     }
 
@@ -322,7 +318,7 @@ public class SalesOrderController {
      * dados da Organization ativa). Suporta {@code disposition=inline}
      * (default — preview em iframe) e {@code attachment} (download).
      */
-    @GetMapping(value = "/{id:" + UUID_REGEX + "}/pdf",
+    @GetMapping(value = "/{id}/pdf",
             produces = MediaType.APPLICATION_PDF_VALUE)
     @Operation(summary = "Gerar PDF do pedido de venda",
             description = "Retorna o PDF (A4) com cabeçalho do emissor (Organization ativa), "
@@ -339,7 +335,7 @@ public class SalesOrderController {
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<byte[]> downloadPdf(
-            @PathVariable UUID id,
+            @PathVariable Long id,
             @Parameter(description = "Modo de disposição: 'inline' (preview) ou 'attachment' (download).",
                     schema = @Schema(allowableValues = {"inline", "attachment"}))
             @RequestParam(value = "disposition", defaultValue = "inline") String disposition) {

@@ -41,7 +41,6 @@ import java.time.LocalDate;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Regras de negócio do ciclo de vida de um pedido de venda.
@@ -50,7 +49,7 @@ import java.util.UUID;
  * <ul>
  *   <li>Gerar o número sequencial a partir de {@code 1000};</li>
  *   <li>Validar a invariante de cliente (exatamente um entre
- *       {@code customerUuid} e {@code companyUuid});</li>
+ *       {@code customerId} e {@code companyId});</li>
  *   <li>Converter uma {@code Quotation} ATIVA em pedido (snapshot +
  *       rastreabilidade), marcando a proposta como {@code CONVERTIDA};</li>
  *   <li>Persistir o agregado (header + itens) garantindo que o
@@ -115,8 +114,8 @@ public class SalesOrderService {
 
     @Transactional
     public SalesOrderResponse create(SalesOrderCreateRequest request) {
-        validateClientReference(request.customerUuid(), request.companyUuid(), true);
-        validateCarrierReference(request.carrierUuid(), true);
+        validateClientReference(request.customerId(), request.companyId(), true);
+        validateCarrierReference(request.carrierId(), true);
         validateItemsConsistency(request.items());
 
         SalesOrder header = SalesOrderMapper.toEntity(request);
@@ -127,7 +126,7 @@ public class SalesOrderService {
         List<SalesOrderItem> items = new ArrayList<>(request.items().size());
         for (SalesOrderItemRequest itemReq : request.items()) {
             items.add(salesOrderItemRepository.save(
-                    SalesOrderMapper.toItemEntity(itemReq, savedHeader.getUuid(),
+                    SalesOrderMapper.toItemEntity(itemReq, savedHeader.getId(),
                             savedHeader.getProfitMargin())));
         }
 
@@ -150,12 +149,12 @@ public class SalesOrderService {
      * de modo que o total do pedido reflita o valor com margem cobrado
      * do cliente. Marca a proposta como {@code CONVERTIDA}.
      *
-     * @param quotationId UUID da proposta a converter
+     * @param quotationId ID da proposta a converter
      * @param override    campos opcionais a sobrescrever (nulo para
      *                    copiar tudo da proposta)
      */
     @Transactional
-    public SalesOrderResponse createFromQuotation(UUID quotationId, SalesOrderFromQuotationRequest override) {
+    public SalesOrderResponse createFromQuotation(Long quotationId, SalesOrderFromQuotationRequest override) {
         Quotation quotation = quotationRepository.findById(quotationId)
                 .orElseThrow(() -> new QuotationNotFoundException(quotationId));
 
@@ -164,7 +163,7 @@ public class SalesOrderService {
         }
 
         List<QuotationItem> quotationItems = quotationItemRepository
-                .findByQuotationUuidOrderByCreatedAtAsc(quotationId);
+                .findByQuotationIdOrderByCreatedAtAsc(quotationId);
         if (quotationItems == null || quotationItems.isEmpty()) {
             throw new SalesOrderBusinessException(
                     "Proposta " + quotation.getNumber() + " não possui itens para conversão.");
@@ -172,13 +171,13 @@ public class SalesOrderService {
 
         // A proposta já teve cliente validado na criação; revalida existência
         // apenas para consistência defensiva (não rejeita se ainda válido).
-        validateClientReference(quotation.getCustomerUuid(), quotation.getCompanyUuid(), true);
+        validateClientReference(quotation.getCustomerId(), quotation.getCompanyId(), true);
 
         // A carrier é copiada da proposta (snapshot). Validamos existência
         // apenas para consistência defensiva — se a transportadora foi
         // removida após a conversão, a referência fica orfã mas o pedido
         // continua válido.
-        validateCarrierReference(quotation.getCarrierUuid(), true);
+        validateCarrierReference(quotation.getCarrierId(), true);
 
         SalesOrder header = SalesOrderMapper.fromQuotation(quotation, quotationItems, override);
         header.setNumber(generateNextNumber());
@@ -188,7 +187,7 @@ public class SalesOrderService {
         List<SalesOrderItem> items = new ArrayList<>(quotationItems.size());
         for (QuotationItem qItem : quotationItems) {
             items.add(salesOrderItemRepository.save(
-                    SalesOrderMapper.fromQuotationItem(qItem, savedHeader.getUuid(),
+                    SalesOrderMapper.fromQuotationItem(qItem, savedHeader.getId(),
                             quotation.getProfitMargin())));
         }
 
@@ -208,11 +207,11 @@ public class SalesOrderService {
     // ---------------------------------------------------------------------
 
     @Transactional(readOnly = true)
-    public SalesOrderResponse getById(UUID id) {
+    public SalesOrderResponse getById(Long id) {
         SalesOrder o = salesOrderRepository.findById(id)
                 .orElseThrow(() -> new SalesOrderNotFoundException(id));
         List<SalesOrderItem> items = salesOrderItemRepository
-                .findBySalesOrderUuidOrderByCreatedAtAsc(id);
+                .findBySalesOrderIdOrderByCreatedAtAsc(id);
         o.recalculateTotals(items);
         ClientResolved client = resolveClient(o);
         CarrierResolved carrier = resolveCarrier(o);
@@ -225,11 +224,11 @@ public class SalesOrderService {
         // A numeração é independente por Organization: o mesmo número pode
         // existir em empresas diferentes. Restringe a busca à Organization
         // ativa para não devolver o pedido de outra empresa.
-        UUID orgUuid = OrganizationContext.require();
-        SalesOrder o = salesOrderRepository.findByNumberAndOrganizationUuid(number, orgUuid)
+        Long orgId = OrganizationContext.require();
+        SalesOrder o = salesOrderRepository.findByNumberAndOrganizationId(number, orgId)
                 .orElseThrow(() -> new SalesOrderNotFoundException(number));
         List<SalesOrderItem> items = salesOrderItemRepository
-                .findBySalesOrderUuidOrderByCreatedAtAsc(o.getUuid());
+                .findBySalesOrderIdOrderByCreatedAtAsc(o.getId());
         o.recalculateTotals(items);
         ClientResolved client = resolveClient(o);
         CarrierResolved carrier = resolveCarrier(o);
@@ -244,8 +243,8 @@ public class SalesOrderService {
      * @param status           status do pedido (opcional)
      * @param startDate        data de emissão a partir de (opcional)
      * @param endDate          data de emissão até (opcional)
-     * @param clientUuid       UUID do cliente (PF ou PJ) (opcional)
-     * @param sellerUuid       UUID do vendedor (opcional)
+     * @param clientId       ID do cliente (PF ou PJ) (opcional)
+     * @param sellerId       ID do vendedor (opcional)
      * @param numberLike      trecho do número (opcional)
      * @param quotationNumber número da proposta de origem (opcional)
      * @param pageable         paginação e ordenação
@@ -254,8 +253,8 @@ public class SalesOrderService {
     public PagedResponse<SalesOrderSummaryResponse> search(SalesOrderStatus status,
                                                            LocalDate startDate,
                                                            LocalDate endDate,
-                                                           UUID clientUuid,
-                                                           UUID sellerUuid,
+                                                           Long clientId,
+                                                           Long sellerId,
                                                            String numberLike,
                                                            Long quotationNumber,
                                                            Pageable pageable) {
@@ -270,15 +269,15 @@ public class SalesOrderService {
             if (endDate != null) {
                 predicates.add(cb.lessThanOrEqualTo(root.get("orderDate"), endDate));
             }
-            if (clientUuid != null) {
+            if (clientId != null) {
                 jakarta.persistence.criteria.Predicate byCustomer =
-                        cb.equal(root.get("customerUuid"), clientUuid);
+                        cb.equal(root.get("customerId"), clientId);
                 jakarta.persistence.criteria.Predicate byCompany =
-                        cb.equal(root.get("companyUuid"), clientUuid);
+                        cb.equal(root.get("companyId"), clientId);
                 predicates.add(cb.or(byCustomer, byCompany));
             }
-            if (sellerUuid != null) {
-                predicates.add(cb.equal(root.get("sellerUuid"), sellerUuid));
+            if (sellerId != null) {
+                predicates.add(cb.equal(root.get("sellerId"), sellerId));
             }
             if (numberLike != null && !numberLike.isBlank()) {
                 predicates.add(cb.like(
@@ -295,7 +294,7 @@ public class SalesOrderService {
 
         Page<SalesOrderSummaryResponse> mapped = page.map(o -> {
             List<SalesOrderItem> items = salesOrderItemRepository
-                    .findBySalesOrderUuidOrderByCreatedAtAsc(o.getUuid());
+                    .findBySalesOrderIdOrderByCreatedAtAsc(o.getId());
             o.recalculateTotals(items);
             ClientResolved client = resolveClient(o);
             String sellerName = resolveSellerName(o);
@@ -309,7 +308,7 @@ public class SalesOrderService {
     // ---------------------------------------------------------------------
 
     @Transactional
-    public SalesOrderResponse update(UUID id, SalesOrderUpdateRequest request) {
+    public SalesOrderResponse update(Long id, SalesOrderUpdateRequest request) {
         SalesOrder o = salesOrderRepository.findById(id)
                 .orElseThrow(() -> new SalesOrderNotFoundException(id));
 
@@ -318,20 +317,20 @@ public class SalesOrderService {
                     "Pedido em status " + o.getStatus() + " não pode ser alterado.");
         }
 
-        UUID effectiveCustomer = (request.customerUuid() != null)
-                ? request.customerUuid() : o.getCustomerUuid();
-        UUID effectiveCompany = (request.companyUuid() != null)
-                ? request.companyUuid() : o.getCompanyUuid();
+        Long effectiveCustomer = (request.customerId() != null)
+                ? request.customerId() : o.getCustomerId();
+        Long effectiveCompany = (request.companyId() != null)
+                ? request.companyId() : o.getCompanyId();
         validateClientReference(effectiveCustomer, effectiveCompany, false);
 
         // Valida a carrier apenas quando explicitamente informada.
-        if (request.carrierUuid() != null) {
-            validateCarrierReference(request.carrierUuid(), false);
+        if (request.carrierId() != null) {
+            validateCarrierReference(request.carrierId(), false);
         }
 
         if (request.items() != null) {
             validateItemsConsistency(request.items());
-            salesOrderItemRepository.deleteBySalesOrderUuid(id);
+            salesOrderItemRepository.deleteBySalesOrderId(id);
             salesOrderItemRepository.flush();
         }
 
@@ -348,11 +347,11 @@ public class SalesOrderService {
             items = new ArrayList<>(request.items().size());
             for (SalesOrderItemRequest itemReq : request.items()) {
                 items.add(salesOrderItemRepository.save(
-                        SalesOrderMapper.toItemEntity(itemReq, saved.getUuid(),
+                        SalesOrderMapper.toItemEntity(itemReq, saved.getId(),
                                 effectiveProfitMargin)));
             }
         } else {
-            items = salesOrderItemRepository.findBySalesOrderUuidOrderByCreatedAtAsc(id);
+            items = salesOrderItemRepository.findBySalesOrderIdOrderByCreatedAtAsc(id);
         }
 
         saved.recalculateTotals(items);
@@ -380,7 +379,7 @@ public class SalesOrderService {
      * sofre rollback — o status não avança e nada é baixado.</p>
      */
     @Transactional
-    public SalesOrderResponse advanceStatus(UUID id) {
+    public SalesOrderResponse advanceStatus(Long id) {
         SalesOrder o = salesOrderRepository.findById(id)
                 .orElseThrow(() -> new SalesOrderNotFoundException(id));
 
@@ -394,15 +393,15 @@ public class SalesOrderService {
         // Idempotente: não re-baixa se já houver saídas primárias para
         // este pedido (proteção contra duplo-clique/retomada).
         if (next == SalesOrderStatus.FINALIZADO
-                && !stockService.existeSaidaNaoEstornada(o.getUuid(), MovementSource.SALES_ORDER)) {
+                && !stockService.existeSaidaNaoEstornada(o.getId(), MovementSource.SALES_ORDER)) {
             List<SalesOrderItem> items = salesOrderItemRepository
-                    .findBySalesOrderUuidOrderByCreatedAtAsc(id);
+                    .findBySalesOrderIdOrderByCreatedAtAsc(id);
             List<StockService.SaidaItem> saidas = items.stream()
-                    .map(it -> new StockService.SaidaItem(it.getProductUuid(), it.getQuantity()))
+                    .map(it -> new StockService.SaidaItem(it.getProductId(), it.getQuantity()))
                     .toList();
             stockService.registrarSaidaEmLote(
                     saidas, MovementSource.SALES_ORDER,
-                    o.getUuid(), o.getNumber(),
+                    o.getId(), o.getNumber(),
                     "Pedido de venda " + o.getNumber());
         }
 
@@ -410,7 +409,7 @@ public class SalesOrderService {
         SalesOrder saved = salesOrderRepository.save(o);
 
         List<SalesOrderItem> items = salesOrderItemRepository
-                .findBySalesOrderUuidOrderByCreatedAtAsc(id);
+                .findBySalesOrderIdOrderByCreatedAtAsc(id);
         saved.recalculateTotals(items);
         ClientResolved client = resolveClient(saved);
         CarrierResolved carrier = resolveCarrier(saved);
@@ -437,7 +436,7 @@ public class SalesOrderService {
      * </ul>
      */
     @Transactional
-    public SalesOrderResponse cancel(UUID id) {
+    public SalesOrderResponse cancel(Long id) {
         SalesOrder o = salesOrderRepository.findById(id)
                 .orElseThrow(() -> new SalesOrderNotFoundException(id));
 
@@ -447,14 +446,14 @@ public class SalesOrderService {
         if (o.getStatus() == SalesOrderStatus.FINALIZADO) {
             // Devolve o estoque das saídas ainda não estornadas deste pedido.
             stockService.estornarSaidasPorOrigem(
-                    o.getUuid(), MovementSource.SALES_ORDER,
+                    o.getId(), MovementSource.SALES_ORDER,
                     "Cancelamento do pedido de venda " + o.getNumber());
         }
         o.setStatus(SalesOrderStatus.CANCELADO);
         SalesOrder saved = salesOrderRepository.save(o);
 
         List<SalesOrderItem> items = salesOrderItemRepository
-                .findBySalesOrderUuidOrderByCreatedAtAsc(id);
+                .findBySalesOrderIdOrderByCreatedAtAsc(id);
         saved.recalculateTotals(items);
         ClientResolved client = resolveClient(saved);
         CarrierResolved carrier = resolveCarrier(saved);
@@ -490,8 +489,8 @@ public class SalesOrderService {
      * as demais.
      */
     private Long generateNextNumber() {
-        UUID orgUuid = OrganizationContext.require();
-        Long maxNumber = salesOrderRepository.findMaxNumberByOrganizationUuid(orgUuid);
+        Long orgId = OrganizationContext.require();
+        Long maxNumber = salesOrderRepository.findMaxNumberByOrganizationId(orgId);
         if (maxNumber == null) {
             return INITIAL_NUMBER;
         }
@@ -504,21 +503,21 @@ public class SalesOrderService {
      * Quando {@code verifyExists} é verdadeiro, também verifica se o
      * cliente existe no banco.
      */
-    private void validateClientReference(UUID customerUuid, UUID companyUuid, boolean verifyExists) {
-        if (customerUuid == null && companyUuid == null) {
+    private void validateClientReference(Long customerId, Long companyId, boolean verifyExists) {
+        if (customerId == null && companyId == null) {
             throw InvalidSalesOrderClientException.bothNull();
         }
-        if (customerUuid != null && companyUuid != null) {
+        if (customerId != null && companyId != null) {
             throw InvalidSalesOrderClientException.bothSet();
         }
         if (!verifyExists) {
             return;
         }
-        if (customerUuid != null && !customerRepository.existsById(customerUuid)) {
-            throw new SalesOrderClientNotFoundException(customerUuid, "CUSTOMER");
+        if (customerId != null && !customerRepository.existsById(customerId)) {
+            throw new SalesOrderClientNotFoundException(customerId, "CUSTOMER");
         }
-        if (companyUuid != null && !companyRepository.existsById(companyUuid)) {
-            throw new SalesOrderClientNotFoundException(companyUuid, "COMPANY");
+        if (companyId != null && !companyRepository.existsById(companyId)) {
+            throw new SalesOrderClientNotFoundException(companyId, "COMPANY");
         }
     }
 
@@ -547,17 +546,17 @@ public class SalesOrderService {
      * Resolve o nome e o código de exibição do cliente referenciado pelo
      * pedido (PF: nome; PJ: nome fantasia se houver, senão razão social).
      * Retorna {@code null} em ambos os campos quando o registro não existe
-     * mais (inativado/removido), mantendo o UUID como referência no DTO —
+     * mais (inativado/removido), mantendo o ID como referência no DTO —
      * mesmo tratamento dado a {@link #resolveSellerName(SalesOrder)}.
      */
     private ClientResolved resolveClient(SalesOrder o) {
-        if (o.getCustomerUuid() != null) {
-            return customerRepository.findById(o.getCustomerUuid())
+        if (o.getCustomerId() != null) {
+            return customerRepository.findById(o.getCustomerId())
                     .map(c -> new ClientResolved(c.getName(), c.getCode()))
                     .orElse(ClientResolved.EMPTY);
         }
-        if (o.getCompanyUuid() != null) {
-            return companyRepository.findById(o.getCompanyUuid())
+        if (o.getCompanyId() != null) {
+            return companyRepository.findById(o.getCompanyId())
                     .map(c -> new ClientResolved(
                             c.getTradeName() != null && !c.getTradeName().isBlank()
                                     ? c.getTradeName()
@@ -581,26 +580,26 @@ public class SalesOrderService {
      * Valida a referência à transportadora (carrier): se não for nula,
      * verifica a existência no cadastro.
      */
-    private void validateCarrierReference(UUID carrierUuid, boolean verifyExists) {
-        if (carrierUuid == null) {
+    private void validateCarrierReference(Long carrierId, boolean verifyExists) {
+        if (carrierId == null) {
             return;
         }
-        if (verifyExists && !carrierRepository.existsById(carrierUuid)) {
+        if (verifyExists && !carrierRepository.existsById(carrierId)) {
             throw new SalesOrderBusinessException(
-                    "Transportadora não encontrada: " + carrierUuid);
+                    "Transportadora não encontrada: " + carrierId);
         }
     }
 
     /**
      * Resolve o nome da transportadora referenciada pelo pedido.
      * Retorna {@code null} quando a carrier não existe mais, mantendo o
-     * UUID como referência no DTO.
+     * ID como referência no DTO.
      */
     private CarrierResolved resolveCarrier(SalesOrder o) {
-        if (o.getCarrierUuid() == null) {
+        if (o.getCarrierId() == null) {
             return CarrierResolved.EMPTY;
         }
-        return carrierRepository.findById(o.getCarrierUuid())
+        return carrierRepository.findById(o.getCarrierId())
                 .map(c -> new CarrierResolved(c.getName()))
                 .orElse(CarrierResolved.EMPTY);
     }
@@ -619,10 +618,10 @@ public class SalesOrderService {
      * mantendo o UUID como referência no DTO.
      */
     private String resolveSellerName(SalesOrder o) {
-        if (o.getSellerUuid() == null) {
+        if (o.getSellerId() == null) {
             return null;
         }
-        return sellerRepository.findById(o.getSellerUuid())
+        return sellerRepository.findById(o.getSellerId())
                 .map(s -> s.getName())
                 .orElse(null);
     }

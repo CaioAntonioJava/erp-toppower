@@ -9,7 +9,6 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Dados para criação de um novo contrato.
@@ -34,12 +33,12 @@ public record ContractCreateRequest(
         @Schema(description = "UUID do cliente pessoa física contratante. "
                 + "OBRIGATÓRIO se companyUuid não for informado.",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID customerUuid,
+        Long customerId,
 
         @Schema(description = "UUID da empresa (pessoa jurídica) contratante. "
                 + "OBRIGATÓRIO se customerUuid não for informado.",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID companyUuid,
+        Long companyId,
 
         @Schema(description = "Endereço do contrato (opcional). Quando preenchido, "
                 + "tipicamente é sugerido a partir do cadastro do cliente.",

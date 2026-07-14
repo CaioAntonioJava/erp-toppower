@@ -3,7 +3,7 @@ import type { RegistrationStatus } from './registration'
 export type { RegistrationStatus }
 
 export interface CarrierResponse {
-  uuid: string
+  id: number
   name: string
   status: RegistrationStatus
   createdAt: string

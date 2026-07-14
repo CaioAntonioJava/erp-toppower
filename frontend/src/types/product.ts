@@ -38,7 +38,7 @@ export const UNIT_TYPE_OPTIONS: ReadonlyArray<{ value: UnitType; label: string }
  * Resposta de produto. Espelha br.com.toppower...product.dto.ProductResponse.
  */
 export interface ProductResponse {
-  uuid: string
+  id: number
   name: string
   /**
    * SKU — único quando informado. Opcional no backend: produtos sem SKU

@@ -10,16 +10,15 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
 /**
  * Linha de serviço de uma proposta técnica: uma descrição de serviço
  * prestado com seu preço correspondente.
  *
  * <p>Cada item pertence a uma única {@link TechnicalProposal}, identificada
- * por {@link #technicalProposalUuid}. A relação não é mapeada via JPA (o
+ * por {@link #technicalProposalId}. A relação não é mapeada via JPA (o
  * projeto não utiliza relacionamentos JPA para coleções); o serviço carrega
- * os itens com um {@code findByTechnicalProposalUuid} no repositório de
+ * os itens com um {@code findByTechnicalProposalId} no repositório de
  * itens.</p>
  *
  * <p>O preço é o valor do serviço prestado — pode ser nulo quando o
@@ -31,7 +30,7 @@ import java.util.UUID;
 @Table(
         name = "technical_proposal_service_items",
         indexes = {
-                @Index(name = "idx_tp_service_item_proposal", columnList = "technical_proposal_uuid")
+                @Index(name = "idx_tp_service_item_proposal", columnList = "technical_proposal_id")
         }
 )
 @Getter
@@ -40,11 +39,11 @@ import java.util.UUID;
 public class TechnicalProposalServiceItem extends OrganizationScopedEntity {
 
     /**
-     * UUID da {@link TechnicalProposal} à qual este item pertence.
+     * ID da {@link TechnicalProposal} à qual este item pertence.
      * Imutável após a criação ({@code updatable = false}).
      */
-    @Column(name = "technical_proposal_uuid", nullable = false, updatable = false)
-    private UUID technicalProposalUuid;
+    @Column(name = "technical_proposal_id", nullable = false, updatable = false)
+    private Long technicalProposalId;
 
     /**
      * Descrição do serviço prestado (texto livre). Obrigatória.

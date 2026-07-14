@@ -12,10 +12,9 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
-import java.util.UUID;
 
 @Repository
-public interface ProductRepository extends JpaRepository<Product, UUID> {
+public interface ProductRepository extends JpaRepository<Product, Long> {
 
     boolean existsByCode(String code);
 
@@ -50,6 +49,6 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
      * evitando conditions de race nos testes do saldo.
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT p FROM Product p WHERE p.uuid = :uuid")
-    Optional<Product> findByUuidForUpdate(@Param("uuid") UUID uuid);
+    @Query("SELECT p FROM Product p WHERE p.id = :id")
+    Optional<Product> findByIdForUpdate(@Param("id") Long id);
 }

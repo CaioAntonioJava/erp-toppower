@@ -21,8 +21,8 @@ export function Topbar() {
     navigate('/profile')
   }
 
-  function handleSelectOrg(uuid: string) {
-    const org = organizations.find((o) => o.uuid === uuid)
+  function handleSelectOrg(id: number) {
+    const org = organizations.find((o) => o.id === id)
     if (org) {
       setActive(org)
       // Redireciona sempre para o dashboard ao trocar de empresa, evitando
@@ -84,12 +84,12 @@ export function Topbar() {
             </div>
             <ul className="max-h-72 overflow-y-auto py-1">
               {organizations.map((org) => {
-                const isActive = org.uuid === activeOrganization?.uuid
+                const isActive = org.id === activeOrganization?.id
                 return (
-                  <li key={org.uuid}>
+                  <li key={org.id}>
                     <button
                       type="button"
-                      onClick={() => handleSelectOrg(org.uuid)}
+                      onClick={() => handleSelectOrg(org.id)}
                       className={`flex w-full items-start gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 ${
                         isActive ? 'bg-primary/5 text-primary' : 'text-slate-700 dark:text-slate-200'
                       }`}

@@ -7,7 +7,7 @@
 --   3. Backfill de `customers.code` para o padrão `CLI` + sequência de 6 dígitos.
 --      (qualquer código que não esteja nesse padrão é substituído).
 --
--- Estratégia de numeração: usamos ROW_NUMBER() ordenado por `created_at, uuid`
+-- Estratégia de numeração: usamos ROW_NUMBER() ordenado por `created_at, id`
 -- para que o primeiro registro cadastrado receba `...000001` e assim por diante.
 -- Isso preserva uma ordem cronológica razoável sem depender de auto-increment.
 --
@@ -22,10 +22,10 @@ ALTER TABLE products MODIFY COLUMN code VARCHAR(50) NULL;
 UPDATE companies c
 JOIN (
     SELECT
-        uuid,
-        CONCAT('EMP', LPAD(ROW_NUMBER() OVER (ORDER BY created_at, uuid), 6, '0')) AS new_code
+        id,
+        CONCAT('EMP', LPAD(ROW_NUMBER() OVER (ORDER BY created_at, id), 6, '0')) AS new_code
     FROM companies
-) seq ON seq.uuid = c.uuid
+) seq ON seq.id = c.id
 SET c.code = seq.new_code
 WHERE c.code NOT LIKE 'EMP%'
    OR c.code NOT REGEXP '^EMP[0-9]{6}$';
@@ -34,10 +34,10 @@ WHERE c.code NOT LIKE 'EMP%'
 UPDATE customers c
 JOIN (
     SELECT
-        uuid,
-        CONCAT('CLI', LPAD(ROW_NUMBER() OVER (ORDER BY created_at, uuid), 6, '0')) AS new_code
+        id,
+        CONCAT('CLI', LPAD(ROW_NUMBER() OVER (ORDER BY created_at, id), 6, '0')) AS new_code
     FROM customers
-) seq ON seq.uuid = c.uuid
+) seq ON seq.id = c.id
 SET c.code = seq.new_code
 WHERE c.code NOT LIKE 'CLI%'
    OR c.code NOT REGEXP '^CLI[0-9]{6}$';

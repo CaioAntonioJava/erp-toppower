@@ -27,7 +27,7 @@ export function DashboardPage() {
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
             Identificador
           </p>
-          <p className="mt-1 break-all text-sm font-mono">{user?.uuid}</p>
+          <p className="mt-1 break-all text-sm font-mono">{user?.id}</p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400">

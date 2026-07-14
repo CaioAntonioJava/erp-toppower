@@ -18,7 +18,7 @@ export function TechnicalProposalPrintPage() {
   useEffect(() => {
     if (!id) return
     let cancelled = false
-    getTechnicalProposal(id)
+    getTechnicalProposal(Number(id!))
       .then((p) => {
         if (!cancelled) setTitle(`Proposta Técnica nº ${p.code}`)
       })
@@ -28,7 +28,7 @@ export function TechnicalProposalPrintPage() {
 
   const fetcher = useCallback(async () => {
     if (!id) throw new Error('ID da proposta ausente.')
-    return getTechnicalProposalPdf(id, 'inline')
+    return getTechnicalProposalPdf(Number(id!), 'inline')
   }, [id])
 
   return <PdfPreview title={title} fetcher={fetcher} />

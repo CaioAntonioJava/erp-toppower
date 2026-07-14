@@ -1,20 +1,20 @@
 -- =============================================================================
 -- V30__add_company_to_contracts.sql
 --
--- Adiciona a coluna `company_uuid` na tabela `contracts`, permitindo que
+-- Adiciona a coluna `company_id` na tabela `contracts`, permitindo que
 -- um contrato seja vinculado a uma empresa (pessoa jurídica) além do
--- cliente pessoa física (`customer_uuid`) que já existia.
+-- cliente pessoa física (`customer_id`) que já existia.
 --
 -- Contexto:
 --   Até a V29, o módulo de contratos aceitava apenas cliente PF
---   (`customer_uuid` NOT NULL). A partir desta migration, o contrato
+--   (`customer_id` NOT NULL). A partir desta migration, o contrato
 --   segue o mesmo padrão da Proposta Técnica: exatamente UM entre
---   `customer_uuid` (PF) e `company_uuid` (PJ) deve estar preenchido.
+--   `customer_id` (PF) e `company_id` (PJ) deve estar preenchido.
 --   A invariante é garantida pelo `ContractService` no momento da
 --   criação/atualização, não por constraint SQL (a coluna PF é
 --   nullable agora para permitir PJ puro).
 --
---   A coluna `customer_uuid` é mantida (mas passa a ser nullable) para
+--   A coluna `customer_id` é mantida (mas passa a ser nullable) para
 --   preservar contratos existentes. A migration não tenta popular a
 --   coluna para linhas existentes — contratos já gravados com PF
 --   permanecem com o mesmo cliente.
@@ -26,33 +26,33 @@
 --   projeto.
 -- =============================================================================
 
--- 1. Adiciona `company_uuid` (nullable) à tabela `contracts`
+-- 1. Adiciona `company_id` (nullable) à tabela `contracts`
 SET @has_col = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
     WHERE TABLE_SCHEMA = DATABASE()
       AND TABLE_NAME = 'contracts'
-      AND COLUMN_NAME = 'company_uuid');
+      AND COLUMN_NAME = 'company_id');
 SET @sql = IF(@has_col = 0,
-    'ALTER TABLE contracts ADD COLUMN company_uuid BINARY(16) NULL AFTER customer_uuid',
+    'ALTER TABLE contracts ADD COLUMN company_id BIGINT NULL AFTER customer_id',
     'DO 0');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- 2. Torna `customer_uuid` nullable (para permitir contratos PJ puros).
+-- 2. Torna `customer_id` nullable (para permitir contratos PJ puros).
 --    Idempotente: checa IS_NULLABLE antes de aplicar MODIFY COLUMN.
 SET @is_nullable = (SELECT IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS
     WHERE TABLE_SCHEMA = DATABASE()
       AND TABLE_NAME = 'contracts'
-      AND COLUMN_NAME = 'customer_uuid');
+      AND COLUMN_NAME = 'customer_id');
 SET @sql = IF(@is_nullable = 'NO',
-    'ALTER TABLE contracts MODIFY COLUMN customer_uuid BINARY(16) NULL',
+    'ALTER TABLE contracts MODIFY COLUMN customer_id BIGINT NULL',
     'DO 0');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- 3. Índice em `company_uuid` (para queries/joins por PJ).
+-- 3. Índice em `company_id` (para queries/joins por PJ).
 SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
     WHERE TABLE_SCHEMA = DATABASE()
       AND TABLE_NAME = 'contracts'
       AND INDEX_NAME = 'idx_contract_company');
 SET @sql = IF(@has_idx = 0,
-    'CREATE INDEX idx_contract_company ON contracts (company_uuid)',
+    'CREATE INDEX idx_contract_company ON contracts (company_id)',
     'DO 0');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;

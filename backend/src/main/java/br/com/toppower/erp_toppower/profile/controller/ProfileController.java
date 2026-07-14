@@ -35,16 +35,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.UUID;
-
 @RestController
 @RequestMapping("/api/v1/profiles")
 @RequiredArgsConstructor
 @Tag(name = "Perfis", description = "Cadastro e gestão de perfis de usuários (relacionamento 1:1 com User).")
 public class ProfileController {
-
-    private static final String UUID_REGEX =
-            "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
 
     private final ProfileService profileService;
 
@@ -70,7 +65,7 @@ public class ProfileController {
     public ResponseEntity<ProfileResponse> create(
             @Valid @RequestBody ProfileCreateRequest request,
             @AuthenticationPrincipal UserDetailsImpl principal) {
-        ProfileResponse response = profileService.create(request, principal.uuid());
+        ProfileResponse response = profileService.create(request, principal.id());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -95,9 +90,9 @@ public class ProfileController {
         return ResponseEntity.ok(profileService.getAll(status, pageable, principal));
     }
 
-    @GetMapping(value = "/{id:" + UUID_REGEX + "}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Buscar perfil por ID",
-            description = "Retorna um perfil pelo UUID. ADMIN pode ver qualquer; demais usuários só o próprio.")
+            description = "Retorna um perfil pelo ID. ADMIN pode ver qualquer; demais usuários só o próprio.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @ApiResponses({
@@ -110,12 +105,12 @@ public class ProfileController {
             @ApiResponse(responseCode = "404", description = "Perfil não encontrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<ProfileResponse> getById(@PathVariable UUID id,
+    public ResponseEntity<ProfileResponse> getById(@PathVariable Long id,
                                                    @AuthenticationPrincipal UserDetailsImpl principal) {
         return ResponseEntity.ok(profileService.getById(id, principal));
     }
 
-    @GetMapping(value = "/user/{userId:" + UUID_REGEX + "}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/user/{userId}", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Buscar perfil por usuário",
             description = "Retorna o perfil vinculado a um User específico. ADMIN pode ver qualquer; demais usuários só o próprio.")
     @SecurityRequirement(name = "bearerAuth")
@@ -130,12 +125,12 @@ public class ProfileController {
             @ApiResponse(responseCode = "404", description = "Perfil não encontrado para este usuário.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<ProfileResponse> getByUserId(@PathVariable UUID userId,
+    public ResponseEntity<ProfileResponse> getByUserId(@PathVariable Long userId,
                                                        @AuthenticationPrincipal UserDetailsImpl principal) {
         return ResponseEntity.ok(profileService.getByUserId(userId, principal));
     }
 
-    @PatchMapping(value = "/{id:" + UUID_REGEX + "}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PatchMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Atualizar perfil (parcial)",
             description = "Atualiza apenas os campos enviados. O vínculo com o User NÃO pode ser alterado. " +
                     "ADMIN pode alterar qualquer perfil; demais usuários só o próprio.")
@@ -155,13 +150,13 @@ public class ProfileController {
             @ApiResponse(responseCode = "409", description = "CPF ou e-mail já cadastrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<ProfileResponse> update(@PathVariable UUID id,
+    public ResponseEntity<ProfileResponse> update(@PathVariable Long id,
                                                   @Valid @RequestBody ProfileUpdateRequest request,
                                                   @AuthenticationPrincipal UserDetailsImpl principal) {
         return ResponseEntity.ok(profileService.update(id, request, principal));
     }
 
-    @DeleteMapping("/{id:" + UUID_REGEX + "}")
+    @DeleteMapping("/{id}")
     @Operation(summary = "Inativar perfil (soft delete)",
             description = "Define status como INATIVO. Acesso restrito a administradores.")
     @SecurityRequirement(name = "bearerAuth")
@@ -175,7 +170,7 @@ public class ProfileController {
             @ApiResponse(responseCode = "404", description = "Perfil não encontrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<Void> inactivate(@PathVariable UUID id,
+    public ResponseEntity<Void> inactivate(@PathVariable Long id,
                                            @AuthenticationPrincipal UserDetailsImpl principal) {
         profileService.softDelete(id, principal);
         return ResponseEntity.noContent().build();

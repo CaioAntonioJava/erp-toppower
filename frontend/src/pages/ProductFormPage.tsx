@@ -52,7 +52,7 @@ export function ProductFormPage() {
     let cancelled = false
     setMode('loading')
     setLoadError(null)
-    getProduct(id)
+	    getProduct(Number(id!))
       .then((data) => {
         if (cancelled) return
         setProduct(data)
@@ -86,7 +86,7 @@ export function ProductFormPage() {
     if (!product) return
     setSaving(true)
     try {
-      const updated = await updateProduct(product.uuid, payload)
+      const updated = await updateProduct(product.id, payload)
       setProduct(updated)
     } finally {
       setSaving(false)
@@ -99,9 +99,9 @@ export function ProductFormPage() {
     setToggleError(null)
     try {
       if (product.status === 'ATIVO') {
-        await inactivateProduct(product.uuid)
-        try {
-          const fresh = await getProduct(product.uuid)
+        await inactivateProduct(product.id)
+	        try {
+	          const fresh = await getProduct(product.id)
           setProduct(fresh)
         } catch {
           setProduct({ ...product, status: 'INATIVO' })
@@ -110,7 +110,7 @@ export function ProductFormPage() {
         // O backend não expõe endpoint dedicado de reativação; usamos
         // o PATCH parcial com `status: 'ATIVO'`, suportado pelo
         // `applyUpdate` (que só escreve campos não-nulos).
-        const updated = await updateProduct(product.uuid, { status: 'ATIVO' })
+        const updated = await updateProduct(product.id, { status: 'ATIVO' })
         setProduct(updated)
       }
     } catch (err) {

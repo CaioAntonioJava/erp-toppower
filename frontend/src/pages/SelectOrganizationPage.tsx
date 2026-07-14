@@ -109,9 +109,9 @@ export function SelectOrganizationPage() {
       <ul className="flex flex-col gap-2">
         {organizations.map((org) => {
           const isSelected =
-            org.uuid === (selected ?? activeOrganization)?.uuid
+            org.id === (selected ?? activeOrganization)?.id
           return (
-            <li key={org.uuid}>
+            <li key={org.id}>
               <button
                 type="button"
                 onClick={() => setSelected(org)}

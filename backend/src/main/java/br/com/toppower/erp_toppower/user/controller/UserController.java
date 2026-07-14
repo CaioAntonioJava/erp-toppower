@@ -23,7 +23,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/users")
@@ -97,7 +96,7 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "Usuário não encontrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<UserResponse> getById(@PathVariable UUID id) {
+    public ResponseEntity<UserResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(userService.getById(id));
     }
 
@@ -121,9 +120,9 @@ public class UserController {
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<Void> changePassword(@AuthenticationPrincipal UserDetailsImpl principal,
-                                                @PathVariable UUID id,
+                                                @PathVariable Long id,
                                                 @Valid @RequestBody ChangePasswordRequest request) {
-        userService.changePassword(principal.uuid(), id, request);
+        userService.changePassword(principal.id(), id, request);
         return ResponseEntity.noContent().build();
     }
 
@@ -146,7 +145,7 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "Usuário não encontrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<Void> resetPassword(@PathVariable UUID id,
+    public ResponseEntity<Void> resetPassword(@PathVariable Long id,
                                                @Valid @RequestBody ResetPasswordRequest request) {
         userService.resetPassword(id, request);
         return ResponseEntity.noContent().build();
@@ -170,8 +169,8 @@ public class UserController {
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<Void> delete(@AuthenticationPrincipal UserDetailsImpl principal,
-                                       @PathVariable UUID id) {
-        userService.delete(id, principal.uuid());
+                                       @PathVariable Long id) {
+        userService.delete(id, principal.id());
         return ResponseEntity.noContent().build();
     }
 }

@@ -13,23 +13,21 @@ import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.FilterDef;
 import org.hibernate.annotations.ParamDef;
 
-import java.util.UUID;
-
 /**
  * Mapped superclass para todas as entidades <b>organization-scoped</b>: dados
  * de negócio pertencentes a uma Organization (empresa) específica e que devem
  * ser isolados entre empresas.
  *
- * <p>Herda de {@link BaseEntity} (UUID + auditoria) e adiciona:</p>
+ * <p>Herda de {@link BaseEntity} (Long + auditoria) e adiciona:</p>
  * <ul>
- *   <li>Coluna {@code organization_uuid} — discrimina a qual Organization o
+ *   <li>Coluna {@code organization_id} — discrimina a qual Organization o
  *       registro pertence. Sem FK física (convenção do projeto: referências
- *       são por UUID).</li>
+ *       são por ID numérico).</li>
  *   <li>{@link FilterDef}/{@link Filter} Hibernate "organizationFilter" —
- *       aplica automaticamente {@code WHERE organization_uuid = :organizationUuid}
+ *       aplica automaticamente {@code WHERE organization_id = :organizationId}
  *       em toda query JPQL/Criteria quando habilitado pelo
  *       {@code OrganizationFilterAspect}.</li>
- *   <li>{@link OrganizationEntityListener} — seta {@code organization_uuid}
+ *   <li>{@link OrganizationEntityListener} — seta {@code organization_id}
  *       no persist a partir do {@code OrganizationContext} (header
  *       {@code X-Organization-Id} da requisição).</li>
  * </ul>
@@ -46,8 +44,8 @@ import java.util.UUID;
  * </ul>
  */
 @MappedSuperclass
-@FilterDef(name = "organizationFilter", parameters = @ParamDef(name = "organizationUuid", type = UUID.class))
-@Filter(name = "organizationFilter", condition = "organization_uuid = :organizationUuid")
+@FilterDef(name = "organizationFilter", parameters = @ParamDef(name = "organizationId", type = Long.class))
+@Filter(name = "organizationFilter", condition = "organization_id = :organizationId")
 @EntityListeners({AuditingEntityListener.class, UpperCaseFieldListener.class, OrganizationEntityListener.class})
 @Getter
 @Setter
@@ -55,17 +53,16 @@ import java.util.UUID;
 public abstract class OrganizationScopedEntity extends BaseEntity {
 
     /**
-     * Identificador (UUID) da Organization a que pertence o registro.
+     * Identificador (Long) da Organization a que pertence o registro.
      *
      * <p>Populado automaticamente pelo {@link OrganizationEntityListener} no
      * persist, a partir do {@code OrganizationContext} (header
      * {@code X-Organization-Id} da requisição). Setado manualmente apenas em
      * bootstrap/seed (quando não há requisição autenticada).</p>
      *
-     * <p>Armazenado como {@code BINARY(16)} no MySQL (padrão do projeto para
-     * UUIDs). A coluna é nullable para tolerar rows legadas; o listener
+     * <p>A coluna é nullable para tolerar rows legadas; o listener
      * garante preenchimento em novos inserts.</p>
      */
-    @Column(name = "organization_uuid", updatable = false)
-    private UUID organizationUuid;
+    @Column(name = "organization_id", updatable = false)
+    private Long organizationId;
 }

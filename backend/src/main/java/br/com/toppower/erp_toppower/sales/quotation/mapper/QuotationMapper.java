@@ -17,7 +17,6 @@ import br.com.toppower.erp_toppower.sales.quotation.enums.FreightType;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Conversões entre entidades do agregado {@code Quotation} e seus DTOs.
@@ -46,11 +45,11 @@ public final class QuotationMapper {
      * (com o desconto interpretado conforme {@code discountType}).
      */
     public static QuotationItem toItemEntity(QuotationItemRequest request,
-                                             UUID quotationUuid,
+                                             Long quotationId,
                                              BigDecimal profitMargin) {
         QuotationItem item = new QuotationItem();
-        item.setQuotationUuid(quotationUuid);
-        item.setProductUuid(request.productUuid());
+        item.setQuotationId(quotationId);
+        item.setProductId(request.productId());
         item.setQuantity(request.quantity());
         // Preço base (sem margem) — persistido para que a edição da
         // proposta não reaplique a margem sobre o snapshot.
@@ -75,11 +74,11 @@ public final class QuotationMapper {
      * formulário em estado intermediário.
      */
     public static QuotationItem toItemEntity(QuotationSimulateItemRequest request,
-                                             UUID quotationUuid,
+                                             Long quotationId,
                                              BigDecimal profitMargin) {
         QuotationItem item = new QuotationItem();
-        item.setQuotationUuid(quotationUuid);
-        item.setProductUuid(request.productUuid());
+        item.setQuotationId(quotationId);
+        item.setProductId(request.productId());
         item.setQuantity(request.quantity());
         // Preço base (sem margem) — persistido junto do snapshot.
         item.setBaseUnitPrice(request.unitPrice());
@@ -97,8 +96,8 @@ public final class QuotationMapper {
 
     public static QuotationItemResponse toItemResponse(QuotationItem item) {
         return new QuotationItemResponse(
-                item.getUuid(),
-                item.getProductUuid(),
+                item.getId(),
+                item.getProductId(),
                 item.getQuantity(),
                 item.getUnitPrice(),
                 item.getBaseUnitPrice(),
@@ -179,11 +178,11 @@ public final class QuotationMapper {
      */
     public static Quotation toEntity(QuotationCreateRequest request) {
         Quotation q = new Quotation();
-        applyHeader(q, request.customerUuid(), request.companyUuid(), request.attention(),
-                request.sellerUuid(), request.discountType(), request.discount(),
+        applyHeader(q, request.customerId(), request.companyId(), request.attention(),
+                request.sellerId(), request.discountType(), request.discount(),
                 request.validityDays(), request.paymentCondition(), request.notes(),
                 request.freightType(), request.freightValue(),
-                request.profitMargin(), request.carrierUuid());
+                request.profitMargin(), request.carrierId());
         return q;
     }
 
@@ -195,8 +194,8 @@ public final class QuotationMapper {
      */
     public static Quotation toEntity(QuotationSimulateRequest request) {
         Quotation q = new Quotation();
-        applyHeader(q, request.customerUuid(), request.companyUuid(), request.attention(),
-                request.sellerUuid(), request.discountType(), request.discount(),
+        applyHeader(q, request.customerId(), request.companyId(), request.attention(),
+                request.sellerId(), request.discountType(), request.discount(),
                 request.validityDays(), request.paymentCondition(), request.notes(),
                 request.freightType(), request.freightValue(),
                 request.profitMargin(), null);
@@ -212,17 +211,17 @@ public final class QuotationMapper {
      * e os novos itens são inseridos.</p>
      */
     public static void applyUpdate(Quotation quotation, QuotationUpdateRequest request) {
-        if (request.customerUuid() != null) {
-            quotation.setCustomerUuid(request.customerUuid());
+        if (request.customerId() != null) {
+            quotation.setCustomerId(request.customerId());
         }
-        if (request.companyUuid() != null) {
-            quotation.setCompanyUuid(request.companyUuid());
+        if (request.companyId() != null) {
+            quotation.setCompanyId(request.companyId());
         }
         if (request.attention() != null) {
             quotation.setAttention(request.attention());
         }
-        if (request.sellerUuid() != null) {
-            quotation.setSellerUuid(request.sellerUuid());
+        if (request.sellerId() != null) {
+            quotation.setSellerId(request.sellerId());
         }
         if (request.discountType() != null) {
             quotation.setDiscountType(request.discountType());
@@ -248,21 +247,21 @@ public final class QuotationMapper {
         if (request.profitMargin() != null) {
             quotation.setProfitMargin(request.profitMargin());
         }
-        // carrierUuid admite null (remoção da transportadora vinculada).
-        quotation.setCarrierUuid(request.carrierUuid());
+        // carrierId admite null (remoção da transportadora vinculada).
+        quotation.setCarrierId(request.carrierId());
     }
 
-    private static void applyHeader(Quotation q, UUID customerUuid, UUID companyUuid,
-                                    String attention, UUID sellerUuid,
+    private static void applyHeader(Quotation q, Long customerId, Long companyId,
+                                    String attention, Long sellerId,
                                     DiscountType discountType, BigDecimal discount,
                                     Integer validityDays, br.com.toppower.erp_toppower.sales.quotation.enums.PaymentCondition paymentCondition,
                                     String notes,
                                     FreightType freightType, BigDecimal freightValue,
-                                    BigDecimal profitMargin, UUID carrierUuid) {
-        q.setCustomerUuid(customerUuid);
-        q.setCompanyUuid(companyUuid);
+                                    BigDecimal profitMargin, Long carrierId) {
+        q.setCustomerId(customerId);
+        q.setCompanyId(companyId);
         q.setAttention(attention);
-        q.setSellerUuid(sellerUuid);
+        q.setSellerId(sellerId);
         q.setDiscountType(discountType);
         q.setDiscount(discount);
         q.setValidityDays(validityDays);
@@ -271,7 +270,7 @@ public final class QuotationMapper {
         q.setFreightType(freightType);
         q.setFreightValue(freightValue);
         q.setProfitMargin(profitMargin);
-        q.setCarrierUuid(carrierUuid);
+        q.setCarrierId(carrierId);
     }
 
     /**
@@ -287,21 +286,21 @@ public final class QuotationMapper {
                                                String sellerName, String clientName, String clientCode,
                                                String carrierName) {
         QuotationResponse.ClientType clientType =
-                (quotation.getCustomerUuid() != null)
+                (quotation.getCustomerId() != null)
                         ? QuotationResponse.ClientType.CUSTOMER
                         : QuotationResponse.ClientType.COMPANY;
 
         return new QuotationResponse(
-                quotation.getUuid(),
+                quotation.getId(),
                 quotation.getNumber(),
                 quotation.getIssueDate(),
-                quotation.getCustomerUuid(),
-                quotation.getCompanyUuid(),
+                quotation.getCustomerId(),
+                quotation.getCompanyId(),
                 clientType,
                 clientName,
                 clientCode,
                 quotation.getAttention(),
-                quotation.getSellerUuid(),
+                quotation.getSellerId(),
                 sellerName,
                 items.stream().map(QuotationMapper::toItemResponse).toList(),
                 quotation.getDiscountType(),
@@ -311,7 +310,7 @@ public final class QuotationMapper {
                 quotation.getNotes(),
                 quotation.getFreightType(),
                 quotation.getFreightValue(),
-                quotation.getCarrierUuid(),
+                quotation.getCarrierId(),
                 carrierName,
                 quotation.getProfitMargin(),
                 quotation.getStatus(),
@@ -347,22 +346,22 @@ public final class QuotationMapper {
     public static QuotationSummaryResponse toSummary(Quotation quotation, String clientName,
                                                      String clientCode, String sellerName) {
         QuotationResponse.ClientType clientType =
-                (quotation.getCustomerUuid() != null)
+                (quotation.getCustomerId() != null)
                         ? QuotationResponse.ClientType.CUSTOMER
                         : QuotationResponse.ClientType.COMPANY;
-        UUID clientUuid = (quotation.getCustomerUuid() != null)
-                ? quotation.getCustomerUuid()
-                : quotation.getCompanyUuid();
+        Long clientId = (quotation.getCustomerId() != null)
+                ? quotation.getCustomerId()
+                : quotation.getCompanyId();
 
         return new QuotationSummaryResponse(
-                quotation.getUuid(),
+                quotation.getId(),
                 quotation.getNumber(),
                 quotation.getIssueDate(),
                 clientType,
-                clientUuid,
+                clientId,
                 clientName,
                 clientCode,
-                quotation.getSellerUuid(),
+                quotation.getSellerId(),
                 sellerName,
                 quotation.getStatus(),
                 quotation.getTotalQuantity(),

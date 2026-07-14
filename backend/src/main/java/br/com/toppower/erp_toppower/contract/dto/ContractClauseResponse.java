@@ -2,7 +2,6 @@ package br.com.toppower.erp_toppower.contract.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
-import java.util.UUID;
 
 /**
  * Linha de cláusula retornada pela API.
@@ -12,7 +11,7 @@ import java.util.UUID;
 public record ContractClauseResponse(
         @Schema(description = "Identificador (UUID) da linha.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        UUID uuid,
+        Long id,
 
         @Schema(description = "Descrição da cláusula.",
                 requiredMode = Schema.RequiredMode.REQUIRED)

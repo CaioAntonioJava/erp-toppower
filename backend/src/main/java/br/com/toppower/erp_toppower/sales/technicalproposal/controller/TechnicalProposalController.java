@@ -44,16 +44,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/technical-proposals")
 @RequiredArgsConstructor
 @Tag(name = "Propostas Técnicas", description = "Gestão de propostas técnicas de serviço.")
 public class TechnicalProposalController {
-
-    private static final String UUID_REGEX =
-            "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
 
     private final TechnicalProposalService service;
     private final ClientSearchService clientSearchService;
@@ -166,8 +162,8 @@ public class TechnicalProposalController {
             @RequestParam(value = "endDate", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
 
-            @Parameter(description = "UUID do cliente (PF ou PJ).")
-            @RequestParam(value = "clientUuid", required = false) UUID clientUuid,
+            @Parameter(description = "ID do cliente (PF ou PJ).")
+            @RequestParam(value = "clientId", required = false) Long clientId,
 
             @Parameter(description = "Trecho do código (ex.: 'PL-001' ou '2026').")
             @RequestParam(value = "code", required = false) String code,
@@ -178,7 +174,7 @@ public class TechnicalProposalController {
             Pageable pageable) {
 
         return ResponseEntity.ok(service.search(
-                status, startDate, endDate, clientUuid, code, pageable));
+                status, startDate, endDate, clientId, code, pageable));
     }
 
     @GetMapping(value = "/by-code/{code}", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -203,7 +199,7 @@ public class TechnicalProposalController {
         return ResponseEntity.ok(service.getByCode(code));
     }
 
-    @GetMapping(value = "/{id:" + UUID_REGEX + "}",
+    @GetMapping(value = "/{id}",
             produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Buscar proposta técnica por ID",
             description = "Retorna a proposta técnica com todos os itens e totais calculados.")
@@ -218,11 +214,11 @@ public class TechnicalProposalController {
             @ApiResponse(responseCode = "404", description = "Proposta não encontrada.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<TechnicalProposalResponse> getById(@PathVariable UUID id) {
+    public ResponseEntity<TechnicalProposalResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(service.getById(id));
     }
 
-    @PatchMapping(value = "/{id:" + UUID_REGEX + "}",
+    @PatchMapping(value = "/{id}",
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Atualizar proposta técnica (parcial)",
@@ -248,7 +244,7 @@ public class TechnicalProposalController {
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<TechnicalProposalResponse> update(
-            @PathVariable UUID id,
+            @PathVariable Long id,
             @Valid @RequestBody TechnicalProposalUpdateRequest request) {
         return ResponseEntity.ok(service.update(id, request));
     }
@@ -257,7 +253,7 @@ public class TechnicalProposalController {
     // Transições de status
     // =====================================================================
 
-    @PostMapping(value = "/{id:" + UUID_REGEX + "}/start",
+    @PostMapping(value = "/{id}/start",
             produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Iniciar execução (ABERTA → EM_ANDAMENTO)",
             description = "Transiciona a proposta do status ABERTA para EM_ANDAMENTO.")
@@ -275,11 +271,11 @@ public class TechnicalProposalController {
                     description = "Proposta em estado que impede iniciar.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<TechnicalProposalResponse> start(@PathVariable UUID id) {
+    public ResponseEntity<TechnicalProposalResponse> start(@PathVariable Long id) {
         return ResponseEntity.ok(service.start(id));
     }
 
-    @PostMapping(value = "/{id:" + UUID_REGEX + "}/complete",
+    @PostMapping(value = "/{id}/complete",
             produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Concluir execução (EM_ANDAMENTO → CONCLUIDA)",
             description = "Transiciona a proposta do status EM_ANDAMENTO para CONCLUIDA e "
@@ -298,11 +294,11 @@ public class TechnicalProposalController {
                     description = "Proposta em estado que impede concluir.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<TechnicalProposalResponse> complete(@PathVariable UUID id) {
+    public ResponseEntity<TechnicalProposalResponse> complete(@PathVariable Long id) {
         return ResponseEntity.ok(service.complete(id));
     }
 
-    @PostMapping(value = "/{id:" + UUID_REGEX + "}/reopen",
+    @PostMapping(value = "/{id}/reopen",
             produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Reabrir proposta (CONCLUIDA → EM_ANDAMENTO)",
             description = "Reabre uma proposta CONCLUIDA, voltando-a para EM_ANDAMENTO e "
@@ -321,7 +317,7 @@ public class TechnicalProposalController {
                     description = "Proposta em estado que impede reabrir.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<TechnicalProposalResponse> reopen(@PathVariable UUID id) {
+    public ResponseEntity<TechnicalProposalResponse> reopen(@PathVariable Long id) {
         return ResponseEntity.ok(service.reopen(id));
     }
 
@@ -405,7 +401,7 @@ public class TechnicalProposalController {
      * dados da Organization ativa). Suporta {@code disposition=inline}
      * (default — preview em iframe) e {@code attachment} (download).
      */
-    @GetMapping(value = "/{id:" + UUID_REGEX + "}/pdf",
+    @GetMapping(value = "/{id}/pdf",
             produces = MediaType.APPLICATION_PDF_VALUE)
     @Operation(summary = "Gerar PDF da proposta técnica",
             description = "Retorna o PDF (A4) com cabeçalho do emissor (Organization ativa), "
@@ -423,7 +419,7 @@ public class TechnicalProposalController {
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<byte[]> downloadPdf(
-            @PathVariable UUID id,
+            @PathVariable Long id,
             @Parameter(description = "Modo de disposição: 'inline' (preview) ou 'attachment' (download).",
                     schema = @Schema(allowableValues = {"inline", "attachment"}))
             @RequestParam(value = "disposition", defaultValue = "inline") String disposition) {

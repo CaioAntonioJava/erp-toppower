@@ -27,7 +27,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Entidade que representa uma proposta técnica emitida pela empresa para
@@ -45,7 +44,7 @@ import java.util.UUID;
  * criada pela migration V25).</p>
  *
  * <p>O cliente é referenciado por exatamente <b>um</b> dos campos
- * {@link #customerUuid} ou {@link #companyUuid}; o serviço de aplicação
+ * {@link #customerId} ou {@link #companyId}; o serviço de aplicação
  * valida essa invariante antes de persistir.</p>
  *
  * <p>Os itens da proposta são mantidos em entidades separadas
@@ -75,8 +74,8 @@ import java.util.UUID;
         indexes = {
                 @Index(name = "idx_technical_proposal_status", columnList = "status"),
                 @Index(name = "idx_technical_proposal_start_date", columnList = "start_date"),
-                @Index(name = "idx_technical_proposal_customer", columnList = "customer_uuid"),
-                @Index(name = "idx_technical_proposal_company", columnList = "company_uuid")
+                @Index(name = "idx_technical_proposal_customer", columnList = "customer_id"),
+                @Index(name = "idx_technical_proposal_company", columnList = "company_id")
         },
         uniqueConstraints = {
                 @UniqueConstraint(
@@ -119,18 +118,18 @@ public class TechnicalProposal extends OrganizationScopedEntity {
     /**
      * Referência ao {@code Customer} (pessoa física) comprador da proposta.
      * Deve ser preenchido <b>apenas</b> quando o comprador for pessoa
-     * física, em conjunto com {@link #companyUuid} nulo.
+     * física, em conjunto com {@link #companyId} nulo.
      */
-    @Column(name = "customer_uuid")
-    private UUID customerUuid;
+    @Column(name = "customer_id")
+    private Long customerId;
 
     /**
      * Referência à {@code Company} (pessoa jurídica) compradora da proposta.
      * Deve ser preenchido <b>apenas</b> quando o comprador for pessoa
-     * jurídica, em conjunto com {@link #customerUuid} nulo.
+     * jurídica, em conjunto com {@link #customerId} nulo.
      */
-    @Column(name = "company_uuid")
-    private UUID companyUuid;
+    @Column(name = "company_id")
+    private Long companyId;
 
     /**
      * Endereço onde o serviço será executado. <b>Opcional</b> — todos os
@@ -270,11 +269,11 @@ public class TechnicalProposal extends OrganizationScopedEntity {
      * Referência à {@code Carrier} (transportadora) responsável pelo
      * frete da proposta. Opcional — documentos sem transportadora
      * permanecem com este campo nulo. Não há FK física (referência por
-     * UUID, padrão do projeto); a validação de existência é feita no
+     * ID, padrão do projeto); a validação de existência é feita no
      * service quando o campo é informado.
      */
-    @Column(name = "carrier_uuid")
-    private UUID carrierUuid;
+    @Column(name = "carrier_id")
+    private Long carrierId;
 
     /**
      * Tipo de entrega (CIF/FOB), mesmo domínio usado em cotação.

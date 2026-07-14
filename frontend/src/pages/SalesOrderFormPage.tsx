@@ -44,7 +44,7 @@ export function SalesOrderFormPage() {
   // TechnicalProposalFormPage). Sem isso, ao trocar de empresa no Topbar o
   // número exibido no formulário fica desatualizado.
   const { activeOrganization } = useOrganization()
-  const activeOrganizationUuid = activeOrganization?.uuid ?? null
+  const activeOrganizationId = activeOrganization?.id ?? null
 
   const [mode, setMode] = useState<Mode>('loading')
   const [salesOrder, setSalesOrder] = useState<SalesOrderResponse | null>(null)
@@ -64,7 +64,7 @@ export function SalesOrderFormPage() {
   // sua própria sequência (1000, 1001, ... independente por empresa).
   useEffect(() => {
     if (id) return
-    if (!activeOrganizationUuid) {
+    if (!activeOrganizationId) {
       // Sem Organization ativa: limpa o preview e aguarda seleção no Topbar.
       setMode('create')
       setNextNumber(null)
@@ -85,7 +85,7 @@ export function SalesOrderFormPage() {
     return () => {
       cancelled = true
     }
-  }, [id, activeOrganizationUuid])
+  }, [id, activeOrganizationId])
 
   // Modo VIEW/EDIT: carrega o pedido pelo ID (imutável entre trocas de org,
   // pois a URL é específica). Em caso de erro, cai em modo create.
@@ -94,7 +94,7 @@ export function SalesOrderFormPage() {
     let cancelled = false
     setMode('loading')
     setLoadError(null)
-    getSalesOrder(id)
+	    getSalesOrder(Number(id!))
       .then((data) => {
         if (cancelled) return
         setSalesOrder(data)
@@ -124,7 +124,7 @@ export function SalesOrderFormPage() {
     if (!salesOrder) return
     setSaving(true)
     try {
-      const updated = await updateSalesOrder(salesOrder.uuid, payload)
+      const updated = await updateSalesOrder(salesOrder.id, payload)
       setSalesOrder(updated)
     } finally {
       setSaving(false)
@@ -168,7 +168,7 @@ export function SalesOrderFormPage() {
           {readOnly && salesOrder ? (
             <Button
               variant="secondary"
-              onClick={() => navigate(`/sales-orders/${salesOrder.uuid}`)}
+              onClick={() => navigate(`/sales-orders/${salesOrder.id}`)}
             >
               Modo somente leitura
             </Button>
@@ -216,7 +216,7 @@ export function SalesOrderFormPage() {
         </Alert>
       ) : null}
 
-      {mode === 'create' && !activeOrganizationUuid ? (
+      {mode === 'create' && !activeOrganizationId ? (
         <Alert variant="info">
           Selecione uma empresa ativa no seletor do topo da tela antes de
           cadastrar um pedido de venda. A numeração e o isolamento dos
@@ -257,7 +257,7 @@ export function SalesOrderFormPage() {
               empresa pelo dropdown do Topbar.
             */}
             <SalesOrderForm
-              key={`${activeOrganizationUuid ?? 'no-org'}-${mode}-${id ?? 'new'}`}
+              key={`${activeOrganizationId ?? 'no-org'}-${mode}-${id ?? 'new'}`}
               salesOrder={canEdit ? salesOrder ?? undefined : undefined}
               initialNumber={mode === 'create' ? nextNumber : null}
               onSaveCreate={handleCreate}

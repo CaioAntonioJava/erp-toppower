@@ -144,13 +144,13 @@ export function UserFormPage() {
 
     const linked: string[] = []
     const failed: { orgName: string; reason: string }[] = []
-    const orgsToLink = orgs.filter((o) => selectedOrgIds.has(o.uuid))
+    const orgsToLink = orgs.filter((o) => selectedOrgIds.has(String(o.id)))
 
     for (const org of orgsToLink) {
       try {
         await assignUserToOrganization({
-          userId: createdUser.uuid,
-          organizationId: org.uuid,
+          userId: createdUser.id,
+	          organizationId: org.id,
           role: 'ROLE_MANAGER',
           isDefault: false,
         })
@@ -298,21 +298,21 @@ export function UserFormPage() {
           ) : (
             <ul className="max-h-64 space-y-1 overflow-y-auto rounded-lg border border-slate-200 p-2 dark:border-slate-700">
               {orgs.map((org) => {
-                const checked = selectedOrgIds.has(org.uuid)
-                return (
-                  <li key={org.uuid}>
-                    <label
-                      className={[
-                        'flex cursor-pointer items-start gap-3 rounded-md px-2 py-2 text-sm transition-colors',
-                        checked
-                          ? 'bg-primary-50 dark:bg-primary-900/20'
-                          : 'hover:bg-slate-50 dark:hover:bg-slate-800/40',
-                      ].join(' ')}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => toggleOrg(org.uuid)}
+                const checked = selectedOrgIds.has(String(org.id))
+		                return (
+		                  <li key={org.id}>
+	                    <label
+	                      className={[
+	                        'flex cursor-pointer items-start gap-3 rounded-md px-2 py-2 text-sm transition-colors',
+	                        checked
+	                          ? 'bg-primary-50 dark:bg-primary-900/20'
+	                          : 'hover:bg-slate-50 dark:hover:bg-slate-800/40',
+	                      ].join(' ')}
+	                    >
+	                      <input
+	                        type="checkbox"
+	                        checked={checked}
+	                        onChange={() => toggleOrg(String(org.id))}
                         className="mt-0.5 h-4 w-4 rounded border-slate-300 text-primary focus:ring-focus dark:border-slate-600"
                       />
                       <span className="flex flex-col">

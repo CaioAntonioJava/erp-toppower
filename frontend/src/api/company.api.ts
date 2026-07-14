@@ -57,7 +57,7 @@ export async function searchCompanies(params: {
 }
 
 /** GET /companies/{id} — detalhe. Disponível para ADMIN e MANAGER no backend. */
-export async function getCompany(id: string): Promise<CompanyResponse> {
+export async function getCompany(id: number): Promise<CompanyResponse> {
   const { data } = await api.get<CompanyResponse>(`${BASE}/${id}`)
   return data
 }
@@ -82,7 +82,7 @@ export async function createCompany(
 
 /** PATCH /companies/{id} — atualização parcial. */
 export async function updateCompany(
-  id: string,
+  id: number,
   payload: CompanyUpdateRequest,
 ): Promise<CompanyResponse> {
   const { data } = await api.patch<CompanyResponse>(`${BASE}/${id}`, payload)
@@ -90,12 +90,12 @@ export async function updateCompany(
 }
 
 /** DELETE /companies/{id} — inativação (soft delete). Retorna 204. */
-export async function inactivateCompany(id: string): Promise<void> {
+export async function inactivateCompany(id: number): Promise<void> {
   await api.delete(`${BASE}/${id}`)
 }
 
 /** PATCH /companies/{id}/activate — reativação. */
-export async function activateCompany(id: string): Promise<CompanyResponse> {
+export async function activateCompany(id: number): Promise<CompanyResponse> {
   const { data } = await api.patch<CompanyResponse>(`${BASE}/${id}/activate`)
   return data
 }

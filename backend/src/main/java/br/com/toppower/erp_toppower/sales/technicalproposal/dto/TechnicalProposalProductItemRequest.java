@@ -6,7 +6,6 @@ import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
 /**
  * Linha de produto de uma proposta técnica. Usado tanto no
@@ -24,7 +23,7 @@ public record TechnicalProposalProductItemRequest(
         @Schema(description = "Identificador (UUID) do produto a ser incluído na linha.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull(message = "Produto é obrigatório")
-        UUID productUuid,
+        Long productId,
 
         @Schema(description = "Quantidade do produto. Suporta até 4 casas decimais (ex.: metros).",
                 example = "2.00", requiredMode = Schema.RequiredMode.REQUIRED)

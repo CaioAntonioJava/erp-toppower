@@ -72,7 +72,7 @@ export interface TechnicalProposalObjectiveRequest {
 
 /** Linha de objetivo retornada pela API. */
 export interface TechnicalProposalObjectiveResponse {
-  uuid: string
+  id: number
   description: string
 }
 
@@ -113,7 +113,7 @@ export interface TechnicalProposalServiceItemRequest {
 
 /** Linha de serviço retornada pela API. */
 export interface TechnicalProposalServiceItemResponse {
-  uuid: string
+  id: number
   description: string
   /** Preço do serviço prestado. */
   price: number | null
@@ -121,7 +121,7 @@ export interface TechnicalProposalServiceItemResponse {
 
 /** Linha de produto enviada na criação/edição. */
 export interface TechnicalProposalProductItemRequest {
-  productUuid: string
+  productId: number
   quantity: number
   unitPrice: number
   discountType?: DiscountType | null
@@ -130,8 +130,8 @@ export interface TechnicalProposalProductItemRequest {
 
 /** Linha de produto retornada pela API. */
 export interface TechnicalProposalProductItemResponse {
-  uuid: string
-  productUuid: string
+  id: number
+  productId: number
   quantity: number
   /** Preço unitário do produto (snapshot no momento da emissão). */
   unitPrice: number
@@ -147,14 +147,14 @@ export interface TechnicalProposalProductItemResponse {
 
 /** Representação completa da proposta técnica. Espelha TechnicalProposalResponse. */
 export interface TechnicalProposalResponse {
-  uuid: string
+  id: number
   prefix: string
   sequence: number
   year: number
   /** Código formatado completo (ex.: "PL-001-2026"). */
   code: string
-  customerUuid: string | null
-  companyUuid: string | null
+  customerId: number | null
+  companyId: number | null
   clientType: TechnicalProposalClientType
   clientName: string | null
   clientCode: string | null
@@ -181,8 +181,8 @@ export interface TechnicalProposalResponse {
   validity: string | null
   deliveryType: FreightType | null
   notes: string | null
-  /** UUID da transportadora (Carrier) responsável pelo frete. */
-  carrierUuid: string | null
+  /** ID da transportadora (Carrier) responsável pelo frete. */
+  carrierId: number | null
   /** Nome da transportadora (resolvido no backend). */
   carrierName: string | null
   servicesSubtotal: number
@@ -198,10 +198,10 @@ export interface TechnicalProposalResponse {
 
 /** Resumo da proposta para listagens paginadas. */
 export interface TechnicalProposalSummaryResponse {
-  uuid: string
+  id: number
   code: string
   clientType: TechnicalProposalClientType
-  clientUuid: string | null
+  clientId: number | null
   clientName: string | null
   clientCode: string | null
   objectives: TechnicalProposalObjectiveResponse[]
@@ -217,8 +217,8 @@ export interface TechnicalProposalSummaryResponse {
 
 /** Corpo de POST /api/v1/technical-proposals. */
 export interface TechnicalProposalCreateRequest {
-  customerUuid?: string | null
-  companyUuid?: string | null
+  customerId?: number | null
+  companyId?: number | null
   address?: TechnicalProposalAddressRequest | null
   objectives: TechnicalProposalObjectiveRequest[]
   description?: string | null
@@ -238,14 +238,14 @@ export interface TechnicalProposalCreateRequest {
   validity?: string | null
   deliveryType?: FreightType | null
   notes?: string | null
-  /** UUID da transportadora (Carrier) responsável pelo frete. Opcional. */
-  carrierUuid?: string | null
+  /** ID da transportadora (Carrier) responsável pelo frete. Opcional. */
+  carrierId?: number | null
 }
 
 /** Corpo de PATCH /api/v1/technical-proposals/{id}. */
 export interface TechnicalProposalUpdateRequest {
-  customerUuid?: string | null
-  companyUuid?: string | null
+  customerId?: number | null
+  companyId?: number | null
   address?: TechnicalProposalAddressRequest | null
   objectives?: TechnicalProposalObjectiveRequest[] | null
   description?: string | null
@@ -265,8 +265,8 @@ export interface TechnicalProposalUpdateRequest {
   validity?: string | null
   deliveryType?: FreightType | null
   notes?: string | null
-  /** UUID da transportadora (Carrier). null = remover a transportadora vinculada. */
-  carrierUuid?: string | null
+  /** ID da transportadora (Carrier). null = remover a transportadora vinculada. */
+  carrierId?: number | null
 }
 
 /** Resposta do endpoint /technical-proposals/next-code. */
@@ -282,7 +282,7 @@ export interface TechnicalProposalFilters {
   status?: TechnicalProposalStatus
   startDate?: string
   endDate?: string
-  clientUuid?: string
+  clientId?: number
   code?: string
   page?: number
   size?: number

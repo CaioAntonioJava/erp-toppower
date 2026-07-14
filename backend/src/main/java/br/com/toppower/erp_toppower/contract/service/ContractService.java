@@ -40,7 +40,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Regras de negócio do ciclo de vida de um contrato.
@@ -103,18 +102,18 @@ public class ContractService {
 
     @Transactional
     public ContractResponse create(ContractCreateRequest request) {
-        validateClientReference(request.customerUuid(), request.companyUuid(), true);
+        validateClientReference(request.customerId(), request.companyId(), true);
 
         Contract header = ContractMapper.toEntity(request);
         applyNextCode(header);
 
         Contract saved = contractRepository.save(header);
 
-        List<ContractClause> clauses = persistClauses(request.clauses(), saved.getUuid());
-        List<ContractServiceItem> serviceItems = persistServiceItems(request.serviceItems(), saved.getUuid());
-        List<ContractProductItem> productItems = persistProductItems(request.productItems(), saved.getUuid());
+        List<ContractClause> clauses = persistClauses(request.clauses(), saved.getId());
+        List<ContractServiceItem> serviceItems = persistServiceItems(request.serviceItems(), saved.getId());
+        List<ContractProductItem> productItems = persistProductItems(request.productItems(), saved.getId());
 
-        ClientResolved client = resolveClient(saved.getCustomerUuid(), saved.getCompanyUuid());
+        ClientResolved client = resolveClient(saved.getCustomerId(), saved.getCompanyId());
         return ContractMapper.toResponse(saved, client.type(), client.name(), client.code(), clauses, serviceItems, productItems);
     }
 
@@ -123,12 +122,12 @@ public class ContractService {
     // ---------------------------------------------------------------------
 
     @Transactional(readOnly = true)
-    public ContractResponse getById(UUID id) {
+    public ContractResponse getById(Long id) {
         Contract c = loadContract(id);
-        List<ContractClause> clauses = contractClauseRepository.findByContractUuidOrderByCreatedAtAsc(id);
-        List<ContractServiceItem> serviceItems = contractServiceItemRepository.findByContractUuidOrderByCreatedAtAsc(id);
-        List<ContractProductItem> productItems = contractProductItemRepository.findByContractUuidOrderByCreatedAtAsc(id);
-        ClientResolved client = resolveClient(c.getCustomerUuid(), c.getCompanyUuid());
+        List<ContractClause> clauses = contractClauseRepository.findByContractIdOrderByCreatedAtAsc(id);
+        List<ContractServiceItem> serviceItems = contractServiceItemRepository.findByContractIdOrderByCreatedAtAsc(id);
+        List<ContractProductItem> productItems = contractProductItemRepository.findByContractIdOrderByCreatedAtAsc(id);
+        ClientResolved client = resolveClient(c.getCustomerId(), c.getCompanyId());
         return ContractMapper.toResponse(c, client.type(), client.name(), client.code(), clauses, serviceItems, productItems);
     }
 
@@ -138,11 +137,11 @@ public class ContractService {
         Contract c = contractRepository
                 .findByPrefixAndSequenceAndYear(parsed.prefix, parsed.sequence, parsed.year)
                 .orElseThrow(() -> new ContractNotFoundException(code));
-        UUID id = c.getUuid();
-        List<ContractClause> clauses = contractClauseRepository.findByContractUuidOrderByCreatedAtAsc(id);
-        List<ContractServiceItem> serviceItems = contractServiceItemRepository.findByContractUuidOrderByCreatedAtAsc(id);
-        List<ContractProductItem> productItems = contractProductItemRepository.findByContractUuidOrderByCreatedAtAsc(id);
-        ClientResolved client = resolveClient(c.getCustomerUuid(), c.getCompanyUuid());
+        Long id = c.getId();
+        List<ContractClause> clauses = contractClauseRepository.findByContractIdOrderByCreatedAtAsc(id);
+        List<ContractServiceItem> serviceItems = contractServiceItemRepository.findByContractIdOrderByCreatedAtAsc(id);
+        List<ContractProductItem> productItems = contractProductItemRepository.findByContractIdOrderByCreatedAtAsc(id);
+        ClientResolved client = resolveClient(c.getCustomerId(), c.getCompanyId());
         return ContractMapper.toResponse(c, client.type(), client.name(), client.code(), clauses, serviceItems, productItems);
     }
 
@@ -161,7 +160,7 @@ public class ContractService {
     public PagedResponse<ContractSummaryResponse> search(ContractStatus status,
                                                         LocalDate startDate,
                                                         LocalDate endDate,
-                                                        UUID clientUuid,
+                                                        Long clientId,
                                                         String codeLike,
                                                         Pageable pageable) {
         Specification<Contract> spec = (root, query, cb) -> {
@@ -175,11 +174,11 @@ public class ContractService {
             if (endDate != null) {
                 predicates.add(cb.lessThanOrEqualTo(root.get("startDate"), endDate));
             }
-            if (clientUuid != null) {
+            if (clientId != null) {
                 // match em qualquer um dos dois campos (PF ou PJ).
                 predicates.add(cb.or(
-                        cb.equal(root.get("customerUuid"), clientUuid),
-                        cb.equal(root.get("companyUuid"), clientUuid)));
+                        cb.equal(root.get("customerId"), clientId),
+                        cb.equal(root.get("companyId"), clientId)));
             }
             return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
         };
@@ -188,7 +187,7 @@ public class ContractService {
 
         if (codeLike == null || codeLike.isBlank()) {
             Page<ContractSummaryResponse> mapped = page.map(c -> {
-                ClientResolved client = resolveClient(c.getCustomerUuid(), c.getCompanyUuid());
+                ClientResolved client = resolveClient(c.getCustomerId(), c.getCompanyId());
                 return ContractMapper.toSummary(c, client.type(), client.name(), client.code());
             });
             return PagedResponse.from(mapped);
@@ -201,7 +200,7 @@ public class ContractService {
         List<ContractSummaryResponse> filtered = page.stream()
                 .filter(c -> c.formattedCode().toLowerCase().contains(needle))
                 .map(c -> {
-                    ClientResolved client = resolveClient(c.getCustomerUuid(), c.getCompanyUuid());
+                    ClientResolved client = resolveClient(c.getCustomerId(), c.getCompanyId());
                     return ContractMapper.toSummary(c, client.type(), client.name(), client.code());
                 })
                 .toList();
@@ -221,7 +220,7 @@ public class ContractService {
     // ---------------------------------------------------------------------
 
     @Transactional
-    public ContractResponse update(UUID id, ContractUpdateRequest request) {
+    public ContractResponse update(Long id, ContractUpdateRequest request) {
         Contract c = loadContract(id);
 
         if (c.getStatus() == ContractStatus.CONCLUIDA) {
@@ -230,12 +229,12 @@ public class ContractService {
         }
 
         // Recalcula o cliente efetivo após o PATCH e valida.
-        UUID effectiveCustomer = (request.customerUuid() != null)
-                ? request.customerUuid() : c.getCustomerUuid();
-        UUID effectiveCompany = (request.companyUuid() != null)
-                ? request.companyUuid() : c.getCompanyUuid();
+        Long effectiveCustomer = (request.customerId() != null)
+                ? request.customerId() : c.getCustomerId();
+        Long effectiveCompany = (request.companyId() != null)
+                ? request.companyId() : c.getCompanyId();
         // Só revalida se algum dos dois foi alterado.
-        if (request.customerUuid() != null || request.companyUuid() != null) {
+        if (request.customerId() != null || request.companyId() != null) {
             validateClientReference(effectiveCustomer, effectiveCompany, true);
         }
 
@@ -245,34 +244,34 @@ public class ContractService {
         // Substituição completa da lista de cláusulas, quando enviada
         List<ContractClause> clauses;
         if (request.clauses() != null) {
-            contractClauseRepository.deleteByContractUuid(id);
+            contractClauseRepository.deleteByContractId(id);
             contractClauseRepository.flush();
-            clauses = persistClauses(request.clauses(), saved.getUuid());
+            clauses = persistClauses(request.clauses(), saved.getId());
         } else {
-            clauses = contractClauseRepository.findByContractUuidOrderByCreatedAtAsc(id);
+            clauses = contractClauseRepository.findByContractIdOrderByCreatedAtAsc(id);
         }
 
         // Substituição completa da lista de itens de serviço, quando enviada
         List<ContractServiceItem> serviceItems;
         if (request.serviceItems() != null) {
-            contractServiceItemRepository.deleteByContractUuid(id);
+            contractServiceItemRepository.deleteByContractId(id);
             contractServiceItemRepository.flush();
-            serviceItems = persistServiceItems(request.serviceItems(), saved.getUuid());
+            serviceItems = persistServiceItems(request.serviceItems(), saved.getId());
         } else {
-            serviceItems = contractServiceItemRepository.findByContractUuidOrderByCreatedAtAsc(id);
+            serviceItems = contractServiceItemRepository.findByContractIdOrderByCreatedAtAsc(id);
         }
 
         // Substituição completa da lista de itens de produto, quando enviada
         List<ContractProductItem> productItems;
         if (request.productItems() != null) {
-            contractProductItemRepository.deleteByContractUuid(id);
+            contractProductItemRepository.deleteByContractId(id);
             contractProductItemRepository.flush();
-            productItems = persistProductItems(request.productItems(), saved.getUuid());
+            productItems = persistProductItems(request.productItems(), saved.getId());
         } else {
-            productItems = contractProductItemRepository.findByContractUuidOrderByCreatedAtAsc(id);
+            productItems = contractProductItemRepository.findByContractIdOrderByCreatedAtAsc(id);
         }
 
-        ClientResolved client = resolveClient(saved.getCustomerUuid(), saved.getCompanyUuid());
+        ClientResolved client = resolveClient(saved.getCustomerId(), saved.getCompanyId());
         return ContractMapper.toResponse(saved, client.type(), client.name(), client.code(), clauses, serviceItems, productItems);
     }
 
@@ -284,7 +283,7 @@ public class ContractService {
      * Inicia a execução: {@code ABERTA → EM_ANDAMENTO}.
      */
     @Transactional
-    public ContractResponse start(UUID id) {
+    public ContractResponse start(Long id) {
         Contract c = loadContract(id);
         if (c.getStatus() != ContractStatus.ABERTA) {
             throw new ContractBusinessException(
@@ -299,7 +298,7 @@ public class ContractService {
      * Conclui o contrato: {@code EM_ANDAMENTO → CONCLUIDA}.
      */
     @Transactional
-    public ContractResponse complete(UUID id) {
+    public ContractResponse complete(Long id) {
         Contract c = loadContract(id);
         if (c.getStatus() != ContractStatus.EM_ANDAMENTO) {
             throw new ContractBusinessException(
@@ -316,7 +315,7 @@ public class ContractService {
      * para corrigir conclusões indevidas.
      */
     @Transactional
-    public ContractResponse reopen(UUID id) {
+    public ContractResponse reopen(Long id) {
         Contract c = loadContract(id);
         if (c.getStatus() != ContractStatus.CONCLUIDA) {
             throw new ContractBusinessException(
@@ -343,10 +342,10 @@ public class ContractService {
      */
     @Transactional(readOnly = true)
     public NextContractCodeResponse getNextCode() {
-        UUID orgUuid = OrganizationContext.require();
+        Long orgId = OrganizationContext.require();
         int year = LocalDate.now().getYear();
         String prefix = currentOrgContractPrefix();
-        long sequence = generateNextSequence(year, orgUuid);
+        long sequence = generateNextSequence(year, orgId);
         String code = prefix + "-" + formatSequence(sequence) + "-" + year;
         return new NextContractCodeResponse(prefix, sequence, year, code);
     }
@@ -355,7 +354,7 @@ public class ContractService {
     // Helpers
     // ---------------------------------------------------------------------
 
-    private Contract loadContract(UUID id) {
+    private Contract loadContract(Long id) {
         return contractRepository.findById(id)
                 .orElseThrow(() -> new ContractNotFoundException(id));
     }
@@ -366,16 +365,16 @@ public class ContractService {
      * Organization/ano e ano corrente.
      */
     private void applyNextCode(Contract c) {
-        UUID orgUuid = OrganizationContext.require();
+        Long orgId = OrganizationContext.require();
         int year = LocalDate.now().getYear();
-        long sequence = generateNextSequence(year, orgUuid);
+        long sequence = generateNextSequence(year, orgId);
         c.setPrefix(currentOrgContractPrefix());
         c.setSequence(sequence);
         c.setYear(year);
     }
 
-    private long generateNextSequence(int year, UUID organizationUuid) {
-        Long maxSequence = contractRepository.findMaxSequenceByYearAndOrganizationUuid(year, organizationUuid);
+    private long generateNextSequence(int year, Long organizationId) {
+        Long maxSequence = contractRepository.findMaxSequenceByYearAndOrganizationId(year, organizationId);
         return (maxSequence == null) ? 1L : maxSequence + 1L;
     }
 
@@ -388,10 +387,10 @@ public class ContractService {
      * clara em vez de gerar um código inválido como "-001-2026").
      */
     private String currentOrgContractPrefix() {
-        UUID orgUuid = OrganizationContext.require();
-        Organization org = organizationRepository.findById(orgUuid)
+        Long orgId = OrganizationContext.require();
+        Organization org = organizationRepository.findById(orgId)
                 .orElseThrow(() -> new ContractBusinessException(
-                        "Organization ativa não encontrada: " + orgUuid));
+                        "Organization ativa não encontrada: " + orgId));
         String prefix = org.getContractPrefix();
         if (prefix == null || prefix.isBlank()) {
             throw new ContractBusinessException(
@@ -411,42 +410,42 @@ public class ContractService {
      * ao UUID do contrato informado. Retorna a lista de entidades
      * recém-persistidas (com UUIDs gerados).
      */
-    private List<ContractClause> persistClauses(List<ContractClauseRequest> requests, UUID contractUuid) {
+    private List<ContractClause> persistClauses(List<ContractClauseRequest> requests, Long contractId) {
         return requests.stream()
                 .map(req -> contractClauseRepository.save(
-                        ContractMapper.toClauseEntity(req, contractUuid)))
+                        ContractMapper.toClauseEntity(req, contractId)))
                 .toList();
     }
 
     /**
      * Persiste a lista de itens de serviço de um contrato, associando
-     * cada um ao UUID do contrato informado. Retorna a lista de entidades
-     * recém-persistidas (com UUIDs gerados).
+     * cada um ao ID do contrato informado. Retorna a lista de entidades
+     * recém-persistidas (com IDs gerados).
      */
     private List<ContractServiceItem> persistServiceItems(
-            List<ContractServiceItemRequest> requests, UUID contractUuid) {
+            List<ContractServiceItemRequest> requests, Long contractId) {
         if (requests == null) {
             return List.of();
         }
         return requests.stream()
                 .map(req -> contractServiceItemRepository.save(
-                        ContractMapper.toServiceItemEntity(req, contractUuid)))
+                        ContractMapper.toServiceItemEntity(req, contractId)))
                 .toList();
     }
 
     /**
      * Persiste a lista de itens de produto de um contrato, associando
-     * cada um ao UUID do contrato informado. Retorna a lista de entidades
-     * recém-persistidas (com UUIDs gerados).
+     * cada um ao ID do contrato informado. Retorna a lista de entidades
+     * recém-persistidas (com IDs gerados).
      */
     private List<ContractProductItem> persistProductItems(
-            List<ContractProductItemRequest> requests, UUID contractUuid) {
+            List<ContractProductItemRequest> requests, Long contractId) {
         if (requests == null) {
             return List.of();
         }
         return requests.stream()
                 .map(req -> contractProductItemRepository.save(
-                        ContractMapper.toProductItemEntity(req, contractUuid)))
+                        ContractMapper.toProductItemEntity(req, contractId)))
                 .toList();
     }
 
@@ -455,11 +454,11 @@ public class ContractService {
      * os agregados (cláusulas, itens de serviço, itens de produto).
      */
     private ContractResponse buildFullResponse(Contract c) {
-        UUID id = c.getUuid();
-        List<ContractClause> clauses = contractClauseRepository.findByContractUuidOrderByCreatedAtAsc(id);
-        List<ContractServiceItem> serviceItems = contractServiceItemRepository.findByContractUuidOrderByCreatedAtAsc(id);
-        List<ContractProductItem> productItems = contractProductItemRepository.findByContractUuidOrderByCreatedAtAsc(id);
-        ClientResolved client = resolveClient(c.getCustomerUuid(), c.getCompanyUuid());
+        Long id = c.getId();
+        List<ContractClause> clauses = contractClauseRepository.findByContractIdOrderByCreatedAtAsc(id);
+        List<ContractServiceItem> serviceItems = contractServiceItemRepository.findByContractIdOrderByCreatedAtAsc(id);
+        List<ContractProductItem> productItems = contractProductItemRepository.findByContractIdOrderByCreatedAtAsc(id);
+        ClientResolved client = resolveClient(c.getCustomerId(), c.getCompanyId());
         return ContractMapper.toResponse(c, client.type(), client.name(), client.code(), clauses, serviceItems, productItems);
     }
 
@@ -470,32 +469,32 @@ public class ContractService {
      * alterando o cliente), também verifica a existência do registro
      * referenciado.
      */
-    private void validateClientReference(UUID customerUuid, UUID companyUuid, boolean verifyExists) {
-        if (customerUuid == null && companyUuid == null) {
+    private void validateClientReference(Long customerId, Long companyId, boolean verifyExists) {
+        if (customerId == null && companyId == null) {
             throw InvalidContractClientException.bothNull();
         }
-        if (customerUuid != null && companyUuid != null) {
+        if (customerId != null && companyId != null) {
             throw InvalidContractClientException.bothSet();
         }
         if (!verifyExists) {
             return;
         }
-        if (customerUuid != null && !customerRepository.existsById(customerUuid)) {
-            throw new ContractCustomerNotFoundException(customerUuid);
+        if (customerId != null && !customerRepository.existsById(customerId)) {
+            throw new ContractCustomerNotFoundException(customerId);
         }
-        if (companyUuid != null && !companyRepository.existsById(companyUuid)) {
-            throw new ContractCompanyNotFoundException(companyUuid);
+        if (companyId != null && !companyRepository.existsById(companyId)) {
+            throw new ContractCompanyNotFoundException(companyId);
         }
     }
 
     /**
      * Resolve o nome e o código de exibição do cliente (PF ou PJ)
      * referenciado pelo contrato. Retorna {@code (null, null)} quando o
-     * registro não existe mais, mantendo o UUID como referência no DTO.
+     * registro não existe mais, mantendo o ID como referência no DTO.
      */
-    private ClientResolved resolveClient(UUID customerUuid, UUID companyUuid) {
-        if (customerUuid != null) {
-            Customer c = customerRepository.findById(customerUuid).orElse(null);
+    private ClientResolved resolveClient(Long customerId, Long companyId) {
+        if (customerId != null) {
+            Customer c = customerRepository.findById(customerId).orElse(null);
             if (c != null) {
                 return new ClientResolved(
                         ContractResponse.ClientType.CUSTOMER,
@@ -503,8 +502,8 @@ public class ContractService {
             }
             return new ClientResolved(ContractResponse.ClientType.CUSTOMER, null, null);
         }
-        if (companyUuid != null) {
-            Company c = companyRepository.findById(companyUuid).orElse(null);
+        if (companyId != null) {
+            Company c = companyRepository.findById(companyId).orElse(null);
             if (c != null) {
                 String name = c.getTradeName() != null && !c.getTradeName().isBlank()
                         ? c.getTradeName()
@@ -556,7 +555,7 @@ public class ContractService {
      * módulo (ex.: {@code ContractPdfService}).
      */
     @Transactional(readOnly = true)
-    public Contract getEntityById(UUID id) {
+    public Contract getEntityById(Long id) {
         return loadContract(id);
     }
 }

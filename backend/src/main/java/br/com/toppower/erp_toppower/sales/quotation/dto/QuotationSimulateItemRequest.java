@@ -6,7 +6,6 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
 /**
  * Linha de produto enviada à simulação de totais
@@ -23,9 +22,9 @@ import java.util.UUID;
         description = "Linha de produto enviada à simulação de totais. Campos opcionais para tolerar preview parcial.")
 public record QuotationSimulateItemRequest(
 
-        @Schema(description = "UUID do produto (opcional durante o preview).",
+        @Schema(description = "ID do produto (opcional durante o preview).",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID productUuid,
+        Long productId,
 
         @Schema(description = "Quantidade do produto. Suporta até 4 casas decimais.",
                 example = "2.00", requiredMode = Schema.RequiredMode.NOT_REQUIRED)

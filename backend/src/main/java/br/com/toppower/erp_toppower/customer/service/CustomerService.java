@@ -16,8 +16,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
-
 @Service
 public class CustomerService {
 
@@ -78,7 +76,7 @@ public class CustomerService {
     }
 
     @Transactional(readOnly = true)
-    public CustomerResponse getById(UUID id) {
+    public CustomerResponse getById(Long id) {
         return customerRepository.findById(id)
                 .map(CustomerMapper::toResponse)
                 .orElseThrow(() -> new CustomerNotFoundException(id));
@@ -108,7 +106,7 @@ public class CustomerService {
     }
 
     @Transactional
-    public CustomerResponse update(UUID id, CustomerUpdateRequest request) {
+    public CustomerResponse update(Long id, CustomerUpdateRequest request) {
         Customer customer = customerRepository.findById(id)
                 .orElseThrow(() -> new CustomerNotFoundException(id));
 
@@ -121,7 +119,7 @@ public class CustomerService {
      * Soft delete: não remove fisicamente o registro, apenas altera o status para INATIVO.
      */
     @Transactional
-    public void softDelete(UUID id) {
+    public void softDelete(Long id) {
         Customer customer = customerRepository.findById(id)
                 .orElseThrow(() -> new CustomerNotFoundException(id));
         customer.setStatus(RegistrationStatus.INATIVO);
@@ -132,7 +130,7 @@ public class CustomerService {
      * Reativa um cliente inativo, alterando o status para ATIVO.
      */
     @Transactional
-    public CustomerResponse activate(UUID id) {
+    public CustomerResponse activate(Long id) {
         Customer customer = customerRepository.findById(id)
                 .orElseThrow(() -> new CustomerNotFoundException(id));
         customer.setStatus(RegistrationStatus.ATIVO);

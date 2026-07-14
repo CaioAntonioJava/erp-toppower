@@ -8,11 +8,11 @@ export type OrganizationStatus = 'ATIVO' | 'INATIVO'
 
 /** Resumo de uma Organization (usado no seletor e na resposta de login). */
 export interface OrganizationSummary {
-  uuid: string
+  id: number
   corporateName: string
   tradeName: string
   cnpj: string
-  /** URL pública do logo (ex.: '/logos/<uuid>.png'). Opcional. */
+  /** URL pública do logo (ex.: '/logos/<id>.png'). Opcional. */
   logoUrl?: string | null
   status: OrganizationStatus
   /**
@@ -45,7 +45,7 @@ export interface OrganizationSummary {
  * de uma nova chamada de API.
  */
 export interface OrganizationResponse {
-  uuid: string
+  id: number
   corporateName: string
   tradeName: string
   cnpj: string
@@ -98,7 +98,7 @@ export interface OrganizationUpdateRequest {
 
 /** Usuário autenticado (retornado em /auth/login e /me). Espelha LoginResponse.AuthenticatedUser. */
 export interface AuthenticatedUser {
-  uuid: string
+  id: number
   email: string
   role: Role
 }
@@ -111,8 +111,8 @@ export interface LoginResponse {
   user: AuthenticatedUser
   /** Organizations acessíveis ao usuário (para o seletor). */
   organizations: OrganizationSummary[]
-  /** UUID da Organization default (pré-selecionada após o login). Pode ser null. */
-  defaultOrganizationId: string | null
+  /** ID da Organization default (pré-selecionada após o login). Pode ser null. */
+  defaultOrganizationId: number | null
 }
 
 /** Corpo de POST /api/v1/auth/login. */
@@ -141,15 +141,15 @@ export interface ResetPasswordRequest {
 
 /** Resposta de usuário (cadastro). Espelha br.com.toppower...user.dto.UserResponse. */
 export interface UserResponse {
-  uuid: string
+  id: number
   email: string
   role: Role
 }
 
 /** Corpo de POST /api/v1/user-organizations (vincular usuário a Organization). */
 export interface UserOrganizationAssignRequest {
-  userId: string
-  organizationId: string
+  userId: number
+  organizationId: number
   /** Apenas ROLE_MANAGER no fluxo de criação; ADMIN não se auto-vincula. */
   role: Role
   isDefault?: boolean
@@ -157,10 +157,10 @@ export interface UserOrganizationAssignRequest {
 
 /** Resposta de vínculos usuário↔Organization. Espelha UserOrganizationResponse (backend). */
 export interface UserOrganizationResponse {
-  uuid: string
-  userUuid: string
+  id: number
+  userId: number
   userEmail: string
-  organizationUuid: string
+  organizationId: number
   organizationCorporateName: string
   role: Role
   isDefault: boolean
@@ -169,13 +169,13 @@ export interface UserOrganizationResponse {
 
 /** Resposta de perfil. Espelha br.com.toppower...profile.dto.ProfileResponse. */
 export interface ProfileResponse {
-  uuid: string
+  id: number
   name: string
   email: string
   phone: string
   cpf: string
   status: ProfileStatus
-  userId: string
+  userId: number
   createdAt: string
   updatedAt: string
   createdBy: string | null

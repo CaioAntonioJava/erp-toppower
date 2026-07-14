@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * Orquestra a geração do PDF de uma proposta comercial.
@@ -41,10 +40,10 @@ public class QuotationPdfService {
     /**
      * Renderiza o PDF (A4) de uma proposta comercial.
      *
-     * @param id UUID da proposta
+     * @param id ID da proposta
      * @return bytes do PDF gerado
      */
-    public byte[] renderPdf(UUID id) {
+    public byte[] renderPdf(Long id) {
         QuotationResponse quotation = quotationService.getById(id);
 
         Map<String, Object> model = pdfModelBuilder.buildBaseModel();
@@ -60,11 +59,11 @@ public class QuotationPdfService {
         return salesPdfService.render("pdf/quotation", model);
     }
 
-    private Map<UUID, String> resolveProductNames(QuotationResponse quotation) {
+    private Map<Long, String> resolveProductNames(QuotationResponse quotation) {
         return resolveProductField(quotation, ProductResponse::name);
     }
 
-    private Map<UUID, String> resolveProductCodes(QuotationResponse quotation) {
+    private Map<Long, String> resolveProductCodes(QuotationResponse quotation) {
         return resolveProductField(quotation, p -> p.code() != null ? p.code() : "—");
     }
 
@@ -83,16 +82,16 @@ public class QuotationPdfService {
      * Falhas individuais (produto deletado, item órfão) não quebram o
      * PDF — apenas omitem aquele item do mapa.
      */
-    private Map<UUID, String> resolveProductField(QuotationResponse quotation,
+    private Map<Long, String> resolveProductField(QuotationResponse quotation,
                                                    java.util.function.Function<ProductResponse, String> extractor) {
-        Map<UUID, String> result = new HashMap<>();
+        Map<Long, String> result = new HashMap<>();
         if (quotation.items() == null) return result;
         for (var item : quotation.items()) {
-            UUID productUuid = item.productUuid();
-            if (productUuid == null || result.containsKey(productUuid)) continue;
+            Long productId = item.productId();
+            if (productId == null || result.containsKey(productId)) continue;
             try {
-                ProductResponse p = productService.getById(productUuid);
-                result.put(productUuid, extractor.apply(p));
+                ProductResponse p = productService.getById(productId);
+                result.put(productId, extractor.apply(p));
             } catch (RuntimeException ex) {
                 // Produto removido / inacessível — segue sem nome.
             }

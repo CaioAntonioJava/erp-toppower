@@ -23,7 +23,7 @@ public final class CarrierMapper {
 
     public static CarrierResponse toResponse(Carrier carrier) {
         return new CarrierResponse(
-                carrier.getUuid(),
+                carrier.getId(),
                 carrier.getName(),
                 carrier.getStatus(),
                 carrier.getCreatedAt(),

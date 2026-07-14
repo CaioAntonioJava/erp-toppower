@@ -50,7 +50,7 @@ export async function searchSellers(_params: {
 }
 
 /** GET /sellers/{id} — detalhe. Requer ROLE_ADMIN no backend. */
-export async function getSeller(id: string): Promise<SellerResponse> {
+export async function getSeller(id: number): Promise<SellerResponse> {
   const { data } = await api.get<SellerResponse>(`${BASE}/${id}`)
   return data
 }
@@ -65,7 +65,7 @@ export async function createSeller(
 
 /** PATCH /sellers/{id} — atualização parcial. */
 export async function updateSeller(
-  id: string,
+  id: number,
   payload: SellerUpdateRequest,
 ): Promise<SellerResponse> {
   const { data } = await api.patch<SellerResponse>(`${BASE}/${id}`, payload)
@@ -73,12 +73,12 @@ export async function updateSeller(
 }
 
 /** DELETE /sellers/{id} — inativação (soft delete). Retorna 204. Requer ROLE_ADMIN. */
-export async function inactivateSeller(id: string): Promise<void> {
+export async function inactivateSeller(id: number): Promise<void> {
   await api.delete(`${BASE}/${id}`)
 }
 
 /** PATCH /sellers/{id}/activate — reativação. Requer ROLE_ADMIN. */
-export async function activateSeller(id: string): Promise<SellerResponse> {
+export async function activateSeller(id: number): Promise<SellerResponse> {
   const { data } = await api.patch<SellerResponse>(
     `${BASE}/${id}/activate`,
   )

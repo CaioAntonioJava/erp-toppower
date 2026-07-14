@@ -53,7 +53,7 @@ export function CompanyFormPage() {
     let cancelled = false
     setMode('loading')
     setLoadError(null)
-    getCompany(id)
+	    getCompany(Number(id!))
       .then((data) => {
         if (cancelled) return
         setCompany(data)
@@ -87,7 +87,7 @@ export function CompanyFormPage() {
     if (!company) return
     setSaving(true)
     try {
-      const updated = await updateCompany(company.uuid, payload)
+      const updated = await updateCompany(company.id, payload)
       setCompany(updated)
     } finally {
       setSaving(false)
@@ -100,15 +100,15 @@ export function CompanyFormPage() {
     setToggleError(null)
     try {
       if (company.status === 'ATIVO') {
-        await inactivateCompany(company.uuid)
-        try {
-          const fresh = await getCompany(company.uuid)
+        await inactivateCompany(company.id)
+	        try {
+	          const fresh = await getCompany(company.id)
           setCompany(fresh)
         } catch {
           setCompany({ ...company, status: 'INATIVO' })
         }
       } else {
-        const updated = await activateCompany(company.uuid)
+        const updated = await activateCompany(company.id)
         setCompany(updated)
       }
     } catch (err) {

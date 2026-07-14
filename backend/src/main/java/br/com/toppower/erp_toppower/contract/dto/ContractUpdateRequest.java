@@ -7,7 +7,6 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Atualização parcial (PATCH) de um contrato.
@@ -33,12 +32,12 @@ public record ContractUpdateRequest(
         @Schema(description = "Novo UUID do cliente pessoa física contratante. "
                 + "OBRIGATÓRIO se companyUuid não for informado neste PATCH.",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID customerUuid,
+        Long customerId,
 
         @Schema(description = "Novo UUID da empresa (pessoa jurídica) contratante. "
                 + "OBRIGATÓRIO se customerUuid não for informado neste PATCH.",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID companyUuid,
+        Long companyId,
 
         @Schema(description = "Novo endereço. Envie um objeto vazio (todos os campos "
                 + "nulos) ou {@code null} para remover o endereço.",

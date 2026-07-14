@@ -45,16 +45,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/quotations")
 @RequiredArgsConstructor
 @Tag(name = "Propostas Comerciais", description = "Gestão de propostas/orçamentos de venda.")
 public class QuotationController {
-
-    private static final String UUID_REGEX =
-            "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
 
     private final QuotationService quotationService;
     private final ClientSearchService clientSearchService;
@@ -153,11 +149,11 @@ public class QuotationController {
             @RequestParam(value = "endDate", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
 
-            @Parameter(description = "UUID do cliente (PF ou PJ).")
-            @RequestParam(value = "clientUuid", required = false) UUID clientUuid,
+            @Parameter(description = "ID do cliente (PF ou PJ).")
+            @RequestParam(value = "clientId", required = false) Long clientId,
 
-            @Parameter(description = "UUID do vendedor.")
-            @RequestParam(value = "sellerUuid", required = false) UUID sellerUuid,
+            @Parameter(description = "ID do vendedor.")
+            @RequestParam(value = "sellerId", required = false) Long sellerId,
 
             @Parameter(description = "Trecho do número (ex.: '150' para 1500, 1501, ...).",
                     example = "150")
@@ -168,7 +164,7 @@ public class QuotationController {
             Pageable pageable) {
 
         return ResponseEntity.ok(quotationService.search(
-                status, startDate, endDate, clientUuid, sellerUuid, number, pageable));
+                status, startDate, endDate, clientId, sellerId, number, pageable));
     }
 
     @GetMapping(value = "/by-number/{number}", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -191,7 +187,7 @@ public class QuotationController {
         return ResponseEntity.ok(quotationService.getByNumber(number));
     }
 
-    @GetMapping(value = "/{id:" + UUID_REGEX + "}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Buscar proposta por ID",
             description = "Retorna a proposta com todos os itens e totais calculados.")
     @SecurityRequirement(name = "bearerAuth")
@@ -205,11 +201,11 @@ public class QuotationController {
             @ApiResponse(responseCode = "404", description = "Proposta não encontrada.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<QuotationResponse> getById(@PathVariable UUID id) {
+    public ResponseEntity<QuotationResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(quotationService.getById(id));
     }
 
-    @PatchMapping(value = "/{id:" + UUID_REGEX + "}",
+    @PatchMapping(value = "/{id}",
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Atualizar proposta (parcial)",
@@ -231,12 +227,12 @@ public class QuotationController {
             @ApiResponse(responseCode = "409", description = "Proposta em estado que impede edição.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<QuotationResponse> update(@PathVariable UUID id,
+    public ResponseEntity<QuotationResponse> update(@PathVariable Long id,
                                                     @Valid @RequestBody QuotationUpdateRequest request) {
         return ResponseEntity.ok(quotationService.update(id, request));
     }
 
-    @DeleteMapping(value = "/{id:" + UUID_REGEX + "}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @DeleteMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Cancelar proposta (soft)",
             description = "Define o status da proposta como CANCELADA. Não remove fisicamente o registro. "
                     + "Propostas CONVERTIDAS não podem ser canceladas por este endpoint.")
@@ -253,7 +249,7 @@ public class QuotationController {
             @ApiResponse(responseCode = "409", description = "Proposta em estado que impede cancelamento.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<QuotationResponse> cancel(@PathVariable UUID id) {
+    public ResponseEntity<QuotationResponse> cancel(@PathVariable Long id) {
         return ResponseEntity.ok(quotationService.cancel(id));
     }
 
@@ -271,7 +267,7 @@ public class QuotationController {
      *   <li>{@code attachment} — dispara o download direto do arquivo.</li>
      * </ul>
      */
-    @GetMapping(value = "/{id:" + UUID_REGEX + "}/pdf",
+    @GetMapping(value = "/{id}/pdf",
             produces = MediaType.APPLICATION_PDF_VALUE)
     @Operation(summary = "Gerar PDF da proposta",
             description = "Retorna o PDF (A4) com cabeçalho do emissor (Organization ativa), "
@@ -288,7 +284,7 @@ public class QuotationController {
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<byte[]> downloadPdf(
-            @PathVariable UUID id,
+            @PathVariable Long id,
             @Parameter(description = "Modo de disposição: 'inline' (preview) ou 'attachment' (download).",
                     schema = @Schema(allowableValues = {"inline", "attachment"}))
             @RequestParam(value = "disposition", defaultValue = "inline") String disposition) {

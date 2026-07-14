@@ -2,12 +2,12 @@
 -- V22__scoped_unique_constraints_multiorg.sql
 --
 -- Torna as constraints UNIQUE de CPF/CNPJ/tax_id ESCOPADAS por Organization
--- (organization_uuid + coluna), em vez de globais. Permite que duas empresas
+-- (organization_id + coluna), em vez de globais. Permite que duas empresas
 -- diferentes cadastrem o mesmo cliente/vendedor/fornecedor, mas proíbe a
 -- duplicidade DENTRO da mesma empresa.
 --
 -- Motivo: as entidades Company/Customer/Seller/Supplier herdam de
--- OrganizationScopedEntity (isolamento lógico via coluna organization_uuid +
+-- OrganizationScopedEntity (isolamento lógico via coluna organization_id +
 -- filtro Hibernate), mas as colunas cnpj/cpf/tax_id foram declaradas com
 -- @Column(unique = true), gerando índices UNIQUE GLOBAIS no schema. Isso
 -- impede a segunda empresa de cadastrar o mesmo CPF/CNPJ da primeira,
@@ -26,10 +26,10 @@
 --      pelo Hibernate, ex.: UKm1bj83lpw9...) em:
 --        companies.cnpj, customers.cpf, sellers.cpf, suppliers.tax_id
 --   2) Cria as novas constraints UNIQUE COMPOSTAS:
---        uk_companies_org_cnpj   (organization_uuid, cnpj)
---        uk_customers_org_cpf     (organization_uuid, cpf)
---        uk_sellers_org_cpf       (organization_uuid, cpf)
---        uk_suppliers_org_tax_id  (organization_uuid, tax_id)
+--        uk_companies_org_cnpj   (organization_id, cnpj)
+--        uk_customers_org_cpf     (organization_id, cpf)
+--        uk_sellers_org_cpf       (organization_id, cpf)
+--        uk_suppliers_org_tax_id  (organization_id, tax_id)
 --
 -- Padrão PREPARE/EXECUTE dinâmico idêntico ao da V16/V18, pois
 -- `ALTER TABLE ... DROP INDEX IF EXISTS` não é suportado no MySQL.
@@ -141,42 +141,42 @@ SET @sql = IF(@uk_name IS NOT NULL,
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- -----------------------------------------------------------------------------
--- 2. Cria as novas constraints UNIQUE COMPOSTAS (organization_uuid + coluna).
+-- 2. Cria as novas constraints UNIQUE COMPOSTAS (organization_id + coluna).
 --    Idempotente: só cria se o índice ainda não existir.
 -- -----------------------------------------------------------------------------
 
--- uk_companies_org_cnpj (organization_uuid, cnpj)
+-- uk_companies_org_cnpj (organization_id, cnpj)
 SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'companies'
       AND INDEX_NAME = 'uk_companies_org_cnpj');
 SET @sql = IF(@has_idx = 0,
-    'CREATE UNIQUE INDEX uk_companies_org_cnpj ON companies (organization_uuid, cnpj)',
+    'CREATE UNIQUE INDEX uk_companies_org_cnpj ON companies (organization_id, cnpj)',
     'DO 0');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- uk_customers_org_cpf (organization_uuid, cpf)
+-- uk_customers_org_cpf (organization_id, cpf)
 SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'customers'
       AND INDEX_NAME = 'uk_customers_org_cpf');
 SET @sql = IF(@has_idx = 0,
-    'CREATE UNIQUE INDEX uk_customers_org_cpf ON customers (organization_uuid, cpf)',
+    'CREATE UNIQUE INDEX uk_customers_org_cpf ON customers (organization_id, cpf)',
     'DO 0');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- uk_sellers_org_cpf (organization_uuid, cpf)
+-- uk_sellers_org_cpf (organization_id, cpf)
 SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'sellers'
       AND INDEX_NAME = 'uk_sellers_org_cpf');
 SET @sql = IF(@has_idx = 0,
-    'CREATE UNIQUE INDEX uk_sellers_org_cpf ON sellers (organization_uuid, cpf)',
+    'CREATE UNIQUE INDEX uk_sellers_org_cpf ON sellers (organization_id, cpf)',
     'DO 0');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- uk_suppliers_org_tax_id (organization_uuid, tax_id)
+-- uk_suppliers_org_tax_id (organization_id, tax_id)
 SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'suppliers'
       AND INDEX_NAME = 'uk_suppliers_org_tax_id');
 SET @sql = IF(@has_idx = 0,
-    'CREATE UNIQUE INDEX uk_suppliers_org_tax_id ON suppliers (organization_uuid, tax_id)',
+    'CREATE UNIQUE INDEX uk_suppliers_org_tax_id ON suppliers (organization_id, tax_id)',
     'DO 0');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;

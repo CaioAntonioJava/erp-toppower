@@ -16,8 +16,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
-
 @Service
 public class SellerService {
 
@@ -79,14 +77,14 @@ public class SellerService {
     }
 
     @Transactional(readOnly = true)
-    public SellerResponse getById(UUID id) {
+    public SellerResponse getById(Long id) {
         return sellerRepository.findById(id)
                 .map(SellerMapper::toResponse)
                 .orElseThrow(() -> new SellerNotFoundException(id));
     }
 
     @Transactional
-    public SellerResponse update(UUID id, SellerUpdateRequest request) {
+    public SellerResponse update(Long id, SellerUpdateRequest request) {
         Seller seller = sellerRepository.findById(id)
                 .orElseThrow(() -> new SellerNotFoundException(id));
 
@@ -113,7 +111,7 @@ public class SellerService {
      * Acesso restrito a administradores.
      */
     @Transactional
-    public void softDelete(UUID id) {
+    public void softDelete(Long id) {
         Seller seller = sellerRepository.findById(id)
                 .orElseThrow(() -> new SellerNotFoundException(id));
         seller.setStatus(SellerStatus.INATIVO);
@@ -126,7 +124,7 @@ public class SellerService {
      * Acesso restrito a administradores.
      */
     @Transactional
-    public SellerResponse activate(UUID id) {
+    public SellerResponse activate(Long id) {
         Seller seller = sellerRepository.findById(id)
                 .orElseThrow(() -> new SellerNotFoundException(id));
         seller.setStatus(SellerStatus.ATIVO);

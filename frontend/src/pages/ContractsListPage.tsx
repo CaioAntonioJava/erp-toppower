@@ -175,9 +175,9 @@ export function ContractsListPage() {
               ) : (
                 (data?.content ?? []).map((c) => (
                   <tr
-                    key={c.uuid}
+                    key={c.id}
                     className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40"
-                    onClick={() => navigate(`/contracts/${c.uuid}/edit`)}
+                    onClick={() => navigate(`/contracts/${c.id}/edit`)}
                   >
                     <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-slate-700 dark:text-slate-200">
                       {c.code}
@@ -216,7 +216,7 @@ export function ContractsListPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => navigate(`/contracts/${c.uuid}`)}
+                          onClick={() => navigate(`/contracts/${c.id}`)}
                           title="Ver detalhe"
                           aria-label="Ver detalhe"
                         >
@@ -226,7 +226,7 @@ export function ContractsListPage() {
                           size="sm"
                           variant="ghost"
                           onClick={() =>
-                            window.open(`/contracts/${c.uuid}/pdf`, '_blank')
+                            window.open(`/contracts/${c.id}/pdf`, '_blank')
                           }
                           title="Gerar PDF"
                           aria-label="Gerar PDF"

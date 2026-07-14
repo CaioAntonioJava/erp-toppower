@@ -26,7 +26,7 @@
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS carriers (
-    uuid            BINARY(16)      NOT NULL,
+    id            BIGINT          NOT NULL AUTO_INCREMENT,
     name            VARCHAR(200)   NOT NULL,
     status          VARCHAR(20)    NOT NULL,
     created_at      TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -34,6 +34,6 @@ CREATE TABLE IF NOT EXISTS carriers (
                                             ON UPDATE CURRENT_TIMESTAMP,
     created_by      VARCHAR(100)    NULL,
     updated_by      VARCHAR(100)    NULL,
-    PRIMARY KEY (uuid)
+    PRIMARY KEY (id)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4;

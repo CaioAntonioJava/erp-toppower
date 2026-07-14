@@ -1,15 +1,13 @@
 package br.com.toppower.erp_toppower.sales.technicalproposal.exception;
 
-import java.util.UUID;
-
 /**
  * Lançada quando nenhuma proposta técnica é encontrada para o
- * identificador (UUID) ou código informado.
+ * identificador (ID) ou código informado.
  */
 public class TechnicalProposalNotFoundException extends RuntimeException {
 
-    public TechnicalProposalNotFoundException(UUID uuid) {
-        super("Proposta técnica não encontrada: " + uuid);
+    public TechnicalProposalNotFoundException(Long id) {
+        super("Proposta técnica não encontrada: " + id);
     }
 
     public TechnicalProposalNotFoundException(String code) {

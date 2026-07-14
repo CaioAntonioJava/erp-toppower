@@ -9,13 +9,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.util.UUID;
-
 /**
  * Aspect que habilita o filtro Hibernate {@code organizationFilter} em toda
  * chamada a um repositório Spring Data, garantindo que <b>toda</b> query
  * JPQL/Criteria sobre entidades {@code OrganizationScopedEntity} receba
- * automaticamente {@code WHERE organization_uuid = :organizationUuid}.
+ * automaticamente {@code WHERE organization_id = :organizationId}.
  *
  * <p>Isso elimina a possibilidade de uma query esquecer o filtro de
  * Organization e vazar dados entre empresas — o isolamento é aplicado na
@@ -63,8 +61,8 @@ public class OrganizationFilterAspect {
      */
     @Before("execution(* org.springframework.data.repository.Repository+.*(..))")
     public void enableOrganizationFilter() {
-        UUID organizationUuid = OrganizationContext.get();
-        if (organizationUuid == null) {
+        Long organizationId = OrganizationContext.get();
+        if (organizationId == null) {
             // Sem Organization na requisição (ex: bootstrap, endpoint público,
             // admin sem header ativo). Filtro desabilitado — vê tudo.
             return;
@@ -72,7 +70,7 @@ public class OrganizationFilterAspect {
         try {
             Session session = entityManager.unwrap(Session.class);
             if (session.getEnabledFilter("organizationFilter") == null) {
-                session.enableFilter("organizationFilter").setParameter("organizationUuid", organizationUuid);
+                session.enableFilter("organizationFilter").setParameter("organizationId", organizationId);
             }
         } catch (Exception e) {
             // Em testes ou contextos sem Session Hibernate real, loga e segue.

@@ -43,7 +43,7 @@ export function QuotationFormPage() {
   // TechnicalProposalFormPage). Sem isso, ao trocar de empresa no Topbar o
   // número exibido no formulário fica desatualizado.
   const { activeOrganization } = useOrganization()
-  const activeOrganizationUuid = activeOrganization?.uuid ?? null
+  const activeOrganizationId = activeOrganization?.id ?? null
 
   const [mode, setMode] = useState<Mode>('loading')
   const [quotation, setQuotation] = useState<QuotationResponse | null>(null)
@@ -66,7 +66,7 @@ export function QuotationFormPage() {
   // sua própria sequência (1500, 1501, ... independente por empresa).
   useEffect(() => {
     if (id) return
-    if (!activeOrganizationUuid) {
+    if (!activeOrganizationId) {
       // Sem Organization ativa: limpa o preview e aguarda seleção no Topbar.
       setMode('create')
       setNextNumber(null)
@@ -87,7 +87,7 @@ export function QuotationFormPage() {
     return () => {
       cancelled = true
     }
-  }, [id, activeOrganizationUuid])
+  }, [id, activeOrganizationId])
 
   // Modo VIEW/EDIT: carrega a proposta pelo ID (imutável entre trocas de org,
   // pois a URL é específica). Em caso de erro, cai em modo create.
@@ -96,7 +96,7 @@ export function QuotationFormPage() {
     let cancelled = false
     setMode('loading')
     setLoadError(null)
-    getQuotation(id)
+	    getQuotation(Number(id!))
       .then((data) => {
         if (cancelled) return
         setQuotation(data)
@@ -126,7 +126,7 @@ export function QuotationFormPage() {
     if (!quotation) return
     setSaving(true)
     try {
-      const updated = await updateQuotation(quotation.uuid, payload)
+      const updated = await updateQuotation(quotation.id, payload)
       setQuotation(updated)
     } finally {
       setSaving(false)
@@ -144,8 +144,8 @@ export function QuotationFormPage() {
     setConverting(true)
     setConvertError(null)
     try {
-      const order = await createSalesOrderFromQuotation(quotation.uuid)
-      navigate(`/sales-orders/${order.uuid}`)
+      const order = await createSalesOrderFromQuotation(quotation.id)
+      navigate(`/sales-orders/${order.id}`)
     } catch (err) {
       setConvertError(toApiError(err).message)
     } finally {
@@ -184,7 +184,7 @@ export function QuotationFormPage() {
           {readOnly && quotation ? (
             <Button
               variant="secondary"
-              onClick={() => navigate(`/quotations/${quotation.uuid}`)}
+              onClick={() => navigate(`/quotations/${quotation.id}`)}
             >
               Modo somente leitura (CONVERTIDA)
             </Button>
@@ -245,7 +245,7 @@ export function QuotationFormPage() {
         </Alert>
       ) : null}
 
-      {mode === 'create' && !activeOrganizationUuid ? (
+      {mode === 'create' && !activeOrganizationId ? (
         <Alert variant="info">
           Selecione uma empresa ativa no seletor do topo da tela antes de
           cadastrar uma proposta comercial. A numeração e o isolamento dos
@@ -287,7 +287,7 @@ export function QuotationFormPage() {
               empresa pelo dropdown do Topbar.
             */}
             <QuotationForm
-              key={`${activeOrganizationUuid ?? 'no-org'}-${mode}-${id ?? 'new'}`}
+              key={`${activeOrganizationId ?? 'no-org'}-${mode}-${id ?? 'new'}`}
               quotation={canEdit ? quotation ?? undefined : undefined}
               initialNumber={mode === 'create' ? nextNumber : null}
               isAdmin={isAdmin}

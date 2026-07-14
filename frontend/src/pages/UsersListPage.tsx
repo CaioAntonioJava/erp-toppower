@@ -140,13 +140,13 @@ function ManageOrganizationsDialog({
   const [links, setLinks] = useState<UserOrganizationResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [removingId, setRemovingId] = useState<string | null>(null)
+  const [removingId, setRemovingId] = useState<number | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const data = await listOrganizationsByUser(user.uuid)
+      const data = await listOrganizationsByUser(user.id)
       setLinks(data)
     } catch (err) {
       setError(toApiError(err).message)
@@ -154,7 +154,7 @@ function ManageOrganizationsDialog({
     } finally {
       setLoading(false)
     }
-  }, [user.uuid])
+  }, [user.id])
 
   useEffect(() => {
     load()
@@ -173,10 +173,10 @@ function ManageOrganizationsDialog({
   }, [onClose, removingId])
 
   async function handleRemove(link: UserOrganizationResponse) {
-    setRemovingId(link.uuid)
-    setError(null)
-    try {
-      await removeUserOrganization(link.uuid)
+    setRemovingId(link.id)
+	    setError(null)
+	    try {
+	      await removeUserOrganization(link.id)
       await load()
       onChanged()
     } catch (err) {
@@ -232,7 +232,7 @@ function ManageOrganizationsDialog({
             <ul className="space-y-2">
               {links.map((link) => (
                 <li
-                  key={link.uuid}
+                  key={link.id}
                   className="flex items-start justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-700"
                 >
                   <div className="min-w-0">
@@ -248,8 +248,8 @@ function ManageOrganizationsDialog({
                     size="sm"
                     variant="danger"
                     onClick={() => handleRemove(link)}
-                    isLoading={removingId === link.uuid}
-                    disabled={!!removingId && removingId !== link.uuid}
+                    isLoading={removingId === link.id}
+	                    disabled={!!removingId && removingId !== link.id}
                     title="Remover vínculo"
                     aria-label="Remover vínculo"
                   >
@@ -302,12 +302,12 @@ export function UsersListPage() {
       const entries = await Promise.all(
         data.map(async (u) => {
           try {
-            const links = await listOrganizationsByUser(u.uuid)
-            return [u.uuid, links] as const
-          } catch {
-            // Se falhar para um usuário específico, trata como "sem vínculos"
-            // em vez de quebrar a listagem inteira.
-            return [u.uuid, []] as const
+            const links = await listOrganizationsByUser(u.id)
+	            return [u.id, links] as const
+	          } catch {
+	            // Se falhar para um usuário específico, trata como "sem vínculos"
+	            // em vez de quebrar a listagem inteira.
+	            return [u.id, []] as const
           }
         }),
       )
@@ -336,7 +336,7 @@ export function UsersListPage() {
     setResetting(true)
     setResetError(null)
     try {
-      await resetUserPassword(resetTarget.uuid, { newPassword })
+      await resetUserPassword(resetTarget.id, { newPassword })
       setFeedback(`Senha de "${resetTarget.email}" redefinida com sucesso.`)
       setResetTarget(null)
     } catch (err) {
@@ -350,7 +350,7 @@ export function UsersListPage() {
     if (!deleteTarget) return
     setDeleting(true)
     try {
-      await deleteUser(deleteTarget.uuid)
+      await deleteUser(deleteTarget.id)
       setFeedback(`Usuário "${deleteTarget.email}" excluído com sucesso.`)
       setDeleteTarget(null)
       await loadUsersAndLinks()
@@ -439,10 +439,10 @@ export function UsersListPage() {
                 </tr>
               ) : (
                 filtered.map((u) => {
-                  const links = linksByUser[u.uuid] ?? []
-                  return (
-                    <tr
-                      key={u.uuid}
+	                  const links = linksByUser[u.id] ?? []
+	                  return (
+	                    <tr
+	                      key={u.id}
                       className="hover:bg-slate-50 dark:hover:bg-slate-800/40"
                     >
                       <td className="px-4 py-3">
@@ -459,7 +459,7 @@ export function UsersListPage() {
                         ) : (
                           <div className="flex flex-wrap gap-1">
                             {links.map((l) => (
-                              <Badge key={l.uuid} tone="neutral">
+                              <Badge key={l.id} tone="neutral">
                                 {l.organizationCorporateName}
                               </Badge>
                             ))}
@@ -502,9 +502,9 @@ export function UsersListPage() {
                             size="sm"
                             variant="danger"
                             onClick={() => setDeleteTarget(u)}
-                            disabled={currentUser?.uuid === u.uuid}
-                            title={
-                              currentUser?.uuid === u.uuid
+                            disabled={currentUser?.id === u.id}
+	                            title={
+	                              currentUser?.id === u.id
                                 ? 'Você não pode excluir sua própria conta'
                                 : 'Excluir usuário'
                             }
@@ -553,9 +553,9 @@ export function UsersListPage() {
           onClose={() => setManageTarget(null)}
           onChanged={() => {
             // Recarrega badges após uma remoção.
-            listOrganizationsByUser(manageTarget.uuid)
-              .then((links) => {
-                setLinksByUser((prev) => ({ ...prev, [manageTarget.uuid]: links }))
+            listOrganizationsByUser(manageTarget.id)
+	              .then((links) => {
+	                setLinksByUser((prev) => ({ ...prev, [manageTarget.id]: links }))
               })
               .catch(() => {
                 // ignora — o modal já mostra o erro localmente

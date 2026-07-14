@@ -7,16 +7,15 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Adapter que expõe a entidade {@link User} para o Spring Security,
  * mantendo a entidade JPA desacoplada de {@link UserDetails}.
  */
-public record UserDetailsImpl(UUID uuid, String email, String password, String role) implements UserDetails {
+public record UserDetailsImpl(Long id, String email, String password, String role) implements UserDetails {
 
     public static UserDetailsImpl from(User user) {
-        return new UserDetailsImpl(user.getUuid(), user.getEmail(), user.getPassword(),
+        return new UserDetailsImpl(user.getId(), user.getEmail(), user.getPassword(),
                 user.getRole().name());
     }
 

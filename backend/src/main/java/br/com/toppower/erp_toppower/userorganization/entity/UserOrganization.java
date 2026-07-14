@@ -39,7 +39,7 @@ import java.io.Serializable;
 @Table(name = "user_organizations",
         uniqueConstraints = @UniqueConstraint(
                 name = "uk_user_org",
-                columnNames = {"user_uuid", "organization_uuid"}))
+                columnNames = {"user_id", "organization_id"}))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -49,11 +49,11 @@ public class UserOrganization extends BaseEntity implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @ManyToOne
-    @JoinColumn(name = "user_uuid", nullable = false)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @ManyToOne
-    @JoinColumn(name = "organization_uuid", nullable = false)
+    @JoinColumn(name = "organization_id", nullable = false)
     private Organization organization;
 
     @Column(name = "is_default", nullable = false)

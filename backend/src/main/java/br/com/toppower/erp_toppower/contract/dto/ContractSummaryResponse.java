@@ -4,7 +4,6 @@ import br.com.toppower.erp_toppower.contract.enums.ContractStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDate;
-import java.util.UUID;
 
 /**
  * Resumo de um contrato usado na listagem paginada. Não traz os blocos
@@ -17,7 +16,7 @@ public record ContractSummaryResponse(
 
         @Schema(description = "Identificador único (UUID) do contrato.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        UUID uuid,
+        Long id,
 
         @Schema(description = "Código formatado completo (ex.: \"CT-001-2026\").",
                 example = "CT-001-2026", requiredMode = Schema.RequiredMode.REQUIRED)
@@ -30,7 +29,7 @@ public record ContractSummaryResponse(
 
         @Schema(description = "UUID do cliente (PF ou PJ).",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        UUID clientUuid,
+        Long clientUuid,
 
         @Schema(description = "Nome de exibição do cliente (resolvido no backend).",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)

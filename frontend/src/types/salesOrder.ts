@@ -70,8 +70,8 @@ export const SALES_ORDER_CLIENT_TYPE_LABELS: Record<
 
 /** Linha de produto retornada pela API. Espelha SalesOrderItemResponse. */
 export interface SalesOrderItemResponse {
-  uuid: string
-  productUuid: string
+  id: number
+  productId: number
   quantity: number
   /** Preço unitário (com margem aplicada quando houver). */
   unitPrice: number
@@ -87,7 +87,7 @@ export interface SalesOrderItemResponse {
 
 /** Linha de produto enviada na criação/edição. Espelha SalesOrderItemRequest. */
 export interface SalesOrderItemRequest {
-  productUuid: string
+  productId: number
   quantity: number
   unitPrice: number
   discountType?: import('./quotation').DiscountType
@@ -103,19 +103,19 @@ export interface SalesOrderItemRequest {
  * proposta. É informação interna e não aparece no PDF do pedido.</p>
  */
 export interface SalesOrderResponse {
-  uuid: string
+  id: number
   number: number
   /** Data de emissão (yyyy-MM-dd). */
   orderDate: string
-  customerUuid: string | null
-  companyUuid: string | null
+  customerId: number | null
+  companyId: number | null
   clientType: SalesOrderClientType
   /** Nome de exibição do cliente (PF: nome; PJ: nome fantasia/razão social). Resolvido no backend. */
   clientName: string | null
   /** Código interno do cliente (ex.: "CLI000001", "EMP000001"). Resolvido no backend. */
   clientCode: string | null
   attention: string | null
-  sellerUuid: string
+  sellerId: number
   /** Nome do vendedor (resolvido no backend). */
   sellerName: string | null
   items: SalesOrderItemResponse[]
@@ -127,13 +127,13 @@ export interface SalesOrderResponse {
   freightType: import('./quotation').FreightType | null
   /** Valor do frete (manual). */
   freightValue: number | null
-  /** UUID da transportadora (Carrier) responsável pelo frete. */
-  carrierUuid: string | null
+  /** ID da transportadora (Carrier) responsável pelo frete. */
+  carrierId: number | null
   /** Nome da transportadora (resolvido no backend). */
   carrierName: string | null
   status: SalesOrderStatus
-  /** UUID da proposta que deu origem ao pedido (nulo em criação direta). */
-  quotationUuid: string | null
+  /** ID da proposta que deu origem ao pedido (nulo em criação direta). */
+  quotationId: number | null
   /** Número da proposta de origem (nulo em criação direta). */
   quotationNumber: number | null
   /** Margem de lucro (%) aplicada na criação/edição direta. Nula em pedidos convertidos. */
@@ -161,15 +161,15 @@ export interface SalesOrderResponse {
  * Espelha SalesOrderSummaryResponse no backend.
  */
 export interface SalesOrderSummaryResponse {
-  uuid: string
+  id: number
   number: number
   orderDate: string
   clientType: SalesOrderClientType
-  clientUuid: string
+  clientId: number
   clientName: string
   /** Código interno do cliente (ex.: "CLI000001", "EMP000001"). Resolvido no backend. */
   clientCode: string | null
-  sellerUuid: string
+  sellerId: number
   /** Nome do vendedor (resolvido no backend). */
   sellerName: string | null
   status: SalesOrderStatus
@@ -182,10 +182,10 @@ export interface SalesOrderSummaryResponse {
 
 /** Corpo de POST /api/v1/sales-orders. Espelha SalesOrderCreateRequest. */
 export interface SalesOrderCreateRequest {
-  customerUuid?: string | null
-  companyUuid?: string | null
+  customerId?: number | null
+  companyId?: number | null
   attention?: string | null
-  sellerUuid: string
+  sellerId: number
   items: SalesOrderItemRequest[]
   discountType?: import('./quotation').DiscountType | null
   discount?: number | null
@@ -195,18 +195,18 @@ export interface SalesOrderCreateRequest {
   freightType?: import('./quotation').FreightType | null
   /** Valor do frete (manual). */
   freightValue?: number | null
-  /** UUID da transportadora (Carrier) responsável pelo frete. Opcional. */
-  carrierUuid?: string | null
+  /** ID da transportadora (Carrier) responsável pelo frete. Opcional. */
+  carrierId?: number | null
   /** Margem de lucro (%) aplicada sobre o preço unitário dos itens. Opcional. */
   profitMargin?: number | null
 }
 
 /** Corpo de PATCH /api/v1/sales-orders/{id}. Espelha SalesOrderUpdateRequest. */
 export interface SalesOrderUpdateRequest {
-  customerUuid?: string | null
-  companyUuid?: string | null
+  customerId?: number | null
+  companyId?: number | null
   attention?: string | null
-  sellerUuid?: string | null
+  sellerId?: number | null
   items?: SalesOrderItemRequest[]
   discountType?: import('./quotation').DiscountType | null
   discount?: number | null
@@ -216,8 +216,8 @@ export interface SalesOrderUpdateRequest {
   freightType?: import('./quotation').FreightType | null
   /** Valor do frete (manual). */
   freightValue?: number | null
-  /** UUID da transportadora (Carrier). null = remover a transportadora vinculada. */
-  carrierUuid?: string | null
+  /** ID da transportadora (Carrier). null = remover a transportadora vinculada. */
+  carrierId?: number | null
   /** Margem de lucro (%) aplicada sobre o preço unitário dos itens. Omitir mantém a atual. */
   profitMargin?: number | null
 }
@@ -243,8 +243,8 @@ export interface SalesOrderFilters {
   status?: SalesOrderStatus
   startDate?: string
   endDate?: string
-  clientUuid?: string
-  sellerUuid?: string
+  clientId?: number
+  sellerId?: number
   number?: string
   /** Filtro exato pelo número da proposta de origem. */
   quotationNumber?: number

@@ -6,14 +6,13 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.UUID;
 
 @Schema(name = "ProductResponse", description = "Representação pública de um produto retornado pela API.")
 public record ProductResponse(
 
-        @Schema(description = "Identificador único (UUID) do produto.",
+        @Schema(description = "Identificador único (ID) do produto.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        UUID uuid,
+        Long id,
 
         @Schema(description = "Nome do produto.", requiredMode = Schema.RequiredMode.REQUIRED)
         String name,

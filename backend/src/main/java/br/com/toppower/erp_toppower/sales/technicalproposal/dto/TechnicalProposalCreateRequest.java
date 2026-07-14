@@ -13,7 +13,6 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Dados para criação de uma nova proposta técnica.
@@ -37,11 +36,11 @@ public record TechnicalProposalCreateRequest(
 
         @Schema(description = "UUID do cliente pessoa física. OBRIGATÓRIO se companyUuid não for informado.",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID customerUuid,
+        Long customerId,
 
         @Schema(description = "UUID da empresa (pessoa jurídica). OBRIGATÓRIO se customerUuid não for informado.",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID companyUuid,
+        Long companyId,
 
         @Schema(description = "Endereço de execução (opcional).",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
@@ -138,6 +137,6 @@ public record TechnicalProposalCreateRequest(
 
         @Schema(description = "UUID da transportadora (Carrier) responsável pelo frete. Opcional.",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID carrierUuid
+        Long carrierId
 ) {
 }

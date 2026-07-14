@@ -59,7 +59,7 @@ public final class OrganizationMapper {
 
     public static OrganizationResponse toResponse(Organization org) {
         return new OrganizationResponse(
-                org.getUuid(),
+                org.getId(),
                 org.getCorporateName(),
                 org.getTradeName(),
                 org.getCnpj(),
@@ -90,7 +90,7 @@ public final class OrganizationMapper {
      */
     public static OrganizationSummary toSummary(Organization org) {
         return new OrganizationSummary(
-                org.getUuid(),
+                org.getId(),
                 org.getCorporateName(),
                 org.getTradeName(),
                 org.getCnpj(),
@@ -106,7 +106,7 @@ public final class OrganizationMapper {
 
     public static OrganizationSummary toSummary(Organization org, Role role, boolean isDefault) {
         return new OrganizationSummary(
-                org.getUuid(),
+                org.getId(),
                 org.getCorporateName(),
                 org.getTradeName(),
                 org.getCnpj(),

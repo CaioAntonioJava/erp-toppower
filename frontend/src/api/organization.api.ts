@@ -34,14 +34,14 @@ export async function listAllOrganizations(): Promise<OrganizationSummary[]> {
 }
 
 /** GET /organizations/{id} — representação completa (com endereço, telefone, e-mail, logo). */
-export async function getOrganization(id: string): Promise<OrganizationResponse> {
+export async function getOrganization(id: number): Promise<OrganizationResponse> {
   const { data } = await api.get<OrganizationResponse>(`${BASE}/${id}`)
   return data
 }
 
 /** PATCH /organizations/{id} — atualização parcial de dados da Organization (admin). */
 export async function updateOrganization(
-  id: string,
+  id: number,
   payload: OrganizationUpdateRequest,
 ): Promise<OrganizationResponse> {
   const { data } = await api.patch<OrganizationResponse>(`${BASE}/${id}`, payload)
@@ -49,12 +49,12 @@ export async function updateOrganization(
 }
 
 /** DELETE /organizations/{id} — inativa a Organization (admin). */
-export async function inactivateOrganization(id: string): Promise<void> {
+export async function inactivateOrganization(id: number): Promise<void> {
   await api.delete(`${BASE}/${id}`)
 }
 
 /** PATCH /organizations/{id}/activate — reativa a Organization (admin). */
-export async function activateOrganization(id: string): Promise<OrganizationResponse> {
+export async function activateOrganization(id: number): Promise<OrganizationResponse> {
   const { data } = await api.patch<OrganizationResponse>(`${BASE}/${id}/activate`)
   return data
 }
@@ -64,7 +64,7 @@ export async function activateOrganization(id: string): Promise<OrganizationResp
  * logo da Organization. Aceita PNG ou JPEG.
  */
 export async function uploadOrganizationLogo(
-  id: string,
+  id: number,
   file: File,
 ): Promise<OrganizationResponse> {
   const form = new FormData()
@@ -79,7 +79,7 @@ export async function uploadOrganizationLogo(
 
 /** DELETE /organizations/{id}/logo — remove o logo (arquivo + campo logoUrl). */
 export async function deleteOrganizationLogo(
-  id: string,
+  id: number,
 ): Promise<OrganizationResponse> {
   const { data } = await api.delete<OrganizationResponse>(`${BASE}/${id}/logo`)
   return data

@@ -59,9 +59,9 @@ interface QuotationFormProps {
 
 /** Linha do editor de itens (estado local, antes de virar QuotationItemRequest). */
 interface ItemDraft {
-  /** Chave local para controle de lista. Diferente do uuid do backend. */
+  /** Chave local para controle de lista. Diferente do id do backend. */
   rowKey: string
-  productUuid: string
+  productId: number | ''
   productLabel: string
   /** Unidade de medida do produto (UN/MT/BOB) — definida ao selecionar o produto. */
   unitType: UnitType | null
@@ -110,13 +110,13 @@ export function QuotationForm({
   const [clientType, setClientType] = useState<QuotationClientType>(
     quotation?.clientType ?? 'CUSTOMER',
   )
-  const [clientUuid, setClientUuid] = useState<string>(
-    quotation?.customerUuid ?? quotation?.companyUuid ?? '',
+  const [clientId, setClientId] = useState<number | null>(
+    quotation?.customerId ?? quotation?.companyId ?? null,
   )
   const [clientLabel, setClientLabel] = useState<string>('')
   const [attention, setAttention] = useState<string>(quotation?.attention ?? '')
-  const [sellerUuid, setSellerUuid] = useState<string>(
-    quotation?.sellerUuid ?? '',
+  const [sellerId, setSellerId] = useState<number | null>(
+    quotation?.sellerId ?? null,
   )
   const [validityDays, setValidityDays] = useState<string>(
     quotation?.validityDays != null ? String(quotation.validityDays) : '',
@@ -133,8 +133,8 @@ export function QuotationForm({
     quotation?.freightValue != null ? formatBRLValue(quotation.freightValue) : '',
   )
   // Transportadora (Carrier) responsável pelo frete. Opcional.
-  const [carrierUuid, setCarrierUuid] = useState<string>(
-    quotation?.carrierUuid ?? '',
+  const [carrierId, setCarrierId] = useState<number | null>(
+    quotation?.carrierId ?? null,
   )
   // Margem de lucro aplicada sobre o total da proposta (em %). Obrigatória.
   const [profitMargin, setProfitMargin] = useState<string>(
@@ -174,7 +174,7 @@ export function QuotationForm({
     if (quotation?.items && quotation.items.length > 0) {
       return quotation.items.map((it) => ({
         rowKey: nextRowKey(),
-        productUuid: it.productUuid,
+        productId: it.productId,
         // Rótulo inicial vazio — hidratado com o nome real via `getProduct`
         // no efeito abaixo. Exibir o UUID aqui faria o campo mostrá-lo até
         // a resolução (ou para sempre, se a busca falhar), como acontecia
@@ -199,7 +199,7 @@ export function QuotationForm({
       return [
         {
           rowKey: nextRowKey(),
-          productUuid: '',
+          productId: '',
           productLabel: '',
           unitType: null,
           unitPrice: 0,
@@ -230,8 +230,8 @@ export function QuotationForm({
 
   // Carrega transportadoras ativas (com fallback da selecionada em edição).
   const { carriers, carriersLoading } = useActiveCarriers(
-    quotation?.carrierUuid
-      ? { uuid: quotation.carrierUuid, name: quotation.carrierName }
+    quotation?.carrierId
+      ? { id: quotation.carrierId, name: quotation.carrierName }
       : null,
   )
 
@@ -261,13 +261,13 @@ export function QuotationForm({
   // Sem isto, o select cairia no placeholder "Selecione…" quando o vendedor
   // não retorna no filtro de ATIVO, dando a impressão de que foi removido.
   useEffect(() => {
-    if (!quotation?.sellerUuid || !quotation?.sellerName) return
+    if (!quotation?.sellerId || !quotation?.sellerName) return
     setSellers((prev) => {
-      if (prev.some((s) => s.uuid === quotation.sellerUuid)) return prev
+      if (prev.some((s) => s.id === quotation.sellerId)) return prev
       return [
         ...prev,
         {
-          uuid: quotation.sellerUuid!,
+          id: quotation.sellerId!,
           name: quotation.sellerName!,
           email: '',
           phone: '',
@@ -281,7 +281,7 @@ export function QuotationForm({
         },
       ]
     })
-  }, [quotation?.sellerUuid, quotation?.sellerName])
+  }, [quotation?.sellerId, quotation?.sellerName])
 
   // Sincroniza o número da proposta com o `initialNumber` que chega
   // assincronamente do endpoint `/quotations/next-number`. Em modo create,
@@ -304,11 +304,11 @@ export function QuotationForm({
   // `QuotationDetailPage`).
   useEffect(() => {
     if (!quotation) return
-    const targetUuid =
+    const targetId =
       quotation.clientType === 'CUSTOMER'
-        ? quotation.customerUuid
-        : quotation.companyUuid
-    if (!targetUuid) return
+        ? quotation.customerId
+        : quotation.companyId
+    if (!targetId) return
 
     if (quotation.clientName) {
       setClientLabel(
@@ -317,14 +317,14 @@ export function QuotationForm({
           : quotation.clientName,
       )
     } else {
-      setClientLabel(`${targetUuid.slice(0, 8)}…`)
+      setClientLabel(`${String(targetId).slice(0, 8)}…`)
     }
     setClientOptions([])
   }, [quotation])
 
   // Hidrata o nome e a unidade de medida dos itens no modo edição.
   //
-  // O `QuotationResponse` carrega apenas o `productUuid` em cada item — sem
+  // O `QuotationResponse` carrega apenas o `productId` em cada item — sem
   // nome e sem unidade. Sem este efeito, o campo "Produto" de cada linha
   // ficava vazio (ou, antes, exibia o UUID), e o select de unidade aparecia
   // como "—". Aqui dedupamos os UUIDs e buscamos cada produto uma vez,
@@ -335,18 +335,18 @@ export function QuotationForm({
     if (!quotation) return
     let cancelled = false
 
-    const uniqueProductUuids = Array.from(
-      new Set(quotation.items.map((it) => it.productUuid)),
+    const uniqueProductIds = Array.from(
+      new Set(quotation.items.map((it) => it.productId)),
     )
-    if (uniqueProductUuids.length === 0) return
+    if (uniqueProductIds.length === 0) return
 
     Promise.all(
-      uniqueProductUuids.map(async (uuid) => {
+      uniqueProductIds.map(async (id) => {
         try {
-          const p = await getProduct(uuid)
-          return [uuid, p] as const
+          const p = await getProduct(id)
+          return [id, p] as const
         } catch {
-          return [uuid, null] as const
+          return [id, null] as const
         }
       }),
     )
@@ -354,7 +354,7 @@ export function QuotationForm({
         if (cancelled) return
         setItems((prev) =>
           prev.map((it) => {
-            const found = entries.find(([uuid]) => uuid === it.productUuid)
+            const found = entries.find(([id]) => id === it.productId)
             const product = found?.[1]
             if (product) {
               const label = product.code
@@ -366,10 +366,10 @@ export function QuotationForm({
                 unitType: product.unitType,
               }
             }
-            // Fallback: UUID curto mantém o campo visível.
+            // Fallback: ID curto mantém o campo visível.
             return {
               ...it,
-              productLabel: it.productLabel || `${it.productUuid.slice(0, 8)}…`,
+              productLabel: it.productLabel || `${String(it.productId).slice(0, 8)}…`,
             }
           }),
         )
@@ -453,7 +453,7 @@ export function QuotationForm({
       ...prev,
       {
         rowKey: nextRowKey(),
-        productUuid: '',
+        productId: '',
         productLabel: '',
         unitType: null,
         unitPrice: 0,
@@ -478,7 +478,7 @@ export function QuotationForm({
 
   function selectProduct(rowKey: string, p: ProductResponse) {
     updateItem(rowKey, {
-      productUuid: p.uuid,
+      productId: p.id,
       productLabel: p.name,
       unitType: p.unitType,
       // snapshot do preço atual do produto
@@ -498,7 +498,7 @@ export function QuotationForm({
     let cancelled = false
     const handle = setTimeout(() => {
       const itemsPayload = items.map((it) => ({
-        productUuid: it.productUuid || null,
+        productId: it.productId || null,
         quantity: it.quantity,
         unitPrice: it.unitPrice,
         ...(it.discountType != null ? { discountType: it.discountType } : {}),
@@ -506,9 +506,9 @@ export function QuotationForm({
       }))
       const payload = {
         ...(clientType === 'CUSTOMER'
-          ? { customerUuid: clientUuid || null }
-          : { companyUuid: clientUuid || null }),
-        sellerUuid: sellerUuid || null,
+          ? { customerId: clientId ? Number(clientId) : null }
+          : { companyId: clientId ? Number(clientId) : null }),
+        sellerId: sellerId || null,
         items: itemsPayload,
         ...(discountType !== ''
           ? {
@@ -538,8 +538,8 @@ export function QuotationForm({
   }, [
     items,
     clientType,
-    clientUuid,
-    sellerUuid,
+    clientId,
+    sellerId,
     discountType,
     discount,
     freightValue,
@@ -556,18 +556,18 @@ export function QuotationForm({
   function validateAll(): boolean {
     const errs: Record<string, string> = {}
 
-    if (!clientUuid) {
-      errs.clientUuid = 'Selecione um cliente.'
+    if (!clientId) {
+      errs.clientId = 'Selecione um cliente.'
     }
-    if (!sellerUuid) {
-      errs.sellerUuid = 'Selecione o vendedor responsável.'
+    if (!sellerId) {
+      errs.sellerId = 'Selecione o vendedor responsável.'
     }
 
     if (items.length === 0) {
       errs.items = 'A proposta deve ter ao menos um item.'
     } else {
       items.forEach((it, idx) => {
-        if (!it.productUuid) {
+        if (!it.productId) {
           errs[`items.${idx}.product`] = 'Selecione um produto.'
         }
         if (!(it.quantity > 0)) {
@@ -649,7 +649,7 @@ export function QuotationForm({
 
     const itemsPayload: QuotationItemRequest[] = items.map((it) => {
       const base: QuotationItemRequest = {
-        productUuid: it.productUuid,
+        productId: it.productId || 0,
         quantity: it.quantity,
         unitPrice: it.unitPrice,
       }
@@ -662,15 +662,15 @@ export function QuotationForm({
       if (isEdit) {
         const payload: QuotationUpdateRequest = {
           attention: attention.trim() ? attention.trim() : null,
-          sellerUuid,
+          sellerId: sellerId || 0,
           items: itemsPayload,
         }
         if (clientType === 'CUSTOMER') {
-          payload.customerUuid = clientUuid
-          payload.companyUuid = null
+          payload.customerId = clientId ? Number(clientId) : null
+          payload.companyId = null
         } else {
-          payload.companyUuid = clientUuid
-          payload.customerUuid = null
+          payload.companyId = clientId ? Number(clientId) : null
+          payload.customerId = null
         }
         if (discountType !== '') {
           payload.discountType = discountType
@@ -688,7 +688,7 @@ export function QuotationForm({
         payload.notes = notes.trim() ? notes.trim() : null
         payload.freightType = freightType === '' ? null : freightType
         payload.freightValue = parseNumber(freightValue)
-        payload.carrierUuid = carrierUuid || null
+        payload.carrierId = carrierId || null
         payload.profitMargin = parseNumber(profitMargin) ?? 0
 
         // Override admin: envia `number`/`issueDate` no payload. O backend
@@ -712,14 +712,14 @@ export function QuotationForm({
         reset()
       } else {
         const payload: QuotationCreateRequest = {
-          sellerUuid,
+          sellerId: sellerId!,
           items: itemsPayload,
           profitMargin: parseNumber(profitMargin) ?? 0,
         }
         if (clientType === 'CUSTOMER') {
-          payload.customerUuid = clientUuid
+          payload.customerId = clientId ? Number(clientId) : null
         } else {
-          payload.companyUuid = clientUuid
+          payload.companyId = clientId ? Number(clientId) : null
         }
         if (attention.trim()) payload.attention = attention.trim()
         if (discountType !== '') {
@@ -737,7 +737,7 @@ export function QuotationForm({
         if (freightValue.trim()) {
           payload.freightValue = parseNumber(freightValue)
         }
-        payload.carrierUuid = carrierUuid || null
+        payload.carrierId = carrierId || null
 
         // Override admin (mesma observação do bloco de update acima).
         if (isAdmin) {
@@ -808,7 +808,7 @@ export function QuotationForm({
             value={clientType}
             onChange={(e) => {
               setClientType(e.target.value as QuotationClientType)
-              setClientUuid('')
+              setClientId(null)
               setClientLabel('')
               setClientOptions([])
             }}
@@ -835,10 +835,10 @@ export function QuotationForm({
                 value={clientLabel}
                 onChange={(e) => {
                   setClientLabel(e.target.value)
-                  setClientUuid('')
+                  setClientId(null)
                   handleClientQuery(e.target.value)
                 }}
-                onBlur={getBlurHandler('clientUuid')}
+                onBlur={getBlurHandler('clientId')}
                 hint={
                   clientLabel.trim().length > 0 &&
                   clientLabel.trim().length < 2
@@ -853,15 +853,15 @@ export function QuotationForm({
                 </span>
               ) : null}
             </div>
-            {clientOptions.length > 0 && !clientUuid ? (
+            {clientOptions.length > 0 && !clientId ? (
               <ul className="mt-1 max-h-56 overflow-y-auto rounded-lg border border-slate-200 bg-white text-sm shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 {clientOptions.map((c) => (
-                  <li key={c.uuid}>
+                  <li key={c.id}>
                     <button
                       type="button"
                       className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800"
                       onClick={() => {
-                        setClientUuid(c.uuid)
+                        setClientId(c.id)
                         setClientLabel(
                           `${c.code ? `${c.code} — ` : ''}${c.name}${c.document ? ` (${c.document})` : ''}`,
                         )
@@ -885,9 +885,9 @@ export function QuotationForm({
                 ))}
               </ul>
             ) : null}
-            {shouldShowError('clientUuid', fieldErrors.clientUuid) ? (
+            {shouldShowError('clientId', fieldErrors.clientId) ? (
               <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">
-                {fieldErrors.clientUuid}
+                {fieldErrors.clientId}
               </p>
             ) : null}
           </div>
@@ -896,14 +896,14 @@ export function QuotationForm({
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <Select
             label="Vendedor"
-            value={sellerUuid}
-            onChange={(e) => setSellerUuid(e.target.value)}
-            onBlur={getBlurHandler('sellerUuid')}
-            error={shouldShowError('sellerUuid', fieldErrors.sellerUuid)}
+            value={sellerId ?? ''}
+            onChange={(e) => setSellerId(Number(e.target.value) || null)}
+            onBlur={getBlurHandler('sellerId')}
+            error={shouldShowError('sellerId', fieldErrors.sellerId)}
             required
             options={[
               { value: '', label: sellersLoading ? 'Carregando…' : 'Selecione…' },
-              ...sellers.map((s) => ({ value: s.uuid, label: s.name })),
+              ...sellers.map((s) => ({ value: String(s.id), label: s.name })),
             ]}
             aria-label="Vendedor responsável"
           />
@@ -1109,8 +1109,8 @@ export function QuotationForm({
                 'freightValue',
                 fieldErrors.freightValue,
               )}
-              carrierUuid={carrierUuid}
-              onCarrierUuidChange={setCarrierUuid}
+              carrierId={carrierId}
+              onCarrierIdChange={setCarrierId}
               carriers={carriers}
               carriersLoading={carriersLoading}
             />
@@ -1331,7 +1331,7 @@ function ItemRow({
           placeholder="Buscar produto por nome ou código…"
           value={item.productLabel}
           onChange={(e) => {
-            onPatch({ productLabel: e.target.value, productUuid: '' })
+            onPatch({ productLabel: e.target.value, productId: '' })
             onQuery(e.target.value)
           }}
           onBlur={getBlurHandler(productField)}
@@ -1343,10 +1343,10 @@ function ItemRow({
             <Spinner size="sm" />
           </span>
         ) : null}
-        {productOptions.length > 0 && !item.productUuid ? (
+        {productOptions.length > 0 && !item.productId ? (
           <ul className="absolute left-0 right-0 top-full z-20 mt-1 max-h-56 overflow-y-auto rounded-lg border border-slate-200 bg-white text-sm shadow-lg dark:border-slate-700 dark:bg-slate-900">
             {productOptions.map((p) => (
-              <li key={p.uuid}>
+              <li key={p.id}>
                 <button
                   type="button"
                   className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800"

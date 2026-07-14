@@ -3,7 +3,6 @@ package br.com.toppower.erp_toppower.contract.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
 /**
  * Item de produto de um contrato (response).
@@ -14,11 +13,11 @@ public record ContractProductItemResponse(
 
         @Schema(description = "Identificador único do item.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        UUID uuid,
+        Long id,
 
         @Schema(description = "UUID do produto referenciado.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        UUID productUuid,
+        Long productId,
 
         @Schema(description = "Quantidade contratada.",
                 example = "10.0000", requiredMode = Schema.RequiredMode.REQUIRED)

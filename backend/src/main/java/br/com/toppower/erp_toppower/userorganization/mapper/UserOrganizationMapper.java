@@ -10,10 +10,10 @@ public final class UserOrganizationMapper {
 
     public static UserOrganizationResponse toResponse(UserOrganization uo) {
         return new UserOrganizationResponse(
-                uo.getUuid(),
-                uo.getUser().getUuid(),
+                uo.getId(),
+                uo.getUser().getId(),
                 uo.getUser().getEmail(),
-                uo.getOrganization().getUuid(),
+                uo.getOrganization().getId(),
                 uo.getOrganization().getCorporateName(),
                 uo.getRole(),
                 uo.isDefault(),

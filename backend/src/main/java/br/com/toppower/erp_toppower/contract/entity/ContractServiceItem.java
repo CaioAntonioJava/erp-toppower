@@ -9,17 +9,15 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.UUID;
-
 /**
  * Item de serviço de um contrato: uma descrição livre de um dos serviços
  * prestados.
  *
  * <p>Um contrato pode ter <b>vários</b> itens de serviço, cada um em uma
  * linha deste agregado. Cada item pertence a um único {@link Contract},
- * identificado por {@link #contractUuid}. A relação não é mapeada via JPA
+ * identificado por {@link #contractId}. A relação não é mapeada via JPA
  * (o projeto não utiliza relacionamentos JPA para coleções); o serviço
- * carrega os itens com um {@code findByContractUuid} no repositório.</p>
+ * carrega os itens com um {@code findByContractId} no repositório.</p>
  *
  * <p>Diferente da Proposta Técnica, este item não possui preço — apenas
  * descrição textual.</p>
@@ -28,7 +26,7 @@ import java.util.UUID;
 @Table(
         name = "contract_service_items",
         indexes = {
-                @Index(name = "idx_csi_contract", columnList = "contract_uuid")
+                @Index(name = "idx_csi_contract", columnList = "contract_id")
         }
 )
 @Getter
@@ -37,11 +35,11 @@ import java.util.UUID;
 public class ContractServiceItem extends OrganizationScopedEntity {
 
     /**
-     * UUID do {@link Contract} ao qual este item de serviço pertence.
+     * ID do {@link Contract} ao qual este item de serviço pertence.
      * Imutável após a criação ({@code updatable = false}).
      */
-    @Column(name = "contract_uuid", nullable = false, updatable = false)
-    private UUID contractUuid;
+    @Column(name = "contract_id", nullable = false, updatable = false)
+    private Long contractId;
 
     /**
      * Descrição do serviço (texto livre). Obrigatória.

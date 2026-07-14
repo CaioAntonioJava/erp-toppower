@@ -13,7 +13,6 @@ import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Dados para criação direta de um novo pedido de venda (sem proposta
@@ -39,11 +38,11 @@ public record SalesOrderCreateRequest(
 
         @Schema(description = "UUID do cliente pessoa física. OBRIGATÓRIO se companyUuid não for informado.",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID customerUuid,
+        Long customerId,
 
         @Schema(description = "UUID da empresa (pessoa jurídica). OBRIGATÓRIO se customerUuid não for informado.",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID companyUuid,
+        Long companyId,
 
         @Schema(description = "Aos cuidados de: nome da pessoa de contato no lado do comprador.",
                 example = "Sr. João Silva", maxLength = 150,
@@ -54,7 +53,7 @@ public record SalesOrderCreateRequest(
         @Schema(description = "UUID do vendedor responsável pelo pedido.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull(message = "Vendedor é obrigatório")
-        UUID sellerUuid,
+        Long sellerId,
 
         @Schema(description = "Itens do pedido. O pedido deve ter ao menos um item.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
@@ -97,7 +96,7 @@ public record SalesOrderCreateRequest(
 
         @Schema(description = "UUID da transportadora (Carrier) responsável pelo frete. Opcional.",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID carrierUuid,
+        Long carrierId,
 
         @Schema(description = "Margem de lucro (percentual) aplicada sobre o preço unitário dos itens. "
                 + "Opcional — quando omitida, nenhum acréscimo é aplicado. Informação interna, "

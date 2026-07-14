@@ -142,7 +142,7 @@ public class BootstrapRunner implements CommandLineRunner {
         //    a org ativa no login). O ADMIN acessa todas as orgs pelo role
         //    global; este vínculo existe apenas para satisfazer a default.
         organizationRepository.findAll().stream().findFirst().ifPresent(firstOrg -> {
-            if (!userOrganizationRepository.existsByUserUuidAndOrganizationUuid(admin.getUuid(), firstOrg.getUuid())) {
+            if (!userOrganizationRepository.existsByUserIdAndOrganizationId(admin.getId(), firstOrg.getId())) {
                 UserOrganization link = new UserOrganization();
                 link.setUser(admin);
                 link.setOrganization(firstOrg);

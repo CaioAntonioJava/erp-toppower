@@ -28,7 +28,7 @@ public final class SellerMapper {
 
     public static SellerResponse toResponse(Seller seller) {
         return new SellerResponse(
-                seller.getUuid(),
+                seller.getId(),
                 seller.getName(),
                 seller.getEmail(),
                 seller.getPhone(),

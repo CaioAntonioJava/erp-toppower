@@ -24,7 +24,6 @@ import br.com.toppower.erp_toppower.sales.technicalproposal.entity.TechnicalProp
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Conversões entre entidades do agregado {@code TechnicalProposal} e
@@ -61,9 +60,9 @@ public final class TechnicalProposalMapper {
      * pelo usuário.
      */
     public static TechnicalProposalServiceItem toServiceItemEntity(
-            TechnicalProposalServiceItemRequest request, UUID technicalProposalUuid) {
+            TechnicalProposalServiceItemRequest request, Long technicalProposalId) {
         TechnicalProposalServiceItem item = new TechnicalProposalServiceItem();
-        item.setTechnicalProposalUuid(technicalProposalUuid);
+        item.setTechnicalProposalId(technicalProposalId);
         item.setDescription(request.description());
         item.setPrice(request.price());
         return item;
@@ -72,7 +71,7 @@ public final class TechnicalProposalMapper {
     public static TechnicalProposalServiceItemResponse toServiceItemResponse(
             TechnicalProposalServiceItem item) {
         return new TechnicalProposalServiceItemResponse(
-                item.getUuid(),
+                item.getId(),
                 item.getDescription(),
                 item.getPrice());
     }
@@ -88,10 +87,10 @@ public final class TechnicalProposalMapper {
      * interpretado conforme {@code discountType}).
      */
     public static TechnicalProposalProductItem toProductItemEntity(
-            TechnicalProposalProductItemRequest request, UUID technicalProposalUuid) {
+            TechnicalProposalProductItemRequest request, Long technicalProposalId) {
         TechnicalProposalProductItem item = new TechnicalProposalProductItem();
-        item.setTechnicalProposalUuid(technicalProposalUuid);
-        item.setProductUuid(request.productUuid());
+        item.setTechnicalProposalId(technicalProposalId);
+        item.setProductId(request.productId());
         item.setQuantity(request.quantity());
         item.setUnitPrice(request.unitPrice());
         item.setDiscountType(request.discountType());
@@ -107,8 +106,8 @@ public final class TechnicalProposalMapper {
     public static TechnicalProposalProductItemResponse toProductItemResponse(
             TechnicalProposalProductItem item) {
         return new TechnicalProposalProductItemResponse(
-                item.getUuid(),
-                item.getProductUuid(),
+                item.getId(),
+                item.getProductId(),
                 item.getQuantity(),
                 item.getUnitPrice(),
                 productLineSubtotal(item),
@@ -197,9 +196,9 @@ public final class TechnicalProposalMapper {
     // ---------------------------------------------------------------------
 
     public static TechnicalProposalObjective toObjectiveEntity(
-            TechnicalProposalObjectiveRequest request, UUID technicalProposalUuid) {
+            TechnicalProposalObjectiveRequest request, Long technicalProposalId) {
         TechnicalProposalObjective objective = new TechnicalProposalObjective();
-        objective.setTechnicalProposalUuid(technicalProposalUuid);
+        objective.setTechnicalProposalId(technicalProposalId);
         objective.setDescription(request.description());
         return objective;
     }
@@ -207,7 +206,7 @@ public final class TechnicalProposalMapper {
     public static TechnicalProposalObjectiveResponse toObjectiveResponse(
             TechnicalProposalObjective objective) {
         return new TechnicalProposalObjectiveResponse(
-                objective.getUuid(), objective.getDescription());
+                objective.getId(), objective.getDescription());
     }
 
     // ---------------------------------------------------------------------
@@ -222,7 +221,7 @@ public final class TechnicalProposalMapper {
      */
     public static TechnicalProposal toEntity(TechnicalProposalCreateRequest request) {
         TechnicalProposal tp = new TechnicalProposal();
-        applyHeader(tp, request.customerUuid(), request.companyUuid(),
+        applyHeader(tp, request.customerId(), request.companyId(),
                 toAddress(request.address()),
                 request.description(),
                 request.technicalResponsible(), request.email(),
@@ -230,7 +229,7 @@ public final class TechnicalProposalMapper {
                 request.discountType(), request.discount(),
                 request.freightValue(), request.deliveryDeadline(),
                 request.paymentCondition(), request.validity(),
-                request.deliveryType(), request.notes(), request.carrierUuid());
+                request.deliveryType(), request.notes(), request.carrierId());
         return tp;
     }
 
@@ -244,8 +243,8 @@ public final class TechnicalProposalMapper {
     public static TechnicalProposal toEntity(TechnicalProposalSimulateRequest request) {
         TechnicalProposal tp = new TechnicalProposal();
         // O simulate só precisa dos campos que afetam o cálculo de totais.
-        tp.setCustomerUuid(null);
-        tp.setCompanyUuid(null);
+        tp.setCustomerId(null);
+        tp.setCompanyId(null);
         tp.setDescription(null);
         tp.setStartDate(null);
         tp.setEndDate(null);
@@ -270,11 +269,11 @@ public final class TechnicalProposalMapper {
      * contrário, sobrescreve o endereço atual.</p>
      */
     public static void applyUpdate(TechnicalProposal tp, TechnicalProposalUpdateRequest request) {
-        if (request.customerUuid() != null) {
-            tp.setCustomerUuid(request.customerUuid());
+        if (request.customerId() != null) {
+            tp.setCustomerId(request.customerId());
         }
-        if (request.companyUuid() != null) {
-            tp.setCompanyUuid(request.companyUuid());
+        if (request.companyId() != null) {
+            tp.setCompanyId(request.companyId());
         }
         if (request.address() != null) {
             tp.setAddress(toAddress(request.address()));
@@ -318,11 +317,11 @@ public final class TechnicalProposalMapper {
         if (request.notes() != null) {
             tp.setNotes(request.notes());
         }
-        // carrierUuid admite null (remoção da transportadora vinculada).
-        tp.setCarrierUuid(request.carrierUuid());
+        // carrierId admite null (remoção da transportadora vinculada).
+        tp.setCarrierId(request.carrierId());
     }
 
-    private static void applyHeader(TechnicalProposal tp, UUID customerUuid, UUID companyUuid,
+    private static void applyHeader(TechnicalProposal tp, Long customerId, Long companyId,
                                     Address address, String description,
                                     String technicalResponsible, String email,
                                     java.time.LocalDate startDate,
@@ -333,9 +332,9 @@ public final class TechnicalProposalMapper {
                                     br.com.toppower.erp_toppower.sales.quotation.enums.PaymentCondition paymentCondition,
                                     String validity,
                                     br.com.toppower.erp_toppower.sales.quotation.enums.FreightType deliveryType,
-                                    String notes, UUID carrierUuid) {
-        tp.setCustomerUuid(customerUuid);
-        tp.setCompanyUuid(companyUuid);
+                                    String notes, Long carrierId) {
+        tp.setCustomerId(customerId);
+        tp.setCompanyId(companyId);
         tp.setAddress(address);
         tp.setDescription(description);
         tp.setTechnicalResponsible(technicalResponsible);
@@ -350,7 +349,7 @@ public final class TechnicalProposalMapper {
         tp.setValidity(validity);
         tp.setDeliveryType(deliveryType);
         tp.setNotes(notes);
-        tp.setCarrierUuid(carrierUuid);
+        tp.setCarrierId(carrierId);
     }
 
     /**
@@ -386,18 +385,18 @@ public final class TechnicalProposalMapper {
             String carrierName) {
 
         TechnicalProposalResponse.ClientType clientType =
-                (tp.getCustomerUuid() != null)
+                (tp.getCustomerId() != null)
                         ? TechnicalProposalResponse.ClientType.CUSTOMER
                         : TechnicalProposalResponse.ClientType.COMPANY;
 
         return new TechnicalProposalResponse(
-                tp.getUuid(),
+                tp.getId(),
                 tp.getPrefix(),
                 tp.getSequence(),
                 tp.getYear(),
                 tp.formattedCode(),
-                tp.getCustomerUuid(),
-                tp.getCompanyUuid(),
+                tp.getCustomerId(),
+                tp.getCompanyId(),
                 clientType,
                 clientName,
                 clientCode,
@@ -420,7 +419,7 @@ public final class TechnicalProposalMapper {
                 tp.getValidity(),
                 tp.getDeliveryType(),
                 tp.getNotes(),
-                tp.getCarrierUuid(),
+                tp.getCarrierId(),
                 carrierName,
                 tp.getServicesSubtotal(),
                 tp.getProductsSubtotal(),
@@ -460,18 +459,18 @@ public final class TechnicalProposalMapper {
             List<TechnicalProposalObjective> objectives,
             String clientName, String clientCode) {
         TechnicalProposalResponse.ClientType clientType =
-                (tp.getCustomerUuid() != null)
+                (tp.getCustomerId() != null)
                         ? TechnicalProposalResponse.ClientType.CUSTOMER
                         : TechnicalProposalResponse.ClientType.COMPANY;
-        UUID clientUuid = (tp.getCustomerUuid() != null)
-                ? tp.getCustomerUuid()
-                : tp.getCompanyUuid();
+        Long clientId = (tp.getCustomerId() != null)
+                ? tp.getCustomerId()
+                : tp.getCompanyId();
 
         return new TechnicalProposalSummaryResponse(
-                tp.getUuid(),
+                tp.getId(),
                 tp.formattedCode(),
                 clientType,
-                clientUuid,
+                clientId,
                 clientName,
                 clientCode,
                 objectives.stream().map(TechnicalProposalMapper::toObjectiveResponse).toList(),

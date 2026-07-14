@@ -28,35 +28,35 @@
 --   de dev (spring.sql.init.mode=always).
 --
 -- Convenções do projeto:
---   * UUIDs são armazenados como BINARY(16) (mesmo formato das demais
+--   * UUIDs são armazenados como BIGINT (mesmo formato das demais
 --     tabelas; a antiga V5__seed_initial_data.sql foi removida).
 --   * Auditoria (created_at, updated_at, created_by, updated_by) segue
 --     o mesmo padrão das demais tabelas (Hibernate @AuditingEntityListener).
---   * As FKs lógicas (product_uuid, source_uuid, reversal_of_uuid) NÃO
+--   * As FKs lógicas (product_id, source_id, reversal_of_id) NÃO
 --     são FKs físicas — o projeto não declara relacionamentos JPA, apenas
 --     referências por UUID.
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS stock_movements (
-    uuid                BINARY(16)      NOT NULL,
-    product_uuid        BINARY(16)      NOT NULL,
+    id                BIGINT          NOT NULL AUTO_INCREMENT,
+    product_id        BIGINT      NOT NULL,
     quantity_change     DECIMAL(10, 4)  NOT NULL,
     stock_before        DECIMAL(10, 4)  NOT NULL,
     stock_after         DECIMAL(10, 4)  NOT NULL,
     type                VARCHAR(20)     NOT NULL,
     source              VARCHAR(30)     NOT NULL,
-    source_uuid         BINARY(16)      NULL,
+    source_id         BIGINT      NULL,
     source_number       BIGINT          NULL,
     reason              VARCHAR(500)    NULL,
     reversed            BOOLEAN         NOT NULL DEFAULT FALSE,
-    reversal_of_uuid    BINARY(16)      NULL,
+    reversal_of_id    BIGINT      NULL,
     created_at          TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at          TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP
                                             ON UPDATE CURRENT_TIMESTAMP,
     created_by          VARCHAR(100)    NULL,
     updated_by          VARCHAR(100)    NULL,
-    PRIMARY KEY (uuid),
-    KEY idx_stock_movement_product (product_uuid),
-    KEY idx_stock_movement_source (source, source_uuid)
+    PRIMARY KEY (id),
+    KEY idx_stock_movement_product (product_id),
+    KEY idx_stock_movement_source (source, source_id)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4;

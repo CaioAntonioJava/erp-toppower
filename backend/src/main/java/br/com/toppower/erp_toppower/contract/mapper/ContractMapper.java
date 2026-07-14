@@ -19,7 +19,6 @@ import br.com.toppower.erp_toppower.contract.entity.ContractProductItem;
 import br.com.toppower.erp_toppower.contract.entity.ContractServiceItem;
 
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Conversões entre a entidade {@link Contract} e seus DTOs.
@@ -79,9 +78,9 @@ public final class ContractMapper {
     // ---------------------------------------------------------------------
 
     public static ContractClause toClauseEntity(
-            ContractClauseRequest request, UUID contractUuid) {
+            ContractClauseRequest request, Long contractId) {
         ContractClause clause = new ContractClause();
-        clause.setContractUuid(contractUuid);
+        clause.setContractId(contractId);
         clause.setDescription(request.description());
         return clause;
     }
@@ -89,7 +88,7 @@ public final class ContractMapper {
     public static ContractClauseResponse toClauseResponse(
             ContractClause clause) {
         return new ContractClauseResponse(
-                clause.getUuid(), clause.getDescription());
+                clause.getId(), clause.getDescription());
     }
 
     // ---------------------------------------------------------------------
@@ -97,9 +96,9 @@ public final class ContractMapper {
     // ---------------------------------------------------------------------
 
     public static ContractServiceItem toServiceItemEntity(
-            ContractServiceItemRequest request, UUID contractUuid) {
+            ContractServiceItemRequest request, Long contractId) {
         ContractServiceItem item = new ContractServiceItem();
-        item.setContractUuid(contractUuid);
+        item.setContractId(contractId);
         item.setDescription(request.description());
         return item;
     }
@@ -107,7 +106,7 @@ public final class ContractMapper {
     public static ContractServiceItemResponse toServiceItemResponse(
             ContractServiceItem item) {
         return new ContractServiceItemResponse(
-                item.getUuid(), item.getDescription());
+                item.getId(), item.getDescription());
     }
 
     // ---------------------------------------------------------------------
@@ -115,10 +114,10 @@ public final class ContractMapper {
     // ---------------------------------------------------------------------
 
     public static ContractProductItem toProductItemEntity(
-            ContractProductItemRequest request, UUID contractUuid) {
+            ContractProductItemRequest request, Long contractId) {
         ContractProductItem item = new ContractProductItem();
-        item.setContractUuid(contractUuid);
-        item.setProductUuid(request.productUuid());
+        item.setContractId(contractId);
+        item.setProductId(request.productId());
         item.setQuantity(request.quantity());
         return item;
     }
@@ -126,7 +125,7 @@ public final class ContractMapper {
     public static ContractProductItemResponse toProductItemResponse(
             ContractProductItem item) {
         return new ContractProductItemResponse(
-                item.getUuid(), item.getProductUuid(), item.getQuantity());
+                item.getId(), item.getProductId(), item.getQuantity());
     }
 
     // ---------------------------------------------------------------------
@@ -143,8 +142,8 @@ public final class ContractMapper {
      */
     public static Contract toEntity(ContractCreateRequest request) {
         Contract c = new Contract();
-        c.setCustomerUuid(request.customerUuid());
-        c.setCompanyUuid(request.companyUuid());
+        c.setCustomerId(request.customerId());
+        c.setCompanyId(request.companyId());
         c.setAddress(toAddress(request.address()));
         c.setDescription(request.description());
         c.setServicesDescription(request.servicesDescription());
@@ -164,11 +163,11 @@ public final class ContractMapper {
      * para permitir "limpar" o valor dos campos opcionais.</p>
      */
     public static void applyUpdate(Contract c, ContractUpdateRequest request) {
-        if (request.customerUuid() != null) {
-            c.setCustomerUuid(request.customerUuid());
+        if (request.customerId() != null) {
+            c.setCustomerId(request.customerId());
         }
-        if (request.companyUuid() != null) {
-            c.setCompanyUuid(request.companyUuid());
+        if (request.companyId() != null) {
+            c.setCompanyId(request.companyId());
         }
         if (request.address() != null) {
             c.setAddress(toAddress(request.address()));
@@ -227,13 +226,13 @@ public final class ContractMapper {
                                               List<ContractServiceItem> serviceItems,
                                               List<ContractProductItem> productItems) {
         return new ContractResponse(
-                c.getUuid(),
+                c.getId(),
                 c.getPrefix(),
                 c.getSequence(),
                 c.getYear(),
                 c.formattedCode(),
-                c.getCustomerUuid(),
-                c.getCompanyUuid(),
+                c.getCustomerId(),
+                c.getCompanyId(),
                 clientType,
                 clientName,
                 clientCode,
@@ -265,14 +264,14 @@ public final class ContractMapper {
                                                     String clientName,
                                                     String clientCode) {
         String preview = (c.getDescription() == null) ? null : abbreviate(c.getDescription(), 120);
-        UUID clientUuid = clientType == ContractResponse.ClientType.CUSTOMER
-                ? c.getCustomerUuid()
-                : c.getCompanyUuid();
+        Long clientId = clientType == ContractResponse.ClientType.CUSTOMER
+                ? c.getCustomerId()
+                : c.getCompanyId();
         return new ContractSummaryResponse(
-                c.getUuid(),
+                c.getId(),
                 c.formattedCode(),
                 clientType,
-                clientUuid,
+                clientId,
                 clientName,
                 clientCode,
                 c.getStatus(),

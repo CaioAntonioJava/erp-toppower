@@ -4,8 +4,6 @@ import br.com.toppower.erp_toppower.organization.enums.OrganizationStatus;
 import br.com.toppower.erp_toppower.user.enums.Role;
 import io.swagger.v3.oas.annotations.media.Schema;
 
-import java.util.UUID;
-
 /**
  * Resumo de uma Organization, usado no seletor do frontend e na resposta
  * de login. Inclui, quando aplicável, a role do usuário NAQUELA Organization
@@ -14,8 +12,8 @@ import java.util.UUID;
 @Schema(name = "OrganizationSummary", description = "Resumo de uma Organization para o seletor.")
 public record OrganizationSummary(
 
-        @Schema(description = "UUID da Organization.", requiredMode = Schema.RequiredMode.REQUIRED)
-        UUID uuid,
+        @Schema(description = "ID da Organization.", requiredMode = Schema.RequiredMode.REQUIRED)
+        Long id,
 
         @Schema(description = "Razão social.", requiredMode = Schema.RequiredMode.REQUIRED)
         String corporateName,

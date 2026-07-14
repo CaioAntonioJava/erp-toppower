@@ -8,10 +8,9 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
-import java.util.UUID;
 
 @Repository
-public interface SalesOrderRepository extends JpaRepository<SalesOrder, UUID>,
+public interface SalesOrderRepository extends JpaRepository<SalesOrder, Long>,
         JpaSpecificationExecutor<SalesOrder> {
 
     boolean existsByNumber(Long number);
@@ -24,7 +23,7 @@ public interface SalesOrderRepository extends JpaRepository<SalesOrder, UUID>,
      * existir em Organizations diferentes — a busca global por número não
      * distingue a empresa emissora.
      */
-    Optional<SalesOrder> findByNumberAndOrganizationUuid(Long number, UUID organizationUuid);
+    Optional<SalesOrder> findByNumberAndOrganizationId(Long number, Long organizationId);
 
     /**
      * Retorna o maior número de pedido já emitido para a Organization
@@ -42,6 +41,6 @@ public interface SalesOrderRepository extends JpaRepository<SalesOrder, UUID>,
      * (MAX). Segue o mesmo padrão de
      * {@code TechnicalProposalRepository.findMaxSequenceByYearAndOrganizationUuid}.</p>
      */
-    @Query("SELECT MAX(o.number) FROM SalesOrder o WHERE o.organizationUuid = :organizationUuid")
-    Long findMaxNumberByOrganizationUuid(@Param("organizationUuid") UUID organizationUuid);
+    @Query("SELECT MAX(o.number) FROM SalesOrder o WHERE o.organizationId = :organizationId")
+    Long findMaxNumberByOrganizationId(@Param("organizationId") Long organizationId);
 }

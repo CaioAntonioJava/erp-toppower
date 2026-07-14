@@ -11,7 +11,6 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * Constrói o {@code Map<String, Object>} que alimenta os templates
@@ -64,9 +63,9 @@ public class PdfModelBuilder {
      * em qualquer configuração de baseUri.</p>
      */
     public IssuerView resolveIssuer() {
-        UUID orgUuid = OrganizationContext.require();
-        Organization org = organizationRepository.findById(orgUuid)
-                .orElseThrow(() -> new OrganizationNotFoundException(orgUuid));
+        Long orgId = OrganizationContext.require();
+        Organization org = organizationRepository.findById(orgId)
+                .orElseThrow(() -> new OrganizationNotFoundException(orgId));
         OrganizationResponse response = OrganizationMapper.toResponse(org);
         IssuerView base = IssuerView.from(response);
         if (base == null) return null;

@@ -56,7 +56,7 @@ export async function searchSuppliers(params: {
 }
 
 /** GET /suppliers/{id} — detalhe. Requer ROLE_ADMIN no backend. */
-export async function getSupplier(id: string): Promise<SupplierResponse> {
+export async function getSupplier(id: number): Promise<SupplierResponse> {
   const { data } = await api.get<SupplierResponse>(`${BASE}/${id}`)
   return data
 }
@@ -71,7 +71,7 @@ export async function createSupplier(
 
 /** PATCH /suppliers/{id} — atualização parcial. CNPJ não pode ser alterado. */
 export async function updateSupplier(
-  id: string,
+  id: number,
   payload: SupplierUpdateRequest,
 ): Promise<SupplierResponse> {
   const { data } = await api.patch<SupplierResponse>(`${BASE}/${id}`, payload)
@@ -79,12 +79,12 @@ export async function updateSupplier(
 }
 
 /** DELETE /suppliers/{id} — inativação (soft delete). Retorna 204. */
-export async function inactivateSupplier(id: string): Promise<void> {
+export async function inactivateSupplier(id: number): Promise<void> {
   await api.delete(`${BASE}/${id}`)
 }
 
 /** PATCH /suppliers/{id}/activate — reativação. */
-export async function activateSupplier(id: string): Promise<SupplierResponse> {
+export async function activateSupplier(id: number): Promise<SupplierResponse> {
   const { data } = await api.patch<SupplierResponse>(
     `${BASE}/${id}/activate`,
   )

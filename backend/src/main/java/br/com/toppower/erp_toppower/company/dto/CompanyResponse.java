@@ -5,14 +5,13 @@ import br.com.toppower.erp_toppower.common.enums.RegistrationStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
-import java.util.UUID;
 
 @Schema(name = "CompanyResponse", description = "Representação pública de uma empresa retornada pela API.")
 public record CompanyResponse(
 
-        @Schema(description = "Identificador único (UUID) da empresa.",
+        @Schema(description = "Identificador único (ID) da empresa.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        UUID uuid,
+        Long id,
 
         @Schema(description = "Razão social.",
                 requiredMode = Schema.RequiredMode.REQUIRED)

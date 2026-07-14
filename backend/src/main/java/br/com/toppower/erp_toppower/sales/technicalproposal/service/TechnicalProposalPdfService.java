@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 import java.util.function.Function;
 
 /**
@@ -42,10 +41,10 @@ public class TechnicalProposalPdfService {
     /**
      * Renderiza o PDF (A4) da proposta técnica.
      *
-     * @param id UUID da proposta
+     * @param id ID da proposta
      * @return bytes do PDF gerado
      */
-    public byte[] renderPdf(UUID id) {
+    public byte[] renderPdf(Long id) {
         TechnicalProposalResponse proposal = technicalProposalService.getById(id);
 
         Map<String, Object> model = pdfModelBuilder.buildBaseModel();
@@ -66,16 +65,16 @@ public class TechnicalProposalPdfService {
         return salesPdfService.render("pdf/technical-proposal", model);
     }
 
-    private Map<UUID, String> resolveProductField(TechnicalProposalResponse proposal,
+    private Map<Long, String> resolveProductField(TechnicalProposalResponse proposal,
                                                    Function<ProductResponse, String> extractor) {
-        Map<UUID, String> result = new HashMap<>();
+        Map<Long, String> result = new HashMap<>();
         if (proposal.productItems() == null) return result;
         for (var item : proposal.productItems()) {
-            UUID productUuid = item.productUuid();
-            if (productUuid == null || result.containsKey(productUuid)) continue;
+            Long productId = item.productId();
+            if (productId == null || result.containsKey(productId)) continue;
             try {
-                ProductResponse p = productService.getById(productUuid);
-                result.put(productUuid, extractor.apply(p));
+                ProductResponse p = productService.getById(productId);
+                result.put(productId, extractor.apply(p));
             } catch (RuntimeException ex) {
                 // produto removido ou inacessível — segue sem nome
             }

@@ -17,7 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.UUID;
 
 @Service
 public class UserService {
@@ -51,7 +50,7 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public UserResponse getById(UUID id) {
+    public UserResponse getById(Long id) {
         return userRepository.findById(id)
                 .map(UserMapper::toResponse)
                 .orElseThrow(() -> new UserNotFoundException(id));
@@ -65,7 +64,7 @@ public class UserService {
     }
 
     @Transactional
-    public void changePassword(UUID authenticatedUserId, UUID targetUserId, ChangePasswordRequest request) {
+    public void changePassword(Long authenticatedUserId, Long targetUserId, ChangePasswordRequest request) {
         if (!authenticatedUserId.equals(targetUserId)) {
             throw new AccessDeniedException("Você só pode alterar sua própria senha");
         }
@@ -81,7 +80,7 @@ public class UserService {
     }
 
     @Transactional
-    public void resetPassword(UUID id, ResetPasswordRequest request) {
+    public void resetPassword(Long id, ResetPasswordRequest request) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException(id));
 
@@ -96,24 +95,20 @@ public class UserService {
      * evitando lockout acidental.</p>
      */
     @Transactional
-    public void delete(UUID id, UUID requesterUuid) {
+    public void delete(Long id, Long requesterId) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException(id));
 
-        if (id.equals(requesterUuid)) {
+        if (id.equals(requesterId)) {
             throw new AccessDeniedException("Você não pode excluir sua própria conta");
         }
 
-        // Profile: FK física profiles.user_id → users.uuid. O profile é
+        // Profile: FK física profiles.user_id → users.id. O profile é
         // opcional (admin pode não ter perfil); o SQL nativo é no-op quando
         // não há linha.
-        //
-        // O UUID é persistido como BINARY(16); passá-lo como java.util.UUID
-        // ao JdbcTemplate pode não converter corretamente, então usamos
-        // UNHEX(hex).
-        String userHex = user.getUuid().toString().replace("-", "");
+        String userHex = user.getId().toString();
         jdbcTemplate.update(
-                "delete from profiles where user_id = UNHEX('" + userHex + "')");
+                "delete from profiles where user_id = " + userHex);
 
         userRepository.delete(user);
     }

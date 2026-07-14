@@ -14,7 +14,6 @@ import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Dados para criação de uma nova proposta comercial.
@@ -32,11 +31,11 @@ public record QuotationCreateRequest(
 
         @Schema(description = "UUID do cliente pessoa física. OBRIGATÓRIO se companyUuid não for informado.",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID customerUuid,
+        Long customerId,
 
         @Schema(description = "UUID da empresa (pessoa jurídica). OBRIGATÓRIO se customerUuid não for informado.",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID companyUuid,
+        Long companyId,
 
         @Schema(description = "Aos cuidados de: nome da pessoa de contato no lado do comprador.",
                 example = "Sr. João Silva", maxLength = 150,
@@ -47,7 +46,7 @@ public record QuotationCreateRequest(
         @Schema(description = "UUID do vendedor responsável pela proposta.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull(message = "Vendedor é obrigatório")
-        UUID sellerUuid,
+        Long sellerId,
 
         @Schema(description = "Itens da proposta. A proposta deve ter ao menos um item.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
@@ -103,6 +102,6 @@ public record QuotationCreateRequest(
 
         @Schema(description = "UUID da transportadora (Carrier) responsável pelo frete. Opcional.",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID carrierUuid
+        Long carrierId
 ) {
 }

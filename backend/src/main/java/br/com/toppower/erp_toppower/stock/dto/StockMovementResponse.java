@@ -6,7 +6,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.UUID;
 
 /**
  * Movimentação de estoque retornada pela API. {@code productName} e
@@ -18,13 +17,13 @@ import java.util.UUID;
         description = "Registro de uma movimentação de estoque (entrada, saída ou estorno).")
 public record StockMovementResponse(
 
-        @Schema(description = "Identificador (UUID) da movimentação.",
+        @Schema(description = "Identificador (ID) da movimentação.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        UUID uuid,
+        Long id,
 
-        @Schema(description = "Identificador (UUID) do produto movimentado.",
+        @Schema(description = "Identificador (ID) do produto movimentado.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        UUID productUuid,
+        Long productId,
 
         @Schema(description = "Nome do produto no momento da consulta (resolvido, não snapshot).",
                 requiredMode = Schema.RequiredMode.REQUIRED)
@@ -57,10 +56,10 @@ public record StockMovementResponse(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         MovementSource source,
 
-        @Schema(description = "UUID do documento de origem (ex.: SalesOrder.uuid). "
+        @Schema(description = "ID do documento de origem (ex.: SalesOrder.id). "
                 + "Nulo quando não há origem rastreável.",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID sourceUuid,
+        Long sourceId,
 
         @Schema(description = "Número legível do documento de origem (ex.: SalesOrder.number).",
                 example = "1001", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
@@ -74,10 +73,10 @@ public record StockMovementResponse(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         boolean reversed,
 
-        @Schema(description = "Quando esta movimentação é um estorno, UUID da movimentação original "
+        @Schema(description = "Quando esta movimentação é um estorno, ID da movimentação original "
                 + "sendo desfeita. Nulo para movimentações primárias.",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID reversalOfUuid,
+        Long reversalOfId,
 
         @Schema(description = "Data/hora de criação da movimentação.",
                 requiredMode = Schema.RequiredMode.REQUIRED)

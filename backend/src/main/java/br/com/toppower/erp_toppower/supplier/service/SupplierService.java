@@ -15,8 +15,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
-
 @Service
 public class SupplierService {
 
@@ -46,14 +44,14 @@ public class SupplierService {
     }
 
     @Transactional(readOnly = true)
-    public SupplierResponse getById(UUID id) {
+    public SupplierResponse getById(Long id) {
         return supplierRepository.findById(id)
                 .map(SupplierMapper::toResponse)
                 .orElseThrow(() -> new SupplierNotFoundException(id));
     }
 
     @Transactional
-    public SupplierResponse update(UUID id, SupplierUpdateRequest request) {
+    public SupplierResponse update(Long id, SupplierUpdateRequest request) {
         Supplier supplier = supplierRepository.findById(id)
                 .orElseThrow(() -> new SupplierNotFoundException(id));
 
@@ -69,7 +67,7 @@ public class SupplierService {
     }
 
     @Transactional
-    public void softDelete(UUID id) {
+    public void softDelete(Long id) {
         Supplier supplier = supplierRepository.findById(id)
                 .orElseThrow(() -> new SupplierNotFoundException(id));
         supplier.setStatus(SupplierStatus.INATIVO);
@@ -77,7 +75,7 @@ public class SupplierService {
     }
 
     @Transactional
-    public SupplierResponse activate(UUID id) {
+    public SupplierResponse activate(Long id) {
         Supplier supplier = supplierRepository.findById(id)
                 .orElseThrow(() -> new SupplierNotFoundException(id));
         supplier.setStatus(SupplierStatus.ATIVO);

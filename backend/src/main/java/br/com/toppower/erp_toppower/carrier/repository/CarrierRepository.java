@@ -9,10 +9,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.UUID;
-
 @Repository
-public interface CarrierRepository extends JpaRepository<Carrier, UUID> {
+public interface CarrierRepository extends JpaRepository<Carrier, Long> {
 
     Page<Carrier> findByStatus(CarrierStatus status, Pageable pageable);
 

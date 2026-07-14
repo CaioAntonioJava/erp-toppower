@@ -23,26 +23,15 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.UUID;
-
-/**
- * Endpoints de leitura do diário de movimentações de estoque. As
- * movimentações são criadas exclusivamente pelo {@link StockService}
- * (chamado pelos módulos de negócio, ex.: {@code SalesOrderService});
- * não há endpoint público de criação manual nesta rodada.
- */
 @RestController
 @RequestMapping("/api/v1/stock/movements")
 @RequiredArgsConstructor
 @Tag(name = "Estoque", description = "Diário de movimentações de estoque (auditoria e histórico).")
 public class StockController {
 
-    private static final String UUID_REGEX =
-            "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
-
     private final StockService stockService;
 
-    @GetMapping(value = "/product/{productUuid:" + UUID_REGEX + "}",
+    @GetMapping(value = "/product/{productId}",
             produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Histórico de movimentações de um produto",
             description = "Lista paginada das movimentações de estoque do produto, "
@@ -58,14 +47,14 @@ public class StockController {
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<PagedResponse<StockMovementResponse>> historicoPorProduto(
-            @PathVariable UUID productUuid,
+            @PathVariable Long productId,
             @Parameter(hidden = true)
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
             Pageable pageable) {
-        return ResponseEntity.ok(stockService.historicoPorProduto(productUuid, pageable));
+        return ResponseEntity.ok(stockService.historicoPorProduto(productId, pageable));
     }
 
-    @GetMapping(value = "/{movementUuid:" + UUID_REGEX + "}",
+    @GetMapping(value = "/{movementId}",
             produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Detalhe de uma movimentação",
             description = "Retorna os dados de uma movimentação de estoque específica, "
@@ -81,7 +70,7 @@ public class StockController {
             @ApiResponse(responseCode = "404", description = "Movimentação não encontrada.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<StockMovementResponse> movimentacaoPorId(@PathVariable UUID movementUuid) {
-        return ResponseEntity.ok(stockService.movimentacaoPorId(movementUuid));
+    public ResponseEntity<StockMovementResponse> movimentacaoPorId(@PathVariable Long movementId) {
+        return ResponseEntity.ok(stockService.movimentacaoPorId(movementId));
     }
 }

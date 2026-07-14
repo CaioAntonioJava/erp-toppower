@@ -28,8 +28,8 @@ export async function listQuotations(
         status: filters.status,
         startDate: filters.startDate,
         endDate: filters.endDate,
-        clientUuid: filters.clientUuid,
-        sellerUuid: filters.sellerUuid,
+        clientId: filters.clientId,
+        sellerId: filters.sellerId,
         number: filters.number,
       },
     },
@@ -46,7 +46,7 @@ export async function getNextQuotationNumber(): Promise<number> {
 }
 
 /** GET /quotations/{id} — detalhe completo (com itens e totais). */
-export async function getQuotation(id: string): Promise<QuotationResponse> {
+export async function getQuotation(id: number): Promise<QuotationResponse> {
   const { data } = await api.get<QuotationResponse>(`${BASE}/${id}`)
   return data
 }
@@ -82,7 +82,7 @@ export async function simulateQuotation(
 
 /** PATCH /quotations/{id} — atualização parcial. */
 export async function updateQuotation(
-  id: string,
+  id: number,
   payload: QuotationUpdateRequest,
 ): Promise<QuotationResponse> {
   const { data } = await api.patch<QuotationResponse>(
@@ -93,7 +93,7 @@ export async function updateQuotation(
 }
 
 /** DELETE /quotations/{id} — cancelamento (soft). Retorna a proposta atualizada. */
-export async function cancelQuotation(id: string): Promise<QuotationResponse> {
+export async function cancelQuotation(id: number): Promise<QuotationResponse> {
   const { data } = await api.delete<QuotationResponse>(`${BASE}/${id}`)
   return data
 }
@@ -123,7 +123,7 @@ export async function searchQuotationClients(
  * ou dispare um `<a download>` para download direto.
  */
 export async function getQuotationPdf(
-  id: string,
+  id: number,
   disposition: 'inline' | 'attachment' = 'inline',
 ): Promise<{ blob: Blob; filename: string }> {
   const response = await api.get<Blob>(`${BASE}/${id}/pdf`, {

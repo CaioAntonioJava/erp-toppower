@@ -6,7 +6,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.UUID;
 
 /**
  * Representação resumida de um pedido de venda, usada em listagens
@@ -17,7 +16,7 @@ import java.util.UUID;
 public record SalesOrderSummaryResponse(
 
         @Schema(description = "Identificador único (UUID) do pedido.", requiredMode = Schema.RequiredMode.REQUIRED)
-        UUID uuid,
+        Long id,
 
         @Schema(description = "Número sequencial do pedido (sem prefixo).", example = "1000",
                 requiredMode = Schema.RequiredMode.REQUIRED)
@@ -33,7 +32,7 @@ public record SalesOrderSummaryResponse(
         SalesOrderResponse.ClientType clientType,
 
         @Schema(description = "UUID do cliente referenciado (PF ou PJ).", requiredMode = Schema.RequiredMode.REQUIRED)
-        UUID clientUuid,
+        Long clientId,
 
         @Schema(description = "Nome do cliente (PF ou nome fantasia/razão social da empresa).",
                 requiredMode = Schema.RequiredMode.REQUIRED)
@@ -45,7 +44,7 @@ public record SalesOrderSummaryResponse(
         String clientCode,
 
         @Schema(description = "UUID do vendedor.", requiredMode = Schema.RequiredMode.REQUIRED)
-        UUID sellerUuid,
+        Long sellerId,
 
         @Schema(description = "Nome do vendedor (resolvido no backend).",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)

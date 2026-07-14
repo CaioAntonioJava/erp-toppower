@@ -23,7 +23,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.UUID;
 
 /**
  * Filtro que popula o {@link OrganizationContext} a partir do header
@@ -128,7 +127,7 @@ public class OrganizationContextFilter extends OncePerRequestFilter {
                 throw new OrganizationContextRequiredException();
             }
 
-            UUID organizationId = parseOrganizationId(header);
+            Long organizationId = parseOrganizationId(header);
             Organization organization = organizationRepository.findById(organizationId)
                     .orElseThrow(() -> new OrganizationNotFoundException(organizationId));
 
@@ -138,8 +137,8 @@ public class OrganizationContextFilter extends OncePerRequestFilter {
 
             // ADMIN acessa qualquer Organization. Demais roles precisam de vínculo.
             if (!principal.isAdmin()
-                    && !userOrganizationRepository.existsByUserUuidAndOrganizationUuid(
-                            principal.uuid(), organizationId)) {
+                    && !userOrganizationRepository.existsByUserIdAndOrganizationId(
+                            principal.id(), organizationId)) {
                 throw new OrganizationAccessDeniedException(organizationId);
             }
 
@@ -160,10 +159,10 @@ public class OrganizationContextFilter extends OncePerRequestFilter {
         return false;
     }
 
-    private UUID parseOrganizationId(String header) {
+    private Long parseOrganizationId(String header) {
         try {
-            return UUID.fromString(header.trim());
-        } catch (IllegalArgumentException e) {
+            return Long.parseLong(header.trim());
+        } catch (NumberFormatException e) {
             throw new InvalidOrganizationHeaderException(header);
         }
     }

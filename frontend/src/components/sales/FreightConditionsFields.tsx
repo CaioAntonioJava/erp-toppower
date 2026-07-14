@@ -16,9 +16,9 @@ export interface FreightConditionsFieldsProps {
   /** Normaliza/formata o valor no blur (ex.: "45" → "45,00"). */
   onFreightValueBlur: () => void
   freightValueError?: string | null
-  /** UUID da transportadora selecionada (opcional). */
-  carrierUuid: string
-  onCarrierUuidChange: (value: string) => void
+  /** ID da transportadora selecionada (opcional). */
+  carrierId: number | null
+  onCarrierIdChange: (value: number | null) => void
   carriers: CarrierResponse[]
   carriersLoading: boolean
   /** Permite customizar o label do tipo de frete (ex.: "Tipo de entrega"). */
@@ -42,8 +42,8 @@ export function FreightConditionsFields({
   onFreightValueChange,
   onFreightValueBlur,
   freightValueError,
-  carrierUuid,
-  onCarrierUuidChange,
+  carrierId,
+  onCarrierIdChange,
   carriers,
   carriersLoading,
   freightTypeLabel = 'Tipo de frete',
@@ -61,14 +61,17 @@ export function FreightConditionsFields({
       />
       <Select
         label="Transportadora"
-        value={carrierUuid}
-        onChange={(e) => onCarrierUuidChange(e.target.value)}
+        value={carrierId != null ? String(carrierId) : ''}
+        onChange={(e) => {
+          const v = e.target.value
+          onCarrierIdChange(v ? Number(v) : null)
+        }}
         options={[
           {
             value: '',
             label: carriersLoading ? 'Carregando…' : 'Selecione…',
           },
-          ...carriers.map((c) => ({ value: c.uuid, label: c.name })),
+          ...carriers.map((c) => ({ value: String(c.id), label: c.name })),
         ]}
         aria-label="Transportadora responsável pelo frete"
       />

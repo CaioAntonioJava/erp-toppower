@@ -49,7 +49,7 @@ export async function searchCarriers(params: {
   return data
 }
 
-export async function getCarrier(id: string): Promise<CarrierResponse> {
+export async function getCarrier(id: number): Promise<CarrierResponse> {
   const { data } = await api.get<CarrierResponse>(`${BASE}/${id}`)
   return data
 }
@@ -62,18 +62,18 @@ export async function createCarrier(
 }
 
 export async function updateCarrier(
-  id: string,
+  id: number,
   payload: CarrierUpdateRequest,
 ): Promise<CarrierResponse> {
   const { data } = await api.patch<CarrierResponse>(`${BASE}/${id}`, payload)
   return data
 }
 
-export async function inactivateCarrier(id: string): Promise<void> {
+export async function inactivateCarrier(id: number): Promise<void> {
   await api.delete(`${BASE}/${id}`)
 }
 
-export async function activateCarrier(id: string): Promise<CarrierResponse> {
+export async function activateCarrier(id: number): Promise<CarrierResponse> {
   const { data } = await api.patch<CarrierResponse>(
     `${BASE}/${id}/activate`,
   )

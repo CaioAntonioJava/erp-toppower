@@ -57,7 +57,7 @@ export function ContractDetailPage() {
     let cancelled = false
     setLoading(true)
     setError(null)
-    getContract(id)
+    getContract(Number(id!))
       .then((data) => {
         if (cancelled) return
         setContract(data)
@@ -75,13 +75,13 @@ export function ContractDetailPage() {
   }, [id])
 
   async function runTransition(
-    fn: (uuid: string) => Promise<ContractResponse>,
+    fn: (id: number) => Promise<ContractResponse>,
   ) {
     if (!contract) return
     setTransitioning(true)
     setTransitionError(null)
     try {
-      const updated = await fn(contract.uuid)
+      const updated = await fn(contract.id)
       setContract(updated)
       setConfirmStart(false)
       setConfirmComplete(false)
@@ -122,7 +122,7 @@ export function ContractDetailPage() {
               <Button
                 variant="secondary"
                 onClick={() =>
-                  window.open(`/contracts/${contract.uuid}/pdf`, '_blank')
+                  window.open(`/contracts/${contract.id}/pdf`, '_blank')
                 }
               >
                 <Printer className="h-4 w-4" />
@@ -131,7 +131,7 @@ export function ContractDetailPage() {
               <Button
                 variant="secondary"
                 onClick={() =>
-                  navigate(`/contracts/${contract.uuid}/edit`)
+                  navigate(`/contracts/${contract.id}/edit`)
                 }
               >
                 <Pencil className="h-4 w-4" />
@@ -278,7 +278,7 @@ export function ContractDetailPage() {
                       </h3>
                       <div className="mt-2 space-y-3">
                         {clausesFirst.map((clause, idx) => (
-                          <div key={clause.uuid}>
+                          <div key={clause.id}>
                             <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
                               Cláusula {idx + 1}
                             </p>
@@ -295,7 +295,7 @@ export function ContractDetailPage() {
                       <h2 className="mb-3 text-base font-semibold">Cláusula 2</h2>
                       <div className="space-y-3">
                         {clausesSecond.map((clause, idx) => (
-                          <div key={clause.uuid}>
+                          <div key={clause.id}>
                             <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
                               Cláusula {thirdSize + idx + 1}
                             </p>
@@ -312,7 +312,7 @@ export function ContractDetailPage() {
                       <h2 className="mb-3 text-base font-semibold">Cláusula 3</h2>
                       <div className="space-y-3">
                         {clausesThird.map((clause, idx) => (
-                          <div key={clause.uuid}>
+                          <div key={clause.id}>
                             <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
                               Cláusula {thirdSize * 2 + idx + 1}
                             </p>
@@ -337,7 +337,7 @@ export function ContractDetailPage() {
               {contract.serviceItems && contract.serviceItems.length > 0 ? (
                 <div className="mb-4 space-y-2">
                   {contract.serviceItems.map((item, idx) => (
-                    <div key={item.uuid} className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/50">
+                    <div key={item.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/50">
                       <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
                         Serviço {idx + 1}
                       </p>
@@ -368,12 +368,12 @@ export function ContractDetailPage() {
               {contract.productItems && contract.productItems.length > 0 ? (
                 <div className="mb-4 space-y-2">
                   {contract.productItems.map((item, idx) => (
-                    <div key={item.uuid} className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/50">
+                    <div key={item.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/50">
                       <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
                         Produto {idx + 1}
                       </p>
                       <p className="mt-0.5 text-sm text-slate-700 dark:text-slate-300">
-                        {item.productUuid} — Qtd: {item.quantity}
+                        {item.productId} — Qtd: {item.quantity}
                       </p>
                     </div>
                   ))}

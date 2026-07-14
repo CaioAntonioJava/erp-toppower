@@ -18,7 +18,7 @@ export function SalesOrderPrintPage() {
   useEffect(() => {
     if (!id) return
     let cancelled = false
-    getSalesOrder(id)
+    getSalesOrder(Number(id!))
       .then((o) => {
         if (!cancelled) setTitle(`Pedido de Venda nº ${o.number}`)
       })
@@ -28,7 +28,7 @@ export function SalesOrderPrintPage() {
 
   const fetcher = useCallback(async () => {
     if (!id) throw new Error('ID do pedido ausente.')
-    return getSalesOrderPdf(id, 'inline')
+    return getSalesOrderPdf(Number(id!), 'inline')
   }, [id])
 
   return <PdfPreview title={title} fetcher={fetcher} />

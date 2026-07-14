@@ -33,16 +33,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.UUID;
-
 @RestController
 @RequestMapping("/api/v1/carriers")
 @RequiredArgsConstructor
 @Tag(name = "Transportadoras", description = "Cadastro e gestão de transportadoras (carriers). Acesso restrito a administradores.")
 public class CarrierController {
-
-    private static final String UUID_REGEX =
-            "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
 
     private final CarrierService carrierService;
 
@@ -105,9 +100,9 @@ public class CarrierController {
         return ResponseEntity.ok(carrierService.search(query, status, pageable));
     }
 
-    @GetMapping(value = "/{id:" + UUID_REGEX + "}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Buscar transportadora por ID",
-            description = "Retorna uma transportadora pelo UUID.")
+            description = "Retorna uma transportadora pelo ID.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
     @ApiResponses({
@@ -116,11 +111,11 @@ public class CarrierController {
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "404", description = "Transportadora não encontrada.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<CarrierResponse> getById(@PathVariable UUID id) {
+    public ResponseEntity<CarrierResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(carrierService.getById(id));
     }
 
-    @PatchMapping(value = "/{id:" + UUID_REGEX + "}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PatchMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Atualizar transportadora (parcial)",
             description = "Atualiza apenas os campos enviados.")
     @SecurityRequirement(name = "bearerAuth")
@@ -132,12 +127,12 @@ public class CarrierController {
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "404", description = "Transportadora não encontrada.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<CarrierResponse> update(@PathVariable UUID id,
+    public ResponseEntity<CarrierResponse> update(@PathVariable Long id,
                                                   @Valid @RequestBody CarrierUpdateRequest request) {
         return ResponseEntity.ok(carrierService.update(id, request));
     }
 
-    @DeleteMapping("/{id:" + UUID_REGEX + "}")
+    @DeleteMapping("/{id}")
     @Operation(summary = "Inativar transportadora (soft delete)",
             description = "Define status como INATIVO. Não remove fisicamente o registro.")
     @SecurityRequirement(name = "bearerAuth")
@@ -147,12 +142,12 @@ public class CarrierController {
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "404", description = "Transportadora não encontrada.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<Void> inactivate(@PathVariable UUID id) {
+    public ResponseEntity<Void> inactivate(@PathVariable Long id) {
         carrierService.softDelete(id);
         return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping(value = "/{id:" + UUID_REGEX + "}/activate", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PatchMapping(value = "/{id}/activate", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Reativar transportadora",
             description = "Define status como ATIVO, reativando uma transportadora inativa.")
     @SecurityRequirement(name = "bearerAuth")
@@ -163,7 +158,7 @@ public class CarrierController {
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "404", description = "Transportadora não encontrada.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<CarrierResponse> activate(@PathVariable UUID id) {
+    public ResponseEntity<CarrierResponse> activate(@PathVariable Long id) {
         return ResponseEntity.ok(carrierService.activate(id));
     }
 }

@@ -26,7 +26,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/user-organizations")
@@ -34,9 +33,6 @@ import java.util.UUID;
 @Tag(name = "Vínculos Usuário↔Organization",
         description = "Gestão de acesso de usuários a Organizations. Acesso restrito a ADMIN.")
 public class UserOrganizationController {
-
-    private static final String UUID_REGEX =
-            "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
 
     private final UserOrganizationService userOrganizationService;
 
@@ -57,7 +53,7 @@ public class UserOrganizationController {
         return ResponseEntity.status(HttpStatus.CREATED).body(userOrganizationService.assign(request));
     }
 
-    @GetMapping(value = "/by-user/{userId:" + UUID_REGEX + "}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/by-user/{userId}", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Listar vínculos de um usuário")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasRole('ADMIN')")
@@ -66,11 +62,11 @@ public class UserOrganizationController {
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = UserOrganizationResponse.class))),
             @ApiResponse(responseCode = "404", description = "Usuário não encontrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<List<UserOrganizationResponse>> listByUser(@PathVariable UUID userId) {
+    public ResponseEntity<List<UserOrganizationResponse>> listByUser(@PathVariable Long userId) {
         return ResponseEntity.ok(userOrganizationService.listByUser(userId));
     }
 
-    @PatchMapping(value = "/{userId:" + UUID_REGEX + "}/{organizationId:" + UUID_REGEX + "}/default",
+    @PatchMapping(value = "/{userId}/{organizationId}/default",
             produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Definir Organization default do usuário",
             description = "Marca o vínculo como default e desmarca os outros do mesmo usuário.")
@@ -81,12 +77,12 @@ public class UserOrganizationController {
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = UserOrganizationResponse.class))),
             @ApiResponse(responseCode = "404", description = "Vínculo não encontrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<UserOrganizationResponse> setDefault(@PathVariable UUID userId,
-                                                              @PathVariable UUID organizationId) {
+    public ResponseEntity<UserOrganizationResponse> setDefault(@PathVariable Long userId,
+                                                              @PathVariable Long organizationId) {
         return ResponseEntity.ok(userOrganizationService.setDefault(userId, organizationId));
     }
 
-    @DeleteMapping("/{userOrganizationId:" + UUID_REGEX + "}")
+    @DeleteMapping("/{userOrganizationId}")
     @Operation(summary = "Remover vínculo usuário↔Organization")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasRole('ADMIN')")
@@ -94,7 +90,7 @@ public class UserOrganizationController {
             @ApiResponse(responseCode = "204", description = "Vínculo removido."),
             @ApiResponse(responseCode = "404", description = "Vínculo não encontrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<Void> unassign(@PathVariable UUID userOrganizationId) {
+    public ResponseEntity<Void> unassign(@PathVariable Long userOrganizationId) {
         userOrganizationService.unassign(userOrganizationId);
         return ResponseEntity.noContent().build();
     }

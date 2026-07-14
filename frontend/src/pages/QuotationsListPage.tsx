@@ -129,7 +129,7 @@ export function QuotationsListPage() {
     setCanceling(true)
     setError(null)
     try {
-      await cancelQuotation(confirmCancel.uuid)
+      await cancelQuotation(confirmCancel.id)
       setConfirmCancel(null)
       // Recarrega a página atual.
       const params: Parameters<typeof listQuotations>[0] = { page, size }
@@ -155,10 +155,10 @@ export function QuotationsListPage() {
     setConverting(true)
     setError(null)
     try {
-      const order = await createSalesOrderFromQuotation(confirmConvert.uuid)
+      const order = await createSalesOrderFromQuotation(confirmConvert.id)
       setConfirmConvert(null)
       // Navega para o detalhe do pedido recém-criado.
-      navigate(`/sales-orders/${order.uuid}`)
+      navigate(`/sales-orders/${order.id}`)
     } catch (err) {
       setError(toApiError(err).message)
     } finally {
@@ -262,9 +262,9 @@ export function QuotationsListPage() {
               ) : (
                 (data?.content ?? []).map((q) => (
                   <tr
-                    key={q.uuid}
+                    key={q.id}
                     className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40"
-                    onClick={() => navigate(`/quotations/${q.uuid}/edit`)}
+                    onClick={() => navigate(`/quotations/${q.id}/edit`)}
                   >
                     <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-slate-700 dark:text-slate-200">
                       {q.number}
@@ -297,7 +297,7 @@ export function QuotationsListPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => navigate(`/quotations/${q.uuid}`)}
+                          onClick={() => navigate(`/quotations/${q.id}`)}
                           title="Ver resumo"
                           aria-label="Ver resumo"
                         >
@@ -307,7 +307,7 @@ export function QuotationsListPage() {
                           size="sm"
                           variant="ghost"
                           onClick={() =>
-                            window.open(`/quotations/${q.uuid}/pdf`, '_blank')
+                            window.open(`/quotations/${q.id}/pdf`, '_blank')
                           }
                           title="Gerar PDF"
                           aria-label="Gerar PDF"

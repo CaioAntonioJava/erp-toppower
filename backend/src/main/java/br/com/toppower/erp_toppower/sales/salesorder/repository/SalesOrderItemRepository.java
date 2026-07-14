@@ -5,25 +5,24 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.UUID;
 
 @Repository
-public interface SalesOrderItemRepository extends JpaRepository<SalesOrderItem, UUID> {
+public interface SalesOrderItemRepository extends JpaRepository<SalesOrderItem, Long> {
 
     /**
      * Retorna todos os itens de um pedido, ordenados pela data de
      * criação (primeiro item inserido primeiro).
      */
-    List<SalesOrderItem> findBySalesOrderUuidOrderByCreatedAtAsc(UUID salesOrderUuid);
+    List<SalesOrderItem> findBySalesOrderIdOrderByCreatedAtAsc(Long salesOrderId);
 
     /**
      * Remove todos os itens de um pedido. Usado em substituição
      * completa da lista de itens (update com delta de linhas).
      */
-    void deleteBySalesOrderUuid(UUID salesOrderUuid);
+    void deleteBySalesOrderId(Long salesOrderId);
 
     /**
      * Quantidade de itens de um pedido.
      */
-    long countBySalesOrderUuid(UUID salesOrderUuid);
+    long countBySalesOrderId(Long salesOrderId);
 }

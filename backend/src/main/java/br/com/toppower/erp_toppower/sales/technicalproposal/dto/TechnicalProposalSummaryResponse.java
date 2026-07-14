@@ -7,7 +7,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Resumo de uma proposta técnica usado na listagem paginada. Não traz
@@ -19,7 +18,7 @@ public record TechnicalProposalSummaryResponse(
 
         @Schema(description = "Identificador único (UUID) da proposta.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        UUID uuid,
+        Long id,
 
         @Schema(description = "Código formatado completo (ex.: \"PL-001-2026\").",
                 example = "PL-001-2026", requiredMode = Schema.RequiredMode.REQUIRED)
@@ -32,7 +31,7 @@ public record TechnicalProposalSummaryResponse(
 
         @Schema(description = "UUID do cliente (PF ou PJ).",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID clientUuid,
+        Long clientUuid,
 
         @Schema(description = "Nome de exibição do cliente (resolvido no backend).",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)

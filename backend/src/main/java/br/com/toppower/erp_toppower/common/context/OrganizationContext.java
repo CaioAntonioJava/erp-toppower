@@ -1,7 +1,5 @@
 package br.com.toppower.erp_toppower.common.context;
 
-import java.util.UUID;
-
 /**
  * Contexto de Organization da requisição corrente, baseado em {@link ThreadLocal}.
  *
@@ -10,7 +8,7 @@ import java.util.UUID;
  * Lido por:</p>
  * <ul>
  *   <li>{@code OrganizationEntityListener} — para setar
- *       {@code organization_uuid} no persist;</li>
+ *       {@code organization_id} no persist;</li>
  *   <li>{@code OrganizationFilterAspect} — para habilitar o
  *       {@code @Filter} do Hibernate e escopar as queries.</li>
  * </ul>
@@ -22,16 +20,16 @@ import java.util.UUID;
  */
 public final class OrganizationContext {
 
-    private static final ThreadLocal<UUID> CURRENT = new ThreadLocal<>();
+    private static final ThreadLocal<Long> CURRENT = new ThreadLocal<>();
 
     private OrganizationContext() {
     }
 
-    public static void set(UUID organizationUuid) {
-        CURRENT.set(organizationUuid);
+    public static void set(Long organizationId) {
+        CURRENT.set(organizationId);
     }
 
-    public static UUID get() {
+    public static Long get() {
         return CURRENT.get();
     }
 
@@ -40,16 +38,16 @@ public final class OrganizationContext {
      * se ausente. Útil em pontos onde a Organization é obrigatória (persist
      * de entidade organization-scoped).
      */
-    public static UUID require() {
-        UUID uuid = CURRENT.get();
-        if (uuid == null) {
+    public static Long require() {
+        Long id = CURRENT.get();
+        if (id == null) {
             throw new IllegalStateException(
                     "OrganizationContext não definido: não há Organization na requisição "
                             + "corrente. Isso indica que a operação está rodando fora de uma "
                             + "requisição autenticada (ex: bootstrap/seed) — forneça a "
                             + "Organization explicitamente.");
         }
-        return uuid;
+        return id;
     }
 
     public static void clear() {

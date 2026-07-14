@@ -17,11 +17,10 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import br.com.toppower.erp_toppower.common.listener.UpperCaseFieldListener;
 
 import java.time.Instant;
-import java.util.UUID;
 
 /**
  * Entidade base com os campos compartilhados por todas as entidades do sistema:
- * identificador UUID e auditoria completa (timestamps + e-mail do autor).
+ * identificador Long (auto-incremento) e auditoria completa (timestamps + e-mail do autor).
  *
  * <p>Aplica automaticamente dois listeners JPA em todas as subclasses:</p>
  * <ul>
@@ -41,10 +40,10 @@ import java.util.UUID;
 public abstract class BaseEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "uuid", updatable = false, nullable = false)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id", updatable = false, nullable = false)
     @Setter
-    private UUID uuid;
+    private Long id;
 
     @CreatedDate
     @Column(name = "created_at", updatable = false, nullable = false)

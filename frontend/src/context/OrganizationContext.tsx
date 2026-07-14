@@ -63,7 +63,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       return
     }
     try {
-      const rich = await getOrganization(activeOrganization.uuid)
+      const rich = await getOrganization(activeOrganization.id)
       setActiveOrganizationRich(rich)
     } catch {
       // Falha silenciosa: o consumidor usa `activeOrganizationRich ?? null`
@@ -79,14 +79,15 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       const list = await apiListMine()
       setOrganizations(list)
       const storedId = localStorage.getItem(ORGANIZATION_KEY)
+      const storedIdNum = storedId ? Number(storedId) : null
       // Resolve a Organization ativa: a do localStorage, senão a default, senão a primeira.
       const active =
-        list.find((o) => o.uuid === storedId) ??
+        list.find((o) => o.id === storedIdNum) ??
         list.find((o) => o.isDefault) ??
         list[0] ??
         null
       if (active) {
-        localStorage.setItem(ORGANIZATION_KEY, active.uuid)
+        localStorage.setItem(ORGANIZATION_KEY, String(active.id))
       } else {
         localStorage.removeItem(ORGANIZATION_KEY)
       }
@@ -116,7 +117,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       return
     }
     let cancelled = false
-    getOrganization(activeOrganization.uuid)
+    getOrganization(activeOrganization.id)
       .then((rich) => {
         if (!cancelled) setActiveOrganizationRich(rich)
       })
@@ -127,7 +128,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
   }, [activeOrganization])
 
   const setActive = useCallback((org: OrganizationSummary) => {
-    localStorage.setItem(ORGANIZATION_KEY, org.uuid)
+    localStorage.setItem(ORGANIZATION_KEY, String(org.id))
     setActiveOrganization(org)
     // Bumpa o revision para forçar remount do conteúdo (recarrega dados da tela ativa).
     setRevision((r) => r + 1)

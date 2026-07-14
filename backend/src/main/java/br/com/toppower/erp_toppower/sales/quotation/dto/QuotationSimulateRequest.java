@@ -11,7 +11,6 @@ import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Dados para simulação dos totais de uma proposta comercial
@@ -29,22 +28,22 @@ import java.util.UUID;
         description = "Dados para simulação de totais de uma proposta comercial (preview, sem persistência).")
 public record QuotationSimulateRequest(
 
-        @Schema(description = "UUID do cliente pessoa física (opcional no preview).",
+        @Schema(description = "ID do cliente pessoa física (opcional no preview).",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID customerUuid,
+        Long customerId,
 
-        @Schema(description = "UUID da empresa (opcional no preview).",
+        @Schema(description = "ID da empresa (opcional no preview).",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID companyUuid,
+        Long companyId,
 
         @Schema(description = "Aos cuidados de.", maxLength = 150,
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         @Size(max = 150, message = "Aos cuidados de deve ter no máximo {max} caracteres")
         String attention,
 
-        @Schema(description = "UUID do vendedor (opcional no preview).",
+        @Schema(description = "ID do vendedor (opcional no preview).",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID sellerUuid,
+        Long sellerId,
 
         @Schema(description = "Itens da proposta. Itens em estado intermediário são tolerados.",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)

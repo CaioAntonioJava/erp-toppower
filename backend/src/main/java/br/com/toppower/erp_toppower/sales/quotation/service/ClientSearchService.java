@@ -15,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Serviço responsável por buscar clientes (pessoas físicas e jurídicas)
@@ -124,7 +123,7 @@ public class ClientSearchService {
                     .stream()
                     .map(c -> toClientSummary(
                             QuotationResponse.ClientType.CUSTOMER,
-                            c.getUuid(),
+                            c.getId(),
                             c.getCode(),
                             c.getName(),
                             c.getCpf()))
@@ -138,7 +137,7 @@ public class ClientSearchService {
                     .stream()
                     .map(c -> toClientSummary(
                             QuotationResponse.ClientType.COMPANY,
-                            c.getUuid(),
+                            c.getId(),
                             c.getCode(),
                             c.getTradeName() != null && !c.getTradeName().isBlank()
                                     ? c.getTradeName()
@@ -246,10 +245,10 @@ public class ClientSearchService {
     }
 
     private static ClientSummaryResponse toClientSummary(QuotationResponse.ClientType type,
-                                                         UUID uuid,
+                                                         Long id,
                                                          String code,
                                                          String name,
                                                          String document) {
-        return new ClientSummaryResponse(type, uuid, code, name, document);
+        return new ClientSummaryResponse(type, id, code, name, document);
     }
 }

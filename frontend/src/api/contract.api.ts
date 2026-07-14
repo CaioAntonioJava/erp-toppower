@@ -24,7 +24,7 @@ export async function listContracts(
       status: filters.status,
       startDate: filters.startDate,
       endDate: filters.endDate,
-      customerUuid: filters.customerUuid,
+      customerId: filters.customerId,
       code: filters.code,
     },
   })
@@ -38,7 +38,7 @@ export async function getNextContractCode(): Promise<NextContractCodeResponse> {
 }
 
 /** GET /contracts/{id} — detalhe completo. */
-export async function getContract(id: string): Promise<ContractResponse> {
+export async function getContract(id: number): Promise<ContractResponse> {
   const { data } = await api.get<ContractResponse>(`${BASE}/${id}`)
   return data
 }
@@ -61,7 +61,7 @@ export async function createContract(
 
 /** PATCH /contracts/{id} — atualização parcial. */
 export async function updateContract(
-  id: string,
+  id: number,
   payload: ContractUpdateRequest,
 ): Promise<ContractResponse> {
   const { data } = await api.patch<ContractResponse>(`${BASE}/${id}`, payload)
@@ -69,19 +69,19 @@ export async function updateContract(
 }
 
 /** POST /contracts/{id}/start — ABERTA → EM_ANDAMENTO. */
-export async function startContract(id: string): Promise<ContractResponse> {
+export async function startContract(id: number): Promise<ContractResponse> {
   const { data } = await api.post<ContractResponse>(`${BASE}/${id}/start`)
   return data
 }
 
 /** POST /contracts/{id}/complete — EM_ANDAMENTO → CONCLUIDA. */
-export async function completeContract(id: string): Promise<ContractResponse> {
+export async function completeContract(id: number): Promise<ContractResponse> {
   const { data } = await api.post<ContractResponse>(`${BASE}/${id}/complete`)
   return data
 }
 
 /** POST /contracts/{id}/reopen — CONCLUIDA → EM_ANDAMENTO. */
-export async function reopenContract(id: string): Promise<ContractResponse> {
+export async function reopenContract(id: number): Promise<ContractResponse> {
   const { data } = await api.post<ContractResponse>(`${BASE}/${id}/reopen`)
   return data
 }
@@ -105,7 +105,7 @@ export async function searchContractsClients(
  * `<a download>` para download direto.
  */
 export async function getContractPdf(
-  id: string,
+  id: number,
   disposition: 'inline' | 'attachment' = 'inline',
 ): Promise<{ blob: Blob; filename: string }> {
   const response = await api.get<Blob>(`${BASE}/${id}/pdf`, {

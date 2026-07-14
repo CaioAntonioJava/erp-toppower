@@ -24,7 +24,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.UUID;
 
 @Service
 public class AuthService {
@@ -76,28 +75,28 @@ public class AuthService {
 
         // --- Organizations acessíveis + default ---
         List<OrganizationSummary> organizations;
-        UUID defaultOrganizationId;
+        Long defaultOrganizationId;
         if (principal.isAdmin()) {
             // ADMIN global: vê todas as Organizations ATIVAS, sem vínculo.
             List<Organization> active = organizationRepository.findAll().stream()
                     .filter(o -> o.getStatus() == OrganizationStatus.ATIVO)
                     .toList();
             organizations = active.stream().map(OrganizationMapper::toSummary).toList();
-            defaultOrganizationId = active.stream().findFirst().map(Organization::getUuid).orElse(null);
+            defaultOrganizationId = active.stream().findFirst().map(Organization::getId).orElse(null);
         } else {
-            List<UserOrganization> links = userOrganizationRepository.findActiveByUserUuid(user.getUuid());
-            UUID defaultUuid = userOrganizationRepository
-                    .findFirstByUserUuidAndIsDefaultTrue(user.getUuid())
-                    .map(uo -> uo.getOrganization().getUuid())
+            List<UserOrganization> links = userOrganizationRepository.findActiveByUserId(user.getId());
+            Long defaultId = userOrganizationRepository
+                    .findFirstByUserIdAndIsDefaultTrue(user.getId())
+                    .map(uo -> uo.getOrganization().getId())
                     .orElse(null);
-            final UUID finalDefault = defaultUuid;
+            final Long finalDefault = defaultId;
             organizations = links.stream()
                     .map(uo -> OrganizationMapper.toSummary(
                             uo.getOrganization(),
                             uo.getRole(),
-                            uo.getOrganization().getUuid().equals(finalDefault)))
+                            uo.getOrganization().getId().equals(finalDefault)))
                     .toList();
-            defaultOrganizationId = defaultUuid;
+            defaultOrganizationId = defaultId;
         }
 
         UserResponse userResponse = UserMapper.toResponse(user);

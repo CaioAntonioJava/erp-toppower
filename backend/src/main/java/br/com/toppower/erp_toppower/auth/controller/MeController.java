@@ -51,6 +51,6 @@ public class MeController {
     })
     public ResponseEntity<AuthenticatedUser> me(@AuthenticationPrincipal UserDetailsImpl principal) {
         return ResponseEntity.ok(new AuthenticatedUser(
-                principal.uuid(), principal.email(), Role.valueOf(principal.role())));
+                principal.id(), principal.email(), Role.valueOf(principal.role())));
     }
 }

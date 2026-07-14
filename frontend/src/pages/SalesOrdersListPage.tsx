@@ -121,7 +121,7 @@ export function SalesOrdersListPage() {
     setCanceling(true)
     setError(null)
     try {
-      await cancelSalesOrder(confirmCancel.uuid)
+      await cancelSalesOrder(confirmCancel.id)
       setConfirmCancel(null)
       // Recarrega a página atual.
       const params: Parameters<typeof listSalesOrders>[0] = { page, size }
@@ -238,9 +238,9 @@ export function SalesOrdersListPage() {
               ) : (
                 (data?.content ?? []).map((o) => (
                   <tr
-                    key={o.uuid}
+                    key={o.id}
                     className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40"
-                    onClick={() => navigate(`/sales-orders/${o.uuid}/edit`)}
+                    onClick={() => navigate(`/sales-orders/${o.id}/edit`)}
                   >
                     <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-slate-700 dark:text-slate-200">
                       {o.number}
@@ -273,7 +273,7 @@ export function SalesOrdersListPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => navigate(`/sales-orders/${o.uuid}`)}
+                          onClick={() => navigate(`/sales-orders/${o.id}`)}
                           title="Ver resumo"
                           aria-label="Ver resumo"
                         >
@@ -283,7 +283,7 @@ export function SalesOrdersListPage() {
                           size="sm"
                           variant="ghost"
                           onClick={() =>
-                            window.open(`/sales-orders/${o.uuid}/pdf`, '_blank')
+                            window.open(`/sales-orders/${o.id}/pdf`, '_blank')
                           }
                           title="Gerar PDF"
                           aria-label="Gerar PDF"

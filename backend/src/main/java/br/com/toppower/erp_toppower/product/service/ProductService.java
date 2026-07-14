@@ -15,8 +15,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
-
 @Service
 public class ProductService {
 
@@ -73,14 +71,14 @@ public class ProductService {
     }
 
     @Transactional(readOnly = true)
-    public ProductResponse getById(UUID id) {
+    public ProductResponse getById(Long id) {
         return productRepository.findById(id)
                 .map(ProductMapper::toResponse)
                 .orElseThrow(() -> new ProductNotFoundException(id));
     }
 
     @Transactional
-    public ProductResponse update(UUID id, ProductUpdateRequest request) {
+    public ProductResponse update(Long id, ProductUpdateRequest request) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ProductNotFoundException(id));
 
@@ -100,7 +98,7 @@ public class ProductService {
      * Preserva o histórico em pedidos/notas fiscais e a rastreabilidade do registro.
      */
     @Transactional
-    public void softDelete(UUID id) {
+    public void softDelete(Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ProductNotFoundException(id));
         product.setStatus(ProductStatus.INATIVO);

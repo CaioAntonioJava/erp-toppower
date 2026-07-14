@@ -81,7 +81,7 @@ export function TechnicalProposalsListPage() {
     setCompleting(true)
     setCompleteError(null)
     try {
-      await completeTechnicalProposal(completeTarget.uuid)
+      await completeTechnicalProposal(completeTarget.id)
       setCompleteTarget(null)
       // Recarrega a página atual para refletir o novo status.
       const params: Parameters<typeof listTechnicalProposals>[0] = { page, size }
@@ -218,9 +218,9 @@ export function TechnicalProposalsListPage() {
               ) : (
                 (data?.content ?? []).map((tp) => (
                   <tr
-                    key={tp.uuid}
+                    key={tp.id}
                     className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40"
-                    onClick={() => navigate(`/technical-proposals/${tp.uuid}/edit`)}
+                    onClick={() => navigate(`/technical-proposals/${tp.id}/edit`)}
                   >
                     <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-slate-700 dark:text-slate-200">
                       {tp.code}
@@ -257,7 +257,7 @@ export function TechnicalProposalsListPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => navigate(`/technical-proposals/${tp.uuid}`)}
+                          onClick={() => navigate(`/technical-proposals/${tp.id}`)}
                           title="Ver detalhe"
                           aria-label="Ver detalhe"
                         >
@@ -268,7 +268,7 @@ export function TechnicalProposalsListPage() {
                           variant="ghost"
                           onClick={() =>
                             window.open(
-                              `/technical-proposals/${tp.uuid}/pdf`,
+                              `/technical-proposals/${tp.id}/pdf`,
                               '_blank',
                             )
                           }

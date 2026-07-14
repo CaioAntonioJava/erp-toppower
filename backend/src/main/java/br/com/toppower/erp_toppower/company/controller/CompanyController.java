@@ -34,16 +34,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.UUID;
-
 @RestController
 @RequestMapping("/api/v1/companies")
 @RequiredArgsConstructor
 @Tag(name = "Empresas", description = "Cadastro e gestão de empresas (pessoas jurídicas) com endereço embutido.")
 public class CompanyController {
-
-    private static final String UUID_REGEX =
-            "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
 
     private final CompanyService companyService;
 
@@ -125,9 +120,9 @@ public class CompanyController {
         return ResponseEntity.ok(companyService.search(query, status, pageable));
     }
 
-    @GetMapping(value = "/{id:" + UUID_REGEX + "}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Buscar empresa por ID",
-            description = "Retorna uma empresa pelo UUID. Disponível para ADMIN e MANAGER — quem pode criar/editar também pode visualizar.")
+            description = "Retorna uma empresa pelo ID. Disponível para ADMIN e MANAGER — quem pode criar/editar também pode visualizar.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @ApiResponses({
@@ -136,11 +131,11 @@ public class CompanyController {
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "404", description = "Empresa não encontrada.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<CompanyResponse> getById(@PathVariable UUID id) {
+    public ResponseEntity<CompanyResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(companyService.getById(id));
     }
 
-    @PatchMapping(value = "/{id:" + UUID_REGEX + "}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PatchMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Atualizar empresa (parcial)",
             description = "Atualiza apenas os campos enviados. O CNPJ NÃO pode ser alterado. " +
                     "Para enviar um novo endereço, inclua o sub-objeto 'address' completo (substitui o anterior).")
@@ -153,12 +148,12 @@ public class CompanyController {
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "404", description = "Empresa não encontrada.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<CompanyResponse> update(@PathVariable UUID id,
+    public ResponseEntity<CompanyResponse> update(@PathVariable Long id,
                                                   @Valid @RequestBody CompanyUpdateRequest request) {
         return ResponseEntity.ok(companyService.update(id, request));
     }
 
-    @DeleteMapping("/{id:" + UUID_REGEX + "}")
+    @DeleteMapping("/{id}")
     @Operation(summary = "Inativar empresa (soft delete)",
             description = "Define status como INATIVO. Não remove fisicamente o registro. Todas as roles.")
     @SecurityRequirement(name = "bearerAuth")
@@ -168,12 +163,12 @@ public class CompanyController {
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "404", description = "Empresa não encontrada.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<Void> inactivate(@PathVariable UUID id) {
+    public ResponseEntity<Void> inactivate(@PathVariable Long id) {
         companyService.softDelete(id);
         return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping(value = "/{id:" + UUID_REGEX + "}/activate", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PatchMapping(value = "/{id}/activate", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Reativar empresa",
             description = "Define status como ATIVO, reativando uma empresa inativa. Todas as roles.")
     @SecurityRequirement(name = "bearerAuth")
@@ -184,7 +179,7 @@ public class CompanyController {
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "404", description = "Empresa não encontrada.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<CompanyResponse> activate(@PathVariable UUID id) {
+    public ResponseEntity<CompanyResponse> activate(@PathVariable Long id) {
         return ResponseEntity.ok(companyService.activate(id));
     }
 }

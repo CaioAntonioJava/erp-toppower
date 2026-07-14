@@ -5,14 +5,13 @@ import br.com.toppower.erp_toppower.common.enums.RegistrationStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
-import java.util.UUID;
 
 @Schema(name = "CustomerResponse", description = "Representação pública de um cliente pessoa física retornada pela API.")
 public record CustomerResponse(
 
-        @Schema(description = "Identificador único (UUID) do cliente.",
+        @Schema(description = "Identificador único (ID) do cliente.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        UUID uuid,
+        Long id,
 
         @Schema(description = "Nome completo da pessoa.",
                 requiredMode = Schema.RequiredMode.REQUIRED)

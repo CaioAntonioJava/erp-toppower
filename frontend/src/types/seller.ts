@@ -9,7 +9,7 @@ export type { RegistrationStatus }
  * Vendedores não possuem endereço — apenas dados pessoais + percentual de comissão.
  */
 export interface SellerResponse {
-  uuid: string
+  id: number
   name: string
   email: string
   phone: string

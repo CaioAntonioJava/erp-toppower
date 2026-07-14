@@ -208,15 +208,15 @@ export function CustomersListPage() {
                 </tr>
               ) : (
                 list.items.map((c) => {
-                  const isSelected = list.selectedIds.has(c.uuid)
-                  return (
-                    <tr
-                      key={c.uuid}
-                      className={[
-                        'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40',
-                        isSelected ? 'bg-primary-50/50 dark:bg-primary-900/10' : '',
-                      ].join(' ')}
-                      onClick={() => navigate(`/customers/${c.uuid}`)}
+                  const isSelected = list.selectedIds.has(c.id)
+	                  return (
+	                    <tr
+	                      key={c.id}
+	                      className={[
+	                        'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40',
+	                        isSelected ? 'bg-primary-50/50 dark:bg-primary-900/10' : '',
+	                      ].join(' ')}
+	                      onClick={() => navigate(`/customers/${c.id}`)}
                     >
                       {isAdmin ? (
                         <td
@@ -228,7 +228,7 @@ export function CustomersListPage() {
                             aria-label={`Selecionar ${c.name}`}
                             className="h-4 w-4 cursor-pointer rounded border-slate-300 text-primary focus:ring-primary dark:border-slate-600 dark:bg-slate-800"
                             checked={isSelected}
-                            onChange={() => list.toggleSelect(c.uuid)}
+                            onChange={() => list.toggleSelect(c.id)}
                           />
                         </td>
                       ) : null}
@@ -271,7 +271,7 @@ export function CustomersListPage() {
                         <div className="flex items-center justify-end gap-1">
                           <Button
                             size="sm" variant="ghost"
-                            onClick={() => navigate(`/customers/${c.uuid}`)}
+                            onClick={() => navigate(`/customers/${c.id}`)}
                             title="Ver / editar" aria-label="Ver / editar"
                           >
                             <Eye className="h-4 w-4" />

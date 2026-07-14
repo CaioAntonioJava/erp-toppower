@@ -53,7 +53,7 @@ export function SupplierFormPage() {
     let cancelled = false
     setMode('loading')
     setLoadError(null)
-    getSupplier(id)
+	    getSupplier(Number(id!))
       .then((data) => {
         if (cancelled) return
         setSupplier(data)
@@ -87,7 +87,7 @@ export function SupplierFormPage() {
     if (!supplier) return
     setSaving(true)
     try {
-      const updated = await updateSupplier(supplier.uuid, payload)
+      const updated = await updateSupplier(supplier.id, payload)
       setSupplier(updated)
     } finally {
       setSaving(false)
@@ -100,15 +100,15 @@ export function SupplierFormPage() {
     setToggleError(null)
     try {
       if (supplier.status === 'ATIVO') {
-        await inactivateSupplier(supplier.uuid)
-        try {
-          const fresh = await getSupplier(supplier.uuid)
+        await inactivateSupplier(supplier.id)
+	        try {
+	          const fresh = await getSupplier(supplier.id)
           setSupplier(fresh)
         } catch {
           setSupplier({ ...supplier, status: 'INATIVO' })
         }
       } else {
-        const updated = await activateSupplier(supplier.uuid)
+        const updated = await activateSupplier(supplier.id)
         setSupplier(updated)
       }
     } catch (err) {

@@ -4,13 +4,12 @@ import br.com.toppower.erp_toppower.organization.enums.OrganizationStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
-import java.util.UUID;
 
 @Schema(name = "OrganizationResponse", description = "Representação completa de uma Organization.")
 public record OrganizationResponse(
 
-        @Schema(description = "UUID da Organization.", requiredMode = Schema.RequiredMode.REQUIRED)
-        UUID uuid,
+        @Schema(description = "ID da Organization.", requiredMode = Schema.RequiredMode.REQUIRED)
+        Long id,
 
         @Schema(description = "Razão social.", requiredMode = Schema.RequiredMode.REQUIRED)
         String corporateName,
@@ -55,7 +54,7 @@ public record OrganizationResponse(
         String complement,
 
         @Schema(description = "URL pública do logo da Organization "
-                + "(ex.: /logos/<uuid>.png). Pode ser nula — nesse caso o "
+                + "(ex.: /logos/<id>.png). Pode ser nula — nesse caso o "
                 + "template do PDF usa o logo padrão.",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         String logoUrl,

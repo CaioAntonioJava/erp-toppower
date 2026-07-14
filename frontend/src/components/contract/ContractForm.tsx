@@ -55,7 +55,7 @@ interface ContractFormProps {
 }
 
 type ClientSearchResult = {
-  uuid: string
+  id: string
   name: string
   code: string
   document: string
@@ -77,7 +77,7 @@ interface ServiceItemDraft {
 /** Linha de item de produto (estado local). */
 interface ProductItemDraft {
   rowKey: string
-  productUuid: string
+  productId: string
   productLabel: string
   quantity: string
 }
@@ -106,7 +106,7 @@ function todayIso(): string {
 
 function toSearchResult(c: ClientSummaryResponse): ClientSearchResult {
   return {
-    uuid: c.uuid,
+    id: String(c.id),
     name: c.name,
     code: c.code,
     document: c.document,
@@ -151,8 +151,8 @@ export function ContractForm({
   // === Cliente (PF ou PJ) ===
   const initialClientType: ContractClientType = contract?.clientType ?? 'CUSTOMER'
   const [clientType, setClientType] = useState<ContractClientType>(initialClientType)
-  const [clientUuid, setClientUuid] = useState<string>(
-    contract?.clientUuid ?? '',
+  const [clientId, setClientId] = useState<string>(
+    contract?.clientId != null ? String(contract.clientId) : '',
   )
   const [clientLabel, setClientLabel] = useState<string>(
     contract?.clientCode && contract.clientName
@@ -231,7 +231,7 @@ export function ContractForm({
     if (contract?.productItems && contract.productItems.length > 0) {
       return contract.productItems.map((p) => ({
         rowKey: nextRowKey(),
-        productUuid: p.productUuid,
+        productId: String(p.productId),
         productLabel: '',
         quantity: String(p.quantity),
       }))
@@ -303,30 +303,30 @@ export function ContractForm({
   // Quando o tipo de cliente muda, limpa a seleção atual.
   function handleClientTypeChange(newType: ContractClientType) {
     setClientType(newType)
-    setClientUuid('')
+    setClientId('')
     setClientLabel('')
     setClientOptions([])
   }
 
   // Auto-preencher endereço a partir do cliente selecionado
   // (somente quando o form está vazio — não sobrescreve edição manual).
-  const lastAutoFilledUuidRef = useRef<string | null>(null)
+  const lastAutoFilledIdRef = useRef<string | null>(null)
   useEffect(() => {
-    if (!clientUuid) {
-      lastAutoFilledUuidRef.current = null
+    if (!clientId) {
+      lastAutoFilledIdRef.current = null
       return
     }
     // Já auto-preenchemos para este cliente nesta sessão? Sai.
-    if (lastAutoFilledUuidRef.current === clientUuid) return
+    if (lastAutoFilledIdRef.current === clientId) return
     // Só auto-preenche quando o form está vazio e não é modo edit
     // (em edit o usuário já viu/tem o endereço que está persistido).
     if (!isEdit && hasAddress) {
       const isEmpty = !address.street && !address.city && !address.zipCode
       if (isEmpty) {
-        lastAutoFilledUuidRef.current = clientUuid
+        lastAutoFilledIdRef.current = clientId
         const fetcher =
           clientType === 'CUSTOMER' ? getCustomer : getCompany
-        fetcher(clientUuid)
+        fetcher(Number(clientId))
           .then((c) => {
             setAddress({
               street: c.address.street ?? '',
@@ -342,7 +342,7 @@ export function ContractForm({
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientUuid, clientType, hasAddress])
+  }, [clientId, clientType, hasAddress])
 
   // === handlers de cláusulas ===
   function addClause() {
@@ -400,7 +400,7 @@ export function ContractForm({
       ...prev,
       {
         rowKey: nextRowKey(),
-        productUuid: '',
+        productId: '',
         productLabel: '',
         quantity: '',
       },
@@ -465,7 +465,7 @@ export function ContractForm({
 
   function validate(): Record<string, string> {
     const errs: Record<string, string> = {}
-    if (!clientUuid) errs.clientUuid = 'Selecione um cliente ou empresa.'
+    if (!clientId) errs.clientId = 'Selecione um cliente ou empresa.'
     if (!description.trim()) errs.description = 'Descrição do contrato é obrigatória.'
     if (description.length > 4000) errs.description = 'Descrição deve ter no máximo 4000 caracteres.'
     const validClauses = clauses.filter((c) => c.description.trim() !== '')
@@ -492,7 +492,7 @@ export function ContractForm({
     })
     // Valida itens de produto
     productItems.forEach((p, idx) => {
-      if (p.productUuid && (!p.quantity || Number(p.quantity) <= 0)) {
+      if (p.productId && (!p.quantity || Number(p.quantity) <= 0)) {
         errs[`productItems.${idx}.quantity`] = 'Quantidade deve ser maior que zero.'
       }
     })
@@ -521,8 +521,8 @@ export function ContractForm({
     if (Object.keys(errs).length > 0) return
 
     const addressPayload = buildAddressPayload()
-    const customerUuid = clientType === 'CUSTOMER' ? clientUuid : null
-    const companyUuid = clientType === 'COMPANY' ? clientUuid : null
+    const customerId = clientType === 'CUSTOMER' ? (clientId ? Number(clientId) : null) : null
+    const companyId = clientType === 'COMPANY' ? (clientId ? Number(clientId) : null) : null
 
     const clausesPayload: ContractClauseRequest[] = clauses
       .filter((c) => c.description.trim() !== '')
@@ -533,9 +533,9 @@ export function ContractForm({
       .map((s) => ({ description: s.description.trim() }))
 
     const productItemsPayload: ContractProductItemRequest[] = productItems
-      .filter((p) => p.productUuid !== '' && p.quantity !== '')
+      .filter((p) => p.productId !== '' && p.quantity !== '')
       .map((p) => ({
-        productUuid: p.productUuid,
+        productId: Number(p.productId),
         quantity: Number(p.quantity),
       }))
 
@@ -547,8 +547,8 @@ export function ContractForm({
     try {
       if (isEdit) {
         const payload: ContractUpdateRequest = {
-          customerUuid,
-          companyUuid,
+          customerId,
+          companyId,
           address: addressPayload,
           description: description.trim(),
           clauses: clausesPayload.length > 0 ? clausesPayload : undefined,
@@ -564,8 +564,8 @@ export function ContractForm({
         await onSaveUpdate(payload)
       } else {
         const payload: ContractCreateRequest = {
-          customerUuid,
-          companyUuid,
+          customerId,
+          companyId,
           address: addressPayload,
           description: description.trim(),
           clauses: clausesPayload,
@@ -643,10 +643,10 @@ export function ContractForm({
                 value={clientLabel}
                 onChange={(e) => {
                   setClientLabel(e.target.value)
-                  setClientUuid('')
+                  setClientId('')
                   handleClientQuery(e.target.value)
                 }}
-                onBlur={getBlurHandler('clientUuid')}
+                onBlur={getBlurHandler('clientId')}
                 hint={
                   clientLabel.trim().length > 0 &&
                   clientLabel.trim().length < 2
@@ -661,15 +661,15 @@ export function ContractForm({
                 </span>
               ) : null}
             </div>
-            {clientOptions.length > 0 && !clientUuid ? (
+            {clientOptions.length > 0 && !clientId ? (
               <ul className="mt-1 max-h-56 overflow-y-auto rounded-lg border border-slate-200 bg-white text-sm shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 {clientOptions.map((c) => (
-                  <li key={c.uuid}>
+                  <li key={c.id}>
                     <button
                       type="button"
                       className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800"
                       onClick={() => {
-                        setClientUuid(c.uuid)
+                        setClientId(String(c.id))
                         setClientLabel(`${c.code} — ${c.name}`)
                         setClientOptions([])
                       }}
@@ -690,9 +690,9 @@ export function ContractForm({
                 ))}
               </ul>
             ) : null}
-            {shouldShowError('clientUuid', fieldErrors.clientUuid) ? (
+            {shouldShowError('clientId', fieldErrors.clientId) ? (
               <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">
-                {fieldErrors.clientUuid}
+                {fieldErrors.clientId}
               </p>
             ) : null}
           </div>
@@ -1031,7 +1031,7 @@ export function ContractForm({
                       onChange={(e) => {
                         patchProductItem(p.rowKey, {
                           productLabel: e.target.value,
-                          productUuid: '',
+                          productId: '',
                         })
                         handleProductQuery(e.target.value)
                       }}
@@ -1043,16 +1043,16 @@ export function ContractForm({
                         <Spinner size="sm" />
                       </span>
                     ) : null}
-                    {productOptions.length > 0 && !p.productUuid ? (
+                    {productOptions.length > 0 && !p.productId ? (
                       <ul className="absolute z-10 mt-1 max-h-40 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white text-sm shadow-sm dark:border-slate-700 dark:bg-slate-900">
                         {productOptions.map((prod) => (
-                          <li key={prod.uuid}>
+                          <li key={prod.id}>
                             <button
                               type="button"
                               className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800"
                               onClick={() => {
                                 patchProductItem(p.rowKey, {
-                                  productUuid: prod.uuid,
+                                  productId: String(prod.id),
                                   productLabel: prod.code
                                     ? `${prod.code} — ${prod.name}`
                                     : prod.name,

@@ -32,7 +32,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Regras de negócio do ciclo de vida de uma proposta comercial.
@@ -41,7 +40,7 @@ import java.util.UUID;
  * <ul>
  *   <li>Gerar o número sequencial a partir de {@code QUO001500};</li>
  *   <li>Validar a invariante de cliente (exatamente um entre
- *       {@code customerUuid} e {@code companyUuid});</li>
+ *       {@code customerId} e {@code companyId});</li>
  *   <li>Persistir o agregado (header + itens) garantindo que o
  *       {@code totalPrice} de cada item (líquido) seja calculado pelo
  *       mapper e os totais da proposta sejam recalculados antes da
@@ -83,8 +82,8 @@ public class QuotationService {
 
     @Transactional
     public QuotationResponse create(QuotationCreateRequest request) {
-        validateClientReference(request.customerUuid(), request.companyUuid(), true);
-        validateCarrierReference(request.carrierUuid(), true);
+        validateClientReference(request.customerId(), request.companyId(), true);
+        validateCarrierReference(request.carrierId(), true);
         validateItemsConsistency(request.items(), null);
 
         Quotation header = QuotationMapper.toEntity(request);
@@ -93,11 +92,11 @@ public class QuotationService {
         // Persiste o header para obter o UUID que será referenciado pelos itens
         Quotation savedHeader = quotationRepository.save(header);
 
-        // Persiste os itens, agora com o UUID da proposta
+        // Persiste os itens, agora com o ID da proposta
         List<QuotationItem> items = new ArrayList<>(request.items().size());
         for (QuotationItemRequest itemReq : request.items()) {
             items.add(quotationItemRepository.save(
-                    QuotationMapper.toItemEntity(itemReq, savedHeader.getUuid(),
+                    QuotationMapper.toItemEntity(itemReq, savedHeader.getId(),
                             savedHeader.getProfitMargin())));
         }
 
@@ -115,11 +114,11 @@ public class QuotationService {
     // ---------------------------------------------------------------------
 
     @Transactional(readOnly = true)
-    public QuotationResponse getById(UUID id) {
+    public QuotationResponse getById(Long id) {
         Quotation q = quotationRepository.findById(id)
                 .orElseThrow(() -> new QuotationNotFoundException(id));
         List<QuotationItem> items = quotationItemRepository
-                .findByQuotationUuidOrderByCreatedAtAsc(id);
+                .findByQuotationIdOrderByCreatedAtAsc(id);
         q.recalculateTotals(items);
         ClientResolved client = resolveClient(q);
         CarrierResolved carrier = resolveCarrier(q);
@@ -132,11 +131,11 @@ public class QuotationService {
         // A numeração é independente por Organization: o mesmo número pode
         // existir em empresas diferentes. Restringe a busca à Organization
         // ativa para não devolver a proposta de outra empresa.
-        UUID orgUuid = OrganizationContext.require();
-        Quotation q = quotationRepository.findByNumberAndOrganizationUuid(number, orgUuid)
+        Long orgId = OrganizationContext.require();
+        Quotation q = quotationRepository.findByNumberAndOrganizationId(number, orgId)
                 .orElseThrow(() -> new QuotationNotFoundException(number));
         List<QuotationItem> items = quotationItemRepository
-                .findByQuotationUuidOrderByCreatedAtAsc(q.getUuid());
+                .findByQuotationIdOrderByCreatedAtAsc(q.getId());
         q.recalculateTotals(items);
         ClientResolved client = resolveClient(q);
         CarrierResolved carrier = resolveCarrier(q);
@@ -151,8 +150,8 @@ public class QuotationService {
      * @param status      status da proposta (opcional)
      * @param startDate   data de emissão a partir de (opcional)
      * @param endDate     data de emissão até (opcional)
-     * @param clientUuid  UUID do cliente (PF ou PJ) (opcional)
-     * @param sellerUuid  UUID do vendedor (opcional)
+     * @param clientId   ID do cliente (PF ou PJ) (opcional)
+     * @param sellerId   ID do vendedor (opcional)
      * @param numberLike  trecho do número (opcional)
      * @param pageable    paginação e ordenação
      */
@@ -160,8 +159,8 @@ public class QuotationService {
     public PagedResponse<QuotationSummaryResponse> search(QuotationStatus status,
                                                           LocalDate startDate,
                                                           LocalDate endDate,
-                                                          UUID clientUuid,
-                                                          UUID sellerUuid,
+                                                          Long clientId,
+                                                          Long sellerId,
                                                           String numberLike,
                                                           Pageable pageable) {
         Specification<Quotation> spec = (root, query, cb) -> {
@@ -175,15 +174,15 @@ public class QuotationService {
             if (endDate != null) {
                 predicates.add(cb.lessThanOrEqualTo(root.get("issueDate"), endDate));
             }
-            if (clientUuid != null) {
+            if (clientId != null) {
                 jakarta.persistence.criteria.Predicate byCustomer =
-                        cb.equal(root.get("customerUuid"), clientUuid);
+                        cb.equal(root.get("customerId"), clientId);
                 jakarta.persistence.criteria.Predicate byCompany =
-                        cb.equal(root.get("companyUuid"), clientUuid);
+                        cb.equal(root.get("companyId"), clientId);
                 predicates.add(cb.or(byCustomer, byCompany));
             }
-            if (sellerUuid != null) {
-                predicates.add(cb.equal(root.get("sellerUuid"), sellerUuid));
+            if (sellerId != null) {
+                predicates.add(cb.equal(root.get("sellerId"), sellerId));
             }
             if (numberLike != null && !numberLike.isBlank()) {
                 predicates.add(cb.like(
@@ -198,7 +197,7 @@ public class QuotationService {
         // Carrega itens e calcula totais por proposta
         Page<QuotationSummaryResponse> mapped = page.map(q -> {
             List<QuotationItem> items = quotationItemRepository
-                    .findByQuotationUuidOrderByCreatedAtAsc(q.getUuid());
+                    .findByQuotationIdOrderByCreatedAtAsc(q.getId());
             q.recalculateTotals(items);
             ClientResolved client = resolveClient(q);
             String sellerName = resolveSellerName(q);
@@ -212,7 +211,7 @@ public class QuotationService {
     // ---------------------------------------------------------------------
 
     @Transactional
-    public QuotationResponse update(UUID id, QuotationUpdateRequest request) {
+    public QuotationResponse update(Long id, QuotationUpdateRequest request) {
         Quotation q = quotationRepository.findById(id)
                 .orElseThrow(() -> new QuotationNotFoundException(id));
 
@@ -222,23 +221,23 @@ public class QuotationService {
         }
 
         // Recalcula o cliente efetivo após o PATCH e valida
-        UUID effectiveCustomer = (request.customerUuid() != null)
-                ? request.customerUuid() : q.getCustomerUuid();
-        UUID effectiveCompany = (request.companyUuid() != null)
-                ? request.companyUuid() : q.getCompanyUuid();
+        Long effectiveCustomer = (request.customerId() != null)
+                ? request.customerId() : q.getCustomerId();
+        Long effectiveCompany = (request.companyId() != null)
+                ? request.companyId() : q.getCompanyId();
         validateClientReference(effectiveCustomer, effectiveCompany, false);
 
         // Valida a carrier apenas quando o campo foi explicitamente
         // informado (não-nulo). null no PATCH = remover a transportadora
         // (QuotationMapper.applyUpdate grava null nesse caso).
-        if (request.carrierUuid() != null) {
-            validateCarrierReference(request.carrierUuid(), false);
+        if (request.carrierId() != null) {
+            validateCarrierReference(request.carrierId(), false);
         }
 
         // Se a lista de itens foi enviada, valida e substitui por completo
         if (request.items() != null) {
             validateItemsConsistency(request.items(), null);
-            quotationItemRepository.deleteByQuotationUuid(id);
+            quotationItemRepository.deleteByQuotationId(id);
             quotationItemRepository.flush();
         }
 
@@ -251,11 +250,11 @@ public class QuotationService {
             items = new ArrayList<>(request.items().size());
             for (QuotationItemRequest itemReq : request.items()) {
                 items.add(quotationItemRepository.save(
-                        QuotationMapper.toItemEntity(itemReq, saved.getUuid(),
+                        QuotationMapper.toItemEntity(itemReq, saved.getId(),
                                 saved.getProfitMargin())));
             }
         } else {
-            items = quotationItemRepository.findByQuotationUuidOrderByCreatedAtAsc(id);
+            items = quotationItemRepository.findByQuotationIdOrderByCreatedAtAsc(id);
         }
 
         saved.recalculateTotals(items);
@@ -270,7 +269,7 @@ public class QuotationService {
     // ---------------------------------------------------------------------
 
     @Transactional
-    public QuotationResponse cancel(UUID id) {
+    public QuotationResponse cancel(Long id) {
         Quotation q = quotationRepository.findById(id)
                 .orElseThrow(() -> new QuotationNotFoundException(id));
         if (q.getStatus() == QuotationStatus.CANCELADA) {
@@ -284,7 +283,7 @@ public class QuotationService {
         Quotation saved = quotationRepository.save(q);
 
         List<QuotationItem> items = quotationItemRepository
-                .findByQuotationUuidOrderByCreatedAtAsc(id);
+                .findByQuotationIdOrderByCreatedAtAsc(id);
         saved.recalculateTotals(items);
         ClientResolved client = resolveClient(saved);
         CarrierResolved carrier = resolveCarrier(saved);
@@ -314,7 +313,7 @@ public class QuotationService {
         List<QuotationItem> items = (request.items() == null)
                 ? List.of()
                 : request.items().stream()
-                        .map(itemReq -> QuotationMapper.toItemEntity(itemReq, header.getUuid(),
+                        .map(itemReq -> QuotationMapper.toItemEntity(itemReq, header.getId(),
                                 header.getProfitMargin()))
                         .toList();
 
@@ -350,8 +349,8 @@ public class QuotationService {
      * as demais.
      */
     private Long generateNextNumber() {
-        UUID orgUuid = OrganizationContext.require();
-        Long maxNumber = quotationRepository.findMaxNumberByOrganizationUuid(orgUuid);
+        Long orgId = OrganizationContext.require();
+        Long maxNumber = quotationRepository.findMaxNumberByOrganizationId(orgId);
         if (maxNumber == null) {
             // Nenhuma proposta cadastrada para esta Organization — inicia em 1500
             return INITIAL_NUMBER;
@@ -361,25 +360,25 @@ public class QuotationService {
 
     /**
      * Valida a invariante do cliente: exatamente um entre
-     * {@code customerUuid} e {@code companyUuid} deve estar preenchido.
+     * {@code customerId} e {@code companyId} deve estar preenchido.
      * Quando {@code verifyExists} é verdadeiro (criação), também
      * verifica se o cliente existe no banco.
      */
-    private void validateClientReference(UUID customerUuid, UUID companyUuid, boolean verifyExists) {
-        if (customerUuid == null && companyUuid == null) {
+    private void validateClientReference(Long customerId, Long companyId, boolean verifyExists) {
+        if (customerId == null && companyId == null) {
             throw InvalidQuotationClientException.bothNull();
         }
-        if (customerUuid != null && companyUuid != null) {
+        if (customerId != null && companyId != null) {
             throw InvalidQuotationClientException.bothSet();
         }
         if (!verifyExists) {
             return;
         }
-        if (customerUuid != null && !customerRepository.existsById(customerUuid)) {
-            throw new QuotationClientNotFoundException(customerUuid, "CUSTOMER");
+        if (customerId != null && !customerRepository.existsById(customerId)) {
+            throw new QuotationClientNotFoundException(customerId, "CUSTOMER");
         }
-        if (companyUuid != null && !companyRepository.existsById(companyUuid)) {
-            throw new QuotationClientNotFoundException(companyUuid, "COMPANY");
+        if (companyId != null && !companyRepository.existsById(companyId)) {
+            throw new QuotationClientNotFoundException(companyId, "COMPANY");
         }
     }
 
@@ -388,11 +387,11 @@ public class QuotationService {
      * consistência entre {@code discount} e {@code discountType}.
      *
      * @param items     itens a validar
-     * @param currentQuotationUuid  UUID da proposta (não utilizado por
+     * @param currentQuotationId  ID da proposta (não utilizado por
      *                               enquanto, reservado para validações
      *                               futuras como unicidade de produto)
      */
-    private void validateItemsConsistency(List<QuotationItemRequest> items, UUID currentQuotationUuid) {
+    private void validateItemsConsistency(List<QuotationItemRequest> items, Long currentQuotationId) {
         if (items == null || items.isEmpty()) {
             throw new QuotationBusinessException("A proposta deve ter ao menos um item.");
         }
@@ -413,17 +412,17 @@ public class QuotationService {
      * Resolve o nome e o código de exibição do cliente referenciado pela
      * proposta (PF: nome; PJ: nome fantasia se houver, senão razão social).
      * Retorna {@code null} em ambos os campos quando o registro não existe
-     * mais (inativado/removido), mantendo o UUID como referência no DTO —
+     * mais (inativado/removido), mantendo o ID como referência no DTO —
      * mesmo tratamento dado a {@link #resolveSellerName(Quotation)}.
      */
     private ClientResolved resolveClient(Quotation q) {
-        if (q.getCustomerUuid() != null) {
-            return customerRepository.findById(q.getCustomerUuid())
+        if (q.getCustomerId() != null) {
+            return customerRepository.findById(q.getCustomerId())
                     .map(c -> new ClientResolved(c.getName(), c.getCode()))
                     .orElse(ClientResolved.EMPTY);
         }
-        if (q.getCompanyUuid() != null) {
-            return companyRepository.findById(q.getCompanyUuid())
+        if (q.getCompanyId() != null) {
+            return companyRepository.findById(q.getCompanyId())
                     .map(c -> new ClientResolved(
                             c.getTradeName() != null && !c.getTradeName().isBlank()
                                     ? c.getTradeName()
@@ -449,27 +448,27 @@ public class QuotationService {
      * verdadeiro (criação), também exige que o registro exista — usado
      * para dar mensagem amigável antes de chegar ao controller.
      */
-    private void validateCarrierReference(UUID carrierUuid, boolean verifyExists) {
-        if (carrierUuid == null) {
+    private void validateCarrierReference(Long carrierId, boolean verifyExists) {
+        if (carrierId == null) {
             return;
         }
-        if (verifyExists && !carrierRepository.existsById(carrierUuid)) {
+        if (verifyExists && !carrierRepository.existsById(carrierId)) {
             throw new QuotationBusinessException(
-                    "Transportadora não encontrada: " + carrierUuid);
+                    "Transportadora não encontrada: " + carrierId);
         }
     }
 
     /**
      * Resolve o nome da transportadora referenciada pela proposta.
      * Retorna {@code null} quando a carrier não existe mais
-     * (inativada/removida), mantendo o UUID como referência no DTO —
+     * (inativada/removida), mantendo o ID como referência no DTO —
      * mesmo tratamento dado a {@link #resolveSellerName}.
      */
     private CarrierResolved resolveCarrier(Quotation q) {
-        if (q.getCarrierUuid() == null) {
+        if (q.getCarrierId() == null) {
             return CarrierResolved.EMPTY;
         }
-        return carrierRepository.findById(q.getCarrierUuid())
+        return carrierRepository.findById(q.getCarrierId())
                 .map(c -> new CarrierResolved(c.getName()))
                 .orElse(CarrierResolved.EMPTY);
     }
@@ -485,13 +484,13 @@ public class QuotationService {
     /**
      * Resolve o nome do vendedor referenciado pela proposta. Retorna
      * {@code null} quando o vendedor não existe mais (inativado/removido),
-     * mantendo o UUID como referência no DTO.
+     * mantendo o ID como referência no DTO.
      */
     private String resolveSellerName(Quotation q) {
-        if (q.getSellerUuid() == null) {
+        if (q.getSellerId() == null) {
             return null;
         }
-        return sellerRepository.findById(q.getSellerUuid())
+        return sellerRepository.findById(q.getSellerId())
                 .map(s -> s.getName())
                 .orElse(null);
     }

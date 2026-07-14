@@ -17,7 +17,7 @@ export interface Address {
 
 /** Resposta de empresa. Espelha br.com.toppower...company.dto.CompanyResponse. */
 export interface CompanyResponse {
-  uuid: string
+  id: number
   legalName: string
   tradeName: string | null
   code: string

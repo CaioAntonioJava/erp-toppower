@@ -13,7 +13,6 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Atualização parcial (PATCH) de uma proposta técnica.
@@ -34,11 +33,11 @@ public record TechnicalProposalUpdateRequest(
 
         @Schema(description = "Novo UUID do cliente pessoa física.",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID customerUuid,
+        Long customerId,
 
         @Schema(description = "Novo UUID da empresa (pessoa jurídica).",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID companyUuid,
+        Long companyId,
 
         @Schema(description = "Novo endereço de execução. Envie nulo para remover.",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
@@ -131,6 +130,6 @@ public record TechnicalProposalUpdateRequest(
         @Schema(description = "Nova transportadora (Carrier) responsável pelo frete. "
                 + "Envie nulo para remover a transportadora vinculada.",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        UUID carrierUuid
+        Long carrierId
 ) {
 }

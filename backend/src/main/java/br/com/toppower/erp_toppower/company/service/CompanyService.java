@@ -16,8 +16,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
-
 @Service
 public class CompanyService {
 
@@ -78,7 +76,7 @@ public class CompanyService {
     }
 
     @Transactional(readOnly = true)
-    public CompanyResponse getById(UUID id) {
+    public CompanyResponse getById(Long id) {
         return companyRepository.findById(id)
                 .map(CompanyMapper::toResponse)
                 .orElseThrow(() -> new CompanyNotFoundException(id));
@@ -108,7 +106,7 @@ public class CompanyService {
     }
 
     @Transactional
-    public CompanyResponse update(UUID id, CompanyUpdateRequest request) {
+    public CompanyResponse update(Long id, CompanyUpdateRequest request) {
         Company company = companyRepository.findById(id)
                 .orElseThrow(() -> new CompanyNotFoundException(id));
 
@@ -122,7 +120,7 @@ public class CompanyService {
      * Preserva o histórico de auditoria e referências em pedidos/notas fiscais.
      */
     @Transactional
-    public void softDelete(UUID id) {
+    public void softDelete(Long id) {
         Company company = companyRepository.findById(id)
                 .orElseThrow(() -> new CompanyNotFoundException(id));
         company.setStatus(RegistrationStatus.INATIVO);
@@ -133,7 +131,7 @@ public class CompanyService {
      * Reativa uma empresa inativa, alterando o status para ATIVO.
      */
     @Transactional
-    public CompanyResponse activate(UUID id) {
+    public CompanyResponse activate(Long id) {
         Company company = companyRepository.findById(id)
                 .orElseThrow(() -> new CompanyNotFoundException(id));
         company.setStatus(RegistrationStatus.ATIVO);

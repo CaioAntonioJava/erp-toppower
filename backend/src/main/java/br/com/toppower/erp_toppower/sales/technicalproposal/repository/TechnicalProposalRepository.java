@@ -7,10 +7,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
-import java.util.UUID;
 
 @Repository
-public interface TechnicalProposalRepository extends JpaRepository<TechnicalProposal, UUID>,
+public interface TechnicalProposalRepository extends JpaRepository<TechnicalProposal, Long>,
         JpaSpecificationExecutor<TechnicalProposal> {
 
     /**
@@ -31,7 +30,7 @@ public interface TechnicalProposalRepository extends JpaRepository<TechnicalProp
      */
     @Query("""
             SELECT MAX(t.sequence) FROM TechnicalProposal t
-            WHERE t.year = :year AND t.organizationUuid = :organizationUuid
+            WHERE t.year = :year AND t.organizationId = :organizationId
             """)
-    Long findMaxSequenceByYearAndOrganizationUuid(Integer year, UUID organizationUuid);
+    Long findMaxSequenceByYearAndOrganizationId(Integer year, Long organizationId);
 }

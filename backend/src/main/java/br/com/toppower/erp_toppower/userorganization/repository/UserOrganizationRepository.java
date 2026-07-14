@@ -8,18 +8,17 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 @Repository
-public interface UserOrganizationRepository extends JpaRepository<UserOrganization, UUID> {
+public interface UserOrganizationRepository extends JpaRepository<UserOrganization, Long> {
 
-    List<UserOrganization> findByUserUuid(UUID userUuid);
+    List<UserOrganization> findByUserId(Long userId);
 
-    Optional<UserOrganization> findByUserUuidAndOrganizationUuid(UUID userUuid, UUID organizationUuid);
+    Optional<UserOrganization> findByUserIdAndOrganizationId(Long userId, Long organizationId);
 
-    boolean existsByUserUuidAndOrganizationUuid(UUID userUuid, UUID organizationUuid);
+    boolean existsByUserIdAndOrganizationId(Long userId, Long organizationId);
 
-    Optional<UserOrganization> findFirstByUserUuidAndIsDefaultTrue(UUID userUuid);
+    Optional<UserOrganization> findFirstByUserIdAndIsDefaultTrue(Long userId);
 
     /**
      * Lista as Organizations de um usuário cuja Organization esteja ATIVA,
@@ -28,9 +27,9 @@ public interface UserOrganizationRepository extends JpaRepository<UserOrganizati
     @Query("""
             SELECT uo FROM UserOrganization uo
               JOIN FETCH uo.organization o
-            WHERE uo.user.uuid = :userUuid
+            WHERE uo.user.id = :userId
               AND o.status = br.com.toppower.erp_toppower.organization.enums.OrganizationStatus.ATIVO
             ORDER BY o.corporateName
             """)
-    List<UserOrganization> findActiveByUserUuid(@Param("userUuid") UUID userUuid);
+    List<UserOrganization> findActiveByUserId(@Param("userId") Long userId);
 }
