@@ -252,6 +252,21 @@ SET @sql = IF(@has_idx = 0, 'CREATE UNIQUE INDEX uk_organizations_contract_prefi
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- =============================================================================
+-- 2c. Tabela service_templates (catálogo global de serviços)
+-- =============================================================================
+-- Entidade global (não organization-scoped), criada pelo Hibernate via
+-- ddl-auto=update, mas garantimos a existência aqui para idempotência.
+CREATE TABLE IF NOT EXISTS service_templates (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(200) NOT NULL,
+    description VARCHAR(500),
+    created_at DATETIME(6) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    created_by VARCHAR(100),
+    updated_by VARCHAR(100)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =============================================================================
 -- 3. Seed das Organizations Top Power
 -- =============================================================================
 -- Idempotente: INSERT ... WHERE NOT EXISTS por CNPJ.

@@ -152,6 +152,32 @@ export function TechnicalProposalForm({
   )
   const codeDirtyRef = useRef<boolean>(false)
 
+  // === título da proposta ===
+  const [title, setTitle] = useState<string>(() => {
+    const base = `PROPOSTA TÉCNICA - COMERCIAL ${proposal?.code ?? initialCode ?? ''}`
+    if (proposal?.revision != null) {
+      return `${base} - REV. ${proposal.revision}`
+    }
+    return base
+  })
+  useEffect(() => {
+    if (proposal) return
+    if (initialCode == null) return
+    const base = `PROPOSTA TÉCNICA - COMERCIAL ${initialCode}`
+    setTitle(base)
+  }, [initialCode, proposal])
+  // Atualiza o título automaticamente quando a revisão muda.
+  useEffect(() => {
+    if (!code) return
+    const base = `PROPOSTA TÉCNICA - COMERCIAL ${code}`
+    const rev = revision.trim()
+    if (rev) {
+      setTitle(`${base} - REV. ${rev}`)
+    } else {
+      setTitle(base)
+    }
+  }, [code, revision])
+
   // === endereço (opcional) ===
   const [hasAddress, setHasAddress] = useState<boolean>(
     !!proposal?.address &&
@@ -871,6 +897,33 @@ export function TechnicalProposalForm({
           </div>
         </div>
 
+        {/* Título da proposta */}
+        <div className="mt-4">
+          <Input
+            label="Título da proposta"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="PROPOSTA TÉCNICA - COMERCIAL …"
+            className="text-center"
+          />
+        </div>
+
+        <div className="mt-4">
+          <label
+            htmlFor="tp-description"
+            className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200"
+          >
+            Descrição detalhada
+          </label>
+          <RichTextEditor
+            id="tp-description"
+            value={description}
+            onChange={setDescription}
+            onBlur={getBlurHandler('description')}
+            placeholder="Formalização do serviço prestado — escopo, etapas, condições…"
+          />
+        </div>
+
         {/* Responsável técnico + e-mail (opcionais) */}
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <Input
@@ -893,22 +946,6 @@ export function TechnicalProposalForm({
             error={shouldShowError('email', fieldErrors.email)}
             maxLength={200}
             placeholder="Ex.: joao.silva@empresa.com"
-          />
-        </div>
-
-        <div className="mt-4">
-          <label
-            htmlFor="tp-description"
-            className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200"
-          >
-            Descrição detalhada
-          </label>
-          <RichTextEditor
-            id="tp-description"
-            value={description}
-            onChange={setDescription}
-            onBlur={getBlurHandler('description')}
-            placeholder="Formalização do serviço prestado — escopo, etapas, condições…"
           />
         </div>
       </section>
