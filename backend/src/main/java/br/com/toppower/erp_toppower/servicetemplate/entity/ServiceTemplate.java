@@ -29,6 +29,6 @@ public class ServiceTemplate extends BaseEntity {
     @Column(name = "name", nullable = false, length = 200)
     private String name;
 
-    @Column(name = "description", length = 500)
+    @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 }

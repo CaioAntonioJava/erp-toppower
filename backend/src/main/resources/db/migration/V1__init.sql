@@ -259,7 +259,7 @@ PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 CREATE TABLE IF NOT EXISTS service_templates (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(200) NOT NULL,
-    description VARCHAR(500),
+    description TEXT,
     created_at DATETIME(6) NOT NULL,
     updated_at DATETIME(6) NOT NULL,
     created_by VARCHAR(100),

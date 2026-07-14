@@ -5,6 +5,7 @@ import type {
   ServiceTemplateUpdateRequest,
 } from '../../types/servicetemplate'
 import { Input } from '../ui/Input'
+import { RichTextEditor } from '../ui/RichTextEditor'
 import { Alert } from '../ui/Alert'
 import { toApiError } from '../../lib/errors'
 import { useFieldTouched } from '../../hooks/useFieldTouched'
@@ -56,7 +57,7 @@ export function ServiceTemplateForm({
       if (isEdit && serviceTemplate) {
         const payload: ServiceTemplateUpdateRequest = {
           name: name.trim(),
-          description: description.trim() || null,
+          description: description || null,
         }
         await onSaveUpdate(payload)
         setSuccess('Serviço atualizado com sucesso!')
@@ -64,7 +65,7 @@ export function ServiceTemplateForm({
       } else {
         const payload: ServiceTemplateCreateRequest = {
           name: name.trim(),
-          description: description.trim() || null,
+          description: description || null,
         }
         await onSaveCreate(payload)
         setSuccess('Serviço criado com sucesso!')
@@ -107,16 +108,29 @@ export function ServiceTemplateForm({
             maxLength={200}
             hint="Nome do serviço (ex: INSTALAÇÃO DE QUADRO ELÉTRICO)."
           />
-          <Input
-            label="Descrição"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            onBlur={getBlurHandler('description')}
-            error={shouldShowError('description', fieldErrors.description)}
-            maxLength={500}
-            hint="Descrição detalhada do serviço (opcional)."
-          />
         </div>
+      </section>
+
+      {/* Descrição */}
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <h3 className="mb-1 text-base font-semibold">Descrição</h3>
+        <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+          Descrição detalhada do serviço com formatação rica. Este texto pode ser
+          reutilizado em propostas e contratos.
+        </p>
+
+        <RichTextEditor
+          value={description}
+          onChange={setDescription}
+          onBlur={getBlurHandler('description')}
+          placeholder="Descreva o serviço detalhadamente…"
+          maxLength={10000}
+        />
+        {shouldShowError('description', fieldErrors.description) ? (
+          <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+            {fieldErrors.description}
+          </p>
+        ) : null}
       </section>
     </form>
   )

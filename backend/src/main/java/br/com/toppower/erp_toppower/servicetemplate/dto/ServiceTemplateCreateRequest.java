@@ -13,9 +13,7 @@ public record ServiceTemplateCreateRequest(
         @Size(max = 200, message = "Nome deve ter no máximo {max} caracteres")
         String name,
 
-        @Schema(description = "Descrição detalhada do serviço.", example = "Instalação de quadro elétrico trifásico com disjuntores e DR",
-                maxLength = 500)
-        @Size(max = 500, message = "Descrição deve ter no máximo {max} caracteres")
+        @Schema(description = "Descrição detalhada do serviço em HTML.", example = "<p>Instalação de quadro elétrico trifásico com disjuntores e DR</p>")
         String description
 ) {
 }

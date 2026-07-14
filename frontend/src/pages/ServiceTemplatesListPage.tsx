@@ -30,6 +30,13 @@ function formatDate(iso: string | null | undefined): string {
   })
 }
 
+/** Extrai o texto puro de um HTML, removendo tags. */
+function stripHtml(html: string | null | undefined): string {
+  if (!html) return ''
+  const doc = new DOMParser().parseFromString(html, 'text/html')
+  return doc.body.textContent?.trim() ?? ''
+}
+
 export function ServiceTemplatesListPage() {
   const navigate = useNavigate()
 
@@ -165,7 +172,7 @@ export function ServiceTemplatesListPage() {
                       </div>
                     </td>
                     <td className="max-w-xs truncate px-4 py-3 text-slate-600 dark:text-slate-400">
-                      {s.description || <span className="text-slate-400">—</span>}
+                      {s.description ? stripHtml(s.description) : <span className="text-slate-400">—</span>}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-500 dark:text-slate-400">
                       {formatDate(s.updatedAt)}
