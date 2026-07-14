@@ -33,6 +33,8 @@ import { UsersListPage } from './pages/UsersListPage'
 import { UserFormPage } from './pages/UserFormPage'
 import { CarriersListPage } from './pages/CarriersListPage'
 import { CarrierFormPage } from './pages/CarrierFormPage'
+import { ServiceTemplatesListPage } from './pages/ServiceTemplatesListPage'
+import { ServiceTemplateFormPage } from './pages/ServiceTemplateFormPage'
 import { OrganizationsListPage } from './pages/OrganizationsListPage'
 import { OrganizationFormPage } from './pages/OrganizationFormPage'
 import { NotFoundPage } from './pages/NotFoundPage'
@@ -98,6 +100,11 @@ export default function App() {
         <Route path="/carriers" element={<AdminRoute><CarriersListPage /></AdminRoute>} />
         <Route path="/carriers/new" element={<AdminRoute><CarrierFormPage /></AdminRoute>} />
         <Route path="/carriers/:id" element={<AdminRoute><CarrierFormPage /></AdminRoute>} />
+
+        {/* Rotas administrativas — catálogo de serviços (ROLE_ADMIN). */}
+        <Route path="/service-templates" element={<AdminRoute><ServiceTemplatesListPage /></AdminRoute>} />
+        <Route path="/service-templates/new" element={<AdminRoute><ServiceTemplateFormPage /></AdminRoute>} />
+        <Route path="/service-templates/:id" element={<AdminRoute><ServiceTemplateFormPage /></AdminRoute>} />
 
         {/* Rotas administrativas — gestão de empresas emissoras (Organizations).
             Permite editar dados da empresa e fazer upload/remoção do logo

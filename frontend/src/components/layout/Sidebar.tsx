@@ -16,6 +16,7 @@ import {
   UserCog,
   Users,
   Wrench,
+  Cog,
 } from 'lucide-react'
 import { Button } from '../ui/Button'
 import { useAuth } from '../../context/AuthContext'
@@ -42,6 +43,9 @@ const navItems: NavItem[] = [
 /** Item de menu exclusivo de administradores — gestão de transportadoras. */
 const carriersItem: NavItem = { to: '/carriers', label: 'Transportadoras', icon: Truck }
 
+/** Item de menu exclusivo de administradores — catálogo de serviços. */
+const serviceTemplatesItem: NavItem = { to: '/service-templates', label: 'Serviços', icon: Cog }
+
 /** Item de menu exclusivo de administradores — gestão de usuários do sistema. */
 const usersItem: NavItem = { to: '/users', label: 'Usuários', icon: UserCog }
 
@@ -63,7 +67,7 @@ export function Sidebar() {
   // Admin vê os itens administrativos (Transportadoras, Empresas emissoras,
   // Usuários) ao final. Gestores não os veem.
   const items = isAdmin
-    ? [...navItems, carriersItem, organizationsItem, usersItem]
+    ? [...navItems, carriersItem, serviceTemplatesItem, organizationsItem, usersItem]
     : navItems
 
   return (
