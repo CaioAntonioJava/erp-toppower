@@ -55,6 +55,10 @@
       <td class="k">E-mail:</td>
       <td class="v" th:text="${proposal.email}">—</td>
     </tr>
+    <tr th:if="${proposal.phone != null and !proposal.phone.isBlank()}">
+      <td class="k">Fone:</td>
+      <td class="v" th:text="${proposal.phone}">—</td>
+    </tr>
   </table>
 </div>
 <!-- Condições — cada linha só aparece se o dado estiver preenchido. -->

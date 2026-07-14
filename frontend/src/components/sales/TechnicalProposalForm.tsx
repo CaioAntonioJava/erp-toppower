@@ -120,6 +120,9 @@ export function TechnicalProposalForm({
   const [responsibleEmail, setResponsibleEmail] = useState<string>(
     proposal?.email ?? '',
   )
+  const [responsiblePhone, setResponsiblePhone] = useState<string>(
+    proposal?.phone ?? '',
+  )
   const [discountType, setDiscountType] = useState<DiscountType | ''>(
     proposal?.discountType ?? '',
   )
@@ -581,6 +584,9 @@ export function TechnicalProposalForm({
     if (responsibleEmail.length > 200) {
       errs.email = 'E-mail deve ter no máximo 200 caracteres.'
     }
+    if (responsiblePhone.length > 20) {
+      errs.phone = 'Telefone deve ter no máximo 20 caracteres.'
+    }
 
     // Ao menos um item (serviço ou produto) preenchido.
     const validServices = serviceItems.filter(
@@ -692,6 +698,7 @@ export function TechnicalProposalForm({
             ? technicalResponsible.trim()
             : null,
           email: responsibleEmail.trim() ? responsibleEmail.trim() : null,
+          phone: responsiblePhone.trim() ? responsiblePhone.trim() : null,
           serviceItems: servicePayload.length > 0 ? servicePayload : null,
           productItems: productPayload.length > 0 ? productPayload : null,
           address: addressPayload,
@@ -734,6 +741,7 @@ export function TechnicalProposalForm({
         if (technicalResponsible.trim())
           payload.technicalResponsible = technicalResponsible.trim()
         if (responsibleEmail.trim()) payload.email = responsibleEmail.trim()
+        if (responsiblePhone.trim()) payload.phone = responsiblePhone.trim()
         if (servicePayload.length > 0) payload.serviceItems = servicePayload
         if (productPayload.length > 0) payload.productItems = productPayload
         if (hasAddress && addressPayload) payload.address = addressPayload
@@ -928,8 +936,8 @@ export function TechnicalProposalForm({
           )}
         </div>
 
-        {/* Responsável técnico + e-mail (opcionais) */}
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        {/* Responsável técnico + e-mail + telefone (opcionais) */}
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
           <Input
             label="Responsável técnico"
             value={technicalResponsible}
@@ -950,6 +958,15 @@ export function TechnicalProposalForm({
             error={shouldShowError('email', fieldErrors.email)}
             maxLength={200}
             placeholder="Ex.: joao.silva@empresa.com"
+          />
+          <Input
+            label="Fone do responsável"
+            value={responsiblePhone}
+            onChange={(e) => setResponsiblePhone(e.target.value)}
+            onBlur={getBlurHandler('phone')}
+            error={shouldShowError('phone', fieldErrors.phone)}
+            maxLength={20}
+            placeholder="Ex.: (11) 99999-9999"
           />
         </div>
       </section>

@@ -186,6 +186,13 @@ public class TechnicalProposal extends OrganizationScopedEntity {
     private String email;
 
     /**
+     * Telefone de contato do responsável técnico. <b>Opcional</b> — campo
+     * livre, sem validação de formato.
+     */
+    @Column(name = "phone", length = 20)
+    private String phone;
+
+    /**
      * Status atual da proposta no seu ciclo de vida. Padrão
      * {@link TechnicalProposalStatus#ABERTA} na criação.
      */

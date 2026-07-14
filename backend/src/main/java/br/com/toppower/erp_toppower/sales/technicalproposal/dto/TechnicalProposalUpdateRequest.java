@@ -64,6 +64,12 @@ public record TechnicalProposalUpdateRequest(
         @Size(max = 200, message = "E-mail deve ter no máximo {max} caracteres")
         String email,
 
+        @Schema(description = "Novo telefone do responsável técnico. Envie string vazia para limpar. Campo livre, sem validação de formato.",
+                maxLength = 20,
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        @Size(max = 20, message = "Telefone deve ter no máximo {max} caracteres")
+        String phone,
+
         @Schema(description = "Nova lista de serviços (substitui a anterior por completo). "
                 + "Se informada, o service valida a consistência.",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)

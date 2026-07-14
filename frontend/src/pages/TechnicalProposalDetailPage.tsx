@@ -306,6 +306,14 @@ export function TechnicalProposalDetailPage() {
                   {proposal.email ?? '—'}
                 </dd>
               </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  Fone do responsável
+                </dt>
+                <dd className="mt-1 text-slate-900 dark:text-slate-100">
+                  {proposal.phone ?? '—'}
+                </dd>
+              </div>
             </dl>
 
             {proposal.address ? (

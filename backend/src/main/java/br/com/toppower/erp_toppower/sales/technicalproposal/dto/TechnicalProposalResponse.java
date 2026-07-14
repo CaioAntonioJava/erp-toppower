@@ -82,6 +82,11 @@ public record TechnicalProposalResponse(
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         String email,
 
+        @Schema(description = "Telefone de contato do responsável técnico (opcional).",
+                example = "(11) 99999-9999",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        String phone,
+
         @Schema(description = "Status atual da proposta.",
                 allowableValues = {"ABERTA", "EM_ANDAMENTO", "CONCLUIDA"},
                 requiredMode = Schema.RequiredMode.REQUIRED)

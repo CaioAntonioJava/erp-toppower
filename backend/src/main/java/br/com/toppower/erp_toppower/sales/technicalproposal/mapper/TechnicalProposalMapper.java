@@ -204,7 +204,7 @@ public final class TechnicalProposalMapper {
                 toAddress(request.address()),
                 request.description(),
                 request.revision(),
-                request.technicalResponsible(), request.email(),
+                request.technicalResponsible(), request.email(), request.phone(),
                 request.discountType(), request.discount(),
                 request.freightValue(), request.deliveryDeadline(),
                 request.paymentCondition(), request.validity(),
@@ -267,6 +267,9 @@ public final class TechnicalProposalMapper {
         if (request.email() != null) {
             tp.setEmail(emptyToNull(request.email()));
         }
+        if (request.phone() != null) {
+            tp.setPhone(emptyToNull(request.phone()));
+        }
         if (request.discountType() != null) {
             tp.setDiscountType(request.discountType());
         }
@@ -298,7 +301,7 @@ public final class TechnicalProposalMapper {
     private static void applyHeader(TechnicalProposal tp, Long customerId, Long companyId,
                                     Address address, String description,
                                     Integer revision,
-                                    String technicalResponsible, String email,
+                                    String technicalResponsible, String email, String phone,
                                     DiscountType discountType,
                                     BigDecimal discount, BigDecimal freightValue,
                                     String deliveryDeadline,
@@ -313,6 +316,7 @@ public final class TechnicalProposalMapper {
         tp.setRevision(revision);
         tp.setTechnicalResponsible(technicalResponsible);
         tp.setEmail(email);
+        tp.setPhone(phone);
         tp.setDiscountType(discountType);
         tp.setDiscount(discount);
         tp.setFreightValue(freightValue);
@@ -376,6 +380,7 @@ public final class TechnicalProposalMapper {
                 tp.getRevision(),
                 tp.getTechnicalResponsible(),
                 tp.getEmail(),
+                tp.getPhone(),
                 tp.getStatus(),
                 tp.getStartDate(),
                 tp.getDeliveryDate(),
