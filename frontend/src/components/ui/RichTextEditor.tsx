@@ -63,7 +63,7 @@ export function RichTextEditor({
   const generatedId = useId()
   const editorId = id ?? generatedId
   const editorRef = useRef<HTMLDivElement>(null)
-  const lastValueRef = useRef<string>(value)
+  const lastValueRef = useRef<string>('')
   const [colorOpen, setColorOpen] = useState(false)
   const colorPopoverRef = useRef<HTMLDivElement>(null)
 

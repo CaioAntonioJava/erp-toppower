@@ -913,7 +913,7 @@ export function TechnicalProposalForm({
             htmlFor="tp-description"
             className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200"
           >
-            Descrição detalhada
+            Apresentação:
           </label>
           <RichTextEditor
             id="tp-description"
