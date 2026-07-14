@@ -155,9 +155,7 @@ export function ContractForm({
     contract?.clientId != null ? String(contract.clientId) : '',
   )
   const [clientLabel, setClientLabel] = useState<string>(
-    contract?.clientCode && contract.clientName
-      ? `${contract.clientCode} — ${contract.clientName}`
-      : contract?.clientName ?? '',
+    contract?.clientName ?? '',
   )
   const [clientOptions, setClientOptions] = useState<ClientSearchResult[]>([])
   const [clientSearching, setClientSearching] = useState(false)
@@ -668,10 +666,10 @@ export function ContractForm({
                     <button
                       type="button"
                       className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800"
-                      onClick={() => {
-                        setClientId(String(c.id))
-                        setClientLabel(`${c.code} — ${c.name}`)
-                        setClientOptions([])
+	                    onClick={() => {
+	                        setClientId(String(c.id))
+	                        setClientLabel(c.name)
+	                        setClientOptions([])
                       }}
                     >
                       <span className="inline-flex shrink-0 rounded border border-slate-300 px-1.5 py-0.5 text-[10px] font-medium uppercase text-slate-600 dark:border-slate-600 dark:text-slate-300">

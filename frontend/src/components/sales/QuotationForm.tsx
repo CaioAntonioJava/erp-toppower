@@ -310,13 +310,9 @@ export function QuotationForm({
         : quotation.companyId
     if (!targetId) return
 
-    if (quotation.clientName) {
-      setClientLabel(
-        quotation.clientCode
-          ? `${quotation.clientCode} — ${quotation.clientName}`
-          : quotation.clientName,
-      )
-    } else {
+	    if (quotation.clientName) {
+	      setClientLabel(quotation.clientName)
+	    } else {
       setClientLabel(`${String(targetId).slice(0, 8)}…`)
     }
     setClientOptions([])
@@ -860,12 +856,10 @@ export function QuotationForm({
                     <button
                       type="button"
                       className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800"
-                      onClick={() => {
-                        setClientId(c.id)
-                        setClientLabel(
-                          `${c.code ? `${c.code} — ` : ''}${c.name}${c.document ? ` (${c.document})` : ''}`,
-                        )
-                        setClientOptions([])
+	                    onClick={() => {
+	                        setClientId(c.id)
+	                        setClientLabel(c.name)
+	                        setClientOptions([])
                       }}
                     >
                       <span className="inline-flex shrink-0 rounded border border-slate-300 px-1.5 py-0.5 text-[10px] font-medium uppercase text-slate-600 dark:border-slate-600 dark:text-slate-300">

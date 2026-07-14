@@ -262,16 +262,12 @@ export function TechnicalProposalForm({
     setCode(initialCode)
   }, [initialCode, proposal])
 
-  // Pré-preenche o rótulo do cliente no modo edição.
-  useEffect(() => {
-    if (!proposal) return
-    if (proposal.clientName) {
-      setClientLabel(
-        proposal.clientCode
-          ? `${proposal.clientCode} — ${proposal.clientName}`
-          : proposal.clientName,
-      )
-    } else if (proposal.customerId || proposal.companyId) {
+	  // Pré-preenche o rótulo do cliente no modo edição.
+	  useEffect(() => {
+	    if (!proposal) return
+	    if (proposal.clientName) {
+	      setClientLabel(proposal.clientName)
+	    } else if (proposal.customerId || proposal.companyId) {
       const id = proposal.customerId ?? proposal.companyId ?? 0
       setClientLabel(`${String(id).slice(0, 8)}…`)
     }
@@ -864,12 +860,10 @@ export function TechnicalProposalForm({
                     <button
                       type="button"
                       className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800"
-                      onClick={() => {
-                        setClientId(c.id)
-                        setClientLabel(
-                          `${c.code ? `${c.code} — ` : ''}${c.name}${c.document ? ` (${c.document})` : ''}`,
-                        )
-                        setClientOptions([])
+	                    onClick={() => {
+	                        setClientId(c.id)
+	                        setClientLabel(c.name)
+	                        setClientOptions([])
                       }}
                     >
                       <span className="inline-flex shrink-0 rounded border border-slate-300 px-1.5 py-0.5 text-[10px] font-medium uppercase text-slate-600 dark:border-slate-600 dark:text-slate-300">
