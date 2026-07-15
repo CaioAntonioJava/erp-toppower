@@ -285,6 +285,14 @@ public class TechnicalProposal extends OrganizationScopedEntity {
     @Column(name = "notes", length = 2000)
     private String notes;
 
+    /**
+     * Preço geral da proposta, de preenchimento livre pelo usuário.
+     * Não participa de cálculos automáticos — é apenas um valor informativo
+     * que o usuário pode definir a vontade.
+     */
+    @Column(name = "general_price", precision = 10, scale = 2)
+    private BigDecimal generalPrice;
+
     // ---------------------------------------------------------------------
     // Campos calculados (não persistidos)
     // ---------------------------------------------------------------------

@@ -57,6 +57,11 @@ public record TechnicalProposalSummaryResponse(
                 example = "649.00", requiredMode = Schema.RequiredMode.REQUIRED)
         BigDecimal total,
 
+        @Schema(description = "Preço geral da proposta, de preenchimento livre pelo usuário. "
+                + "Não participa de cálculos automáticos.",
+                example = "1500.00", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        BigDecimal generalPrice,
+
         @Schema(description = "Condição de pagamento.",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         PaymentCondition paymentCondition

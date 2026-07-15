@@ -13,8 +13,9 @@ import java.math.BigDecimal;
  * {@code TechnicalProposalUpdateRequest}.
  *
  * <p>Cada linha possui uma descrição (HTML formatado, opcional) e um preço
- * (opcional). Não há cálculo adicional sobre a linha — o preço informado
- * entra diretamente no somatório do subtotal da proposta.</p>
+ * (opcional). Quando o serviço é do catálogo, os campos {@code category} e
+ * {@code serviceTemplateId} são preenchidos para permitir a restauração
+ * do estado no formulário de edição.</p>
  */
 @Schema(name = "TechnicalProposalServiceItemRequest",
         description = "Linha de serviço de uma proposta técnica.")
@@ -31,6 +32,16 @@ public record TechnicalProposalServiceItemRequest(
                 example = "350.00", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         @DecimalMin(value = "0.00", message = "Preço do serviço não pode ser negativo")
         @Digits(integer = 8, fraction = 2, message = "Preço do serviço inválido")
-        BigDecimal price
+        BigDecimal price,
+
+        @Schema(description = "Categoria do serviço no catálogo (ex.: \"EXECUÇÃO_SPDA\"). "
+                + "Opcional — presente apenas quando o item é do catálogo.",
+                example = "EXECUÇÃO_SPDA", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        String category,
+
+        @Schema(description = "ID do ServiceTemplate que originou este item. "
+                + "Opcional — presente apenas quando o item é do catálogo.",
+                example = "1", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        Long serviceTemplateId
 ) {
 }

@@ -61,4 +61,20 @@ public class TechnicalProposalServiceItem extends OrganizationScopedEntity {
      */
     @Column(name = "price", precision = 10, scale = 2)
     private BigDecimal price;
+
+    /**
+     * Categoria do serviço no catálogo (ex.: "EXECUÇÃO_SPDA").
+     * Opcional — presente apenas quando o item foi criado a partir
+     * de um template do catálogo (modo CATALOG).
+     */
+    @Column(name = "category", length = 50)
+    private String category;
+
+    /**
+     * ID do {@code ServiceTemplate} que originou este item.
+     * Opcional — presente apenas quando o item foi criado a partir
+     * de um template do catálogo (modo CATALOG).
+     */
+    @Column(name = "service_template_id")
+    private Long serviceTemplateId;
 }
