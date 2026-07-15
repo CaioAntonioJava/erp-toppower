@@ -109,6 +109,10 @@ public record TechnicalProposalResponse(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         List<TechnicalProposalProductItemResponse> productItems,
 
+        @Schema(description = "Condições da proposta técnica. Lista ordenada pelo campo sortOrder.",
+                requiredMode = Schema.RequiredMode.REQUIRED)
+        List<TechnicalProposalConditionResponse> conditions,
+
         @Schema(description = "Tipo de aplicação do desconto global.",
                 allowableValues = {"AMOUNT", "PERCENT"},
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
@@ -150,6 +154,11 @@ public record TechnicalProposalResponse(
         @Schema(description = "Nome da transportadora (resolvido no backend a partir de carrierUuid).",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         String carrierName,
+
+        @Schema(description = "Preço geral da proposta, de preenchimento livre pelo usuário. "
+                + "Não participa de cálculos automáticos.",
+                example = "1500.00", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        BigDecimal generalPrice,
 
         @Schema(description = "Soma dos preços dos serviços prestados.",
                 example = "350.00", requiredMode = Schema.RequiredMode.REQUIRED)

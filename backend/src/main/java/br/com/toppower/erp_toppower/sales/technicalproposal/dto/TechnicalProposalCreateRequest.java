@@ -88,6 +88,13 @@ public record TechnicalProposalCreateRequest(
         @Valid
         List<TechnicalProposalProductItemRequest> productItems,
 
+        @Schema(description = "Condições da proposta técnica. Cada condição possui um título "
+                + "(obrigatório) e um conteúdo textual (opcional). A ordem é definida pela "
+                + "posição na lista.",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        @Valid
+        List<TechnicalProposalConditionRequest> conditions,
+
         @Schema(description = "Tipo de aplicação do desconto global (AMOUNT = R$ fixo, PERCENT = %). "
                 + "Quando omitido, a proposta não tem desconto global.",
                 allowableValues = {"AMOUNT", "PERCENT"},
@@ -134,6 +141,13 @@ public record TechnicalProposalCreateRequest(
 
         @Schema(description = "UUID da transportadora (Carrier) responsável pelo frete. Opcional.",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        Long carrierId
+        Long carrierId,
+
+        @Schema(description = "Preço geral da proposta, de preenchimento livre pelo usuário. "
+                + "Não participa de cálculos automáticos.",
+                example = "1500.00", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        @DecimalMin(value = "0.00", message = "Preço geral não pode ser negativo")
+        @Digits(integer = 8, fraction = 2, message = "Preço geral inválido")
+        BigDecimal generalPrice
 ) {
 }

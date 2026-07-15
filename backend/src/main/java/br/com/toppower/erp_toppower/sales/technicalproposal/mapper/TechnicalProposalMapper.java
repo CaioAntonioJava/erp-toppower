@@ -4,6 +4,8 @@ import br.com.toppower.erp_toppower.common.embeddable.Address;
 import br.com.toppower.erp_toppower.sales.quotation.enums.DiscountType;
 import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalAddressRequest;
 import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalAddressResponse;
+import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalConditionRequest;
+import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalConditionResponse;
 import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalCreateRequest;
 import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalProductItemRequest;
 import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalProductItemResponse;
@@ -15,6 +17,7 @@ import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposa
 import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalSummaryResponse;
 import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalUpdateRequest;
 import br.com.toppower.erp_toppower.sales.technicalproposal.entity.TechnicalProposal;
+import br.com.toppower.erp_toppower.sales.technicalproposal.entity.TechnicalProposalCondition;
 import br.com.toppower.erp_toppower.sales.technicalproposal.entity.TechnicalProposalProductItem;
 import br.com.toppower.erp_toppower.sales.technicalproposal.entity.TechnicalProposalServiceItem;
 
@@ -62,6 +65,8 @@ public final class TechnicalProposalMapper {
         item.setTechnicalProposalId(technicalProposalId);
         item.setDescription(request.description());
         item.setPrice(request.price());
+        item.setCategory(request.category());
+        item.setServiceTemplateId(request.serviceTemplateId());
         return item;
     }
 
@@ -70,7 +75,9 @@ public final class TechnicalProposalMapper {
         return new TechnicalProposalServiceItemResponse(
                 item.getId(),
                 item.getDescription(),
-                item.getPrice());
+                item.getPrice(),
+                item.getCategory(),
+                item.getServiceTemplateId());
     }
 
     // ---------------------------------------------------------------------
@@ -111,6 +118,34 @@ public final class TechnicalProposalMapper {
                 item.getDiscountType(),
                 item.getDiscount(),
                 item.getTotalPrice());
+    }
+
+    // ---------------------------------------------------------------------
+    // Condições
+    // ---------------------------------------------------------------------
+
+    /**
+     * Cria uma entidade {@link TechnicalProposalCondition} a partir do
+     * DTO de request. A ordem de exibição é definida pela posição do
+     * item na lista.
+     */
+    public static TechnicalProposalCondition toConditionEntity(
+            TechnicalProposalConditionRequest request, Long technicalProposalId, int sortOrder) {
+        TechnicalProposalCondition condition = new TechnicalProposalCondition();
+        condition.setTechnicalProposalId(technicalProposalId);
+        condition.setTitle(request.title());
+        condition.setContent(request.content());
+        condition.setSortOrder(sortOrder);
+        return condition;
+    }
+
+    public static TechnicalProposalConditionResponse toConditionResponse(
+            TechnicalProposalCondition condition) {
+        return new TechnicalProposalConditionResponse(
+                condition.getId(),
+                condition.getTitle(),
+                condition.getContent(),
+                condition.getSortOrder());
     }
 
     private static BigDecimal productLineSubtotal(TechnicalProposalProductItem item) {
@@ -208,7 +243,8 @@ public final class TechnicalProposalMapper {
                 request.discountType(), request.discount(),
                 request.freightValue(), request.deliveryDeadline(),
                 request.paymentCondition(), request.validity(),
-                request.deliveryType(), request.notes(), request.carrierId());
+                request.deliveryType(), request.notes(), request.carrierId(),
+                request.generalPrice());
         return tp;
     }
 
@@ -296,6 +332,8 @@ public final class TechnicalProposalMapper {
         }
         // carrierId admite null (remoção da transportadora vinculada).
         tp.setCarrierId(request.carrierId());
+        // generalPrice admite null (remoção do preço geral).
+        tp.setGeneralPrice(request.generalPrice());
     }
 
     private static void applyHeader(TechnicalProposal tp, Long customerId, Long companyId,
@@ -308,7 +346,8 @@ public final class TechnicalProposalMapper {
                                     br.com.toppower.erp_toppower.sales.quotation.enums.PaymentCondition paymentCondition,
                                     String validity,
                                     br.com.toppower.erp_toppower.sales.quotation.enums.FreightType deliveryType,
-                                    String notes, Long carrierId) {
+                                    String notes, Long carrierId,
+                                    BigDecimal generalPrice) {
         tp.setCustomerId(customerId);
         tp.setCompanyId(companyId);
         tp.setAddress(address);
@@ -326,6 +365,7 @@ public final class TechnicalProposalMapper {
         tp.setDeliveryType(deliveryType);
         tp.setNotes(notes);
         tp.setCarrierId(carrierId);
+        tp.setGeneralPrice(generalPrice);
     }
 
     /**
@@ -356,6 +396,7 @@ public final class TechnicalProposalMapper {
             TechnicalProposal tp,
             List<TechnicalProposalServiceItem> serviceItems,
             List<TechnicalProposalProductItem> productItems,
+            List<TechnicalProposalCondition> conditions,
             String clientName, String clientCode,
             String carrierName) {
 
@@ -386,6 +427,7 @@ public final class TechnicalProposalMapper {
                 tp.getDeliveryDate(),
                 serviceItems.stream().map(TechnicalProposalMapper::toServiceItemResponse).toList(),
                 productItems.stream().map(TechnicalProposalMapper::toProductItemResponse).toList(),
+                conditions.stream().map(TechnicalProposalMapper::toConditionResponse).toList(),
                 tp.getDiscountType(),
                 tp.getDiscount(),
                 tp.getFreightValue(),
@@ -396,6 +438,7 @@ public final class TechnicalProposalMapper {
                 tp.getNotes(),
                 tp.getCarrierId(),
                 carrierName,
+                tp.getGeneralPrice(),
                 tp.getServicesSubtotal(),
                 tp.getProductsSubtotal(),
                 tp.getSubtotal(),
@@ -451,6 +494,7 @@ public final class TechnicalProposalMapper {
                 tp.getStartDate(),
                 tp.getDeliveryDate(),
                 tp.getTotal(),
+                tp.getGeneralPrice(),
                 tp.getPaymentCondition());
     }
 }

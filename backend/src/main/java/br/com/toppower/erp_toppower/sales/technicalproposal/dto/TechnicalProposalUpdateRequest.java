@@ -82,6 +82,13 @@ public record TechnicalProposalUpdateRequest(
         @Valid
         List<TechnicalProposalProductItemRequest> productItems,
 
+        @Schema(description = "Nova lista de condições (substitui a anterior por completo). "
+                + "Cada condição possui um título (obrigatório) e um conteúdo textual (opcional). "
+                + "A ordem é definida pela posição na lista.",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        @Valid
+        List<TechnicalProposalConditionRequest> conditions,
+
         @Schema(description = "Novo tipo de desconto global.",
                 allowableValues = {"AMOUNT", "PERCENT"},
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
@@ -126,6 +133,13 @@ public record TechnicalProposalUpdateRequest(
         @Schema(description = "Nova transportadora (Carrier) responsável pelo frete. "
                 + "Envie nulo para remover a transportadora vinculada.",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        Long carrierId
+        Long carrierId,
+
+        @Schema(description = "Novo preço geral da proposta, de preenchimento livre. "
+                + "Não participa de cálculos automáticos. Envie nulo para remover.",
+                example = "1500.00", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        @DecimalMin(value = "0.00", message = "Preço geral não pode ser negativo")
+        @Digits(integer = 8, fraction = 2, message = "Preço geral inválido")
+        BigDecimal generalPrice
 ) {
 }

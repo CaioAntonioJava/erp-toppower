@@ -9,6 +9,7 @@ import br.com.toppower.erp_toppower.organization.entity.Organization;
 import br.com.toppower.erp_toppower.organization.repository.OrganizationRepository;
 import br.com.toppower.erp_toppower.product.repository.ProductRepository;
 import br.com.toppower.erp_toppower.sales.technicalproposal.dto.NextTechnicalProposalCodeResponse;
+import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalConditionRequest;
 import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalCreateRequest;
 import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalProductItemRequest;
 import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalResponse;
@@ -18,6 +19,7 @@ import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposa
 import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalSummaryResponse;
 import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalUpdateRequest;
 import br.com.toppower.erp_toppower.sales.technicalproposal.entity.TechnicalProposal;
+import br.com.toppower.erp_toppower.sales.technicalproposal.entity.TechnicalProposalCondition;
 import br.com.toppower.erp_toppower.sales.technicalproposal.entity.TechnicalProposalProductItem;
 import br.com.toppower.erp_toppower.sales.technicalproposal.entity.TechnicalProposalServiceItem;
 import br.com.toppower.erp_toppower.sales.technicalproposal.enums.TechnicalProposalStatus;
@@ -26,6 +28,7 @@ import br.com.toppower.erp_toppower.sales.technicalproposal.exception.TechnicalP
 import br.com.toppower.erp_toppower.sales.technicalproposal.exception.TechnicalProposalClientNotFoundException;
 import br.com.toppower.erp_toppower.sales.technicalproposal.exception.TechnicalProposalNotFoundException;
 import br.com.toppower.erp_toppower.sales.technicalproposal.mapper.TechnicalProposalMapper;
+import br.com.toppower.erp_toppower.sales.technicalproposal.repository.TechnicalProposalConditionRepository;
 import br.com.toppower.erp_toppower.sales.technicalproposal.repository.TechnicalProposalProductItemRepository;
 import br.com.toppower.erp_toppower.sales.technicalproposal.repository.TechnicalProposalRepository;
 import br.com.toppower.erp_toppower.sales.technicalproposal.repository.TechnicalProposalServiceItemRepository;
@@ -67,6 +70,7 @@ public class TechnicalProposalService {
     private final TechnicalProposalRepository repository;
     private final TechnicalProposalServiceItemRepository serviceItemRepository;
     private final TechnicalProposalProductItemRepository productItemRepository;
+    private final TechnicalProposalConditionRepository conditionRepository;
     private final CustomerRepository customerRepository;
     private final CompanyRepository companyRepository;
     private final ProductRepository productRepository;
@@ -76,6 +80,7 @@ public class TechnicalProposalService {
     public TechnicalProposalService(TechnicalProposalRepository repository,
                                     TechnicalProposalServiceItemRepository serviceItemRepository,
                                     TechnicalProposalProductItemRepository productItemRepository,
+                                    TechnicalProposalConditionRepository conditionRepository,
                                     CustomerRepository customerRepository,
                                     CompanyRepository companyRepository,
                                     ProductRepository productRepository,
@@ -84,6 +89,7 @@ public class TechnicalProposalService {
         this.repository = repository;
         this.serviceItemRepository = serviceItemRepository;
         this.productItemRepository = productItemRepository;
+        this.conditionRepository = conditionRepository;
         this.customerRepository = customerRepository;
         this.companyRepository = companyRepository;
         this.productRepository = productRepository;
@@ -111,13 +117,15 @@ public class TechnicalProposalService {
                 request.serviceItems(), savedHeader.getId());
         List<TechnicalProposalProductItem> productItems = persistProductItems(
                 request.productItems(), savedHeader.getId());
+        List<TechnicalProposalCondition> conditions = persistConditions(
+                request.conditions(), savedHeader.getId());
 
         savedHeader.recalculateTotals(serviceItems, productItems);
 
         ClientResolved client = resolveClient(savedHeader);
         CarrierResolved carrier = resolveCarrier(savedHeader);
         return TechnicalProposalMapper.toResponse(savedHeader,
-                serviceItems, productItems, client.name(), client.code(),
+                serviceItems, productItems, conditions, client.name(), client.code(),
                 carrier.name());
     }
 
@@ -254,6 +262,7 @@ public class TechnicalProposalService {
 
         boolean servicesSent = request.serviceItems() != null;
         boolean productsSent = request.productItems() != null;
+        boolean conditionsSent = request.conditions() != null;
 
         // Se alguma lista foi enviada, valida presença mínima entre as duas.
         if (servicesSent || productsSent) {
@@ -276,6 +285,10 @@ public class TechnicalProposalService {
             productItemRepository.deleteByTechnicalProposalId(id);
             productItemRepository.flush();
         }
+        if (conditionsSent) {
+            conditionRepository.deleteByTechnicalProposalId(id);
+            conditionRepository.flush();
+        }
 
         TechnicalProposalMapper.applyUpdate(tp, request);
         TechnicalProposal saved = repository.save(tp);
@@ -286,12 +299,15 @@ public class TechnicalProposalService {
         List<TechnicalProposalProductItem> productItems = productsSent
                 ? persistProductItems(request.productItems(), saved.getId())
                 : productItemRepository.findByTechnicalProposalIdOrderByCreatedAtAsc(id);
+        List<TechnicalProposalCondition> conditions = conditionsSent
+                ? persistConditions(request.conditions(), saved.getId())
+                : conditionRepository.findByTechnicalProposalIdOrderBySortOrderAsc(id);
 
         saved.recalculateTotals(serviceItems, productItems);
         ClientResolved client = resolveClient(saved);
         CarrierResolved carrier = resolveCarrier(saved);
         return TechnicalProposalMapper.toResponse(saved,
-                serviceItems, productItems, client.name(), client.code(),
+                serviceItems, productItems, conditions, client.name(), client.code(),
                 carrier.name());
     }
 
@@ -417,11 +433,13 @@ public class TechnicalProposalService {
                 .findByTechnicalProposalIdOrderByCreatedAtAsc(tp.getId());
         List<TechnicalProposalProductItem> productItems = productItemRepository
                 .findByTechnicalProposalIdOrderByCreatedAtAsc(tp.getId());
+        List<TechnicalProposalCondition> conditions = conditionRepository
+                .findByTechnicalProposalIdOrderBySortOrderAsc(tp.getId());
         tp.recalculateTotals(serviceItems, productItems);
         ClientResolved client = resolveClient(tp);
         CarrierResolved carrier = resolveCarrier(tp);
         return TechnicalProposalMapper.toResponse(tp,
-                serviceItems, productItems, client.name(), client.code(),
+                serviceItems, productItems, conditions, client.name(), client.code(),
                 carrier.name());
     }
 
@@ -493,6 +511,19 @@ public class TechnicalProposalService {
         for (TechnicalProposalProductItemRequest req : requests) {
             items.add(productItemRepository.save(
                     TechnicalProposalMapper.toProductItemEntity(req, technicalProposalId)));
+        }
+        return items;
+    }
+
+    private List<TechnicalProposalCondition> persistConditions(
+            List<TechnicalProposalConditionRequest> requests, Long technicalProposalId) {
+        if (requests == null || requests.isEmpty()) {
+            return List.of();
+        }
+        List<TechnicalProposalCondition> items = new ArrayList<>(requests.size());
+        for (int i = 0; i < requests.size(); i++) {
+            items.add(conditionRepository.save(
+                    TechnicalProposalMapper.toConditionEntity(requests.get(i), technicalProposalId, i)));
         }
         return items;
     }
@@ -635,7 +666,8 @@ public class TechnicalProposalService {
                 .findByTechnicalProposalIdOrderByCreatedAtAsc(tp.getId())
                 .stream()
                 .map(item -> new TechnicalProposalServiceItemRequest(
-                        item.getDescription(), item.getPrice()))
+                        item.getDescription(), item.getPrice(),
+                        item.getCategory(), item.getServiceTemplateId()))
                 .toList();
     }
 
