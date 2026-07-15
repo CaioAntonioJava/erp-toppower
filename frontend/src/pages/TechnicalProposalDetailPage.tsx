@@ -388,7 +388,14 @@ export function TechnicalProposalDetailPage() {
                           {String(idx + 1).padStart(2, '0')}
                         </td>
                         <td className="px-4 py-3 text-slate-700 dark:text-slate-200">
-                          {s.description}
+                          {s.description ? (
+                            <div
+                              className="prose prose-sm max-w-none dark:prose-invert"
+                              dangerouslySetInnerHTML={{ __html: s.description }}
+                            />
+                          ) : (
+                            '—'
+                          )}
                         </td>
                         <td className="px-4 py-3 text-right font-mono text-xs text-slate-700 dark:text-slate-200">
                           {s.price != null ? brlFormatter.format(s.price) : '—'}

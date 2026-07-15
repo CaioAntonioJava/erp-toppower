@@ -149,7 +149,11 @@
     <tbody>
     <tr th:each="it, idx : ${proposal.serviceItems}">
       <td th:text="${idx.count}">1</td>
-      <td th:text="${it.description}">—</td>
+      <td>
+        <div class="notes"
+             th:utext="${it.description != null and !it.description.isEmpty()
+                          ? it.description : '—'}">—</div>
+      </td>
       <td class="num money"
           th:text="${it.price != null
                      ? 'R$ ' + #numbers.formatDecimal(it.price, 1, 'POINT', 2, 'COMMA')

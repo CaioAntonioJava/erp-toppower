@@ -92,14 +92,16 @@ export interface TechnicalProposalAddressResponse {
 
 /** Linha de serviço enviada na criação/edição. */
 export interface TechnicalProposalServiceItemRequest {
-  description: string
+  /** Descrição do serviço em HTML formatado (texto rico). Opcional. */
+  description?: string | null
   price?: number | null
 }
 
 /** Linha de serviço retornada pela API. */
 export interface TechnicalProposalServiceItemResponse {
   id: number
-  description: string
+  /** Descrição do serviço em HTML formatado. Opcional. */
+  description: string | null
   /** Preço do serviço prestado. */
   price: number | null
 }

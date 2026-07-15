@@ -256,6 +256,7 @@ class SalesPdfServiceTest {
         private final Object clientType; // enum aninhado ClientType (CUSTOMER/COMPANY)
         private final String technicalResponsible;
         private final String email;
+        private final String phone;
         private final Object address; // TechnicalProposalAddressResponse (nullable)
         private final List<?> objectives;
         private final String description;
@@ -282,7 +283,7 @@ class SalesPdfServiceTest {
         TechnicalProposalLike(String code,
                               br.com.toppower.erp_toppower.sales.technicalproposal.enums.TechnicalProposalStatus status,
                               String clientName, String clientCode, Object clientType,
-                              String technicalResponsible, String email,
+                              String technicalResponsible, String email, String phone,
                               Object address, List<?> objectives, String description,
                               LocalDate startDate, LocalDate endDate, LocalDate deliveryDate,
                               List<?> serviceItems, List<?> productItems,
@@ -295,7 +296,7 @@ class SalesPdfServiceTest {
             this.code = code; this.status = status;
             this.clientName = clientName; this.clientCode = clientCode;
             this.clientType = clientType;
-            this.technicalResponsible = technicalResponsible; this.email = email;
+            this.technicalResponsible = technicalResponsible; this.email = email; this.phone = phone;
             this.address = address; this.objectives = objectives;
             this.description = description;
             this.startDate = startDate; this.endDate = endDate; this.deliveryDate = deliveryDate;
@@ -320,6 +321,7 @@ class SalesPdfServiceTest {
         public Object getClientType() { return clientType; }
         public String getTechnicalResponsible() { return technicalResponsible; }
         public String getEmail() { return email; }
+        public String getPhone() { return phone; }
         public Object getAddress() { return address; }
         public List<?> getObjectives() { return objectives; }
         public String getDescription() { return description; }
@@ -394,6 +396,7 @@ class SalesPdfServiceTest {
                 clientType,
                 "Eng. Roberto",
                 "roberto@aecplataformas.com.br",
+                "(19) 99999-9999", // phone
                 null,            // address
                 List.of(),       // objectives
                 null,            // description

@@ -46,9 +46,12 @@ public class TechnicalProposalServiceItem extends OrganizationScopedEntity {
     private Long technicalProposalId;
 
     /**
-     * Descrição do serviço prestado (texto livre). Obrigatória.
+     * Descrição do serviço prestado (HTML formatado, texto livre). Opcional —
+     * pode ser nula quando o serviço é informado apenas pelo preço. O conteúdo
+     * é editado no frontend via editor de texto rico e persistido como HTML,
+     * compatível com a renderização do PDF ({@code th:utext}).
      */
-    @Column(name = "description", nullable = false, length = 2000)
+    @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
     /**

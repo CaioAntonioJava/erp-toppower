@@ -5,6 +5,7 @@ import br.com.toppower.erp_toppower.servicetemplate.dto.ServiceTemplateCreateReq
 import br.com.toppower.erp_toppower.servicetemplate.dto.ServiceTemplateResponse;
 import br.com.toppower.erp_toppower.servicetemplate.dto.ServiceTemplateUpdateRequest;
 import br.com.toppower.erp_toppower.servicetemplate.entity.ServiceTemplate;
+import br.com.toppower.erp_toppower.servicetemplate.enums.ServiceCategory;
 import br.com.toppower.erp_toppower.servicetemplate.exception.ServiceTemplateNotFoundException;
 import br.com.toppower.erp_toppower.servicetemplate.mapper.ServiceTemplateMapper;
 import br.com.toppower.erp_toppower.servicetemplate.repository.ServiceTemplateRepository;
@@ -70,6 +71,14 @@ public class ServiceTemplateService {
         }
         Page<ServiceTemplateResponse> mapped = serviceTemplateRepository
                 .searchByQuery(trimmed, pageable)
+                .map(ServiceTemplateMapper::toResponse);
+        return PagedResponse.from(mapped);
+    }
+
+    @Transactional(readOnly = true)
+    public PagedResponse<ServiceTemplateResponse> getByCategory(ServiceCategory category, Pageable pageable) {
+        Page<ServiceTemplateResponse> mapped = serviceTemplateRepository
+                .findByCategory(category, pageable)
                 .map(ServiceTemplateMapper::toResponse);
         return PagedResponse.from(mapped);
     }

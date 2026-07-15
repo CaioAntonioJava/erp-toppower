@@ -16,8 +16,9 @@ public record TechnicalProposalServiceItemResponse(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         Long id,
 
-        @Schema(description = "Descrição do serviço prestado.",
-                requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "Descrição do serviço prestado (HTML formatado). "
+                + "Opcional — pode ser nula quando o serviço é informado apenas pelo preço.",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         String description,
 
         @Schema(description = "Preço do serviço prestado. "

@@ -25,6 +25,7 @@ import {
   searchTechnicalProposalClients,
   simulateTechnicalProposal,
 } from '../../api/technicalProposal.api'
+import { listServiceTemplatesByCategory } from '../../api/servicetemplate.api'
 import { BRAZILIAN_STATES } from '../../lib/brazilianStates'
 import { maskZipCode } from '../../lib/documents'
 import type { ProductResponse, UnitType } from '../../types/product'
@@ -49,6 +50,8 @@ import type {
   TechnicalProposalUpdateRequest,
 } from '../../types/technicalProposal'
 import { TECHNICAL_PROPOSAL_CLIENT_TYPE_LABELS } from '../../types/technicalProposal'
+import type { ServiceCategory, ServiceTemplateResponse } from '../../types/servicetemplate'
+import { SERVICE_CATEGORIES } from '../../types/servicetemplate'
 
 interface TechnicalProposalFormProps {
   /** Proposta existente (modo edição). Quando omitido, é cadastro novo. */
@@ -59,10 +62,23 @@ interface TechnicalProposalFormProps {
   onSaveUpdate: (payload: TechnicalProposalUpdateRequest) => Promise<void>
 }
 
+/** Modo de uma linha de serviço: catálogo (com categoria + seleção) ou simples. */
+type ServiceItemMode = 'CATALOG' | 'SIMPLE'
+
 /** Linha do editor de serviços (estado local). */
 interface ServiceDraft {
   rowKey: string
+  /** Modo da linha: catálogo (com categoria + seleção) ou simples. */
+  mode: ServiceItemMode
+  /** Categoria do catálogo de serviços (opcional, só em modo CATALOG). */
+  category: ServiceCategory | ''
+  /** ID do ServiceTemplate selecionado (opcional, só em modo CATALOG). */
+  serviceTemplateId: number | ''
+  /** Nome do ServiceTemplate (exibição, só em modo CATALOG). */
+  serviceTemplateName: string
+  /** Descrição do serviço (HTML formatado em CATALOG, texto livre em SIMPLE). */
   description: string
+  /** Preço do serviço (opcional). */
   price: string
 }
 
@@ -85,6 +101,26 @@ const brlFormatter = new Intl.NumberFormat('pt-BR', {
 
 function nextRowKey(): string {
   return `row_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
+}
+
+/**
+ * Verifica se um conteúdo HTML (do RichTextEditor) está vazio — sem texto
+ * visível após remover as tags. Considera `<br>`, `<div></div>` e espaços
+ * como vazio, da mesma forma que o `RichTextEditor` avalia seu `isEmpty`.
+ */
+function isHtmlEmpty(html: string | null | undefined): boolean {
+  if (!html) return true
+  return html.replace(/<[^>]+>/g, '').trim() === ''
+}
+
+/**
+ * Heurística simples para inferir se uma descrição carregada do backend é
+ * HTML (vem do modo CATALOG / RichTextEditor) ou texto puro (modo SIMPLE).
+ * Usada no modo edição para restaurar o modo correto de cada linha.
+ */
+function looksLikeHtml(text: string | null | undefined): boolean {
+  if (!text) return false
+  return /<\/?[a-z][\s\S]*>/i.test(text)
 }
 
 const UF_OPTIONS = BRAZILIAN_STATES.map((s) => ({
@@ -206,14 +242,18 @@ export function TechnicalProposalForm({
     if (proposal?.serviceItems && proposal.serviceItems.length > 0) {
       return proposal.serviceItems.map((s) => ({
         rowKey: nextRowKey(),
-        description: s.description,
+        // Infere o modo da linha pela natureza da descrição persistida:
+        // HTML (RichTextEditor) → CATALOG; texto puro → SIMPLE.
+        mode: (looksLikeHtml(s.description) ? 'CATALOG' : 'SIMPLE') as ServiceItemMode,
+        category: '' as ServiceCategory | '',
+        serviceTemplateId: '',
+        serviceTemplateName: '',
+        description: s.description ?? '',
         price: s.price != null ? formatBRLValue(s.price) : '',
       }))
     }
-    // Em modo create, iniciamos com uma linha vazia.
-    if (!proposal) {
-      return [{ rowKey: nextRowKey(), description: '', price: '' }]
-    }
+    // Em modo create, iniciamos sem linhas — o usuário escolhe o tipo de
+    // serviço (catalogado ou simples) ao clicar em um dos botões.
     return []
   })
 
@@ -243,6 +283,14 @@ export function TechnicalProposalForm({
   const [productSearching, setProductSearching] = useState(false)
   const [activeProductRow, setActiveProductRow] = useState<string | null>(null)
 
+  // Cache de templates por categoria
+  const [templatesByCategory, setTemplatesByCategory] = useState<
+    Record<string, ServiceTemplateResponse[]>
+  >({})
+  const [templatesLoading, setTemplatesLoading] = useState<
+    Record<string, boolean>
+  >({})
+
   const [formError, setFormError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
@@ -265,12 +313,12 @@ export function TechnicalProposalForm({
     setCode(initialCode)
   }, [initialCode, proposal])
 
-	  // Pré-preenche o rótulo do cliente no modo edição.
-	  useEffect(() => {
-	    if (!proposal) return
-	    if (proposal.clientName) {
-	      setClientLabel(proposal.clientName)
-	    } else if (proposal.customerId || proposal.companyId) {
+  // Pré-preenche o rótulo do cliente no modo edição.
+  useEffect(() => {
+    if (!proposal) return
+    if (proposal.clientName) {
+      setClientLabel(proposal.clientName)
+    } else if (proposal.customerId || proposal.companyId) {
       const id = proposal.customerId ?? proposal.companyId ?? 0
       setClientLabel(`${String(id).slice(0, 8)}…`)
     }
@@ -335,9 +383,6 @@ export function TechnicalProposalForm({
   useEffect(() => {
     if (!hasAddress) return
     if (!clientId) return
-    // Guarda: só preenche se TODOS os campos estiverem vazios. Evita
-    // sobrescrever endereço persistido em edição ou digitado pelo
-    // usuário (inclusive via lookup de CEP).
     const isEmpty = (v?: string | null) => v == null || v.trim() === ''
     if (
       !isEmpty(address.street) ||
@@ -420,10 +465,34 @@ export function TechnicalProposalForm({
   }, [])
 
   // === handlers de itens de serviço ===
-  function addServiceItem() {
+  /** Adiciona uma linha de serviço catalogado (categoria + seleção + descrição HTML). */
+  function addCatalogServiceItem() {
     setServiceItems((prev) => [
       ...prev,
-      { rowKey: nextRowKey(), description: '', price: '' },
+      {
+        rowKey: nextRowKey(),
+        mode: 'CATALOG',
+        category: '',
+        serviceTemplateId: '',
+        serviceTemplateName: '',
+        description: '',
+        price: '',
+      },
+    ])
+  }
+  /** Adiciona uma linha de serviço simples (descrição texto livre + preço). */
+  function addSimpleServiceItem() {
+    setServiceItems((prev) => [
+      ...prev,
+      {
+        rowKey: nextRowKey(),
+        mode: 'SIMPLE',
+        category: '',
+        serviceTemplateId: '',
+        serviceTemplateName: '',
+        description: '',
+        price: '',
+      },
     ])
   }
   function removeServiceItem(rowKey: string) {
@@ -433,6 +502,44 @@ export function TechnicalProposalForm({
     setServiceItems((prev) =>
       prev.map((s) => (s.rowKey === rowKey ? { ...s, ...patch } : s)),
     )
+  }
+
+  // Carrega templates por categoria quando o usuário seleciona uma categoria
+  function handleCategoryChange(rowKey: string, category: ServiceCategory | '') {
+    updateServiceItem(rowKey, {
+      category,
+      serviceTemplateId: '',
+      serviceTemplateName: '',
+      description: '',
+      price: '',
+    })
+    if (category && !templatesByCategory[category]) {
+      setTemplatesLoading((prev) => ({ ...prev, [category]: true }))
+      listServiceTemplatesByCategory(category, { page: 0, size: 50 })
+        .then((res) => {
+          setTemplatesByCategory((prev) => ({
+            ...prev,
+            [category]: res.content,
+          }))
+        })
+        .catch(() => {
+          setTemplatesByCategory((prev) => ({
+            ...prev,
+            [category]: [],
+          }))
+        })
+        .finally(() => {
+          setTemplatesLoading((prev) => ({ ...prev, [category]: false }))
+        })
+    }
+  }
+
+  function handleServiceSelect(rowKey: string, template: ServiceTemplateResponse) {
+    updateServiceItem(rowKey, {
+      serviceTemplateId: template.id,
+      serviceTemplateName: template.name,
+      description: template.description ?? '',
+    })
   }
 
   // === handlers de itens de produto ===
@@ -486,8 +593,6 @@ export function TechnicalProposalForm({
       const cep = await getCep(digits)
       setAddress((a) => ({
         ...a,
-        // Só sobrescreve se a base local retornou valor (CEPs
-        // genéricos podem trazer logradouro/bairro/cidade/UF null).
         street: cep.street ?? a.street,
         neighborhood: cep.neighborhood ?? a.neighborhood,
         city: cep.city ?? a.city,
@@ -509,9 +614,9 @@ export function TechnicalProposalForm({
     let cancelled = false
     const handle = setTimeout(() => {
       const servicePayload = serviceItems
-        .filter((s) => s.description.trim() !== '')
+        .filter((s) => !isHtmlEmpty(s.description) || s.price.trim() !== '')
         .map((s) => ({
-          description: s.description.trim(),
+          description: isHtmlEmpty(s.description) ? null : s.description,
           price: parseNumber(s.price) ?? null,
         }))
       const productPayload = productItems
@@ -588,9 +693,10 @@ export function TechnicalProposalForm({
       errs.phone = 'Telefone deve ter no máximo 20 caracteres.'
     }
 
-    // Ao menos um item (serviço ou produto) preenchido.
+    // Ao menos um item (serviço ou produto) preenchido. Um serviço é
+    // considerado válido quando possui descrição (HTML) ou preço.
     const validServices = serviceItems.filter(
-      (s) => s.description.trim() !== '',
+      (s) => !isHtmlEmpty(s.description) || s.price.trim() !== '',
     )
     const validProducts = productItems.filter((p) => p.productId !== '')
     if (validServices.length === 0 && validProducts.length === 0) {
@@ -658,9 +764,9 @@ export function TechnicalProposalForm({
     if (!validateAll()) return
 
     const servicePayload: TechnicalProposalServiceItemRequest[] = serviceItems
-      .filter((s) => s.description.trim() !== '')
+      .filter((s) => !isHtmlEmpty(s.description) || s.price.trim() !== '')
       .map((s) => ({
-        description: s.description.trim(),
+        description: isHtmlEmpty(s.description) ? null : s.description,
         price: parseNumber(s.price) ?? null,
       }))
 
@@ -868,10 +974,10 @@ export function TechnicalProposalForm({
                     <button
                       type="button"
                       className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800"
-	                    onClick={() => {
-	                        setClientId(c.id)
-	                        setClientLabel(c.name)
-	                        setClientOptions([])
+                      onClick={() => {
+                          setClientId(c.id)
+                          setClientLabel(c.name)
+                          setClientOptions([])
                       }}
                     >
                       <span className="inline-flex shrink-0 rounded border border-slate-300 px-1.5 py-0.5 text-[10px] font-medium uppercase text-slate-600 dark:border-slate-600 dark:text-slate-300">
@@ -1074,37 +1180,60 @@ export function TechnicalProposalForm({
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-base font-semibold">Serviços prestados</h3>
-          <Button type="button" variant="secondary" onClick={addServiceItem}>
-            <Plus className="h-4 w-4" />
-            Adicionar serviço
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" variant="secondary" onClick={addCatalogServiceItem}>
+              <Plus className="h-4 w-4" />
+              Serviço Catálogo
+            </Button>
+            <Button type="button" variant="secondary" onClick={addSimpleServiceItem}>
+              <Plus className="h-4 w-4" />
+              Serviço Simples
+            </Button>
+          </div>
         </div>
         <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
-          Liste os serviços prestados com descrição e preço (opcional).
+          Adicione um <strong>serviço do catálogo</strong> (com descrição
+          formatada em HTML) ou um <strong>serviço simples</strong> (descrição
+          em texto livre). Em ambos os casos, a descrição é opcional.
         </p>
 
         {serviceItems.length === 0 ? (
           <div className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-            Nenhum serviço. Clique em <strong>Adicionar serviço</strong> para
-            começar.
+            Nenhum serviço. Clique em <strong>Serviço Catálogo</strong> ou
+            <strong> Serviço Simples</strong> para começar.
           </div>
         ) : (
           <div className="flex flex-col gap-2">
             {serviceItems.map((s, idx) => (
-              <ServiceRow
-                key={s.rowKey}
-                index={idx}
-                isFirst={idx === 0}
-                draft={s}
-                // Preço final (com margem) retornado pelo backend via
-                // simulate. Quando a simulação ainda não chegou, usa
-                // o preço original do draft como fallback visual.
-                priceWithMargin={
-                  simulation?.serviceItems?.[idx]?.price ?? null
-                }
-                onChange={(patch) => updateServiceItem(s.rowKey, patch)}
-                onRemove={() => removeServiceItem(s.rowKey)}
-              />
+              s.mode === 'CATALOG' ? (
+                <ServiceRowCatalog
+                  key={s.rowKey}
+                  index={idx}
+                  isFirst={idx === 0}
+                  draft={s}
+                  templates={
+                    s.category
+                      ? templatesByCategory[s.category] ?? []
+                      : []
+                  }
+                  templatesLoading={
+                    s.category ? templatesLoading[s.category] ?? false : false
+                  }
+                  onChange={(patch) => updateServiceItem(s.rowKey, patch)}
+                  onCategoryChange={(cat) => handleCategoryChange(s.rowKey, cat)}
+                  onServiceSelect={(template) => handleServiceSelect(s.rowKey, template)}
+                  onRemove={() => removeServiceItem(s.rowKey)}
+                />
+              ) : (
+                <ServiceRowSimple
+                  key={s.rowKey}
+                  index={idx}
+                  isFirst={idx === 0}
+                  draft={s}
+                  onChange={(patch) => updateServiceItem(s.rowKey, patch)}
+                  onRemove={() => removeServiceItem(s.rowKey)}
+                />
+              )
             ))}
           </div>
         )}
@@ -1149,9 +1278,6 @@ export function TechnicalProposalForm({
                   simulation?.productItems?.[idx]?.totalPrice ??
                   (parseNumber(p.unitPrice) ?? 0) * (parseNumber(p.quantity) ?? 0)
                 }
-                // Preço unitário já com margem aplicado — vem do backend
-                // via simulate. Quando a simulação ainda não chegou, usa
-                // o preço original do draft como fallback visual.
                 unitPriceWithMargin={
                   simulation?.productItems?.[idx]?.unitPrice ?? null
                 }
@@ -1360,111 +1486,201 @@ export function TechnicalProposalForm({
 // Subcomponente: linha de serviço
 // =====================================================================
 
-interface ServiceRowProps {
+// =====================================================================
+// Subcomponente: linha de serviço catalogado (categoria + seleção + RichTextEditor)
+// =====================================================================
+
+interface ServiceRowCatalogProps {
   index: number
   isFirst: boolean
   draft: ServiceDraft
-  /**
-   * Preço final (com margem de lucro aplicada) retornado pelo backend
-   * em `simulation.serviceItems[i].price`. Quando `null`, ainda não
-   * há simulação disponível e o componente exibe fallback.
-   */
-  priceWithMargin: number | null
+  templates: ServiceTemplateResponse[]
+  templatesLoading: boolean
+  onChange: (patch: Partial<ServiceDraft>) => void
+  onCategoryChange: (category: ServiceCategory | '') => void
+  onServiceSelect: (template: ServiceTemplateResponse) => void
+  onRemove: () => void
+}
+
+function ServiceRowCatalog({
+  index,
+  isFirst,
+  draft,
+  templates,
+  templatesLoading,
+  onChange,
+  onCategoryChange,
+  onServiceSelect,
+  onRemove,
+}: ServiceRowCatalogProps) {
+  const labelCls = 'mb-1.5 block text-xs font-medium text-slate-600 dark:text-slate-300'
+
+  const categoryOptions = [
+    { value: '', label: 'Selecione…' },
+    ...SERVICE_CATEGORIES.map((c) => ({
+      value: c.value,
+      label: c.label,
+    })),
+  ]
+
+  const serviceOptions = [
+    { value: '', label: 'Selecione…' },
+    ...templates.map((t) => ({
+      value: String(t.id),
+      label: t.name,
+    })),
+  ]
+
+  return (
+    <div className="rounded-md border border-slate-200 p-2 dark:border-slate-700">
+      {/* Badge do modo + linha de categoria/serviço/remover */}
+      <div className="mb-2 flex items-center gap-2">
+        <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+          Serviço Catálogo
+        </span>
+      </div>
+      <div className="grid items-start gap-2 sm:grid-cols-[40px_200px_1fr_40px]">
+        <div className="flex h-full items-center justify-center font-mono text-xs font-semibold text-slate-500 dark:text-slate-400">
+          {String(index + 1).padStart(2, '0')}
+        </div>
+        <div>
+          {isFirst ? <label className={labelCls}>Categoria</label> : null}
+          <select
+            aria-label="Categoria do serviço"
+            value={draft.category}
+            onChange={(e) => onCategoryChange(e.target.value as ServiceCategory | '')}
+            className="h-9 w-full min-w-0 rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-900 outline-none focus:border-focus focus:ring-1 focus:ring-focus/30 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+          >
+            {categoryOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          {isFirst ? <label className={labelCls}>Serviço</label> : null}
+          {templatesLoading ? (
+            <div className="flex h-9 items-center gap-2 text-sm text-slate-500">
+              <Spinner size="sm" />
+              Carregando…
+            </div>
+          ) : (
+            <select
+              aria-label="Serviço do catálogo"
+              value={draft.serviceTemplateId !== '' ? String(draft.serviceTemplateId) : ''}
+              onChange={(e) => {
+                const id = e.target.value
+                if (id) {
+                  const template = templates.find((t) => String(t.id) === id)
+                  if (template) onServiceSelect(template)
+                } else {
+                  onChange({ serviceTemplateId: '', serviceTemplateName: '' })
+                }
+              }}
+              disabled={!draft.category}
+              className="h-9 w-full min-w-0 rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-900 outline-none focus:border-focus focus:ring-1 focus:ring-focus/30 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:disabled:bg-slate-800"
+            >
+              {serviceOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+        <div className="flex h-full items-center justify-center">
+          <button
+            type="button"
+            onClick={onRemove}
+            aria-label="Remover serviço"
+            title="Remover serviço"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-red-600 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-red-400"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Linha 2: descrição do serviço (HTML formatado, editável) */}
+      <div className="mt-2">
+        {isFirst ? (
+          <label className={labelCls}>
+            Descrição do serviço <span className="font-normal text-slate-400">(opcional)</span>
+          </label>
+        ) : null}
+        <RichTextEditor
+          value={draft.description}
+          onChange={(html) => onChange({ description: html })}
+          placeholder="Descreva o serviço prestado… (ao selecionar um serviço do catálogo, a descrição é preenchida automaticamente)"
+          maxLength={2000}
+          className="[&_[role=textbox]]:min-h-[240px]"
+        />
+      </div>
+    </div>
+  )
+}
+
+// =====================================================================
+// Subcomponente: linha de serviço simples (descrição texto livre)
+// =====================================================================
+
+interface ServiceRowSimpleProps {
+  index: number
+  isFirst: boolean
+  draft: ServiceDraft
   onChange: (patch: Partial<ServiceDraft>) => void
   onRemove: () => void
 }
 
-function ServiceRow({
+function ServiceRowSimple({
   index,
   isFirst,
   draft,
-  priceWithMargin,
   onChange,
   onRemove,
-}: ServiceRowProps) {
+}: ServiceRowSimpleProps) {
   const labelCls = 'mb-1.5 block text-xs font-medium text-slate-600 dark:text-slate-300'
-  const [priceDisplay, setPriceDisplay] = useState<string>(draft.price)
-  const [focused, setFocused] = useState(false)
-
-  useEffect(() => {
-    // Só sincroniza a partir do draft quando o campo NÃO está focado —
-    // durante a digitação o estado local é a fonte da verdade, e
-    // sobrescrevê-lo quebraria a edição.
-    if (!focused) setPriceDisplay(draft.price)
-  }, [draft.price, focused])
-
-  // Fora do foco: exibe o preço COM margem (atualiza em tempo real quando
-  // a margem global muda, via simulate). Focado: exibe o preço base
-  // (sem margem) para edição livre.
-  const displayed = focused
-    ? priceDisplay
-    : priceWithMargin != null
-      ? formatBRLValue(priceWithMargin)
-      : priceDisplay
+  const inputBase =
+    'h-9 w-full min-w-0 rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-900 outline-none ' +
+    'placeholder:text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 ' +
+    'focus:border-focus focus:ring-1 focus:ring-focus/30 transition-colors duration-200'
 
   return (
-    <div className="grid items-start gap-2 rounded-md border border-slate-200 p-2 sm:grid-cols-[40px_1fr_140px_40px] dark:border-slate-700">
-      <div className="flex h-full items-center justify-center font-mono text-xs font-semibold text-slate-500 dark:text-slate-400">
-        {String(index + 1).padStart(2, '0')}
+    <div className="rounded-md border border-slate-200 p-2 dark:border-slate-700">
+      {/* Badge do modo + linha de descrição/remover */}
+      <div className="mb-2 flex items-center gap-2">
+        <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+          Serviço Simples
+        </span>
       </div>
-      <div>
-        {isFirst ? <label className={labelCls}>Descrição</label> : null}
-        <input
-          type="text"
-          aria-label="Descrição do serviço"
-          placeholder="Descreva o serviço prestado…"
-          value={draft.description}
-          onChange={(e) => onChange({ description: e.target.value })}
-          className="h-9 w-full min-w-0 rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-900 outline-none focus:border-focus focus:ring-1 focus:ring-focus/30 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-        />
-      </div>
-      <div>
-        {isFirst ? <label className={labelCls}>Preço (R$)</label> : null}
-        <input
-          type="text"
-          inputMode="decimal"
-          aria-label="Preço base do serviço (sem margem)"
-          placeholder="0,00"
-          value={displayed}
-          onFocus={() => {
-            setFocused(true)
-            // Ao focar, garante que o campo mostre o preço base (sem
-            // margem) para edição, mesmo que antes exibisse o com margem.
-            setPriceDisplay(draft.price)
-          }}
-          onChange={(e) => {
-            setPriceDisplay(e.target.value)
-            onChange({ price: e.target.value })
-          }}
-          onBlur={() => {
-            setFocused(false)
-            if (priceDisplay.trim() !== '') {
-              const formatted = formatBRLValue(priceDisplay)
-              if (formatted) {
-                setPriceDisplay(formatted)
-                onChange({ price: formatted })
-              }
-            }
-          }}
-          className="h-9 w-full min-w-0 rounded-md border border-slate-300 bg-white px-2 text-right text-sm text-slate-900 outline-none focus:border-focus focus:ring-1 focus:ring-focus/30 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-        />
-        {priceWithMargin != null &&
-        parseNumber(draft.price) !== priceWithMargin ? (
-          <p className="mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">
-            Base {brlFormatter.format(parseNumber(draft.price) ?? 0)} + margem
-          </p>
-        ) : null}
-      </div>
-      <div className="flex h-full items-center justify-center">
-        <button
-          type="button"
-          onClick={onRemove}
-          aria-label="Remover serviço"
-          title="Remover serviço"
-          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-red-600 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-red-400"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
+      <div className="grid items-start gap-2 sm:grid-cols-[40px_1fr_40px]">
+        <div className="flex h-full items-center justify-center font-mono text-xs font-semibold text-slate-500 dark:text-slate-400">
+          {String(index + 1).padStart(2, '0')}
+        </div>
+        <div className="min-w-0">
+          {isFirst ? <label className={labelCls}>Descrição</label> : null}
+          <input
+            type="text"
+            aria-label="Descrição do serviço"
+            placeholder="Descreva o serviço prestado…"
+            value={draft.description}
+            onChange={(e) => onChange({ description: e.target.value })}
+            className={inputBase}
+            maxLength={2000}
+          />
+        </div>
+        <div className="flex h-full items-center justify-center">
+          <button
+            type="button"
+            onClick={onRemove}
+            aria-label="Remover serviço"
+            title="Remover serviço"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-red-600 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-red-400"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -1518,17 +1734,12 @@ function ProductRow({
   const [priceFocused, setPriceFocused] = useState(false)
 
   useEffect(() => {
-    // Só sincroniza a partir do draft quando o campo NÃO está focado —
-    // durante a digitação o estado local é a fonte da verdade.
     if (!priceFocused) setUnitPriceDisplay(draft.unitPrice)
   }, [draft.unitPrice, priceFocused])
   useEffect(() => {
     setDiscountDisplay(draft.discount)
   }, [draft.discount])
 
-  // Fora do foco: exibe o preço unitário COM margem (atualiza em tempo
-  // real quando a margem global muda, via simulate). Focado: exibe o
-  // preço base (sem margem) para edição livre.
   const unitPriceDisplayed = priceFocused
     ? unitPriceDisplay
     : unitPriceWithMargin != null
@@ -1608,8 +1819,6 @@ function ProductRow({
           value={unitPriceDisplayed}
           onFocus={() => {
             setPriceFocused(true)
-            // Ao focar, garante que o campo mostre o preço base (sem
-            // margem) para edição, mesmo que antes exibisse o com margem.
             setUnitPriceDisplay(draft.unitPrice)
           }}
           onChange={(e) => {
