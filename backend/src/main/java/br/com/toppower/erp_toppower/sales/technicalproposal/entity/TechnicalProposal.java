@@ -366,14 +366,15 @@ public class TechnicalProposal extends OrganizationScopedEntity {
         this.subtotal = this.servicesSubtotal.add(this.productsSubtotal)
                 .setScale(2, RoundingMode.HALF_UP);
 
-        // total = subtotal − desconto global + frete. O desconto global é
-        // aplicado sobre o subtotal; o frete é somado ao final, sem
-        // participar do desconto.
+        // total = subtotal − desconto global + frete + preço geral.
+        // O desconto global é aplicado sobre o subtotal; o frete e o
+        // preço geral são somados ao final, sem participar do desconto.
         BigDecimal discounted = PricingMath.applyGlobalDiscount(
                 this.subtotal, this.discount, this.discountType);
         BigDecimal freight = (freightValue != null) ? freightValue : BigDecimal.ZERO;
+        BigDecimal general = (generalPrice != null) ? generalPrice : BigDecimal.ZERO;
         this.globalDiscountValue = this.subtotal.subtract(discounted).setScale(2, RoundingMode.HALF_UP);
-        this.total = discounted.add(freight).setScale(2, RoundingMode.HALF_UP);
+        this.total = discounted.add(freight).add(general).setScale(2, RoundingMode.HALF_UP);
     }
 
     private static BigDecimal sumServices(List<TechnicalProposalServiceItem> items) {

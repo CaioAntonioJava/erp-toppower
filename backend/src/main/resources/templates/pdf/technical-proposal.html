@@ -13,7 +13,7 @@
 <!-- Barra de acento + título do documento -->
 <div class="doc-accent">&#160;</div>
 <div class="doc-title"
-     th:text="'Proposta Técnica nº ' + ${proposal.code}">Proposta Técnica</div>
+     th:text="'Proposta Técnica nº ' + ${proposal.code} + (${proposal.revision != null} ? ' - REV. ' + ${proposal.revision} : '')">Proposta Técnica</div>
 <div class="doc-subtitle">
   Status:
   <span th:text="${proposal.status.name()}">ABERTA</span>
@@ -27,13 +27,7 @@
   </span>
 </div>
 
-<!-- Cliente + Responsável técnico + Condições (empilhados, um abaixo
-     do outro). Cada label/valor opcional só é renderizado se o dado
-     correspondente estiver preenchido — campo em branco = linha omitida.
-
-     A regra CSS .text-limit-2 corta o nome do cliente a 2 linhas no
-     máximo (1 linha é o caso típico, renderizado sem <br/> pelo
-     SoftBreak). -->
+<!-- Cliente -->
 <div class="panel" style="margin-bottom:12px;">
   <div class="panel-title">Cliente</div>
     <div style="
@@ -43,62 +37,6 @@
         white-space:nowrap;">
         <span th:text="${proposal.clientName}"></span>
     </div>
-</div>
-<div class="panel" style="margin-bottom:12px;">
-  <div class="panel-title">Responsável técnico</div>
-  <table class="kv">
-    <tr th:if="${proposal.technicalResponsible != null and !proposal.technicalResponsible.isBlank()}">
-      <td class="k">Responsável:</td>
-      <td class="v" th:text="${proposal.technicalResponsible}">—</td>
-    </tr>
-    <tr th:if="${proposal.email != null and !proposal.email.isBlank()}">
-      <td class="k">E-mail:</td>
-      <td class="v" th:text="${proposal.email}">—</td>
-    </tr>
-    <tr th:if="${proposal.phone != null and !proposal.phone.isBlank()}">
-      <td class="k">Fone:</td>
-      <td class="v" th:text="${proposal.phone}">—</td>
-    </tr>
-  </table>
-</div>
-<!-- Condições — cada condição da lista é renderizada como um bloco
-     com título em destaque e conteúdo textual. A lista é ordenada pelo
-     campo sortOrder (definido no frontend). -->
-<div class="panel" th:if="${!#lists.isEmpty(proposal.conditions)}">
-  <div class="panel-title">Condições</div>
-  <div th:each="cond, idx : ${proposal.conditions}" style="margin-bottom:8px;">
-    <div style="font-size:9pt; font-weight:bold; margin-bottom:2px;"
-         th:text="${cond.title}">Título da condição</div>
-    <div class="notes" th:if="${cond.content != null and !cond.content.isBlank()}"
-         th:utext="${cond.content}">Conteúdo da condição</div>
-  </div>
-</div>
-
-<!-- Endereço de execução.
-     O bloco só aparece quando ao menos um sub-campo está presente. -->
-<div class="section"
-     th:if="${(proposal.address != null)
-              and ((proposal.address.street != null and !proposal.address.street.isBlank())
-                or (proposal.address.number != null and !proposal.address.number.isBlank())
-                or (proposal.address.complement != null and !proposal.address.complement.isBlank())
-                or (proposal.address.neighborhood != null and !proposal.address.neighborhood.isBlank())
-                or (proposal.address.city != null and !proposal.address.city.isBlank())
-                or (proposal.address.state != null and !proposal.address.state.isBlank())
-                or (proposal.address.zipCode != null and !proposal.address.zipCode.isBlank()))}">
-  <div class="section-title">Endereço de execução</div>
-  <div class="addr-block">
-    <span th:if="${proposal.address.street != null and !proposal.address.street.isBlank()}">
-      <span th:text="${proposal.address.street}"></span><span th:if="${proposal.address.number != null and !proposal.address.number.isBlank()}" th:text="', ' + ${proposal.address.number}"></span>
-    </span>
-    <span th:if="${proposal.address.complement != null and !proposal.address.complement.isBlank()}"
-          th:text="' — ' + ${proposal.address.complement}"></span>
-    <span th:if="${proposal.address.neighborhood != null and !proposal.address.neighborhood.isBlank()}"
-          th:text="' — ' + ${proposal.address.neighborhood}"></span>
-    <br/>
-    <span th:if="${proposal.address.city != null and !proposal.address.city.isBlank()}" th:text="${proposal.address.city}"></span><span th:if="${proposal.address.state != null and !proposal.address.state.isBlank()}" th:text="'/' + ${proposal.address.state}"></span>
-    <span th:if="${proposal.address.zipCode != null and !proposal.address.zipCode.isBlank()}"
-          th:text="' — CEP ' + ${proposal.address.zipCode}"></span>
-  </div>
 </div>
 
 <!-- Descrição -->
@@ -124,6 +62,9 @@
     <tr th:each="it, idx : ${proposal.serviceItems}">
       <td th:text="${idx.count}">1</td>
       <td>
+        <div th:if="${serviceTemplateNames != null and it.serviceTemplateId != null and serviceTemplateNames[it.serviceTemplateId] != null}"
+             style="font-size:9pt; font-weight:bold; margin-bottom:4px;"
+             th:text="${serviceTemplateNames[it.serviceTemplateId]}">Nome do serviço</div>
         <div class="notes"
              th:utext="${it.description != null and !it.description.isEmpty()
                           ? it.description : '—'}">—</div>
@@ -137,55 +78,37 @@
   </table>
 </div>
 
-<!-- Produtos -->
-<div class="section" th:if="${!#lists.isEmpty(proposal.productItems)}">
-  <div class="section-title">
-    Produtos (<span th:text="${#lists.size(proposal.productItems)}">0</span>)
+<!-- Condições -->
+<div class="panel" th:if="${!#lists.isEmpty(proposal.conditions)}">
+  <div class="panel-title">Condições</div>
+  <div th:each="cond, idx : ${proposal.conditions}" style="margin-bottom:8px;">
+    <div style="font-size:9pt; font-weight:bold; margin-bottom:2px;"
+         th:text="${cond.title}">Título da condição</div>
+    <div class="notes" th:if="${cond.content != null and !cond.content.isBlank()}"
+         th:utext="${cond.content}">Conteúdo da condição</div>
   </div>
-  <table class="grid products">
-    <thead>
-    <tr>
-      <th style="width:4%;">#</th>
-      <th>Produto</th>
-      <th class="num" style="width:7%;">Qtd.</th>
-      <th class="num" style="width:12%;">Preço un.</th>
-      <th class="num" style="width:12%;">Subtotal</th>
-      <th class="num" style="width:9%;">Desc.</th>
-      <th class="num" style="width:13%;">Total</th>
+</div>
+
+<!-- Responsável técnico -->
+<div class="panel" style="margin-bottom:12px;">
+  <div class="panel-title">Responsável técnico</div>
+  <table class="kv">
+    <tr th:if="${proposal.technicalResponsible != null and !proposal.technicalResponsible.isBlank()}">
+      <td class="k">Responsável:</td>
+      <td class="v" th:text="${proposal.technicalResponsible}">—</td>
     </tr>
-    </thead>
-    <tbody>
-    <tr th:each="it, idx : ${proposal.productItems}">
-      <td th:text="${idx.count}">1</td>
-      <td>
-        <span th:text="${productNames != null and productNames[it.productUuid] != null
-                          ? productNames[it.productUuid]
-                          : '—'}">—</span>
-        <span th:if="${productCodes != null and productCodes[it.productUuid] != null and productCodes[it.productUuid] != '—'}"
-              style="color:#94a3b8; font-size:8pt;"
-              th:text="' (' + ${productCodes[it.productUuid]} + ')'"></span>
-      </td>
-      <td class="num"
-          th:text="${#numbers.formatDecimal(it.quantity, 1, 'POINT', 2, 'COMMA')}">0,00</td>
-      <td class="num money"
-          th:text="${'R$ ' + #numbers.formatDecimal(it.unitPrice, 1, 'POINT', 2, 'COMMA')}">0,00</td>
-      <td class="num money"
-          th:text="${'R$ ' + #numbers.formatDecimal(it.lineSubtotal, 1, 'POINT', 2, 'COMMA')}">0,00</td>
-      <td class="num"
-          th:text="${it.discountType != null and it.discount != null
-                      ? (it.discountType.name() == 'PERCENT'
-                          ? #numbers.formatDecimal(it.discount, 1, 'POINT', 2, 'COMMA') + '%'
-                          : 'R$ ' + #numbers.formatDecimal(it.discount, 1, 'POINT', 2, 'COMMA'))
-                      : ''}"></td>
-      <td class="num money"
-          th:text="${'R$ ' + #numbers.formatDecimal(it.totalPrice, 1, 'POINT', 2, 'COMMA')}">0,00</td>
+    <tr th:if="${proposal.email != null and !proposal.email.isBlank()}">
+      <td class="k">E-mail:</td>
+      <td class="v" th:text="${proposal.email}">—</td>
     </tr>
-    </tbody>
+    <tr th:if="${proposal.phone != null and !proposal.phone.isBlank()}">
+      <td class="k">Fone:</td>
+      <td class="v" th:text="${proposal.phone}">—</td>
+    </tr>
   </table>
 </div>
 
-<!-- Totais. Subtotais sempre presentes;
-     Desconto e Frete só aparecem se houver valor lançado. -->
+<!-- Valores -->
 <div class="totals">
   <table>
     <tr>
@@ -221,13 +144,7 @@
   </table>
 </div>
 
-<!-- Observações -->
-<div class="section" th:if="${proposal.notes != null and !proposal.notes.isBlank()}">
-  <div class="section-title">Observações</div>
-  <div class="notes" th:utext="${proposal.notes}">—</div>
-</div>
-
-<!-- Assinaturas — nome só aparece quando preenchido. -->
+<!-- Assinaturas -->
 <div class="signatures">
   <table>
     <tr>

@@ -6,6 +6,7 @@ import br.com.toppower.erp_toppower.product.service.ProductService;
 import br.com.toppower.erp_toppower.sales.pdf.PdfModelBuilder;
 import br.com.toppower.erp_toppower.sales.pdf.SalesPdfService;
 import br.com.toppower.erp_toppower.sales.technicalproposal.dto.TechnicalProposalResponse;
+import br.com.toppower.erp_toppower.servicetemplate.service.ServiceTemplateService;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -25,15 +26,18 @@ public class TechnicalProposalPdfService {
 
     private final TechnicalProposalService technicalProposalService;
     private final ProductService productService;
+    private final ServiceTemplateService serviceTemplateService;
     private final SalesPdfService salesPdfService;
     private final PdfModelBuilder pdfModelBuilder;
 
     public TechnicalProposalPdfService(TechnicalProposalService technicalProposalService,
                                        ProductService productService,
+                                       ServiceTemplateService serviceTemplateService,
                                        SalesPdfService salesPdfService,
                                        PdfModelBuilder pdfModelBuilder) {
         this.technicalProposalService = technicalProposalService;
         this.productService = productService;
+        this.serviceTemplateService = serviceTemplateService;
         this.salesPdfService = salesPdfService;
         this.pdfModelBuilder = pdfModelBuilder;
     }
@@ -51,6 +55,7 @@ public class TechnicalProposalPdfService {
         model.put("proposal", proposal);
         model.put("productNames", resolveProductField(proposal, ProductResponse::name));
         model.put("productCodes", resolveProductField(proposal, p -> p.code() != null ? p.code() : "—"));
+        model.put("serviceTemplateNames", resolveServiceTemplateNames(proposal));
         // Nome com quebra "macia" (sufixo societário, separadores
         // semânticos) — pré-computado no Java porque o SpEL restrito
         // do Thymeleaf não permite T(SomeClass).method(...) no template.
@@ -63,6 +68,22 @@ public class TechnicalProposalPdfService {
         model.put("clientNameHtml", softBroken(clientName));
 
         return salesPdfService.render("pdf/technical-proposal", model);
+    }
+
+    private Map<Long, String> resolveServiceTemplateNames(TechnicalProposalResponse proposal) {
+        Map<Long, String> result = new HashMap<>();
+        if (proposal.serviceItems() == null) return result;
+        for (var item : proposal.serviceItems()) {
+            Long templateId = item.serviceTemplateId();
+            if (templateId == null || result.containsKey(templateId)) continue;
+            try {
+                var template = serviceTemplateService.getById(templateId);
+                result.put(templateId, template.name());
+            } catch (RuntimeException ex) {
+                // template removido ou inacessível — segue sem nome
+            }
+        }
+        return result;
     }
 
     private Map<Long, String> resolveProductField(TechnicalProposalResponse proposal,
