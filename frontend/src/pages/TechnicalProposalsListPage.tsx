@@ -238,7 +238,7 @@ export function TechnicalProposalsListPage() {
                       </div>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 font-mono text-xs font-semibold text-slate-700 dark:text-slate-200">
-                      {brlFormatter.format(tp.total)}
+                      {brlFormatter.format(tp.total + (tp.generalPrice ?? 0))}
                     </td>
                     <td className="px-4 py-3">
                       <TechnicalProposalStatusBadge status={tp.status} />

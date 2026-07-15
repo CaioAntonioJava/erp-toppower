@@ -95,6 +95,10 @@ export interface TechnicalProposalServiceItemRequest {
   /** Descrição do serviço em HTML formatado (texto rico). Opcional. */
   description?: string | null
   price?: number | null
+  /** Categoria do serviço no catálogo (opcional, apenas para modo CATALOG). */
+  category?: string | null
+  /** ID do ServiceTemplate que originou este item (opcional). */
+  serviceTemplateId?: number | null
 }
 
 /** Linha de serviço retornada pela API. */
@@ -104,6 +108,10 @@ export interface TechnicalProposalServiceItemResponse {
   description: string | null
   /** Preço do serviço prestado. */
   price: number | null
+  /** Categoria do serviço no catálogo (opcional, apenas para modo CATALOG). */
+  category: string | null
+  /** ID do ServiceTemplate que originou este item (opcional). */
+  serviceTemplateId: number | null
 }
 
 /** Linha de produto enviada na criação/edição. */
@@ -126,6 +134,29 @@ export interface TechnicalProposalProductItemResponse {
   discountType: DiscountType | null
   discount: number | null
   totalPrice: number
+}
+
+// =====================================================================
+// Condições
+// =====================================================================
+
+/** Condição enviada na criação/edição da proposta técnica. */
+export interface TechnicalProposalConditionRequest {
+  /** Título da condição (ex.: "Garantia", "Prazo de pagamento"). Obrigatório. */
+  title: string
+  /** Conteúdo textual da condição. Opcional. */
+  content?: string | null
+}
+
+/** Condição retornada pela API. */
+export interface TechnicalProposalConditionResponse {
+  id: number
+  /** Título da condição (ex.: "Garantia", "Prazo de pagamento"). */
+  title: string
+  /** Conteúdo textual da condição. Opcional. */
+  content: string | null
+  /** Ordem de exibição da condição na lista. */
+  sortOrder: number
 }
 
 // =====================================================================
@@ -162,6 +193,7 @@ export interface TechnicalProposalResponse {
   deliveryDate: string | null
   serviceItems: TechnicalProposalServiceItemResponse[]
   productItems: TechnicalProposalProductItemResponse[]
+  conditions: TechnicalProposalConditionResponse[]
   discountType: DiscountType | null
   discount: number | null
   freightValue: number | null
@@ -174,6 +206,8 @@ export interface TechnicalProposalResponse {
   carrierId: number | null
   /** Nome da transportadora (resolvido no backend). */
   carrierName: string | null
+  /** Preço geral da proposta, preenchimento livre pelo usuário. */
+  generalPrice: number | null
   servicesSubtotal: number
   productsSubtotal: number
   subtotal: number
@@ -199,6 +233,8 @@ export interface TechnicalProposalSummaryResponse {
   /** Data de entrega, preenchida automaticamente ao concluir. */
   deliveryDate: string | null
   total: number
+  /** Preço geral da proposta (preenchimento livre). */
+  generalPrice: number | null
   paymentCondition: PaymentCondition | null
 }
 
@@ -218,6 +254,7 @@ export interface TechnicalProposalCreateRequest {
   phone?: string | null
   serviceItems?: TechnicalProposalServiceItemRequest[] | null
   productItems?: TechnicalProposalProductItemRequest[] | null
+  conditions?: TechnicalProposalConditionRequest[] | null
   discountType?: DiscountType | null
   discount?: number | null
   freightValue?: number | null
@@ -228,6 +265,8 @@ export interface TechnicalProposalCreateRequest {
   notes?: string | null
   /** ID da transportadora (Carrier) responsável pelo frete. Opcional. */
   carrierId?: number | null
+  /** Preço geral da proposta, preenchimento livre. Opcional. */
+  generalPrice?: number | null
 }
 
 /** Corpo de PATCH /api/v1/technical-proposals/{id}. */
@@ -246,6 +285,7 @@ export interface TechnicalProposalUpdateRequest {
   phone?: string | null
   serviceItems?: TechnicalProposalServiceItemRequest[] | null
   productItems?: TechnicalProposalProductItemRequest[] | null
+  conditions?: TechnicalProposalConditionRequest[] | null
   discountType?: DiscountType | null
   discount?: number | null
   freightValue?: number | null
@@ -256,6 +296,8 @@ export interface TechnicalProposalUpdateRequest {
   notes?: string | null
   /** ID da transportadora (Carrier). null = remover a transportadora vinculada. */
   carrierId?: number | null
+  /** Preço geral da proposta. null = remover o valor. */
+  generalPrice?: number | null
 }
 
 /** Resposta do endpoint /technical-proposals/next-code. */
