@@ -34,8 +34,14 @@
 <div class="panel" style="margin-bottom:12px;">
   <div class="panel-title">Cliente</div>
   <table class="kv">
+    <colgroup>
+      <col style="width:95px"/>
+      <col/>
+    </colgroup>
     <tr>
-      <td class="v break-word text-limit-2" style="font-weight:bold;"
+      <td colspan="2"
+          class="v break-word text-limit-2"
+          style="font-weight:bold; font-size:8pt"
           th:utext="${clientNameHtml != null ? clientNameHtml : '—'}">—</td>
     </tr>
     <tr th:if="${attentionHtml != null}">
