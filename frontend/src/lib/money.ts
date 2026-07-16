@@ -8,12 +8,26 @@
 
 /**
  * Converte a string do input em número, ou `null` se vazia/inválida.
- * Aceita vírgula como separador decimal (padrão brasileiro).
+ *
+ * Aceita os dois formatos brasileiros comuns:
+ *  - com separador de milhar e vírgula decimal: "1.500,00"
+ *  - apenas vírgula decimal: "1500,00"
+ *
+ * Quando há vírgula, os pontos são tratados como separador de milhar
+ * (removidos) e a vírgula vira o separador decimal. Sem vírgula, o ponto
+ * é interpretado como separador decimal (formato inglês) ou inteiro.
  */
 export function parseNumber(value: string): number | null {
   const trimmed = value.trim()
   if (!trimmed) return null
-  const normalized = trimmed.replace(',', '.')
+  let normalized: string
+  if (trimmed.includes(',')) {
+    // Formato brasileiro: "." separa milhares, "," separa decimais.
+    normalized = trimmed.replace(/\./g, '').replace(',', '.')
+  } else {
+    // Sem vírgula: "." como decimal (inglês) ou valor inteiro.
+    normalized = trimmed
+  }
   const n = Number(normalized)
   return Number.isFinite(n) ? n : null
 }
