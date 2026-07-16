@@ -40,50 +40,44 @@
 </div>
 
 <!-- Descrição -->
-<div class="section" th:if="${proposal.description != null and !proposal.description.isBlank()}" style="margin-bottom:36px;">
+<div class="section" th:if="${proposal.description != null and !proposal.description.isBlank()}" style="margin-bottom:18px;">
   <div class="notes" style="font-size:10.5pt;" th:utext="${proposal.description}">—</div>
 </div>
 
-<!-- Serviços prestados -->
-<div class="section" th:if="${!#lists.isEmpty(proposal.serviceItems)}">
-  <div class="section-title" style="font-size:11pt; font-weight:bold;">
-    Serviços prestados
-  </div>
-  <table class="grid">
-<!--    <thead>-->
-<!--    <tr>-->
-<!--      <th style="width:6%;">#</th>-->
-<!--      <th>Descrição</th>-->
-<!--      <th class="num" style="width:20%;">Preço</th>-->
-<!--    </tr>-->
-<!--    </thead>-->
-    <tbody>
-    <tr th:each="it, idx : ${proposal.serviceItems}">
-      <td th:text="${idx.count}">1</td>
-      <td>
-        <div th:if="${serviceTemplateNames != null and it.serviceTemplateId != null and serviceTemplateNames[it.serviceTemplateId] != null}"
-             style="font-size:9pt; font-weight:bold; margin-bottom:4px;"
-             th:text="${serviceTemplateNames[it.serviceTemplateId]}">Nome do serviço</div>
-        <div class="notes"
-             th:utext="${it.description != null and !it.description.isEmpty()
-                          ? it.description : '—'}">—</div>
-      </td>
-      <td class="num money"
-          th:text="${it.price != null
-                     ? 'R$ ' + #numbers.formatDecimal(it.price, 1, 'POINT', 2, 'COMMA')
-                     : ''}"></td>
-    </tr>
-    </tbody>
-  </table>
-</div>
+<!-- Condições + Serviços prestados -->
+<div class="section" th:if="${!#lists.isEmpty(proposal.conditions) or !#lists.isEmpty(proposal.serviceItems)}">
+  <div class="section-title">Condições</div>
 
-<!-- Condições -->
-<div class="panel" th:if="${!#lists.isEmpty(proposal.conditions)}">
-  <div class="panel-title">Condições</div>
-  <div th:each="cond, idx : ${proposal.conditions}" style="margin-bottom:8px;">
-    <div style="font-size:9pt; font-weight:bold; margin-bottom:2px;"
+  <!-- Serviços prestados -->
+  <div th:if="${!#lists.isEmpty(proposal.serviceItems)}" style="margin-bottom:8px;">
+    <div style="font-size:10pt; font-weight:bold; margin-bottom:2px;">
+      1- SERVIÇOS PRESTADOS
+    </div>
+    <table class="grid">
+      <tbody>
+      <tr th:each="it, idx : ${proposal.serviceItems}">
+        <td>
+          <div th:if="${serviceTemplateNames != null and it.serviceTemplateId != null and serviceTemplateNames[it.serviceTemplateId] != null}"
+               style="font-size:10pt; font-weight:bold; margin-bottom:2px;"
+               th:text="${serviceTemplateNames[it.serviceTemplateId]}">Nome do serviço</div>
+          <div class="notes" style="font-size:9.5pt;"
+               th:utext="${it.description != null and !it.description.isEmpty()
+                            ? it.description : '—'}">—</div>
+        </td>
+        <td class="num money"
+            th:text="${it.price != null
+                       ? 'R$ ' + #numbers.formatDecimal(it.price, 1, 'POINT', 2, 'COMMA')
+                       : ''}"></td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Condições -->
+  <div th:each="cond, idx : ${proposal.conditions}" style="margin-bottom:6px;">
+    <div style="font-size:10pt; font-weight:bold; margin-bottom:2px;"
          th:text="${cond.title}">Título da condição</div>
-    <div class="notes" th:if="${cond.content != null and !cond.content.isBlank()}"
+    <div class="notes" style="font-size:9.5pt;" th:if="${cond.content != null and !cond.content.isBlank()}"
          th:utext="${cond.content}">Conteúdo da condição</div>
   </div>
 </div>
@@ -110,17 +104,17 @@
 <!-- Valores -->
 <div class="totals">
   <table>
-    <tr>
+    <tr th:if="${proposal.servicesSubtotal != null and proposal.servicesSubtotal.signum() != 0}">
       <td>Subtotal de serviços</td>
       <td class="money"
           th:text="${'R$ ' + #numbers.formatDecimal(proposal.servicesSubtotal, 1, 'POINT', 2, 'COMMA')}">0,00</td>
     </tr>
-    <tr>
+    <tr th:if="${proposal.productsSubtotal != null and proposal.productsSubtotal.signum() != 0}">
       <td>Subtotal de produtos</td>
       <td class="money"
           th:text="${'R$ ' + #numbers.formatDecimal(proposal.productsSubtotal, 1, 'POINT', 2, 'COMMA')}">0,00</td>
     </tr>
-    <tr>
+    <tr th:if="${proposal.subtotal != null and proposal.subtotal.signum() != 0}">
       <td>Subtotal</td>
       <td class="money"
           th:text="${'R$ ' + #numbers.formatDecimal(proposal.subtotal, 1, 'POINT', 2, 'COMMA')}">0,00</td>
@@ -144,7 +138,7 @@
 </div>
 
 <!-- Assinaturas -->
-<div class="signatures" style="margin-top:100px;">
+<div class="signatures" style="margin-top:50px;">
   <table>
     <tr>
       <td>
