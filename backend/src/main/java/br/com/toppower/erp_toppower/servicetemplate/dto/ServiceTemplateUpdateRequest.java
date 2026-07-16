@@ -14,7 +14,8 @@ public record ServiceTemplateUpdateRequest(
         @Size(max = 200, message = "Nome deve ter no máximo {max} caracteres")
         String name,
 
-        @Schema(description = "Nova descrição do serviço em HTML.")
+        @Schema(description = "Nova descrição do serviço em HTML.", maxLength = 20000)
+        @Size(max = 20000, message = "Descrição deve ter no máximo {max} caracteres")
         String description,
 
         @Schema(description = "Nova categoria do serviço.", example = "EXECUÇÃO_SPDA")
