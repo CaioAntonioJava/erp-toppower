@@ -124,7 +124,7 @@
   <div th:if="${contract.productItems != null and !contract.productItems.isEmpty()}">
     <div th:each="item, iter : ${contract.productItems}" class="clause-item">
       <div class="clause-number" th:text="'Produto ' + (iter.index + 1) + ':'">Produto 1:</div>
-      <div class="notes" th:text="'UUID: ' + ${item.productUuid} + ' — Qtd: ' + ${#numbers.formatDecimal(item.quantity, 0, 'COMMA', 4, 'COMMA')}">—</div>
+      <div class="notes" th:text="'Produto ID: ' + ${item.productId} + ' — Qtd: ' + ${#numbers.formatDecimal(item.quantity, 0, 'COMMA', 4, 'COMMA')}">—</div>
     </div>
   </div>
 

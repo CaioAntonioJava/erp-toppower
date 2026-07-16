@@ -114,10 +114,10 @@
     <tbody>
     <tr th:each="it, idx : ${quotation.items}">
       <td th:text="${idx.count}">1</td>
-      <td th:text="${productCodes != null and productCodes[it.productUuid] != null
-                      ? productCodes[it.productUuid] : '—'}">—</td>
-      <td th:text="${productNames != null and productNames[it.productUuid] != null
-                      ? productNames[it.productUuid] : '—'}">—</td>
+      <td th:text="${productCodes != null and productCodes[it.productId] != null
+                      ? productCodes[it.productId] : '—'}">—</td>
+      <td th:text="${productNames != null and productNames[it.productId] != null
+                      ? productNames[it.productId] : '—'}">—</td>
       <td class="num"
           th:text="${#numbers.formatDecimal(it.quantity, 1, 'POINT', 2, 'COMMA')}">0,00</td>
       <td class="num money"
