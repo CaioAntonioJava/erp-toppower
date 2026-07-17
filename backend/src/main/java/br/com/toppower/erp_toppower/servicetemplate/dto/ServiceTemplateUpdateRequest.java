@@ -10,10 +10,6 @@ import jakarta.validation.constraints.Size;
 @Schema(name = "ServiceTemplateUpdateRequest", description = "Dados para atualização parcial de um serviço (PATCH).")
 public record ServiceTemplateUpdateRequest(
 
-        @Schema(description = "Novo nome do serviço.", maxLength = 200)
-        @Size(max = 200, message = "Nome deve ter no máximo {max} caracteres")
-        String name,
-
         @Schema(description = "Nova descrição do serviço em HTML.", maxLength = 20000)
         @Size(max = 20000, message = "Descrição deve ter no máximo {max} caracteres")
         String description,

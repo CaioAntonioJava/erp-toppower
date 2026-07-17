@@ -220,7 +220,6 @@ PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 -- ddl-auto=update, mas garantimos a existência aqui para idempotência.
 CREATE TABLE IF NOT EXISTS service_templates (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(200) NOT NULL,
     description TEXT,
     category VARCHAR(50) NOT NULL,
     created_at DATETIME(6) NOT NULL,

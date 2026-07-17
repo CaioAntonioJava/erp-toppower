@@ -78,7 +78,7 @@ public class TechnicalProposalPdfService {
             if (templateId == null || result.containsKey(templateId)) continue;
             try {
                 var template = serviceTemplateService.getById(templateId);
-                result.put(templateId, template.name());
+                result.put(templateId, template.category().name());
             } catch (RuntimeException ex) {
                 // template removido ou inacessível — segue sem nome
             }

@@ -55,7 +55,7 @@ interface ServiceDraft {
   category: ServiceCategory | ''
   /** ID do ServiceTemplate selecionado (opcional, só em modo CATALOG). */
   serviceTemplateId: number | ''
-  /** Nome do ServiceTemplate (exibição, só em modo CATALOG). */
+  /** Nome da categoria do ServiceTemplate (exibição, só em modo CATALOG). */
   serviceTemplateName: string
   /** Descrição do serviço (HTML formatado em CATALOG, texto livre em SIMPLE). */
   description: string
@@ -388,7 +388,7 @@ export function TechnicalProposalForm({
   function handleServiceSelect(rowKey: string, template: ServiceTemplateResponse) {
     updateServiceItem(rowKey, {
       serviceTemplateId: template.id,
-      serviceTemplateName: template.name,
+      serviceTemplateName: template.category,
       description: template.description ?? '',
     })
   }
@@ -1002,7 +1002,7 @@ function ServiceRowCatalog({
     { value: '', label: 'Selecione…' },
     ...templates.map((t) => ({
       value: String(t.id),
-      label: t.name,
+      label: t.category,
     })),
   ]
 

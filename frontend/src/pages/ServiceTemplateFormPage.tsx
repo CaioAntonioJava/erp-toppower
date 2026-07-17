@@ -86,7 +86,7 @@ export function ServiceTemplateFormPage() {
         <div>
           <BackButton />
           <h1 className="mt-4 text-2xl font-semibold tracking-tight">
-            {mode === 'create' ? 'Novo serviço' : serviceTemplate?.name ?? 'Serviço'}
+            {mode === 'create' ? 'Novo serviço' : 'Serviço'}
           </h1>
           {mode === 'create' ? (
             <p className="text-sm text-slate-500 dark:text-slate-400">

@@ -59,7 +59,7 @@ public class ServiceTemplateController {
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Listar serviços (paginado)",
-            description = "Lista serviços paginados, ordenados por nome.")
+            description = "Lista serviços paginados, ordenados por categoria.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
     @ApiResponses({
@@ -68,32 +68,13 @@ public class ServiceTemplateController {
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<PagedResponse<ServiceTemplateResponse>> getAll(
-            @Parameter(hidden = true) @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
+            @Parameter(hidden = true) @PageableDefault(size = 20, sort = "category", direction = Sort.Direction.ASC) Pageable pageable) {
         return ResponseEntity.ok(serviceTemplateService.getAll(pageable));
-    }
-
-    @GetMapping(value = "/search", produces = MediaType.APPLICATION_JSON_VALUE)
-    @Operation(summary = "Buscar serviços (paginado)",
-            description = "Busca textual por nome (mínimo 2 caracteres). Sem parâmetros: retorna todos (paginado).")
-    @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Página de serviços retornada com sucesso.",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = PagedResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Termo de busca inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
-    })
-    public ResponseEntity<PagedResponse<ServiceTemplateResponse>> search(
-            @Parameter(description = "Termo OPCIONAL (mínimo 2 caracteres). Match em name.",
-                    example = "instalação")
-            @RequestParam(value = "query", required = false) String query,
-            @Parameter(hidden = true) @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
-        return ResponseEntity.ok(serviceTemplateService.search(query, pageable));
     }
 
     @GetMapping(value = "/by-category", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Listar serviços por categoria (paginado)",
-            description = "Retorna os serviços filtrados pela categoria informada, ordenados por nome.")
+            description = "Retorna os serviços filtrados pela categoria informada, ordenados por categoria.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
     @ApiResponses({
@@ -105,7 +86,7 @@ public class ServiceTemplateController {
             @Parameter(description = "Categoria do serviço.", required = true,
                     example = "EXECUÇÃO_SPDA")
             @RequestParam("category") ServiceCategory category,
-            @Parameter(hidden = true) @PageableDefault(size = 50, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
+            @Parameter(hidden = true) @PageableDefault(size = 50, sort = "category", direction = Sort.Direction.ASC) Pageable pageable) {
         return ResponseEntity.ok(serviceTemplateService.getByCategory(category, pageable));
     }
 

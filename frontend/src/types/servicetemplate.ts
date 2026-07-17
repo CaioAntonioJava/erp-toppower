@@ -6,7 +6,6 @@ export const SERVICE_CATEGORIES: { value: ServiceCategory; label: string }[] = [
 
 export interface ServiceTemplateResponse {
   id: number
-  name: string
   description: string | null
   category: ServiceCategory
   createdAt: string
@@ -16,19 +15,16 @@ export interface ServiceTemplateResponse {
 }
 
 export interface ServiceTemplateCreateRequest {
-  name: string
   description?: string | null
   category: ServiceCategory
 }
 
 export interface ServiceTemplateUpdateRequest {
-  name?: string
   description?: string | null
   category?: ServiceCategory
 }
 
 export interface ServiceTemplateFilters {
-  query?: string
   page?: number
   size?: number
 }

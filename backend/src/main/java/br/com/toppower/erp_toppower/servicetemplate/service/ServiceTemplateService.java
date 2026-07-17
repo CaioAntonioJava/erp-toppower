@@ -17,8 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ServiceTemplateService {
 
-    private static final int MIN_SEARCH_QUERY_LENGTH = 2;
-
     private final ServiceTemplateRepository serviceTemplateRepository;
 
     public ServiceTemplateService(ServiceTemplateRepository serviceTemplateRepository) {
@@ -60,19 +58,6 @@ public class ServiceTemplateService {
             throw new ServiceTemplateNotFoundException(id);
         }
         serviceTemplateRepository.deleteById(id);
-    }
-
-    @Transactional(readOnly = true)
-    public PagedResponse<ServiceTemplateResponse> search(String query, Pageable pageable) {
-        String trimmed = (query == null) ? null : query.trim();
-        if (trimmed != null && !trimmed.isEmpty() && trimmed.length() < MIN_SEARCH_QUERY_LENGTH) {
-            throw new IllegalArgumentException(
-                    "O termo de busca deve ter ao menos " + MIN_SEARCH_QUERY_LENGTH + " caracteres");
-        }
-        Page<ServiceTemplateResponse> mapped = serviceTemplateRepository
-                .searchByQuery(trimmed, pageable)
-                .map(ServiceTemplateMapper::toResponse);
-        return PagedResponse.from(mapped);
     }
 
     @Transactional(readOnly = true)

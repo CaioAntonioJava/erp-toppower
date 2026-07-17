@@ -6,7 +6,6 @@ import type {
   ServiceTemplateUpdateRequest,
 } from '../../types/servicetemplate'
 import { SERVICE_CATEGORIES } from '../../types/servicetemplate'
-import { Input } from '../ui/Input'
 import { Select } from '../ui/Select'
 import { RichTextEditor } from '../ui/RichTextEditor'
 import { Alert } from '../ui/Alert'
@@ -37,14 +36,12 @@ export function ServiceTemplateForm({
     reset,
   } = useFieldTouched()
 
-  const [name, setName] = useState(serviceTemplate?.name ?? '')
   const [description, setDescription] = useState(serviceTemplate?.description ?? '')
   const [category, setCategory] = useState<ServiceCategory>(serviceTemplate?.category ?? 'EXECUÇÃO_SPDA')
 
   function validateAll(): boolean {
     const errs: Record<string, string> = {}
 
-    if (!name.trim()) errs.name = 'Nome é obrigatório.'
     if (!category) errs.category = 'Categoria é obrigatória.'
 
     setFieldErrors(errs)
@@ -61,7 +58,6 @@ export function ServiceTemplateForm({
     try {
       if (isEdit && serviceTemplate) {
         const payload: ServiceTemplateUpdateRequest = {
-          name: name.trim(),
           description: description || null,
           category,
         }
@@ -70,7 +66,6 @@ export function ServiceTemplateForm({
         reset()
       } else {
         const payload: ServiceTemplateCreateRequest = {
-          name: name.trim(),
           description: description || null,
           category,
         }
@@ -96,27 +91,6 @@ export function ServiceTemplateForm({
     >
       {formError ? <Alert variant="error">{formError}</Alert> : null}
       {success ? <Alert variant="success">{success}</Alert> : null}
-
-      {/* Identificação */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <h3 className="mb-1 text-base font-semibold">Identificação</h3>
-        <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
-          Dados básicos do serviço.
-        </p>
-
-        <div className="grid gap-4 sm:grid-cols-1">
-          <Input
-            label="Nome"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onBlur={getBlurHandler('name')}
-            error={shouldShowError('name', fieldErrors.name)}
-            required
-            maxLength={200}
-            hint="Nome do serviço (ex: INSTALAÇÃO DE QUADRO ELÉTRICO)."
-          />
-        </div>
-      </section>
 
       {/* Categoria */}
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
