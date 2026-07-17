@@ -33,6 +33,9 @@ export function DashboardPage() {
         </p>
       </div>
 
+      {/* Boletos cadastrados pela usuária — cadastro e listagem inline. */}
+      <BoletosCadastradosWidget />
+
       {/* Indicadores financeiros — totais a pagar/receber e boletos. */}
       <FinanceSummaryWidget />
 
@@ -44,9 +47,6 @@ export function DashboardPage() {
 
       {/* Boletos próximos do vencimento — largura total. */}
       <BoletosDueWidget />
-
-      {/* Boletos cadastrados pela usuária — cadastro e listagem inline. */}
-      <BoletosCadastradosWidget />
     </div>
   )
 }

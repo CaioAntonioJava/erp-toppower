@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AlertTriangle, Clock, Plus, Trash2, FileText } from 'lucide-react'
+import { AlertTriangle, Clock, Plus, Printer, Paperclip, Trash2, FileText } from 'lucide-react'
 import { Card } from '../ui/Card'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
@@ -10,7 +10,9 @@ import { formatCurrency, formatDate } from '../../lib/format'
 import { useBoletosStorage } from '../../hooks/useBoletosStorage'
 import type { NovoBoletoInput } from '../../hooks/useBoletosStorage'
 import { toApiError } from '../../lib/errors'
+import { listBoletoAttachments, downloadBoletoAttachment } from '../../api/boleto.api'
 import { BoletoFormModal } from './BoletoFormModal'
+import { BoletoAttachmentsModal } from './BoletoAttachmentsModal'
 
 /**
  * Bloco de boletos cadastrados pela usuária.
@@ -30,6 +32,36 @@ export function BoletosCadastradosWidget() {
   const [removerId, setRemoverId] = useState<number | null>(null)
   const [removing, setRemoving] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [anexosBoleto, setAnexosBoleto] = useState<{ id: number; label: string } | null>(null)
+  const [printing, setPrinting] = useState<number | null>(null)
+
+  /**
+   * Busca o primeiro anexo do boleto e abre para impressão.
+   * Se não houver anexos, exibe um alerta de erro.
+   */
+  async function handlePrint(boletoId: number): Promise<void> {
+    setActionError(null)
+    setPrinting(boletoId)
+    try {
+      const attachments = await listBoletoAttachments(boletoId)
+      if (attachments.length === 0) {
+        setActionError('Nenhum anexo encontrado para impressão.')
+        return
+      }
+      const first = attachments[0]
+      const { blob } = await downloadBoletoAttachment(boletoId, first.id, 'inline')
+      const url = URL.createObjectURL(blob)
+      const win = window.open(url, '_blank')
+      if (win && first.contentType === 'application/pdf') {
+        win.onload = () => win.print()
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 60000)
+    } catch (err) {
+      setActionError(toApiError(err).message)
+    } finally {
+      setPrinting(null)
+    }
+  }
 
   async function handleSubmit(input: NovoBoletoInput): Promise<void> {
     setActionError(null)
@@ -121,6 +153,31 @@ export function BoletosCadastradosWidget() {
                       type="button"
                       onClick={() => {
                         setActionError(null)
+                        setAnexosBoleto({
+                          id: boleto.id,
+                          label: `${boleto.numeroDocumento} · ${boleto.pagador}`,
+                        })
+                      }}
+                      className="rounded p-1 text-slate-400 hover:bg-primary-50 hover:text-primary dark:hover:bg-primary-900/30"
+                      aria-label="Anexos do boleto"
+                      title="Anexos"
+                    >
+                      <Paperclip className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handlePrint(boleto.id)}
+                      disabled={printing === boleto.id}
+                      className="rounded p-1 text-slate-400 hover:bg-primary-50 hover:text-primary disabled:opacity-50 dark:hover:bg-primary-900/30"
+                      aria-label="Imprimir boleto"
+                      title="Imprimir"
+                    >
+                      <Printer className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActionError(null)
                         setRemoverId(boleto.id)
                       }}
                       className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400"
@@ -151,6 +208,13 @@ export function BoletosCadastradosWidget() {
         isLoading={removing}
         onConfirm={confirmarRemocao}
         onClose={() => setRemoverId(null)}
+      />
+
+      <BoletoAttachmentsModal
+        open={anexosBoleto != null}
+        boletoId={anexosBoleto?.id ?? null}
+        boletoLabel={anexosBoleto?.label ?? ''}
+        onClose={() => setAnexosBoleto(null)}
       />
     </Card>
   )

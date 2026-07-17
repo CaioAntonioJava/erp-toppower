@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { X } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { X, Paperclip } from 'lucide-react'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { Alert } from '../ui/Alert'
@@ -27,6 +27,10 @@ const EMPTY: FormState = {
   dueDate: '',
 }
 
+/** Aceita PDF e imagens. */
+const ACCEPT = '.pdf,.png,.jpg,.jpeg'
+const MAX_SIZE_BYTES = 10 * 1024 * 1024 // 10MB
+
 /**
  * Modal de cadastro de boleto.
  *
@@ -34,12 +38,15 @@ const EMPTY: FormState = {
  * valor numérico válido + data no formato ISO yyyy-MM-dd). Segue o padrão
  * visual do ConfirmDialog: overlay, fecha com ESC/clique fora, bloqueia
  * scroll do body. Os dados são persistidos pelo hook `useBoletosStorage`
- * (chamadas à API `/api/v1/boletos`).
+ * (chamadas à API `/api/v1/boletos`). O anexo (opcional) é enviado após
+ * o cadastro do boleto, reusing o endpoint de anexos.
  */
 export function BoletoFormModal({ open, onClose, onSubmit }: BoletoFormModalProps) {
   const [form, setForm] = useState<FormState>(EMPTY)
+  const [attachment, setAttachment] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   // Bloqueia scroll do body enquanto aberto.
   useEffect(() => {
@@ -65,8 +72,10 @@ export function BoletoFormModal({ open, onClose, onSubmit }: BoletoFormModalProp
   useEffect(() => {
     if (open) {
       setForm(EMPTY)
+      setAttachment(null)
       setError(null)
       setSubmitting(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }, [open])
 
@@ -103,7 +112,13 @@ export function BoletoFormModal({ open, onClose, onSubmit }: BoletoFormModalProp
     setError(null)
     setSubmitting(true)
     try {
-      await onSubmit({ documentNumber, payee, value: valor, dueDate })
+      await onSubmit({
+        documentNumber,
+        payee,
+        value: valor,
+        dueDate,
+        attachment: attachment ?? undefined,
+      })
     } catch (err) {
       setError(
         err instanceof Error
@@ -114,6 +129,30 @@ export function BoletoFormModal({ open, onClose, onSubmit }: BoletoFormModalProp
       return
     }
     setSubmitting(false)
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>): void {
+    const file = e.target.files?.[0] ?? null
+    if (file != null && file.size > MAX_SIZE_BYTES) {
+      setError('Anexo excede o limite de 10MB.')
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      return
+    }
+    setError(null)
+    setAttachment(file)
+  }
+
+  /**
+   * Ao sair do campo de valor, completa com `,00` quando o usuário
+   * digitou apenas a parte inteira (sem separador decimal). Se já houver
+   * vírgula ou ponto, mantém como está (o parseNumber normaliza depois).
+   */
+  function handleValorBlur(e: React.FocusEvent<HTMLInputElement>): void {
+    const raw = e.target.value.trim()
+    if (!raw) return
+    if (!raw.includes(',') && !raw.includes('.')) {
+      setField('valor', `${raw},00`)
+    }
   }
 
   return (
@@ -163,6 +202,7 @@ export function BoletoFormModal({ open, onClose, onSubmit }: BoletoFormModalProp
               leftAdornment={<span className="text-sm">R$</span>}
               value={form.valor}
               onChange={(e) => setField('valor', e.target.value)}
+              onBlur={handleValorBlur}
             />
             <Input
               label="Vencimento"
@@ -171,6 +211,37 @@ export function BoletoFormModal({ open, onClose, onSubmit }: BoletoFormModalProp
               value={form.dueDate}
               onChange={(e) => setField('dueDate', e.target.value)}
             />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
+              Anexo (opcional)
+            </label>
+            <div className="flex items-center gap-3">
+              <label
+                className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+              >
+                <Paperclip className="h-4 w-4" />
+                Escolher arquivo
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept={ACCEPT}
+                  onChange={handleFileChange}
+                  disabled={submitting}
+                  className="hidden"
+                />
+              </label>
+              {attachment ? (
+                <span className="truncate text-sm text-slate-600 dark:text-slate-300">
+                  {attachment.name}
+                </span>
+              ) : (
+                <span className="text-xs text-slate-400 dark:text-slate-500">
+                  PDF, PNG ou JPEG — até 10MB
+                </span>
+              )}
+            </div>
           </div>
 
           {error ? (

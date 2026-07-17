@@ -9,6 +9,7 @@ import api from './client'
 import type { PagedResponse } from '../types/api'
 import type { RegistrationStatus } from '../types/registration'
 import type {
+  BoletoAttachmentResponse,
   BoletoCreateRequest,
   BoletoResponse,
   BoletoUpdateRequest,
@@ -94,4 +95,63 @@ export async function inactivateBoleto(id: number): Promise<void> {
 export async function activateBoleto(id: number): Promise<BoletoResponse> {
   const { data } = await api.patch<BoletoResponse>(`${BASE}/${id}/activate`)
   return data
+}
+
+// =====================================================================
+// Anexos de boleto (PDF/imagens) — vários por boleto.
+// =====================================================================
+
+/** GET /boletos/{boletoId}/attachments — lista anexos do boleto. */
+export async function listBoletoAttachments(
+  boletoId: number,
+): Promise<BoletoAttachmentResponse[]> {
+  const { data } = await api.get<BoletoAttachmentResponse[]>(
+    `${BASE}/${boletoId}/attachments`,
+  )
+  return data
+}
+
+/** POST /boletos/{boletoId}/attachments — upload de anexo (multipart). */
+export async function uploadBoletoAttachment(
+  boletoId: number,
+  file: File,
+): Promise<BoletoAttachmentResponse> {
+  const form = new FormData()
+  form.append('file', file)
+  const { data } = await api.post<BoletoAttachmentResponse>(
+    `${BASE}/${boletoId}/attachments`,
+    form,
+    { headers: { 'Content-Type': 'multipart/form-data' } },
+  )
+  return data
+}
+
+/** DELETE /boletos/{boletoId}/attachments/{attachmentId} — remove anexo. */
+export async function deleteBoletoAttachment(
+  boletoId: number,
+  attachmentId: number,
+): Promise<void> {
+  await api.delete(`${BASE}/${boletoId}/attachments/${attachmentId}`)
+}
+
+/**
+ * Baixa o conteúdo do anexo como Blob (autenticado). Use para exibir
+ * inline (preview/impressão) ou forçar download via URL.createObjectURL.
+ */
+export async function downloadBoletoAttachment(
+  boletoId: number,
+  attachmentId: number,
+  disposition: 'inline' | 'attachment' = 'inline',
+): Promise<{ blob: Blob; fileName: string; contentType: string }> {
+  const resp = await api.get(`${BASE}/${boletoId}/attachments/${attachmentId}/file`, {
+    params: { disposition },
+    responseType: 'blob',
+  })
+  const cdHeader = (resp.headers['content-disposition'] as string | undefined) ?? ''
+  const fileNameMatch = /filename="?([^";]+)"?/.exec(cdHeader)
+  return {
+    blob: resp.data as Blob,
+    fileName: fileNameMatch ? fileNameMatch[1] : `boleto-${boletoId}-anexo-${attachmentId}`,
+    contentType: (resp.headers['content-type'] as string | undefined) ?? 'application/octet-stream',
+  }
 }

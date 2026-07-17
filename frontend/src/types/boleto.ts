@@ -46,3 +46,16 @@ export interface BoletoFilters {
   page?: number
   size?: number
 }
+
+/** Resposta de um anexo de boleto. Espelha BoletoAttachmentResponse do backend. */
+export interface BoletoAttachmentResponse {
+  id: number
+  boletoId: number
+  fileName: string
+  contentType: string
+  sizeBytes: number
+  /** URL autenticada para baixar/exibir o anexo. */
+  publicUrl: string
+  createdAt: string
+  createdBy: string | null
+}

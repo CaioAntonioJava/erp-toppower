@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useOrganization } from '../context/OrganizationContext'
-import { listBoletos, createBoleto, inactivateBoleto } from '../api/boleto.api'
+import { listBoletos, createBoleto, inactivateBoleto, uploadBoletoAttachment } from '../api/boleto.api'
 import { toApiError } from '../lib/errors'
 import type { BoletoResponse } from '../types/boleto'
 import type { BoletoDue } from '../types/finance'
@@ -23,6 +23,8 @@ export interface NovoBoletoInput {
   value: number
   /** Data de vencimento no formato ISO (yyyy-MM-dd). */
   dueDate: string
+  /** Anexo opcional (PDF/PNG/JPEG) enviado junto com o cadastro. */
+  attachment?: File
 }
 
 /** Calcula dias até o vencimento a partir de uma data ISO (negativo = vencido). */
@@ -82,7 +84,14 @@ export function useBoletosStorage() {
     // orgId entra como dependência para recarregar ao trocar de empresa.
   }, [orgId, reload])
 
-  /** Adiciona um boleto cadastrado. Repassa erros do backend ao caller. */
+  /**
+   * Adiciona um boleto cadastrado. Repassa erros do backend ao caller.
+   * Se houver anexo, faz o upload em seguida à criação. O boleto é
+   * inserido na lista imediatamente após o cadastro; se o upload do
+   * anexo falhar, o erro é repassado ao caller (que pode exibi-lo),
+   * mas o boleto permanece cadastrado — o usuário pode anexar depois
+   * via o modal de anexos.
+   */
   const add = useCallback(async (input: NovoBoletoInput): Promise<BoletoDue> => {
     const created = await createBoleto({
       documentNumber: input.documentNumber,
@@ -92,6 +101,10 @@ export function useBoletosStorage() {
     })
     const due = toDue(created)
     setItems((prev) => [...prev, due])
+    if (input.attachment != null) {
+      // Upload best-effort após o cadastro: o boleto já existe.
+      await uploadBoletoAttachment(created.id, input.attachment)
+    }
     return due
   }, [])
 
