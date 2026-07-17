@@ -5,7 +5,6 @@ import {
   Building2,
   ClipboardList,
   Factory,
-  FileSignature,
   FileText,
   FileUp,
   LayoutDashboard,
@@ -17,6 +16,7 @@ import {
   Users,
   Wrench,
   Cog,
+  FilePenLine,
 } from 'lucide-react'
 import { Button } from '../ui/Button'
 import { useAuth } from '../../context/AuthContext'
@@ -36,8 +36,8 @@ const navItems: NavItem[] = [
   { to: '/products', label: 'Produtos', icon: Package },
   { to: '/quotations', label: 'Propostas Comerciais', icon: FileText },
   { to: '/technical-proposals', label: 'Propostas Técnicas', icon: Wrench },
-  { to: '/contracts', label: 'Contratos', icon: FileSignature },
   { to: '/sales-orders', label: 'Pedidos de Venda', icon: ClipboardList },
+  { to: '/contracts', label: 'Contratos', icon: FilePenLine },
 ]
 
 /** Item de menu exclusivo de administradores — gestão de transportadoras. */
@@ -124,7 +124,7 @@ export function Sidebar() {
 
               {/* Separador antes do bloco administrativo
                   (Transportadoras e Usuários). */}
-              {item.to === '/sales-orders' && isAdmin ? (
+              {item.to === '/contracts' && isAdmin ? (
                 <div
                   aria-hidden
                   className="mt-[18px] mb-3 h-px bg-slate-300/70 dark:bg-slate-700/70"

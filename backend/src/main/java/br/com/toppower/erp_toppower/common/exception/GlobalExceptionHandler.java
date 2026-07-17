@@ -21,6 +21,10 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import br.com.toppower.erp_toppower.company.exception.CompanyNotFoundException;
 import br.com.toppower.erp_toppower.company.exception.DuplicateCompanyCnpjException;
+import br.com.toppower.erp_toppower.contract.exception.ContractBusinessException;
+import br.com.toppower.erp_toppower.contract.exception.ContractClientNotFoundException;
+import br.com.toppower.erp_toppower.contract.exception.ContractNotFoundException;
+import br.com.toppower.erp_toppower.contract.exception.InvalidContractClientException;
 import br.com.toppower.erp_toppower.customer.exception.CustomerNotFoundException;
 import br.com.toppower.erp_toppower.customer.exception.DuplicateCustomerCpfException;
 import br.com.toppower.erp_toppower.product.exception.DuplicateProductCodeException;
@@ -257,6 +261,42 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DuplicateCustomerCpfException.class)
     public ResponseEntity<ApiError> handleDuplicateCustomerCpf(DuplicateCustomerCpfException ex) {
         return build(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    // =====================================================================
+    // Contratos (Contract)
+    // =====================================================================
+
+    @ExceptionHandler(ContractNotFoundException.class)
+    public ResponseEntity<ApiError> handleContractNotFound(ContractNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    /**
+     * Violação de regra de negócio de contrato (ex.: Organization ativa
+     * sem {@code contract_prefix} configurado). Usa 422
+     * UNPROCESSABLE_ENTITY: a requisição é sintaticamente válida, mas o
+     * estado atual da Organization impede o processamento.
+     */
+    @ExceptionHandler(ContractBusinessException.class)
+    public ResponseEntity<ApiError> handleContractBusiness(ContractBusinessException ex) {
+        return build(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
+    }
+
+    /**
+     * Cliente (PF ou PJ) referenciado no contrato não encontrado no banco.
+     */
+    @ExceptionHandler(ContractClientNotFoundException.class)
+    public ResponseEntity<ApiError> handleContractClientNotFound(ContractClientNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    /**
+     * Invariante de cliente violada: ambos nulos ou ambos preenchidos.
+     */
+    @ExceptionHandler(InvalidContractClientException.class)
+    public ResponseEntity<ApiError> handleInvalidContractClient(InvalidContractClientException ex) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
     // =====================================================================

@@ -25,6 +25,8 @@ import { TechnicalProposalsListPage } from './pages/TechnicalProposalsListPage'
 import { TechnicalProposalFormPage } from './pages/TechnicalProposalFormPage'
 import { TechnicalProposalDetailPage } from './pages/TechnicalProposalDetailPage'
 import { TechnicalProposalPrintPage } from './pages/TechnicalProposalPrintPage'
+import { ContractsListPage } from './pages/ContractsListPage'
+import { ContractFormPage } from './pages/ContractFormPage'
 import { UsersListPage } from './pages/UsersListPage'
 import { UserFormPage } from './pages/UserFormPage'
 import { CarriersListPage } from './pages/CarriersListPage'
@@ -83,6 +85,9 @@ export default function App() {
         <Route path="/technical-proposals/new" element={<TechnicalProposalFormPage />} />
         <Route path="/technical-proposals/:id/edit" element={<TechnicalProposalFormPage />} />
         <Route path="/technical-proposals/:id" element={<TechnicalProposalDetailPage />} />
+        <Route path="/contracts" element={<ContractsListPage />} />
+        <Route path="/contracts/new" element={<ContractFormPage />} />
+        <Route path="/contracts/:id" element={<ContractFormPage />} />
 
         {/* Rotas administrativas — gestão de usuários (ROLE_ADMIN). */}
         <Route path="/users" element={<AdminRoute><UsersListPage /></AdminRoute>} />
