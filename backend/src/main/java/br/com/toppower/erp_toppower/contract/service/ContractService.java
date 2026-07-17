@@ -429,50 +429,59 @@ public class ContractService {
     private List<ContractClause> buildDefaultClauses(Long contractId) {
         List<ContractClause> clauses = new ArrayList<>();
 
-        clauses.add(newClause(contractId, 1, "DO OBJETO", null, null));
+        clauses.add(newClause(contractId, 1, "CLÁUSULA PRIMEIRA - DO OBJETO", null, null));
 
-        clauses.add(newClause(contractId, 2, "RESPONSABILIDADE DA CONTRATADA",
+        clauses.add(newClause(contractId, 2, "CLÁUSULA SEGUNDA - RESPONSABILIDADE DA CONTRATADA",
                 "2.1. Fornecimento de mão-de-obra especializada, ferramental, roupa e equipamentos "
                         + "para o bom desempenho dos trabalhos;\n"
                         + "2.2. Fornecimento de transporte e alimentação apropriado para os funcionários;\n"
-                        + "2.3. Suporte Técnico de Engenheiro com registro ativo no CREA, para supervisão;\n"
-                        + "2.4. Sigilo sobre as atividades da CONTRATANTE.",
+                        + "2.3. Suporte Técnico Engenheiro com registro ativo no CREA, para supervisão;\n"
+                        + "2.4. Sigilo sobre as atividades da BERNARDI HORTO EMPREENDIMENTOS IMOBILIARIOS "
+                        + "SPE LTDA.",
                 null));
 
-        clauses.add(newClause(contractId, 3, "RESPONSABILIDADE DA CONTRATANTE",
-                "3.1. Liberação da área de trabalho, em condições de desenvolver seus serviços em tempo "
+        clauses.add(newClause(contractId, 3, "CLÁUSULA TERCEIRA - RESPONSABILIDADE DA CONTRATANTE",
+                "3.1. Liberação da área de trabalho, em condições de desenvolver seus serviços em tempo; "
                         + "hábil para o cumprimento do prazo de execução previsto.\n"
                         + "3.2. Fornecimento de documentação técnica.",
                 null));
 
-        clauses.add(newClause(contractId, 4, "DO PRAZO DE ENTREGA",
-                "4.1. 120 (cento e vinte) dias a partir da autorização do serviço.",
+        clauses.add(newClause(contractId, 4, "CLÁUSULA QUARTA - DO PRAZO DE ENTREGA",
+                "4.1. 120 (CENTO E VINTE DIAS) a partir da autorização e serviço.",
                 null));
 
-        clauses.add(newClause(contractId, 5, "DOS PREÇOS E FORMA DE PAGAMENTO",
-                "5.1. A CONTRATANTE pagará ao CONTRATADO, pelos serviços, o valor total acordado entre "
-                        + "as partes.\n"
-                        + "5.2. Pagamento/Parcelas: conforme acordo entre as partes.\n"
-                        + "5.3. Dados para transferência bancária: a definir.\n"
-                        + "5.4. No valor citado nesta cláusula estão inclusas as despesas com impostos e "
-                        + "encargos sociais pertinentes a este contrato. Estamos considerando o recolhimento "
-                        + "da ART (Anotação de Responsabilidade Técnica) para a execução dos itens objetos "
-                        + "desta proposta.",
+        clauses.add(newClause(contractId, 5, "CLÁUSULA QUINTA - DOS PREÇOS E FORMA DE PAGAMENTO",
+                "5.1. A CONTRATANTE pagará ao CONTRATADO, pelos serviços o valor total de "
+                        + "R$ 230.800,00 (duzentos e trinta mil, oitocentos reais).\n"
+                        + "5.2. Pagamento/Parcelas:\n"
+                        + ". 15% na assinatura contrato – R$ 34.620,00\n"
+                        + ". 20% 30 DDL - R$ 46.160,00\n"
+                        + ". 20% 60 DDL - R$ 46.160,00\n"
+                        + ". 25% 90 DDL - R$ 57.700,00\n"
+                        + ". 20% 10 DDL após a finalização da obra - R$ 46.160,00\n"
+                        + "5.3. Dados para transferência bancária\n"
+                        + "Banco do Brasil\n"
+                        + "Agencia 990-3\n"
+                        + "Conta corrente 117.254-9\n"
+                        + "5.4. No valor citado na clausula quinta estão inclusas as despesas com impostos "
+                        + "e encargos sociais pertinentes a este contrato. Estamos considerando o "
+                        + "recolhimento da ART (Anotação de Responsabilidade Técnica) para a execução dos "
+                        + "itens objetos desta proposta.",
                 null));
 
-        clauses.add(newClause(contractId, 6, "DA VIGÊNCIA",
+        clauses.add(newClause(contractId, 6, "CLÁUSULA SEXTA - DA VIGÊNCIA",
                 "6.1. O presente Contrato vigorará durante o período necessário para a elaboração dos "
                         + "serviços descritos na Cláusula Primeira, limitado ao prazo estabelecido na "
-                        + "Cláusula Quarta.",
+                        + "Cláusula Segunda.",
                 null));
 
-        clauses.add(newClause(contractId, 7, "DA RESCISÃO",
+        clauses.add(newClause(contractId, 7, "CLÁUSULA SETIMA - DA RESCISÃO",
                 "7.1. Será motivo para rescisão imediata deste contrato o descumprimento de quaisquer de "
                         + "suas cláusulas, devendo a parte infratora arcar com as perdas e danos decorrentes "
                         + "do fato, honorários advocatícios e demais cominações legais.",
                 null));
 
-        clauses.add(newClause(contractId, 8, "DA MULTA",
+        clauses.add(newClause(contractId, 8, "CLÁUSULA OITAVA - DA MULTA",
                 "8.1. Caso alguma das partes não cumpra o disposto nas cláusulas estabelecidas neste "
                         + "instrumento, responsabilizar-se-á pelo pagamento de multa equivalente a 20% "
                         + "(vinte por cento) do valor total do objeto do contrato, operando a rescisão "
@@ -480,20 +489,20 @@ public class ContractService {
                         + "bem como as perdas e danos, se couber.",
                 null));
 
-        clauses.add(newClause(contractId, 9, "DO EXERCÍCIO DOS DIREITOS",
+        clauses.add(newClause(contractId, 9, "CLÁUSULA NONA - DO EXERCÍCIO DOS DIREITOS",
                 "9.1. Aplicam-se ao presente Contrato as disposições do Código Civil e do Código de "
                         + "Defesa do Consumidor naquilo em que lhe forem compatíveis.\n"
                         + "9.2. Caso seja necessário qualquer outro tipo de serviço técnico em eletricidade, "
-                        + "além do objeto descrito na Cláusula Primeira, o mesmo deverá ser discutido antes "
-                        + "da execução, cabendo aditivo a este Contrato.",
+                        + "além do objeto descrito no item 1, o mesmo deverá ser discutido antes da "
+                        + "execução, cabendo aditivo a este Contrato.",
                 null));
 
-        clauses.add(newClause(contractId, 10, "DO TÍTULO EXTRA JUDICIAL",
+        clauses.add(newClause(contractId, 10, "CLÁUSULA DECIMA - DO TÍTULO EXTRA JUDICIAL",
                 "10.1. O presente contrato constitui título executivo extrajudicial, nos termos do "
-                        + "artigo 585, II do Código de Processo Civil.",
+                        + "artigo 585, II do Código de processo Civil.",
                 null));
 
-        clauses.add(newClause(contractId, 11, "DISPOSIÇÕES GERAIS",
+        clauses.add(newClause(contractId, 11, "CLÁUSULA DECIMA PRIMEIRA - DISPOSIÇÕES GERAIS",
                 "11.1. A CONTRATADA assume a responsabilidade técnica dos serviços a serem executados, "
                         + "declarando, neste ato, que conhece os equipamentos e o local da prestação de "
                         + "serviços – previamente visitado em vistoria técnica realizada pelo Engenheiro "
@@ -501,8 +510,8 @@ public class ContractService {
                         + "11.2. A CONTRATADA se compromete a proteger e preservar o meio ambiente, bem "
                         + "como a prevenir contra as práticas danosas ao ecossistema, executando seus "
                         + "serviços em observância dos atos legais normativos e administrativos relativos "
-                        + "à área de meio ambiente e as correlatas emanadas das esferas do Governo Federal "
-                        + "e Estadual.\n"
+                        + "à área de meio ambiente e as correlatas emanadas das esferas do Governo Federal, "
+                        + "Estadual.\n"
                         + "11.3. As partes de comum acordo elegem o Foro da Comarca de Sumaré/SP para dirimir "
                         + "qualquer lide oriunda do presente Contrato, com renúncia expressa de qualquer "
                         + "outro por mais privilegiado que seja.",
