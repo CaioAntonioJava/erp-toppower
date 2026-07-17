@@ -9,6 +9,10 @@
 
 -- 1) Renomeia issue_date para validity_date (apenas se a antiga existir
 --    e a nova ainda não existir).
+--    Nota: em bases atualizadas pela V10 revisada (sem issue_date) ou pela
+--    V13 (que dropa issue_date), esta condição será falsa e o rename é
+--    no-op — o que está correto, pois validity_date já existe ou issue_date
+--    não existe mais.
 SET @has_old = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'contracts' AND COLUMN_NAME = 'issue_date');
 SET @has_new = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
@@ -36,6 +40,9 @@ PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- 4) Remove o índice antigo idx_contract_issue_date (se existir) e cria
 --    o novo idx_contract_validity_date (se não existir).
+--    Nota: o índice idx_contract_issue_date pode não existir se a V10
+--    já tiver sido atualizada para não criá-lo, ou se a V13 já o removeu
+--    junto com a coluna issue_date.
 SET @has_old_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'contracts' AND INDEX_NAME = 'idx_contract_issue_date');
 SET @sql = IF(@has_old_idx > 0, 'DROP INDEX idx_contract_issue_date ON contracts', 'DO 0');

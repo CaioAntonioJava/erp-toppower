@@ -7,6 +7,10 @@
 -- updated_at, created_by, updated_by) e organization_id; este script garante
 -- apenas a tabela, os índices e a unicidade do código comercial por
 -- organização/ano.
+--
+-- NOTA: issue_date foi removida da entidade (substituída por validity_date
+-- pela V11). A V13 dropa issue_date de bases legadas. Esta migration não
+-- referencia issue_date para permanecer idempotente após o drop.
 CREATE TABLE IF NOT EXISTS contracts (
     id              BIGINT       NOT NULL AUTO_INCREMENT,
     organization_id BIGINT       NULL,
@@ -16,7 +20,6 @@ CREATE TABLE IF NOT EXISTS contracts (
     title           VARCHAR(300) NOT NULL,
     description     TEXT         NULL,
     status          VARCHAR(20)  NOT NULL DEFAULT 'ATIVO',
-    issue_date      DATE         NOT NULL,
     created_at      DATETIME(6)  NOT NULL,
     updated_at      DATETIME(6)  NOT NULL,
     created_by      VARCHAR(100) NULL,
@@ -27,10 +30,6 @@ CREATE TABLE IF NOT EXISTS contracts (
 -- Índice auxiliar para filtrar contratos ativos/inativos.
 SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'contracts' AND INDEX_NAME = 'idx_contract_status');
 SET @sql = IF(@has_idx = 0, 'CREATE INDEX idx_contract_status ON contracts (status)', 'DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
--- Índice auxiliar para ordenação por data de emissão.
-SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'contracts' AND INDEX_NAME = 'idx_contract_issue_date');
-SET @sql = IF(@has_idx = 0, 'CREATE INDEX idx_contract_issue_date ON contracts (issue_date)', 'DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- Índice para escopar por organização (usado pelas queries JPQL escopadas).
 SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'contracts' AND INDEX_NAME = 'idx_contract_organization_id');
