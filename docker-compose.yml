@@ -17,9 +17,12 @@ services:
     environment:
       MYSQL_DATABASE: ${DB_NAME:-erp-toppower-api}
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-changeme}
-      # Encoding/collation necessárias para pt_BR (acentuação).
-      MYSQL_CHARSET: utf8mb4
-      MYSQL_COLLATION: utf8mb4_unicode_ci
+    # Encoding/collation necessárias para pt_BR (acentuação).
+    # Nota: MYSQL_CHARSET/MYSQL_COLLATION não são env vars válidas na
+    # imagem oficial MySQL; usa-se command para isso.
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
     ports:
       - "3306:3306"
     volumes:
@@ -29,6 +32,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+      start_period: 30s
     networks:
       - erp-net
 
@@ -42,11 +46,11 @@ services:
       db:
         condition: service_healthy
     environment:
-      # Banco
+      # Banco de dados
       DB_HOST: db
       DB_PORT: 3306
       DB_NAME: ${DB_NAME:-erp-toppower-api}
-      DB_USERNAME: root
+      DB_USERNAME: ${DB_USERNAME:-root}
       DB_PASSWORD: ${DB_PASSWORD:-changeme}
       # JWT
       JWT_SECRET: ${JWT_SECRET:-changeme-gere-um-secret-seguro-com-openssl-rand-base64-48}

@@ -7,3 +7,8 @@
 /uploads/
 /backend/uploads/
 /backend/target/
+
+# Secrets / variáveis de ambiente
+.env
+.env.*
+!.env.example
