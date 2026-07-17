@@ -24,7 +24,7 @@
 -- Lista de tabelas que herdam de OrganizationScopedEntity e precisam
 -- de índice em organization_id para performance do filtro Hibernate.
 
-SET @tables_org_scoped = 'companies,customers,sellers,products,suppliers,quotations,quotation_items,sales_orders,sales_order_items,stock_movements,technical_proposals,technical_proposal_product_items,technical_proposal_service_items,contracts,contract_clauses,contract_product_items,contract_service_items';
+SET @tables_org_scoped = 'companies,customers,sellers,products,suppliers,quotations,quotation_items,sales_orders,sales_order_items,stock_movements,technical_proposals,technical_proposal_product_items,technical_proposal_service_items';
 
 -- Como MySQL não tem FOREACH, geramos dinamicamente os comandos.
 -- Para cada tabela na lista, verificamos se o índice idx_organization existe
@@ -82,22 +82,6 @@ SET @sql = IF(@has_idx = 0, 'CREATE INDEX idx_organization ON technical_proposal
 SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'technical_proposal_service_items' AND INDEX_NAME = 'idx_organization');
 SET @sql = IF(@has_idx = 0, 'CREATE INDEX idx_organization ON technical_proposal_service_items (organization_id)', 'DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- contracts
-SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'contracts' AND INDEX_NAME = 'idx_organization');
-SET @sql = IF(@has_idx = 0, 'CREATE INDEX idx_organization ON contracts (organization_id)', 'DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
--- contract_clauses
-SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'contract_clauses' AND INDEX_NAME = 'idx_organization');
-SET @sql = IF(@has_idx = 0, 'CREATE INDEX idx_organization ON contract_clauses (organization_id)', 'DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
--- contract_product_items
-SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'contract_product_items' AND INDEX_NAME = 'idx_organization');
-SET @sql = IF(@has_idx = 0, 'CREATE INDEX idx_organization ON contract_product_items (organization_id)', 'DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
--- contract_service_items
-SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'contract_service_items' AND INDEX_NAME = 'idx_organization');
-SET @sql = IF(@has_idx = 0, 'CREATE INDEX idx_organization ON contract_service_items (organization_id)', 'DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
 -- =============================================================================
 -- 2. Unique constraints compostas (organization_id + coluna de negócio)
 -- =============================================================================
@@ -111,7 +95,6 @@ SET @sql = IF(@has_idx = 0, 'CREATE INDEX idx_organization ON contract_service_i
 --   uk_quotation_org_number          (organization_id, number)
 --   uk_sales_order_org_number        (organization_id, number)
 --   uk_technical_proposal_org_code   (organization_id, prefix, sequence, year)
---   uk_contract_org_code             (organization_id, prefix, sequence, year)
 --
 -- Também recriamos as UKs escopadas por org para CPF/CNPJ (V22):
 --   uk_companies_org_cnpj            (organization_id, cnpj)
@@ -131,7 +114,7 @@ SET @sql = IF(@has_idx = 0, 'CREATE INDEX idx_organization ON contract_service_i
 -- ---------------------------------------------------------------------------
 
 -- Helper: encontra UKs que contenham 'organization_uuid' como coluna
--- e as dropa. Isso cobre Quotation, SalesOrder, TechnicalProposal, Contract.
+-- e as dropa. Isso cobre Quotation, SalesOrder, TechnicalProposal.
 
 -- quotations: uk_quotation_org_number (ou nome gerado pelo Hibernate)
 SET @uk_name = (
@@ -181,22 +164,6 @@ SET @sql = IF(@uk_name IS NOT NULL,
     'DO 0');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- contracts: uk_contract_org_code (ou nome gerado)
-SET @uk_name = (
-    SELECT s.INDEX_NAME
-    FROM INFORMATION_SCHEMA.STATISTICS s
-    WHERE s.TABLE_SCHEMA = DATABASE()
-      AND s.TABLE_NAME = 'contracts'
-      AND s.COLUMN_NAME = 'organization_uuid'
-      AND s.NON_UNIQUE = 0
-      AND s.INDEX_NAME <> 'PRIMARY'
-    LIMIT 1
-);
-SET @sql = IF(@uk_name IS NOT NULL,
-    CONCAT('ALTER TABLE contracts DROP INDEX `', @uk_name, '`'),
-    'DO 0');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
 -- ---------------------------------------------------------------------------
 -- 2b. Cria as constraints corretas (com organization_id)
 -- ---------------------------------------------------------------------------
@@ -214,11 +181,6 @@ PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 -- uk_technical_proposal_org_code (organization_id, prefix, sequence, year)
 SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'technical_proposals' AND INDEX_NAME = 'uk_technical_proposal_org_code');
 SET @sql = IF(@has_idx = 0, 'CREATE UNIQUE INDEX uk_technical_proposal_org_code ON technical_proposals (organization_id, prefix, sequence, year)', 'DO 0');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
--- uk_contract_org_code (organization_id, prefix, sequence, year)
-SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'contracts' AND INDEX_NAME = 'uk_contract_org_code');
-SET @sql = IF(@has_idx = 0, 'CREATE UNIQUE INDEX uk_contract_org_code ON contracts (organization_id, prefix, sequence, year)', 'DO 0');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- uk_companies_org_cnpj (organization_id, cnpj)
