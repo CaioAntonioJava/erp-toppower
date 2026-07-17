@@ -204,6 +204,7 @@ export function ProductsListPage() {
                 ) : null}
                 <th className="px-4 py-3 font-medium">Código</th>
                 <th className="px-4 py-3 font-medium">Nome</th>
+                <th className="px-4 py-3 font-medium">NCM</th>
                 <th className="px-4 py-3 font-medium">Unidade</th>
                 <th className="px-4 py-3 font-medium">Preço</th>
                 <th className="px-4 py-3 font-medium">Estoque</th>
@@ -217,7 +218,7 @@ export function ProductsListPage() {
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {list.loading ? (
                 <tr>
-                  <td colSpan={isAdmin ? 8 : 7} className="px-4 py-12 text-center">
+                  <td colSpan={isAdmin ? 10 : 8} className="px-4 py-12 text-center">
                     <div className="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400">
                       <Spinner size="sm" /> Carregando…
                     </div>
@@ -225,7 +226,7 @@ export function ProductsListPage() {
                 </tr>
               ) : list.items.length === 0 ? (
                 <tr>
-                  <td colSpan={isAdmin ? 8 : 7} className="px-4 py-12 text-center">
+                  <td colSpan={isAdmin ? 10 : 8} className="px-4 py-12 text-center">
                     <div className="flex flex-col items-center gap-2 text-slate-500 dark:text-slate-400">
                       <Package className="h-8 w-8 opacity-60" />
                       <p className="text-sm">Nenhum produto encontrado.</p>
@@ -271,6 +272,9 @@ export function ProductsListPage() {
                         <div className="font-medium text-slate-900 dark:text-slate-100">
                           {p.name}
                         </div>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-slate-700 dark:text-slate-200">
+                        {p.ncm}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-slate-600 dark:text-slate-300">
                         {formatUnitType(p.unitType)}
