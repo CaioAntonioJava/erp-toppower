@@ -21,9 +21,28 @@ export async function listServiceTemplates(
     params: {
       page: params.page ?? 0,
       size: params.size ?? 20,
-      sort: 'category,asc',
+      sort: 'name,asc',
     },
   })
+  return data
+}
+
+export async function searchServiceTemplates(params: {
+  query?: string
+  page?: number
+  size?: number
+}): Promise<PagedResponse<ServiceTemplateResponse>> {
+  const { data } = await api.get<PagedResponse<ServiceTemplateResponse>>(
+    `${BASE}/search`,
+    {
+      params: {
+        page: params.page ?? 0,
+        size: params.size ?? 20,
+        sort: 'name,asc',
+        query: params.query,
+      },
+    },
+  )
   return data
 }
 
@@ -38,7 +57,7 @@ export async function listServiceTemplatesByCategory(
         category,
         page: params.page ?? 0,
         size: params.size ?? 50,
-        sort: 'category,asc',
+        sort: 'name,asc',
       },
     },
   )

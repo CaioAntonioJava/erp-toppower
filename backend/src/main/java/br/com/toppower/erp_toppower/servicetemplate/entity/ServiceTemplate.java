@@ -1,5 +1,6 @@
 package br.com.toppower.erp_toppower.servicetemplate.entity;
 
+import br.com.toppower.erp_toppower.common.annotation.UpperCase;
 import br.com.toppower.erp_toppower.common.entity.BaseEntity;
 import br.com.toppower.erp_toppower.servicetemplate.enums.ServiceCategory;
 import jakarta.persistence.Column;
@@ -26,6 +27,10 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class ServiceTemplate extends BaseEntity {
+
+    @UpperCase
+    @Column(name = "name", nullable = false, length = 200)
+    private String name;
 
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;

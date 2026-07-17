@@ -388,7 +388,7 @@ export function TechnicalProposalForm({
   function handleServiceSelect(rowKey: string, template: ServiceTemplateResponse) {
     updateServiceItem(rowKey, {
       serviceTemplateId: template.id,
-      serviceTemplateName: template.category,
+      serviceTemplateName: template.name,
       description: template.description ?? '',
     })
   }
@@ -1002,7 +1002,7 @@ function ServiceRowCatalog({
     { value: '', label: 'Selecione…' },
     ...templates.map((t) => ({
       value: String(t.id),
-      label: t.category,
+      label: t.name,
     })),
   ]
 

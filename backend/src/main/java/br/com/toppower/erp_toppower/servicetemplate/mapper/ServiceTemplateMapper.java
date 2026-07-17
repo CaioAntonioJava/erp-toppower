@@ -12,6 +12,7 @@ public final class ServiceTemplateMapper {
 
     public static ServiceTemplate toEntity(ServiceTemplateCreateRequest request) {
         ServiceTemplate entity = new ServiceTemplate();
+        entity.setName(request.name());
         entity.setDescription(request.description());
         entity.setCategory(request.category());
         return entity;
@@ -20,6 +21,7 @@ public final class ServiceTemplateMapper {
     public static ServiceTemplateResponse toResponse(ServiceTemplate entity) {
         return new ServiceTemplateResponse(
                 entity.getId(),
+                entity.getName(),
                 entity.getDescription(),
                 entity.getCategory(),
                 entity.getCreatedAt(),
@@ -33,6 +35,9 @@ public final class ServiceTemplateMapper {
      * Aplica atualização parcial (PATCH).
      */
     public static void applyUpdate(ServiceTemplate entity, ServiceTemplateUpdateRequest request) {
+        if (request.name() != null) {
+            entity.setName(request.name());
+        }
         if (request.description() != null) {
             entity.setDescription(request.description());
         }

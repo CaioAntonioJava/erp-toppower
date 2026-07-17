@@ -12,6 +12,9 @@ public record ServiceTemplateResponse(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         Long id,
 
+        @Schema(description = "Nome do serviço.", requiredMode = Schema.RequiredMode.REQUIRED)
+        String name,
+
         @Schema(description = "Descrição detalhada do serviço.")
         String description,
 
