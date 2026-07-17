@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <title th:text="'Contrato ' + ${contract.code}">Contrato</title>
+  <style th:replace="~{pdf/styles :: shared}"></style>
+</head>
+<body>
+
+<!-- Cabeçalho do emissor -->
+<div th:replace="~{pdf/fragments/issuer-header :: issuer}"></div>
+
+<!-- Barra de acento + título do documento -->
+<div class="doc-accent">&#160;</div>
+<div class="doc-title" th:text="${contract.title}">Contrato</div>
+<div class="doc-subtitle">
+  Código:
+  <span th:text="${contract.code}">—</span>
+  &#160;•&#160; Vigência:
+  <span th:text="${#temporals.format(contract.validityDate, 'dd/MM/yyyy')}">--/--/----</span>
+  &#160;•&#160; Status:
+  <span th:text="${contract.status.name()}">ATIVO</span>
+</div>
+
+<!-- Cliente -->
+<div class="panel" style="margin-bottom:12px;">
+  <div class="panel-title">Contratante</div>
+  <table class="kv">
+    <colgroup>
+      <col style="width:95px"/>
+      <col/>
+    </colgroup>
+    <tr>
+      <td colspan="2"
+          class="v break-word text-limit-2"
+          style="font-weight:bold; font-size:8pt"
+          th:utext="${clientNameHtml != null ? clientNameHtml : '—'}">—</td>
+    </tr>
+    <tr class="group-gap" th:if="${contract.clientCode != null and !contract.clientCode.isBlank()}">
+      <td class="k">Código:</td>
+      <td class="v" th:text="${contract.clientCode}">—</td>
+    </tr>
+    <tr class="group-gap">
+      <td class="k">Tipo:</td>
+      <td class="v" th:text="${contract.clientType == 'CUSTOMER' ? 'Pessoa Física (PF)' : 'Pessoa Jurídica (PJ)'}">—</td>
+    </tr>
+  </table>
+</div>
+
+<!-- Descrição (texto livre) -->
+<div class="section" th:if="${contract.description != null and !contract.description.isBlank()}">
+  <div class="section-title">Descrição</div>
+  <div class="notes" th:utext="${contract.description}">—</div>
+</div>
+
+<!-- Cláusulas -->
+<div class="section" th:if="${contract.clauses != null and !#lists.isEmpty(contract.clauses)}">
+  <div class="section-title">
+    Cláusulas (<span th:text="${#lists.size(contract.clauses)}">0</span>)
+  </div>
+  <div th:each="clause : ${contract.clauses}" style="margin-bottom:14px;">
+    <div style="font-weight:bold; font-size:8pt; margin-bottom:4px;"
+         th:text="${clause.title}">CLÁUSULA — TÍTULO</div>
+    <div class="notes" th:if="${clause.content != null and !clause.content.isBlank()}"
+         th:utext="${clause.content}">—</div>
+  </div>
+</div>
+
+<!-- Assinaturas -->
+<div class="signatures">
+  <table>
+    <tr>
+      <td>
+        <div class="sig-line">&#160;</div>
+        <div class="sig-label">Contratante</div>
+        <div class="sig-name" th:if="${contract.clientName != null and !contract.clientName.isBlank()}"
+             th:text="${contract.clientName}"></div>
+      </td>
+      <td>
+        <div class="sig-line">&#160;</div>
+        <div class="sig-label">Contratada</div>
+        <div class="sig-name" th:text="${issuer != null ? issuer.tradeName : ''}"></div>
+      </td>
+    </tr>
+  </table>
+</div>
+
+</body>
+</html>

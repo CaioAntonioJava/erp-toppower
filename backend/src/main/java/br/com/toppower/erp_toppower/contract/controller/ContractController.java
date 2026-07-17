@@ -6,6 +6,7 @@ import br.com.toppower.erp_toppower.contract.dto.ContractResponse;
 import br.com.toppower.erp_toppower.contract.dto.ContractUpdateRequest;
 import br.com.toppower.erp_toppower.contract.dto.NextContractCodeResponse;
 import br.com.toppower.erp_toppower.contract.enums.ContractStatus;
+import br.com.toppower.erp_toppower.contract.service.ContractPdfService;
 import br.com.toppower.erp_toppower.contract.service.ContractService;
 import br.com.toppower.erp_toppower.sales.quotation.dto.ClientSummaryResponse;
 import br.com.toppower.erp_toppower.sales.quotation.dto.QuotationResponse;
@@ -23,6 +24,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -47,6 +50,7 @@ import java.util.List;
 public class ContractController {
 
     private final ContractService contractService;
+    private final ContractPdfService contractPdfService;
     private final ClientSearchService clientSearchService;
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -224,6 +228,42 @@ public class ContractController {
     })
     public ResponseEntity<ContractResponse> activate(@PathVariable Long id) {
         return ResponseEntity.ok(contractService.activate(id));
+    }
+
+    // ---------------------------------------------------------------------
+    // PDF
+    // ---------------------------------------------------------------------
+
+    @GetMapping(value = "/{id}/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    @Operation(summary = "Baixar PDF do contrato",
+            description = "Gera o PDF do contrato com cabeçalho da empresa emissora, dados do "
+                    + "contratante, descrição e cláusulas. Use disposition=inline para preview "
+                    + "no navegador ou disposition=attachment para download.")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "PDF gerado com sucesso.",
+                    content = @Content(mediaType = MediaType.APPLICATION_PDF_VALUE)),
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "404", description = "Contrato não encontrado.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+    })
+    public ResponseEntity<byte[]> downloadPdf(@PathVariable Long id,
+            @Parameter(description = "inline (preview) ou attachment (download).",
+                    example = "inline")
+            @RequestParam(defaultValue = "inline") String disposition) {
+        ContractResponse contract = contractService.getById(id);
+        byte[] pdf = contractPdfService.renderPdf(id);
+        String filename = "contrato-" + contract.code() + ".pdf";
+        ContentDisposition cd = "attachment".equalsIgnoreCase(disposition)
+                ? ContentDisposition.attachment().filename(filename).build()
+                : ContentDisposition.inline().filename(filename).build();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentDisposition(cd);
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentLength(pdf.length);
+        return ResponseEntity.ok().headers(headers).body(pdf);
     }
 
     // ---------------------------------------------------------------------

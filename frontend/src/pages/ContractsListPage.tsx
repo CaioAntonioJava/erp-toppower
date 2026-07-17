@@ -7,6 +7,7 @@ import {
   FileSignature,
   Plus,
   Power,
+  Printer,
   Search,
   X,
 } from 'lucide-react'
@@ -33,16 +34,6 @@ const STATUS_OPTIONS = [
   { value: 'ATIVO', label: 'Ativos' },
   { value: 'INATIVO', label: 'Inativos' },
 ]
-
-function formatDate(iso: string | null | undefined): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return ''
-  return d.toLocaleString('pt-BR', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  })
-}
 
 function formatValidityDate(iso: string | null | undefined): string {
   if (!iso) return '—'
@@ -185,16 +176,13 @@ export function ContractsListPage() {
                 <th className="px-4 py-3 font-medium">Título</th>
                 <th className="px-4 py-3 font-medium">Vigência</th>
                 <th className="px-4 py-3 font-medium">Status</th>
-                {isAdmin ? (
-                  <th className="px-4 py-3 font-medium">Atualizado em</th>
-                ) : null}
                 <th className="px-4 py-3 text-right font-medium">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {list.loading ? (
                 <tr>
-                  <td colSpan={isAdmin ? 8 : 7} className="px-4 py-12 text-center">
+                  <td colSpan={isAdmin ? 7 : 6} className="px-4 py-12 text-center">
                     <div className="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400">
                       <Spinner size="sm" /> Carregando…
                     </div>
@@ -202,7 +190,7 @@ export function ContractsListPage() {
                 </tr>
               ) : list.items.length === 0 ? (
                 <tr>
-                  <td colSpan={isAdmin ? 8 : 7} className="px-4 py-12 text-center">
+                  <td colSpan={isAdmin ? 7 : 6} className="px-4 py-12 text-center">
                     <div className="flex flex-col items-center gap-2 text-slate-500 dark:text-slate-400">
                       <FileSignature className="h-8 w-8 opacity-60" />
                       <p className="text-sm">Nenhum contrato encontrado.</p>
@@ -283,16 +271,6 @@ export function ContractsListPage() {
                       <td className="px-4 py-3">
                         <RegistrationStatusBadge status={c.status} />
                       </td>
-                      {isAdmin ? (
-                        <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-500 dark:text-slate-400">
-                          {formatDate(c.updatedAt)}
-                          {c.updatedBy ? (
-                            <div className="text-[10px] text-slate-400 dark:text-slate-500">
-                              por {c.updatedBy}
-                            </div>
-                          ) : null}
-                        </td>
-                      ) : null}
                       <td
                         className="px-4 py-3"
                         onClick={(e) => e.stopPropagation()}
@@ -304,6 +282,13 @@ export function ContractsListPage() {
                             title="Ver / editar" aria-label="Ver / editar"
                           >
                             <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm" variant="ghost"
+                            onClick={() => window.open(`/contracts/${c.id}/pdf`, '_blank', 'noopener,noreferrer')}
+                            title="Imprimir / PDF" aria-label="Imprimir / PDF"
+                          >
+                            <Printer className="h-4 w-4" />
                           </Button>
                           <Button
                             size="sm"

@@ -105,6 +105,33 @@ export async function activateContract(id: number): Promise<ContractResponse> {
 }
 
 /**
+ * GET /contracts/{id}/pdf — baixa o PDF do contrato como Blob,
+ * autenticado pelo axios e respeitando a Organization ativa.
+ * Retorna o Blob + o nome de arquivo sugerido pelo servidor.
+ */
+export async function getContractPdf(
+  id: number,
+  disposition: 'inline' | 'attachment' = 'inline',
+): Promise<{ blob: Blob; filename: string }> {
+  const response = await api.get<Blob>(`${BASE}/${id}/pdf`, {
+    params: { disposition },
+    responseType: 'blob',
+  })
+  const filename = parseFilename(response.headers['content-disposition'])
+    ?? `contrato-${id}.pdf`
+  return { blob: response.data, filename }
+}
+
+/**
+ * Extrai o filename do cabeçalho Content-Disposition.
+ */
+function parseFilename(contentDisposition: string | undefined): string | null {
+  if (!contentDisposition) return null
+  const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(contentDisposition)
+  return match ? match[1] : null
+}
+
+/**
  * GET /contracts/clients/search — busca clientes (PF e PJ) para
  * seleção no formulário de contrato.
  */
