@@ -21,11 +21,6 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import br.com.toppower.erp_toppower.company.exception.CompanyNotFoundException;
 import br.com.toppower.erp_toppower.company.exception.DuplicateCompanyCnpjException;
-import br.com.toppower.erp_toppower.contract.exception.ContractBusinessException;
-import br.com.toppower.erp_toppower.contract.exception.ContractCompanyNotFoundException;
-import br.com.toppower.erp_toppower.contract.exception.ContractCustomerNotFoundException;
-import br.com.toppower.erp_toppower.contract.exception.ContractNotFoundException;
-import br.com.toppower.erp_toppower.contract.exception.InvalidContractClientException;
 import br.com.toppower.erp_toppower.customer.exception.CustomerNotFoundException;
 import br.com.toppower.erp_toppower.customer.exception.DuplicateCustomerCpfException;
 import br.com.toppower.erp_toppower.product.exception.DuplicateProductCodeException;
@@ -336,35 +331,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(StockMovementNotFoundException.class)
     public ResponseEntity<ApiError> handleStockMovementNotFound(StockMovementNotFoundException ex) {
         return build(HttpStatus.NOT_FOUND, ex.getMessage());
-    }
-
-    // =====================================================================
-    // Contratos (Contract)
-    // =====================================================================
-
-    @ExceptionHandler(ContractNotFoundException.class)
-    public ResponseEntity<ApiError> handleContractNotFound(ContractNotFoundException ex) {
-        return build(HttpStatus.NOT_FOUND, ex.getMessage());
-    }
-
-    @ExceptionHandler(ContractCustomerNotFoundException.class)
-    public ResponseEntity<ApiError> handleContractCustomerNotFound(ContractCustomerNotFoundException ex) {
-        return build(HttpStatus.NOT_FOUND, ex.getMessage());
-    }
-
-    @ExceptionHandler(ContractCompanyNotFoundException.class)
-    public ResponseEntity<ApiError> handleContractCompanyNotFound(ContractCompanyNotFoundException ex) {
-        return build(HttpStatus.NOT_FOUND, ex.getMessage());
-    }
-
-    @ExceptionHandler(InvalidContractClientException.class)
-    public ResponseEntity<ApiError> handleInvalidContractClient(InvalidContractClientException ex) {
-        return build(HttpStatus.BAD_REQUEST, ex.getMessage());
-    }
-
-    @ExceptionHandler(ContractBusinessException.class)
-    public ResponseEntity<ApiError> handleContractBusiness(ContractBusinessException ex) {
-        return build(HttpStatus.CONFLICT, ex.getMessage());
     }
 
     @ExceptionHandler(SupplierNotFoundException.class)
