@@ -2,6 +2,7 @@ import { useAuth } from '../context/AuthContext'
 import {
   AccountsPayableWidget,
   AccountsReceivableWidget,
+  BoletosCadastradosWidget,
   BoletosDueWidget,
   FinanceSummaryWidget,
 } from '../components/dashboard'
@@ -43,6 +44,9 @@ export function DashboardPage() {
 
       {/* Boletos próximos do vencimento — largura total. */}
       <BoletosDueWidget />
+
+      {/* Boletos cadastrados pela usuária — cadastro e listagem inline. */}
+      <BoletosCadastradosWidget />
     </div>
   )
 }
