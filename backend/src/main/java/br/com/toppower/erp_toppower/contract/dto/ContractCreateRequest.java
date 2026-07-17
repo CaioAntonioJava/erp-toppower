@@ -1,9 +1,11 @@
 package br.com.toppower.erp_toppower.contract.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * Dados para cadastro de um novo contrato.
@@ -52,6 +54,12 @@ public record ContractCreateRequest(
 
         @Schema(description = "Data de vigência do contrato. Quando omitida, o backend usa a data atual.",
                 example = "2026-07-17", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        LocalDate validityDate
+        LocalDate validityDate,
+
+        @Schema(description = "Cláusulas do contrato. Quando omitido, o backend pré-preenche "
+                + "as 11 cláusulas padrão (cláusula 1 vazia, 2–11 com textos do template padrão).",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        @Valid
+        List<ContractClauseRequest> clauses
 ) {
 }

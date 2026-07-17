@@ -42,6 +42,28 @@ export interface ContractResponse {
   updatedAt: string
   createdBy: string | null
   updatedBy: string | null
+  /** Cláusulas do contrato, ordenadas por número. */
+  clauses: ContractClauseResponse[]
+}
+
+/** Cláusula de contrato (resposta). Espelha ContractClauseResponse do backend. */
+export interface ContractClauseResponse {
+  id: number
+  clauseNumber: number
+  title: string
+  content: string | null
+  serviceTemplateId: number | null
+  createdAt: string
+  updatedAt: string
+}
+
+/** Cláusula de contrato (request). Enviada em create/update. */
+export interface ContractClauseRequest {
+  clauseNumber: number
+  title: string
+  content?: string | null
+  /** ID do ServiceTemplate (apenas cláusula 1). */
+  serviceTemplateId?: number | null
 }
 
 /** Corpo de POST /api/v1/contracts. Todos os campos são opcionais — o
@@ -55,6 +77,8 @@ export interface ContractCreateRequest {
   description?: string
   /** Data de vigência (yyyy-MM-dd). Quando omitida, o backend usa a data atual. */
   validityDate?: string
+  /** Cláusulas do contrato. Omitir para o backend pré-preencher as 11 padrão. */
+  clauses?: ContractClauseRequest[]
 }
 
 /** Corpo de PATCH /api/v1/contracts/{id}. Campos opcionais. O código
@@ -67,6 +91,8 @@ export interface ContractUpdateRequest {
   status?: ContractStatus
   /** Data de vigência (yyyy-MM-dd). */
   validityDate?: string
+  /** Cláusulas. null = manter; lista (inclusive vazia) = substituição completa. */
+  clauses?: ContractClauseRequest[] | null
 }
 
 /** Resposta de GET /api/v1/contracts/next-code. */

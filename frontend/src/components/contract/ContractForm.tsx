@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { Trash2, Plus } from 'lucide-react'
 import type {
   ClientSummaryResponse,
   ContractClientType,
+  ContractClauseResponse,
   ContractCreateRequest,
   ContractResponse,
   ContractUpdateRequest,
@@ -11,15 +13,110 @@ import { Input } from '../ui/Input'
 import { Select } from '../ui/Select'
 import { Alert } from '../ui/Alert'
 import { Spinner } from '../ui/Spinner'
+import { Button } from '../ui/Button'
 import { RichTextEditor } from '../ui/RichTextEditor'
 import { toApiError } from '../../lib/errors'
 import { useFieldTouched } from '../../hooks/useFieldTouched'
 import { getNextContractCode, searchContractClients } from '../../api/contract.api'
+import { listServiceTemplates } from '../../api/servicetemplate.api'
+import type { ServiceTemplateResponse } from '../../types/servicetemplate'
 
 const CLIENT_TYPE_OPTIONS = [
   { value: 'CUSTOMER', label: 'Cliente (PF)' },
   { value: 'COMPANY', label: 'Empresa (PJ)' },
 ]
+
+// --- Cláusulas padrão (cláusula 1 vazia, 2–11 do contrato modelo Top Power) ---
+interface ClauseDraft {
+  rowKey: string
+  clauseNumber: number
+  title: string
+  content: string
+  serviceTemplateId: number | ''
+}
+
+function nextRowKey(): string {
+  return `row_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
+}
+
+/** Cláusulas padrão extraídas do contrato modelo (PDF) Top Power mão de obra.
+ *  Cláusula 1 (DO OBJETO) fica vazia — o usuário seleciona um ServiceTemplate. */
+function buildDefaultClauses(): ClauseDraft[] {
+  const defaults: Omit<ClauseDraft, 'rowKey'>[] = [
+    { clauseNumber: 1, title: 'DO OBJETO', content: '', serviceTemplateId: '' },
+    {
+      clauseNumber: 2,
+      title: 'RESPONSABILIDADE DA CONTRATADA',
+      content: '2.1. Fornecimento de mão-de-obra especializada, ferramental, roupa e equipamentos para o bom desempenho dos trabalhos;\n2.2. Fornecimento de transporte e alimentação apropriado para os funcionários;\n2.3. Suporte Técnico de Engenheiro com registro ativo no CREA, para supervisão;\n2.4. Sigilo sobre as atividades da CONTRATANTE.',
+      serviceTemplateId: '',
+    },
+    {
+      clauseNumber: 3,
+      title: 'RESPONSABILIDADE DA CONTRATANTE',
+      content: '3.1. Liberação da área de trabalho, em condições de desenvolver seus serviços em tempo hábil para o cumprimento do prazo de execução previsto.\n3.2. Fornecimento de documentação técnica.',
+      serviceTemplateId: '',
+    },
+    {
+      clauseNumber: 4,
+      title: 'DO PRAZO DE ENTREGA',
+      content: '4.1. 120 (cento e vinte) dias a partir da autorização do serviço.',
+      serviceTemplateId: '',
+    },
+    {
+      clauseNumber: 5,
+      title: 'DOS PREÇOS E FORMA DE PAGAMENTO',
+      content: '5.1. A CONTRATANTE pagará ao CONTRATADO, pelos serviços, o valor total acordado entre as partes.\n5.2. Pagamento/Parcelas: conforme acordo entre as partes.\n5.3. Dados para transferência bancária: a definir.\n5.4. No valor citado nesta cláusula estão inclusas as despesas com impostos e encargos sociais pertinentes a este contrato. Estamos considerando o recolhimento da ART (Anotação de Responsabilidade Técnica) para a execução dos itens objetos desta proposta.',
+      serviceTemplateId: '',
+    },
+    {
+      clauseNumber: 6,
+      title: 'DA VIGÊNCIA',
+      content: '6.1. O presente Contrato vigorará durante o período necessário para a elaboração dos serviços descritos na Cláusula Primeira, limitado ao prazo estabelecido na Cláusula Quarta.',
+      serviceTemplateId: '',
+    },
+    {
+      clauseNumber: 7,
+      title: 'DA RESCISÃO',
+      content: '7.1. Será motivo para rescisão imediata deste contrato o descumprimento de quaisquer de suas cláusulas, devendo a parte infratora arcar com as perdas e danos decorrentes do fato, honorários advocatícios e demais cominações legais.',
+      serviceTemplateId: '',
+    },
+    {
+      clauseNumber: 8,
+      title: 'DA MULTA',
+      content: '8.1. Caso alguma das partes não cumpra o disposto nas cláusulas estabelecidas neste instrumento, responsabilizar-se-á pelo pagamento de multa equivalente a 20% (vinte por cento) do valor total do objeto do contrato, operando a rescisão automática do presente Contrato com vencimento antecipado das demais parcelas, bem como as perdas e danos, se couber.',
+      serviceTemplateId: '',
+    },
+    {
+      clauseNumber: 9,
+      title: 'DO EXERCÍCIO DOS DIREITOS',
+      content: '9.1. Aplicam-se ao presente Contrato as disposições do Código Civil e do Código de Defesa do Consumidor naquilo em que lhe forem compatíveis.\n9.2. Caso seja necessário qualquer outro tipo de serviço técnico em eletricidade, além do objeto descrito na Cláusula Primeira, o mesmo deverá ser discutido antes da execução, cabendo aditivo a este Contrato.',
+      serviceTemplateId: '',
+    },
+    {
+      clauseNumber: 10,
+      title: 'DO TÍTULO EXTRA JUDICIAL',
+      content: '10.1. O presente contrato constitui título executivo extrajudicial, nos termos do artigo 585, II do Código de Processo Civil.',
+      serviceTemplateId: '',
+    },
+    {
+      clauseNumber: 11,
+      title: 'DISPOSIÇÕES GERAIS',
+      content: '11.1. A CONTRATADA assume a responsabilidade técnica dos serviços a serem executados, declarando, neste ato, que conhece os equipamentos e o local da prestação de serviços – previamente visitado em vistoria técnica realizada pelo Engenheiro responsável.\n11.2. A CONTRATADA se compromete a proteger e preservar o meio ambiente, bem como a prevenir contra as práticas danosas ao ecossistema, executando seus serviços em observação dos atos legais normativos e administrativos relativos à área de meio ambiente e as correlatas emanadas das esferas do Governo Federal e Estadual.\n11.3. As partes de comum acordo elegem o Foro da Comarca de Sumaré/SP para dirimir qualquer lide oriunda do presente Contrato, com renúncia expressa de qualquer outro por mais privilegiado que seja.',
+      serviceTemplateId: '',
+    },
+  ]
+  return defaults.map((d) => ({ ...d, rowKey: nextRowKey() }))
+}
+
+function clausesFromResponse(clauses: ContractClauseResponse[]): ClauseDraft[] {
+  return clauses.map((c) => ({
+    rowKey: nextRowKey(),
+    clauseNumber: c.clauseNumber,
+    title: c.title,
+    content: c.content ?? '',
+    serviceTemplateId: c.serviceTemplateId ?? '',
+  }))
+}
 
 interface ContractFormProps {
   /** Contrato existente (modo edição). Quando omitido, é cadastro novo. */
@@ -84,6 +181,13 @@ export function ContractForm({
     contract?.status ?? 'ATIVO',
   )
 
+  // --- Cláusulas ---
+  const [clauses, setClauses] = useState<ClauseDraft[]>(
+    contract?.clauses ? clausesFromResponse(contract.clauses) : buildDefaultClauses(),
+  )
+  const [serviceTemplates, setServiceTemplates] = useState<ServiceTemplateResponse[]>([])
+  const [templatesLoading, setTemplatesLoading] = useState(false)
+
   // Pré-busca o próximo código + título padrão + data de vigência padrão
   // ao entrar no modo de cadastro. Em edição, os valores já vieram no `contract`.
   useEffect(() => {
@@ -102,6 +206,26 @@ export function ContractForm({
       cancelled = true
     }
   }, [contract])
+
+  // Carrega a lista de ServiceTemplates para a cláusula 1 (DO OBJETO).
+  useEffect(() => {
+    let cancelled = false
+    setTemplatesLoading(true)
+    listServiceTemplates({ page: 0, size: 100 })
+      .then((res) => {
+        if (cancelled) return
+        setServiceTemplates(res.content)
+      })
+      .catch(() => {
+        if (!cancelled) setServiceTemplates([])
+      })
+      .finally(() => {
+        if (!cancelled) setTemplatesLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   // Em modo edição, preenche o label do cliente a partir do response.
   useEffect(() => {
@@ -136,6 +260,42 @@ export function ContractForm({
     return () => clearTimeout(timer)
   }
 
+  // --- Cláusulas: helpers de manipulação ---
+  function updateClause(rowKey: string, patch: Partial<ClauseDraft>) {
+    setClauses((prev) =>
+      prev.map((c) => (c.rowKey === rowKey ? { ...c, ...patch } : c)),
+    )
+  }
+
+  function removeClause(rowKey: string) {
+    setClauses((prev) => prev.filter((c) => c.rowKey !== rowKey))
+  }
+
+  function addClause() {
+    setClauses((prev) => [
+      ...prev,
+      {
+        rowKey: nextRowKey(),
+        clauseNumber: prev.length + 1,
+        title: '',
+        content: '',
+        serviceTemplateId: '',
+      },
+    ])
+  }
+
+  /** Ao selecionar um ServiceTemplate na cláusula 1, copia a descrição. */
+  function handleServiceTemplateSelect(rowKey: string, templateId: string) {
+    const id = templateId ? Number(templateId) : ''
+    const template = id
+      ? serviceTemplates.find((t) => t.id === id) ?? null
+      : null
+    updateClause(rowKey, {
+      serviceTemplateId: id,
+      content: template?.description ?? '',
+    })
+  }
+
   // --- Validação ---
   function validateAll(): boolean {
     const errs: Record<string, string> = {}
@@ -158,6 +318,16 @@ export function ContractForm({
     markAllTouched()
     if (!validateAll()) return
 
+    // Mapeia cláusulas para o payload
+    const clausesPayload = clauses
+      .filter((c) => c.title.trim() !== '')
+      .map((c) => ({
+        clauseNumber: c.clauseNumber,
+        title: c.title.trim(),
+        content: c.content || null,
+        serviceTemplateId: c.serviceTemplateId !== '' ? Number(c.serviceTemplateId) : null,
+      }))
+
     try {
       if (isEdit && contract) {
         const payload: ContractUpdateRequest = {
@@ -165,6 +335,7 @@ export function ContractForm({
           description: description ?? '',
           status,
           validityDate: validityDate || undefined,
+          clauses: clausesPayload,
         }
         // Cliente: envia o ID correto conforme o tipo
         if (clientType === 'CUSTOMER') {
@@ -182,6 +353,7 @@ export function ContractForm({
           title: title.trim(),
           description: description ?? '',
           validityDate: validityDate || undefined,
+          clauses: clausesPayload,
         }
         if (clientType === 'CUSTOMER') {
           payload.customerId = clientId ? Number(clientId) : null
@@ -360,7 +532,101 @@ export function ContractForm({
           onChange={setDescription}
           placeholder="Descreva as cláusulas e condições do contrato…"
           maxLength={20000}
+          minHeight={320}
         />
+      </section>
+
+      {/* Cláusulas */}
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-semibold">Cláusulas do contrato</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              As cláusulas 2–11 vêm pré-preenchidas com o contrato modelo Top Power.
+              A cláusula 1 (DO OBJETO) é preenchida ao selecionar um serviço do catálogo.
+            </p>
+          </div>
+          <Button type="button" variant="secondary" size="sm" onClick={addClause}>
+            <Plus className="h-4 w-4" />
+            Adicionar
+          </Button>
+        </div>
+
+        <div className="flex flex-col gap-6">
+          {clauses.map((clause, idx) => (
+            <div
+              key={clause.rowKey}
+              className="rounded-xl border border-slate-200 p-4 dark:border-slate-700"
+            >
+              {/* Cabeçalho: número + título + remover */}
+              <div className="mb-3 flex items-start gap-3">
+                <div className="flex h-8 w-12 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-sm font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                  {String(clause.clauseNumber).padStart(2, '0')}
+                </div>
+                <Input
+                  placeholder="Título da cláusula (ex.: DO OBJETO)"
+                  value={clause.title}
+                  onChange={(e) => updateClause(clause.rowKey, { title: e.target.value })}
+                  maxLength={200}
+                />
+                <button
+                  type="button"
+                  onClick={() => removeClause(clause.rowKey)}
+                  aria-label="Remover cláusula"
+                  title="Remover cláusula"
+                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-red-600 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-red-400"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Cláusula 1: seletor de ServiceTemplate */}
+              {clause.clauseNumber === 1 ? (
+                <div className="mb-3">
+                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Serviço do catálogo (ServiceTemplate)
+                  </label>
+                  {templatesLoading ? (
+                    <div className="flex items-center gap-2 text-sm text-slate-500">
+                      <Spinner size="sm" /> Carregando serviços…
+                    </div>
+                  ) : (
+                    <select
+                      value={clause.serviceTemplateId !== '' ? String(clause.serviceTemplateId) : ''}
+                      onChange={(e) => handleServiceTemplateSelect(clause.rowKey, e.target.value)}
+                      className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-focus focus:ring-2 focus:ring-focus/30 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                    >
+                      <option value="">Selecione um serviço do catálogo…</option>
+                      {serviceTemplates.map((t) => (
+                        <option key={t.id} value={String(t.id)}>
+                          {t.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    Ao selecionar, a descrição do serviço é copiada para o texto da cláusula.
+                  </p>
+                </div>
+              ) : null}
+
+              {/* Texto da cláusula */}
+              <RichTextEditor
+                value={clause.content}
+                onChange={(html) => updateClause(clause.rowKey, { content: html })}
+                placeholder="Texto da cláusula…"
+                maxLength={20000}
+                minHeight={idx === 0 ? 200 : 120}
+              />
+            </div>
+          ))}
+
+          {clauses.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+              Nenhuma cláusula. Clique em "Adicionar" para incluir.
+            </div>
+          ) : null}
+        </div>
       </section>
 
       {/* Status */}

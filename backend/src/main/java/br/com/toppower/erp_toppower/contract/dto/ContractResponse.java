@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * Representação pública de um contrato retornada pela API.
@@ -80,6 +81,9 @@ public record ContractResponse(
         String createdBy,
 
         @Schema(description = "E-mail do usuário que fez a última atualização.")
-        String updatedBy
+        String updatedBy,
+
+        @Schema(description = "Cláusulas do contrato, ordenadas por número.")
+        List<ContractClauseResponse> clauses
 ) {
 }

@@ -4,28 +4,35 @@ import br.com.toppower.erp_toppower.common.context.OrganizationContext;
 import br.com.toppower.erp_toppower.common.dto.PagedResponse;
 import br.com.toppower.erp_toppower.company.entity.Company;
 import br.com.toppower.erp_toppower.company.repository.CompanyRepository;
+import br.com.toppower.erp_toppower.contract.dto.ContractClauseRequest;
 import br.com.toppower.erp_toppower.contract.dto.ContractCreateRequest;
 import br.com.toppower.erp_toppower.contract.dto.ContractResponse;
 import br.com.toppower.erp_toppower.contract.dto.ContractUpdateRequest;
 import br.com.toppower.erp_toppower.contract.dto.NextContractCodeResponse;
 import br.com.toppower.erp_toppower.contract.entity.Contract;
+import br.com.toppower.erp_toppower.contract.entity.ContractClause;
 import br.com.toppower.erp_toppower.contract.enums.ContractStatus;
 import br.com.toppower.erp_toppower.contract.exception.ContractBusinessException;
 import br.com.toppower.erp_toppower.contract.exception.ContractClientNotFoundException;
 import br.com.toppower.erp_toppower.contract.exception.ContractNotFoundException;
 import br.com.toppower.erp_toppower.contract.exception.InvalidContractClientException;
 import br.com.toppower.erp_toppower.contract.mapper.ContractMapper;
+import br.com.toppower.erp_toppower.contract.repository.ContractClauseRepository;
 import br.com.toppower.erp_toppower.contract.repository.ContractRepository;
 import br.com.toppower.erp_toppower.customer.entity.Customer;
 import br.com.toppower.erp_toppower.customer.repository.CustomerRepository;
 import br.com.toppower.erp_toppower.organization.entity.Organization;
 import br.com.toppower.erp_toppower.organization.repository.OrganizationRepository;
+import br.com.toppower.erp_toppower.servicetemplate.entity.ServiceTemplate;
+import br.com.toppower.erp_toppower.servicetemplate.repository.ServiceTemplateRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Regras de negócio do ciclo de vida de um contrato.
@@ -57,18 +64,24 @@ public class ContractService {
     private static final int MIN_SEARCH_QUERY_LENGTH = 2;
 
     private final ContractRepository repository;
+    private final ContractClauseRepository clauseRepository;
     private final OrganizationRepository organizationRepository;
     private final CustomerRepository customerRepository;
     private final CompanyRepository companyRepository;
+    private final ServiceTemplateRepository serviceTemplateRepository;
 
     public ContractService(ContractRepository repository,
+                           ContractClauseRepository clauseRepository,
                            OrganizationRepository organizationRepository,
                            CustomerRepository customerRepository,
-                           CompanyRepository companyRepository) {
+                           CompanyRepository companyRepository,
+                           ServiceTemplateRepository serviceTemplateRepository) {
         this.repository = repository;
+        this.clauseRepository = clauseRepository;
         this.organizationRepository = organizationRepository;
         this.customerRepository = customerRepository;
         this.companyRepository = companyRepository;
+        this.serviceTemplateRepository = serviceTemplateRepository;
     }
 
     // ---------------------------------------------------------------------
@@ -83,6 +96,14 @@ public class ContractService {
         applyNextCode(contract);
         applyDefaults(contract, request);
         Contract saved = repository.save(contract);
+
+        // Cláusulas: se enviadas, persiste; senão, semeia as 11 padrão do PDF.
+        if (request.clauses() != null && !request.clauses().isEmpty()) {
+            persistClauses(request.clauses(), saved.getId());
+        } else {
+            seedDefaultClauses(saved.getId());
+        }
+
         return toResponseWithClient(saved);
     }
 
@@ -148,6 +169,18 @@ public class ContractService {
 
         ContractMapper.applyUpdate(contract, request);
         Contract saved = repository.save(contract);
+
+        // Cláusulas: se o request trouxe a lista (inclusive vazia),
+        // faz full replacement (delete-all + re-insert). Se omitida
+        // (null), mantém as cláusulas atuais.
+        if (request.clauses() != null) {
+            clauseRepository.deleteByContractId(id);
+            clauseRepository.flush();
+            if (!request.clauses().isEmpty()) {
+                persistClauses(request.clauses(), id);
+            }
+        }
+
         return toResponseWithClient(saved);
     }
 
@@ -344,7 +377,150 @@ public class ContractService {
 
     private ContractResponse toResponseWithClient(Contract contract) {
         ClientResolved client = resolveClient(contract);
-        return ContractMapper.toResponse(contract, client.name(), client.code());
+        List<ContractClause> clauses = clauseRepository
+                .findByContractIdOrderByClauseNumberAsc(contract.getId());
+        return ContractMapper.toResponse(contract, client.name(), client.code(), clauses);
+    }
+
+    // ---------------------------------------------------------------------
+    // Helpers — cláusulas
+    // ---------------------------------------------------------------------
+
+    /**
+     * Persiste a lista de cláusulas enviadas pelo cliente. Para a cláusula 1
+     * (DO OBJETO), quando {@code serviceTemplateId} é informado, busca o
+     * ServiceTemplate e copia sua descrição para o conteúdo da cláusula
+     * (snapshot), mantendo o ID para rastreabilidade.
+     */
+    private void persistClauses(List<ContractClauseRequest> clauses, Long contractId) {
+        for (ContractClauseRequest req : clauses) {
+            ContractClause clause = ContractMapper.toClauseEntity(req, contractId);
+
+            // Cláusula 1 com ServiceTemplate: copia a descrição do template.
+            if (req.clauseNumber() != null
+                    && req.clauseNumber() == 1
+                    && req.serviceTemplateId() != null) {
+                serviceTemplateRepository.findById(req.serviceTemplateId())
+                        .ifPresent(template -> clause.setContent(template.getDescription()));
+            }
+
+            clauseRepository.save(clause);
+        }
+    }
+
+    /**
+     * Semeia as 11 cláusulas padrão extraídas do contrato modelo Top Power
+     * (mão de obra). A cláusula 1 (DO OBJETO) é criada vazia — o usuário
+     * deve selecionar um ServiceTemplate no frontend. As cláusulas 2–11
+     * vêm pré-preenchidas com os textos do documento de referência.
+     */
+    private void seedDefaultClauses(Long contractId) {
+        List<ContractClause> defaults = buildDefaultClauses(contractId);
+        for (ContractClause clause : defaults) {
+            clauseRepository.save(clause);
+        }
+    }
+
+    /**
+     * Constrói a lista de 11 cláusulas padrão (cláusula 1 vazia, 2–11
+     * com os textos do contrato modelo). Usado tanto no seed de criação
+     * quanto pode ser exposto via getNextCode para o frontend pré-preencher.
+     */
+    private List<ContractClause> buildDefaultClauses(Long contractId) {
+        List<ContractClause> clauses = new ArrayList<>();
+
+        clauses.add(newClause(contractId, 1, "DO OBJETO", null, null));
+
+        clauses.add(newClause(contractId, 2, "RESPONSABILIDADE DA CONTRATADA",
+                "2.1. Fornecimento de mão-de-obra especializada, ferramental, roupa e equipamentos "
+                        + "para o bom desempenho dos trabalhos;\n"
+                        + "2.2. Fornecimento de transporte e alimentação apropriado para os funcionários;\n"
+                        + "2.3. Suporte Técnico de Engenheiro com registro ativo no CREA, para supervisão;\n"
+                        + "2.4. Sigilo sobre as atividades da CONTRATANTE.",
+                null));
+
+        clauses.add(newClause(contractId, 3, "RESPONSABILIDADE DA CONTRATANTE",
+                "3.1. Liberação da área de trabalho, em condições de desenvolver seus serviços em tempo "
+                        + "hábil para o cumprimento do prazo de execução previsto.\n"
+                        + "3.2. Fornecimento de documentação técnica.",
+                null));
+
+        clauses.add(newClause(contractId, 4, "DO PRAZO DE ENTREGA",
+                "4.1. 120 (cento e vinte) dias a partir da autorização do serviço.",
+                null));
+
+        clauses.add(newClause(contractId, 5, "DOS PREÇOS E FORMA DE PAGAMENTO",
+                "5.1. A CONTRATANTE pagará ao CONTRATADO, pelos serviços, o valor total acordado entre "
+                        + "as partes.\n"
+                        + "5.2. Pagamento/Parcelas: conforme acordo entre as partes.\n"
+                        + "5.3. Dados para transferência bancária: a definir.\n"
+                        + "5.4. No valor citado nesta cláusula estão inclusas as despesas com impostos e "
+                        + "encargos sociais pertinentes a este contrato. Estamos considerando o recolhimento "
+                        + "da ART (Anotação de Responsabilidade Técnica) para a execução dos itens objetos "
+                        + "desta proposta.",
+                null));
+
+        clauses.add(newClause(contractId, 6, "DA VIGÊNCIA",
+                "6.1. O presente Contrato vigorará durante o período necessário para a elaboração dos "
+                        + "serviços descritos na Cláusula Primeira, limitado ao prazo estabelecido na "
+                        + "Cláusula Quarta.",
+                null));
+
+        clauses.add(newClause(contractId, 7, "DA RESCISÃO",
+                "7.1. Será motivo para rescisão imediata deste contrato o descumprimento de quaisquer de "
+                        + "suas cláusulas, devendo a parte infratora arcar com as perdas e danos decorrentes "
+                        + "do fato, honorários advocatícios e demais cominações legais.",
+                null));
+
+        clauses.add(newClause(contractId, 8, "DA MULTA",
+                "8.1. Caso alguma das partes não cumpra o disposto nas cláusulas estabelecidas neste "
+                        + "instrumento, responsabilizar-se-á pelo pagamento de multa equivalente a 20% "
+                        + "(vinte por cento) do valor total do objeto do contrato, operando a rescisão "
+                        + "automática do presente Contrato com vencimento antecipado das demais parcelas, "
+                        + "bem como as perdas e danos, se couber.",
+                null));
+
+        clauses.add(newClause(contractId, 9, "DO EXERCÍCIO DOS DIREITOS",
+                "9.1. Aplicam-se ao presente Contrato as disposições do Código Civil e do Código de "
+                        + "Defesa do Consumidor naquilo em que lhe forem compatíveis.\n"
+                        + "9.2. Caso seja necessário qualquer outro tipo de serviço técnico em eletricidade, "
+                        + "além do objeto descrito na Cláusula Primeira, o mesmo deverá ser discutido antes "
+                        + "da execução, cabendo aditivo a este Contrato.",
+                null));
+
+        clauses.add(newClause(contractId, 10, "DO TÍTULO EXTRA JUDICIAL",
+                "10.1. O presente contrato constitui título executivo extrajudicial, nos termos do "
+                        + "artigo 585, II do Código de Processo Civil.",
+                null));
+
+        clauses.add(newClause(contractId, 11, "DISPOSIÇÕES GERAIS",
+                "11.1. A CONTRATADA assume a responsabilidade técnica dos serviços a serem executados, "
+                        + "declarando, neste ato, que conhece os equipamentos e o local da prestação de "
+                        + "serviços – previamente visitado em vistoria técnica realizada pelo Engenheiro "
+                        + "responsável.\n"
+                        + "11.2. A CONTRATADA se compromete a proteger e preservar o meio ambiente, bem "
+                        + "como a prevenir contra as práticas danosas ao ecossistema, executando seus "
+                        + "serviços em observância dos atos legais normativos e administrativos relativos "
+                        + "à área de meio ambiente e as correlatas emanadas das esferas do Governo Federal "
+                        + "e Estadual.\n"
+                        + "11.3. As partes de comum acordo elegem o Foro da Comarca de Sumaré/SP para dirimir "
+                        + "qualquer lide oriunda do presente Contrato, com renúncia expressa de qualquer "
+                        + "outro por mais privilegiado que seja.",
+                null));
+
+        return clauses;
+    }
+
+    /** Cria uma cláusula com os campos básicos (sem ID, sem auditoria). */
+    private static ContractClause newClause(Long contractId, int number, String title,
+                                             String content, Long serviceTemplateId) {
+        ContractClause clause = new ContractClause();
+        clause.setContractId(contractId);
+        clause.setClauseNumber(number);
+        clause.setTitle(title);
+        clause.setContent(content);
+        clause.setServiceTemplateId(serviceTemplateId);
+        return clause;
     }
 
     private record ClientResolved(String name, String code) {

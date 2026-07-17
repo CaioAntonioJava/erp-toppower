@@ -2,9 +2,11 @@ package br.com.toppower.erp_toppower.contract.dto;
 
 import br.com.toppower.erp_toppower.contract.enums.ContractStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * Atualização parcial de um contrato (PATCH). Todos os campos são
@@ -41,6 +43,13 @@ public record ContractUpdateRequest(
 
         @Schema(description = "Nova data de vigência do contrato.",
                 example = "2026-07-17", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        LocalDate validityDate
+        LocalDate validityDate,
+
+        @Schema(description = "Novas cláusulas do contrato. Quando enviado (inclusive lista vazia), "
+                + "substitui completamente as cláusulas existentes (full replacement). "
+                + "Quando omitido (null), mantém as cláusulas atuais.",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        @Valid
+        List<ContractClauseRequest> clauses
 ) {
 }

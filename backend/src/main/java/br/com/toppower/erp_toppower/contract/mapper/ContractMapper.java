@@ -1,9 +1,14 @@
 package br.com.toppower.erp_toppower.contract.mapper;
 
+import br.com.toppower.erp_toppower.contract.dto.ContractClauseRequest;
+import br.com.toppower.erp_toppower.contract.dto.ContractClauseResponse;
 import br.com.toppower.erp_toppower.contract.dto.ContractCreateRequest;
 import br.com.toppower.erp_toppower.contract.dto.ContractResponse;
 import br.com.toppower.erp_toppower.contract.dto.ContractUpdateRequest;
 import br.com.toppower.erp_toppower.contract.entity.Contract;
+import br.com.toppower.erp_toppower.contract.entity.ContractClause;
+
+import java.util.List;
 
 /**
  * Mapper estático (sem MapStruct) para a entidade {@link Contract}.
@@ -49,12 +54,17 @@ public final class ContractMapper {
 
     /**
      * Constrói a resposta completa, incluindo os dados do cliente resolvido
-     * (nome, código, tipo) que são passados pelo service.
+     * (nome, código, tipo) que são passados pelo service, e as cláusulas
+     * já carregadas pelo service.
      */
     public static ContractResponse toResponse(Contract contract,
                                                String clientName,
-                                               String clientCode) {
+                                               String clientCode,
+                                               List<ContractClause> clauses) {
         String clientType = (contract.getCustomerId() != null) ? "CUSTOMER" : "COMPANY";
+        List<ContractClauseResponse> clauseResponses = (clauses == null)
+                ? List.of()
+                : clauses.stream().map(ContractMapper::toClauseResponse).toList();
         return new ContractResponse(
                 contract.getId(),
                 contract.getPrefix(),
@@ -73,7 +83,41 @@ public final class ContractMapper {
                 contract.getCreatedAt(),
                 contract.getUpdatedAt(),
                 contract.getCreatedBy(),
-                contract.getUpdatedBy()
+                contract.getUpdatedBy(),
+                clauseResponses
+        );
+    }
+
+    // ---------------------------------------------------------------------
+    // Cláusulas
+    // ---------------------------------------------------------------------
+
+    /**
+     * Cria uma entidade de cláusula a partir do request e do ID do contrato pai.
+     * O {@code contractId} é injetado pelo service após salvar o contrato pai.
+     */
+    public static ContractClause toClauseEntity(ContractClauseRequest request, Long contractId) {
+        ContractClause clause = new ContractClause();
+        clause.setContractId(contractId);
+        clause.setClauseNumber(request.clauseNumber());
+        clause.setTitle(request.title());
+        clause.setContent(request.content());
+        clause.setServiceTemplateId(request.serviceTemplateId());
+        return clause;
+    }
+
+    /**
+     * Constrói a resposta de uma cláusula.
+     */
+    public static ContractClauseResponse toClauseResponse(ContractClause clause) {
+        return new ContractClauseResponse(
+                clause.getId(),
+                clause.getClauseNumber(),
+                clause.getTitle(),
+                clause.getContent(),
+                clause.getServiceTemplateId(),
+                clause.getCreatedAt(),
+                clause.getUpdatedAt()
         );
     }
 
