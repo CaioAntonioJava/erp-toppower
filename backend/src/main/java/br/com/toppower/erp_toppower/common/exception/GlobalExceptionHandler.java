@@ -2,7 +2,9 @@ package br.com.toppower.erp_toppower.common.exception;
 
 import br.com.toppower.erp_toppower.auth.exception.InvalidCredentialsException;
 import br.com.toppower.erp_toppower.boleto.exception.BoletoNotFoundException;
+import br.com.toppower.erp_toppower.boleto.exception.BoletoAttachmentNotFoundException;
 import br.com.toppower.erp_toppower.boleto.exception.DuplicateBoletoDocumentException;
+import br.com.toppower.erp_toppower.boleto.exception.InvalidBoletoAttachmentException;
 import br.com.toppower.erp_toppower.carrier.exception.CarrierNotFoundException;
 import br.com.toppower.erp_toppower.cep.exception.CepNotFoundException;
 import br.com.toppower.erp_toppower.organization.exception.DuplicateOrganizationCnpjException;
@@ -240,6 +242,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DuplicateBoletoDocumentException.class)
     public ResponseEntity<ApiError> handleDuplicateBoletoDocument(DuplicateBoletoDocumentException ex) {
         return build(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(BoletoAttachmentNotFoundException.class)
+    public ResponseEntity<ApiError> handleBoletoAttachmentNotFound(BoletoAttachmentNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidBoletoAttachmentException.class)
+    public ResponseEntity<ApiError> handleInvalidBoletoAttachment(InvalidBoletoAttachmentException ex) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
     @ExceptionHandler(CustomerNotFoundException.class)

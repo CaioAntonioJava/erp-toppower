@@ -8,6 +8,13 @@ composto por um backend Spring Boot e um frontend React, orquestrados via Docker
 > escritos em **Português do Brasil (`pt-BR`)**, salvo quando um identificador/termo
 > técnico exigir outro idioma. Mantenha esse padrão ao contribuir.
 
+> **Commits e push:** mensagens de commit devem ser escritas em **inglês**,
+> seguindo o padrão [Conventional Commits](https://www.conventionalcommits.org/)
+> (`feat:`, `fix:`, `refactor:`, `chore:`, etc.). Commits devem ser atômicos e
+> separados por escopo sempre que fizer sentido (ex.: um commit para backend e
+> outro para frontend, ou um para a feature e outro para correção de bug).
+> Push para `main` apenas após verificar que o build e lint passam.
+
 ---
 
 ## Visão geral da stack

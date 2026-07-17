@@ -3,7 +3,9 @@ package br.com.toppower.erp_toppower.boleto.controller;
 import br.com.toppower.erp_toppower.boleto.dto.BoletoCreateRequest;
 import br.com.toppower.erp_toppower.boleto.dto.BoletoResponse;
 import br.com.toppower.erp_toppower.boleto.dto.BoletoUpdateRequest;
+import br.com.toppower.erp_toppower.boleto.dto.BoletoAttachmentResponse;
 import br.com.toppower.erp_toppower.boleto.service.BoletoService;
+import br.com.toppower.erp_toppower.boleto.service.BoletoAttachmentService;
 import br.com.toppower.erp_toppower.common.dto.PagedResponse;
 import br.com.toppower.erp_toppower.common.enums.RegistrationStatus;
 import io.swagger.v3.oas.annotations.Operation;
@@ -32,6 +34,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/boletos")
@@ -40,6 +47,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class BoletoController {
 
     private final BoletoService boletoService;
+    private final BoletoAttachmentService boletoAttachmentService;
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Cadastrar boleto",
@@ -164,5 +172,98 @@ public class BoletoController {
     })
     public ResponseEntity<BoletoResponse> activate(@PathVariable Long id) {
         return ResponseEntity.ok(boletoService.activate(id));
+    }
+
+    // =================================================================
+    // Anexos de boleto (PDF/imagens) — vários por boleto.
+    // =================================================================
+
+    @PostMapping(value = "/{boletoId}/attachments",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Anexar arquivo ao boleto",
+            description = "Faz upload de um anexo (PDF, PNG ou JPEG; até 10MB) ao boleto. " +
+                    "O boleto deve estar ATIVO. O arquivo é gravado em disco e os metadados no banco.")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Anexo criado com sucesso.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = BoletoAttachmentResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Arquivo inválido (tipo/tamanho) ou boleto inativo.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "404", description = "Boleto não encontrado.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+    })
+    public ResponseEntity<BoletoAttachmentResponse> uploadAttachment(
+            @PathVariable Long boletoId,
+            @RequestPart("file") MultipartFile file) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(boletoAttachmentService.upload(boletoId, file));
+    }
+
+    @GetMapping(value = "/{boletoId}/attachments", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Listar anexos do boleto",
+            description = "Retorna os metadados de todos os anexos de um boleto.")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Lista de anexos retornada com sucesso."),
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+    })
+    public ResponseEntity<List<BoletoAttachmentResponse>> listAttachments(
+            @PathVariable Long boletoId) {
+        return ResponseEntity.ok(boletoAttachmentService.listByBoleto(boletoId));
+    }
+
+    @GetMapping(value = "/{boletoId}/attachments/{attachmentId}/file")
+    @Operation(summary = "Baixar/exibir anexo do boleto",
+            description = "Retorna o conteúdo do anexo. Use ?disposition=inline para exibir " +
+                    "(preview/impressão no navegador) ou ?disposition=attachment para forçar download. " +
+                    "Default: inline.")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Arquivo retornado com sucesso."),
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "404", description = "Anexo não encontrado.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+    })
+    public ResponseEntity<byte[]> downloadAttachment(
+            @PathVariable Long boletoId,
+            @PathVariable Long attachmentId,
+            @RequestParam(value = "disposition", defaultValue = "inline") String disposition) {
+        BoletoAttachmentService.LoadedFile loaded = boletoAttachmentService.loadFile(boletoId, attachmentId);
+        ContentDisposition cd = "attachment".equalsIgnoreCase(disposition)
+                ? ContentDisposition.attachment().filename(loaded.fileName()).build()
+                : ContentDisposition.inline().filename(loaded.fileName()).build();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentDisposition(cd);
+        headers.setContentType(MediaType.parseMediaType(loaded.contentType()));
+        headers.setContentLength(loaded.bytes().length);
+        return ResponseEntity.ok().headers(headers).body(loaded.bytes());
+    }
+
+    @DeleteMapping(value = "/{boletoId}/attachments/{attachmentId}")
+    @Operation(summary = "Remover anexo do boleto",
+            description = "Remove o arquivo do disco e o registro de metadados do banco.")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Anexo removido."),
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "404", description = "Anexo não encontrado.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+    })
+    public ResponseEntity<Void> deleteAttachment(
+            @PathVariable Long boletoId,
+            @PathVariable Long attachmentId) {
+        boletoAttachmentService.delete(boletoId, attachmentId);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -40,6 +40,7 @@ public class AppProperties {
 
     public static class Uploads {
         private Logo logo = new Logo();
+        private Attachment attachment = new Attachment();
 
         public Logo getLogo() {
             return logo;
@@ -47,6 +48,14 @@ public class AppProperties {
 
         public void setLogo(Logo logo) {
             this.logo = logo;
+        }
+
+        public Attachment getAttachment() {
+            return attachment;
+        }
+
+        public void setAttachment(Attachment attachment) {
+            this.attachment = attachment;
         }
     }
 
@@ -61,6 +70,26 @@ public class AppProperties {
          * format} no log.</p>
          */
         private List<String> allowedContentTypes = List.of("image/png", "image/jpeg");
+
+        public List<String> getAllowedContentTypes() {
+            return allowedContentTypes;
+        }
+
+        public void setAllowedContentTypes(List<String> allowedContentTypes) {
+            this.allowedContentTypes = allowedContentTypes;
+        }
+    }
+
+    /**
+     * Configurações de upload de anexos de boleto (PDF/imagens).
+     */
+    public static class Attachment {
+        /**
+         * Lista branca de content types aceitos para anexo de boleto.
+         * Inclui PDF e as imagens renderizáveis pelo navegador.
+         */
+        private List<String> allowedContentTypes =
+                List.of("application/pdf", "image/png", "image/jpeg");
 
         public List<String> getAllowedContentTypes() {
             return allowedContentTypes;
