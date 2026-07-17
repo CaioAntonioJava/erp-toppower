@@ -3,6 +3,7 @@
 # ZCode - arquivos de configuração e planos
 .zcode/
 .zcode*
+/AGENTS.md
 # Uploads locais (logos das Organizations)
 /uploads/
 /backend/uploads/
