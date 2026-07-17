@@ -7,6 +7,8 @@ import {
   ListOrdered,
   Eraser,
   ChevronDown,
+  Type,
+  TextSelect,
 } from 'lucide-react'
 
 /**
@@ -18,6 +20,39 @@ const TEXT_COLORS: ReadonlyArray<{ value: string; label: string }> = [
   { value: '#ffffff', label: 'Branco' },
   { value: '#dc2626', label: 'Vermelho' }, // red-600
   { value: '#ca8a04', label: 'Amarelo' }, // yellow-600
+]
+
+/**
+ * Fontes disponíveis para o seletor de fonte. A primeira entrada é a
+ * fonte padrão (sem style aplicado).
+ */
+const FONT_FAMILIES: ReadonlyArray<{ value: string; label: string }> = [
+  { value: '', label: 'Padrão' },
+  { value: 'Arial, sans-serif', label: 'Arial' },
+  { value: '"Times New Roman", serif', label: 'Times New Roman' },
+  { value: 'Calibri, sans-serif', label: 'Calibri' },
+  { value: 'Tahoma, sans-serif', label: 'Tahoma' },
+  { value: 'Verdana, sans-serif', label: 'Verdana' },
+  { value: '"Courier New", monospace', label: 'Courier New' },
+]
+
+/**
+ * Tamanhos de fonte disponíveis para o seletor de tamanho. O valor vazio
+ * representa o tamanho padrão (sem style aplicado).
+ */
+const FONT_SIZES: ReadonlyArray<{ value: string; label: string }> = [
+  { value: '', label: 'Padrão' },
+  { value: '8pt', label: '8' },
+  { value: '9pt', label: '9' },
+  { value: '10pt', label: '10' },
+  { value: '11pt', label: '11' },
+  { value: '12pt', label: '12' },
+  { value: '14pt', label: '14' },
+  { value: '16pt', label: '16' },
+  { value: '18pt', label: '18' },
+  { value: '20pt', label: '20' },
+  { value: '22pt', label: '22' },
+  { value: '24pt', label: '24' },
 ]
 
 interface RichTextEditorProps {
@@ -66,6 +101,10 @@ export function RichTextEditor({
   const lastValueRef = useRef<string>('')
   const [colorOpen, setColorOpen] = useState(false)
   const colorPopoverRef = useRef<HTMLDivElement>(null)
+  const [fontFamilyOpen, setFontFamilyOpen] = useState(false)
+  const fontFamilyPopoverRef = useRef<HTMLDivElement>(null)
+  const [fontSizeOpen, setFontSizeOpen] = useState(false)
+  const fontSizePopoverRef = useRef<HTMLDivElement>(null)
 
   // Sincroniza o DOM com o `value` controlado quando ele muda
   // externamente (ex.: reset do formulário, edição carregada do
@@ -94,6 +133,36 @@ export function RichTextEditor({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [colorOpen])
 
+  // Fecha o popover de fonte ao clicar fora.
+  useEffect(() => {
+    if (!fontFamilyOpen) return
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        fontFamilyPopoverRef.current &&
+        !fontFamilyPopoverRef.current.contains(e.target as Node)
+      ) {
+        setFontFamilyOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [fontFamilyOpen])
+
+  // Fecha o popover de tamanho ao clicar fora.
+  useEffect(() => {
+    if (!fontSizeOpen) return
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        fontSizePopoverRef.current &&
+        !fontSizePopoverRef.current.contains(e.target as Node)
+      ) {
+        setFontSizeOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [fontSizeOpen])
+
   const emitChange = useCallback(() => {
     const el = editorRef.current
     if (!el) return
@@ -115,6 +184,40 @@ export function RichTextEditor({
       // execCommand é considerado deprecated mas continua amplamente
       // suportado e é suficiente para este escopo (sem dependência).
       document.execCommand(command, false, commandArg)
+      emitChange()
+    },
+    [emitChange],
+  )
+
+  /**
+   * Aplica um style CSS (fontFamily ou fontSize) à seleção atual,
+   * envolvendo o conteúdo selecionado em um <span> com o style
+   * desejado. Usamos esta abordagem em vez de `execCommand('fontSize')`
+   * porque este só aceita valores 1-7 (HTML), não pt/px.
+   */
+  const wrapWithStyle = useCallback(
+    (property: 'fontFamily' | 'fontSize', value: string) => {
+      const el = editorRef.current
+      if (!el) return
+      el.focus()
+      const sel = window.getSelection()
+      if (!sel || sel.isCollapsed || !sel.rangeCount) return
+      const range = sel.getRangeAt(0)
+      const span = document.createElement('span')
+      if (property === 'fontFamily') span.style.fontFamily = value
+      else span.style.fontSize = value
+      try {
+        const fragment = range.extractContents()
+        span.appendChild(fragment)
+        range.insertNode(span)
+        // Restaura a seleção para o novo span.
+        sel.removeAllRanges()
+        const newRange = document.createRange()
+        newRange.selectNodeContents(span)
+        sel.addRange(newRange)
+      } catch {
+        // Fallback silencioso para seleções inválidas.
+      }
       emitChange()
     },
     [emitChange],
@@ -173,24 +276,54 @@ export function RichTextEditor({
 	    return false
 	  }
 	}
-	const activeColor = (() => {
-	  try {
-	    const v = document.queryCommandValue('foreColor')
-	    // Converte rgb(...) para hex para comparar com nossa paleta.
-	    if (!v) return null
-	    const m = v.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/)
-	    if (!m) return v
-	    const [, r, g, b] = m
-	    return (
-	      '#' +
-	      [r, g, b]
-	        .map((n) => Number(n).toString(16).padStart(2, '0'))
-	        .join('')
-	    )
-	  } catch {
-	    return null
-	  }
-	})()
+    const activeColor = (() => {
+      try {
+        const v = document.queryCommandValue('foreColor')
+        // Converte rgb(...) para hex para comparar com nossa paleta.
+        if (!v) return null
+        const m = v.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/)
+        if (!m) return v
+        const [, r, g, b] = m
+        return (
+          '#' +
+          [r, g, b]
+            .map((n) => Number(n).toString(16).padStart(2, '0'))
+            .join('')
+        )
+      } catch {
+        return null
+      }
+    })()
+    const activeFontFamily = (() => {
+      try {
+        return document.queryCommandValue('fontName') || ''
+      } catch {
+        return ''
+      }
+    })()
+    const activeFontSize = (() => {
+      try {
+        // Tenta obter o tamanho do elemento pai da seleção.
+        const sel = window.getSelection()
+        if (!sel || !sel.rangeCount) return ''
+        const node = sel.getRangeAt(0).startContainer
+        const el = node.nodeType === Node.TEXT_NODE ? node.parentElement : node as Element
+        if (el instanceof HTMLElement) {
+          const size = el.style.fontSize
+          if (size) return size
+          // Se não tem style direto, sobe na árvore.
+          let parent = el.parentElement
+          while (parent) {
+            const s = parent.style.fontSize
+            if (s) return s
+            parent = parent.parentElement
+          }
+        }
+        return ''
+      } catch {
+        return ''
+      }
+    })()
 
   const toolbarBtnBase =
     'inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-600 transition-colors ' +
@@ -319,6 +452,155 @@ export function RichTextEditor({
 	                  )
 	                })}
 	              </div>
+            ) : null}
+          </div>
+
+          <span className="mx-1 h-5 w-px bg-slate-200 dark:bg-slate-700" aria-hidden />
+
+          {/* Fonte */}
+          <div className="relative" ref={fontFamilyPopoverRef}>
+            <button
+              type="button"
+              title="Fonte"
+              aria-label="Fonte"
+              aria-expanded={fontFamilyOpen}
+              onClick={() => setFontFamilyOpen((v) => !v)}
+              className={[toolbarBtnBase, fontFamilyOpen ? toolbarBtnActive : ''].join(' ')}
+            >
+              <span className="flex items-center gap-0.5">
+                <Type className="h-4 w-4" />
+                <ChevronDown className="h-3 w-3" />
+              </span>
+            </button>
+            {fontFamilyOpen ? (
+              <div
+                className={[
+                  'absolute left-0 top-full z-20 mt-1 min-w-[180px] rounded-lg border border-slate-200 bg-white p-2 shadow-lg',
+                  'dark:border-slate-700 dark:bg-slate-900',
+                ].join(' ')}
+                role="listbox"
+                aria-label="Selecionar fonte"
+              >
+                {FONT_FAMILIES.map((f) => {
+                  const isSelected = activeFontFamily === f.value
+                  return (
+                    <button
+                      key={f.value}
+                      type="button"
+                      role="option"
+                      aria-selected={isSelected}
+                      title={f.label}
+                      onClick={() => {
+                        if (f.value) {
+                          wrapWithStyle('fontFamily', f.value)
+                        } else {
+                          // "Padrão" — remove o style fontFamily do elemento pai.
+                          const el = editorRef.current
+                          if (el) {
+                            el.focus()
+                            const sel = window.getSelection()
+                            if (sel && !sel.isCollapsed && sel.rangeCount) {
+                              const range = sel.getRangeAt(0)
+                              const parent = range.startContainer.parentElement
+                              if (parent) {
+                                parent.style.fontFamily = ''
+                                if (!parent.getAttribute('style')) {
+                                  parent.removeAttribute('style')
+                                }
+                              }
+                            }
+                            emitChange()
+                          }
+                        }
+                        setFontFamilyOpen(false)
+                        refreshActiveStates()
+                      }}
+                      className={[
+                        'flex w-full items-center rounded-md px-3 py-1.5 text-left text-sm transition-colors',
+                        'hover:bg-slate-100 dark:hover:bg-slate-800',
+                        isSelected ? 'bg-slate-200 font-medium dark:bg-slate-700' : '',
+                      ].join(' ')}
+                      style={f.value ? { fontFamily: f.value } : undefined}
+                    >
+                      {f.label}
+                    </button>
+                  )
+                })}
+              </div>
+            ) : null}
+          </div>
+
+          {/* Tamanho da fonte */}
+          <div className="relative" ref={fontSizePopoverRef}>
+            <button
+              type="button"
+              title="Tamanho da fonte"
+              aria-label="Tamanho da fonte"
+              aria-expanded={fontSizeOpen}
+              onClick={() => setFontSizeOpen((v) => !v)}
+              className={[toolbarBtnBase, fontSizeOpen ? toolbarBtnActive : ''].join(' ')}
+            >
+              <span className="flex items-center gap-0.5">
+                <TextSelect className="h-4 w-4" />
+                <ChevronDown className="h-3 w-3" />
+              </span>
+            </button>
+            {fontSizeOpen ? (
+              <div
+                className={[
+                  'absolute left-0 top-full z-20 mt-1 min-w-[120px] rounded-lg border border-slate-200 bg-white p-2 shadow-lg',
+                  'dark:border-slate-700 dark:bg-slate-900',
+                ].join(' ')}
+                role="listbox"
+                aria-label="Selecionar tamanho da fonte"
+              >
+                {FONT_SIZES.map((s) => {
+                  const isSelected = activeFontSize === s.value
+                  return (
+                    <button
+                      key={s.value}
+                      type="button"
+                      role="option"
+                      aria-selected={isSelected}
+                      title={`${s.label} pt`}
+                      onClick={() => {
+                        if (s.value) {
+                          wrapWithStyle('fontSize', s.value)
+                        } else {
+                          // "Padrão" — remove o style fontSize.
+                          const el = editorRef.current
+                          if (el) {
+                            el.focus()
+                            const sel = window.getSelection()
+                            if (sel && !sel.isCollapsed && sel.rangeCount) {
+                              const range = sel.getRangeAt(0)
+                              const parent = range.startContainer.parentElement
+                              if (parent) {
+                                parent.style.fontSize = ''
+                                if (!parent.getAttribute('style')) {
+                                  parent.removeAttribute('style')
+                                }
+                              }
+                            }
+                            emitChange()
+                          }
+                        }
+                        setFontSizeOpen(false)
+                        refreshActiveStates()
+                      }}
+                      className={[
+                        'flex w-full items-center rounded-md px-3 py-1.5 text-left text-sm transition-colors',
+                        'hover:bg-slate-100 dark:hover:bg-slate-800',
+                        isSelected ? 'bg-slate-200 font-medium dark:bg-slate-700' : '',
+                      ].join(' ')}
+                    >
+                      <span style={s.value ? { fontSize: s.value } : undefined}>
+                        {s.label}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
             ) : null}
           </div>
 

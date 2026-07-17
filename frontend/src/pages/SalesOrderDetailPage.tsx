@@ -505,9 +505,10 @@ export function SalesOrderDetailPage() {
       {salesOrder.notes ? (
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <h3 className="mb-2 text-base font-semibold">Observações</h3>
-          <p className="whitespace-pre-wrap text-sm text-slate-700 dark:text-slate-200">
-            {salesOrder.notes}
-          </p>
+          <div
+            className="prose prose-sm max-w-none text-slate-700 dark:prose-invert dark:text-slate-200"
+            dangerouslySetInnerHTML={{ __html: salesOrder.notes }}
+          />
         </section>
       ) : null}
 
