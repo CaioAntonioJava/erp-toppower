@@ -123,7 +123,7 @@ export function TechnicalProposalForm({
   const [responsiblePhone, setResponsiblePhone] = useState<string>(
     proposal?.phone ?? '',
   )
-  const [notes, setNotes] = useState<string>(proposal?.notes ?? '')
+  const [notes] = useState<string>(proposal?.notes ?? '')
   const [generalPrice, setGeneralPrice] = useState<string>(
     proposal?.generalPrice != null ? formatBRLValue(proposal.generalPrice) : '',
   )
