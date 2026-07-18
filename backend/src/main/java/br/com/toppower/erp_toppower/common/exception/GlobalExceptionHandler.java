@@ -34,6 +34,10 @@ import br.com.toppower.erp_toppower.profile.exception.DuplicateProfileCpfExcepti
 import br.com.toppower.erp_toppower.profile.exception.DuplicateProfileEmailException;
 import br.com.toppower.erp_toppower.profile.exception.ProfileNotFoundException;
 import br.com.toppower.erp_toppower.profile.exception.UserAlreadyHasProfileException;
+import br.com.toppower.erp_toppower.receivable.exception.InvalidReceivableClientException;
+import br.com.toppower.erp_toppower.receivable.exception.ReceivableBusinessException;
+import br.com.toppower.erp_toppower.receivable.exception.ReceivableNotFoundException;
+import br.com.toppower.erp_toppower.receivable.exception.ReceivablePaymentNotFoundException;
 import br.com.toppower.erp_toppower.sales.quotation.exception.InvalidQuotationClientException;
 import br.com.toppower.erp_toppower.sales.quotation.exception.QuotationBusinessException;
 import br.com.toppower.erp_toppower.sales.quotation.exception.QuotationClientNotFoundException;
@@ -362,6 +366,36 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(QuotationAlreadyConvertedException.class)
     public ResponseEntity<ApiError> handleQuotationAlreadyConverted(QuotationAlreadyConvertedException ex) {
+        return build(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    // =====================================================================
+    // Contas a receber (Receivable)
+    // =====================================================================
+
+    @ExceptionHandler(ReceivableNotFoundException.class)
+    public ResponseEntity<ApiError> handleReceivableNotFound(ReceivableNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(ReceivablePaymentNotFoundException.class)
+    public ResponseEntity<ApiError> handleReceivablePaymentNotFound(ReceivablePaymentNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidReceivableClientException.class)
+    public ResponseEntity<ApiError> handleInvalidReceivableClient(InvalidReceivableClientException ex) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    /**
+     * Violação de regra de negócio de conta a receber (pagamento excede
+     * saldo, conta não ABERTO para pagamento, tentativa de editar/cancelar
+     * conta PAGO, reabertura de documento com pagamentos registrados).
+     * Usa 409 CONFLICT para indicar conflito com o estado atual do recurso.
+     */
+    @ExceptionHandler(ReceivableBusinessException.class)
+    public ResponseEntity<ApiError> handleReceivableBusiness(ReceivableBusinessException ex) {
         return build(HttpStatus.CONFLICT, ex.getMessage());
     }
 
