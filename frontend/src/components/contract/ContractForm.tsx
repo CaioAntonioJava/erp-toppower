@@ -279,16 +279,25 @@ export function ContractForm({
   }
 
   function addClause() {
-    setClauses((prev) => [
-      ...prev,
-      {
-        rowKey: nextRowKey(),
-        clauseNumber: prev.length + 1,
-        title: '',
-        content: '',
-        serviceTemplateId: '',
-      },
-    ])
+    setClauses((prev) => {
+      // Próximo número da sequência: maior clauseNumber existente + 1.
+      // Usa max(clauseNumber) em vez de length+1 para preservar a sequência
+      // mesmo após remover cláusulas no meio (ex.: 11 → 12).
+      const nextNumber = prev.reduce(
+        (max, c) => (c.clauseNumber > max ? c.clauseNumber : max),
+        0,
+      ) + 1
+      return [
+        ...prev,
+        {
+          rowKey: nextRowKey(),
+          clauseNumber: nextNumber,
+          title: '',
+          content: '',
+          serviceTemplateId: '',
+        },
+      ]
+    })
   }
 
   /** Ao selecionar um ServiceTemplate na cláusula 1, copia a descrição. */
