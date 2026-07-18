@@ -14,6 +14,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
@@ -141,6 +142,15 @@ public class Contract extends OrganizationScopedEntity {
      */
     @Column(name = "validity_date", nullable = false)
     private LocalDate validityDate;
+
+    /**
+     * Preço do contrato, de preenchimento obrigatório pelo usuário.
+     * Valor informativo usado para controle interno — <b>não</b> é
+     * exibido no template de PDF do contrato (o valor comercial aparece
+     * apenas nas cláusulas, que são livremente editáveis).
+     */
+    @Column(name = "price", nullable = false, precision = 12, scale = 2)
+    private BigDecimal price;
 
     // ---------------------------------------------------------------------
     // Código formatado

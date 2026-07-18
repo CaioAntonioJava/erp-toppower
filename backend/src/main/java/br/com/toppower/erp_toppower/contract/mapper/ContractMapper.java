@@ -46,6 +46,7 @@ public final class ContractMapper {
         contract.setCompanyId(request.companyId());
         contract.setTitle(request.title());
         contract.setDescription(request.description());
+        contract.setPrice(request.price());
         if (request.validityDate() != null) {
             contract.setValidityDate(request.validityDate());
         }
@@ -80,6 +81,7 @@ public final class ContractMapper {
                 contract.getDescription(),
                 contract.getStatus(),
                 contract.getValidityDate(),
+                contract.getPrice(),
                 contract.getCreatedAt(),
                 contract.getUpdatedAt(),
                 contract.getCreatedBy(),
@@ -151,6 +153,9 @@ public final class ContractMapper {
         }
         if (request.validityDate() != null) {
             contract.setValidityDate(request.validityDate());
+        }
+        if (request.price() != null) {
+            contract.setPrice(request.price());
         }
     }
 }

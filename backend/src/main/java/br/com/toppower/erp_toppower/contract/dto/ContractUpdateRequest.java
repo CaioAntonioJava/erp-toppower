@@ -3,8 +3,10 @@ package br.com.toppower.erp_toppower.contract.dto;
 import br.com.toppower.erp_toppower.contract.enums.ContractStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Size;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -44,6 +46,12 @@ public record ContractUpdateRequest(
         @Schema(description = "Nova data de vigência do contrato.",
                 example = "2026-07-17", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         LocalDate validityDate,
+
+        @Schema(description = "Novo preço do contrato (valor informativo, em reais). "
+                + "Não é exibido no PDF do contrato.",
+                example = "230800.00", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        @DecimalMin(value = "0.00", inclusive = true, message = "O preço do contrato não pode ser negativo")
+        BigDecimal price,
 
         @Schema(description = "Novas cláusulas do contrato. Quando enviado (inclusive lista vazia), "
                 + "substitui completamente as cláusulas existentes (full replacement). "

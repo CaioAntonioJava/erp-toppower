@@ -3,6 +3,7 @@ package br.com.toppower.erp_toppower.contract.dto;
 import br.com.toppower.erp_toppower.contract.enums.ContractStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -68,6 +69,11 @@ public record ContractResponse(
         @Schema(description = "Data de vigência do contrato.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         LocalDate validityDate,
+
+        @Schema(description = "Preço do contrato (valor informativo, em reais). "
+                + "Não é exibido no PDF do contrato.",
+                requiredMode = Schema.RequiredMode.REQUIRED)
+        BigDecimal price,
 
         @Schema(description = "Data de criação.",
                 requiredMode = Schema.RequiredMode.REQUIRED)

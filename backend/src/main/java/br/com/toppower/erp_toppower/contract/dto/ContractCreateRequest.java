@@ -2,8 +2,11 @@ package br.com.toppower.erp_toppower.contract.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -23,8 +26,9 @@ import java.util.List;
  * A validação de que ao menos um foi informado (e não ambos) é feita pelo
  * service.</p>
  *
- * <p>Todos os campos são opcionais: o contrato pode ser criado apenas com
- * os defaults do backend e ter seu conteúdo editado depois.</p>
+ * <p>Os campos são opcionais exceto {@code price} (preço do contrato,
+ * obrigatório): o contrato pode ser criado apenas com os defaults do
+ * backend e ter seu conteúdo editado depois.</p>
  */
 @Schema(name = "ContractCreateRequest",
         description = "Dados para cadastro de um novo contrato. O código comercial é gerado pelo servidor.")
@@ -55,6 +59,13 @@ public record ContractCreateRequest(
         @Schema(description = "Data de vigência do contrato. Quando omitida, o backend usa a data atual.",
                 example = "2026-07-17", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         LocalDate validityDate,
+
+        @Schema(description = "Preço do contrato (valor informativo, em reais). Obrigatório. "
+                + "Não é exibido no PDF do contrato.",
+                example = "230800.00", requiredMode = Schema.RequiredMode.REQUIRED)
+        @NotNull(message = "O preço do contrato é obrigatório")
+        @DecimalMin(value = "0.00", inclusive = true, message = "O preço do contrato não pode ser negativo")
+        BigDecimal price,
 
         @Schema(description = "Cláusulas do contrato. Quando omitido, o backend pré-preenche "
                 + "as 11 cláusulas padrão (cláusula 1 vazia, 2–11 com textos do template padrão).",
