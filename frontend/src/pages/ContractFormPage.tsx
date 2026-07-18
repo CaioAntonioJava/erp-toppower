@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Power, Save, X } from 'lucide-react'
 import { Button } from '../components/ui/Button'
@@ -7,6 +7,7 @@ import { Spinner } from '../components/ui/Spinner'
 import { Alert } from '../components/ui/Alert'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { ContractForm } from '../components/contract/ContractForm'
+import { StickyFormActions } from '../components/sales/StickyFormActions'
 import { RegistrationStatusBadge } from '../components/client/RegistrationStatusBadge'
 import { RegistrationAuditCard } from '../components/client/RegistrationAuditCard'
 import {
@@ -44,6 +45,11 @@ export function ContractFormPage() {
   const [confirmToggle, setConfirmToggle] = useState(false)
   const [toggling, setToggling] = useState(false)
   const [toggleError, setToggleError] = useState<string | null>(null)
+
+  // Ref do contêiner de ações no cabeçalho. O `StickyFormActions`
+  // observa esse elemento e revela o menu fixo quando ele sai do
+  // viewport (página rolada), mantendo Salvar/Cancelar acessíveis.
+  const actionsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!id) {
@@ -143,7 +149,7 @@ export function ContractFormPage() {
           ) : null}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div ref={actionsRef} className="flex flex-wrap items-center gap-2">
           {mode === 'view' && contract ? (
             <Button
               variant={contract.status === 'ATIVO' ? 'secondary' : 'primary'}
@@ -181,6 +187,18 @@ export function ContractFormPage() {
           ) : null}
         </div>
       </div>
+
+      {mode !== 'loading' ? (
+        <StickyFormActions
+          triggerRef={actionsRef}
+          formId="contract-form"
+          saving={saving}
+          readOnly={false}
+          canEdit={mode === 'view'}
+          onCancel={() => navigate('/contracts')}
+          title="CONTRATO"
+        />
+      ) : null}
 
       {loadError ? (
         <Alert variant="error">
