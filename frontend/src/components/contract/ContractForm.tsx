@@ -16,6 +16,7 @@ import { Spinner } from '../ui/Spinner'
 import { Button } from '../ui/Button'
 import { RichTextEditor } from '../ui/RichTextEditor'
 import { toApiError } from '../../lib/errors'
+import { parseNumber, formatBRLValue } from '../../lib/money'
 import { useFieldTouched } from '../../hooks/useFieldTouched'
 import { getNextContractCode, searchContractClients } from '../../api/contract.api'
 import { listServiceTemplates } from '../../api/servicetemplate.api'
@@ -182,6 +183,11 @@ export function ContractForm({
     contract?.status ?? 'ATIVO',
   )
 
+  // --- Preço (valor informativo, não exibido no PDF) ---
+  const [price, setPrice] = useState<string>(
+    contract?.price != null ? formatBRLValue(contract.price) : '',
+  )
+
   // --- Cláusulas ---
   const [clauses, setClauses] = useState<ClauseDraft[]>(
     contract?.clauses ? clausesFromResponse(contract.clauses) : buildDefaultClauses(),
@@ -308,6 +314,12 @@ export function ContractForm({
     } else if (title.trim().length > 300) {
       errs.title = 'O título deve ter no máximo 300 caracteres.'
     }
+    const priceValue = parseNumber(price)
+    if (price.trim() === '' || priceValue == null) {
+      errs.price = 'O preço do contrato é obrigatório.'
+    } else if (priceValue < 0) {
+      errs.price = 'O preço do contrato não pode ser negativo.'
+    }
     setFieldErrors(errs)
     return Object.keys(errs).length === 0
   }
@@ -330,12 +342,14 @@ export function ContractForm({
       }))
 
     try {
+      const priceValue = parseNumber(price)
       if (isEdit && contract) {
         const payload: ContractUpdateRequest = {
           title: title.trim(),
           description: description ?? '',
           status,
           validityDate: validityDate || undefined,
+          price: priceValue ?? 0,
           clauses: clausesPayload,
         }
         // Cliente: envia o ID correto conforme o tipo
@@ -354,6 +368,7 @@ export function ContractForm({
           title: title.trim(),
           description: description ?? '',
           validityDate: validityDate || undefined,
+          price: priceValue ?? 0,
           clauses: clausesPayload,
         }
         if (clientType === 'CUSTOMER') {
@@ -518,6 +533,45 @@ export function ContractForm({
             Cliente selecionado: <strong>{clientLabel}</strong>
           </p>
         ) : null}
+      </section>
+
+      {/* Preço (valor informativo, não exibido no PDF) */}
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <h3 className="mb-4 text-base font-semibold">Preço do contrato</h3>
+        <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+          Preço do contrato, de preenchimento obrigatório. Valor informativo
+          para controle interno — <strong>não</strong> é exibido no PDF do
+          contrato (o valor comercial deve constar nas cláusulas).
+        </p>
+        <div className="max-w-xs">
+          <Input
+            label="Preço do contrato"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            onBlur={() => {
+              const trimmed = price.trim()
+              if (trimmed) {
+                // Se não tem vírgula, adiciona ",00"
+                if (!trimmed.includes(',')) {
+                  setPrice(trimmed + ',00')
+                } else {
+                  // Se tem vírgula mas não tem centavos, completa
+                  const parts = trimmed.split(',')
+                  if (parts.length === 2 && parts[1].length === 0) {
+                    setPrice(trimmed + '00')
+                  } else if (parts.length === 2 && parts[1].length === 1) {
+                    setPrice(trimmed + '0')
+                  }
+                }
+              }
+              getBlurHandler('price')()
+            }}
+            error={shouldShowError('price', fieldErrors.price)}
+            placeholder="Ex.: 1.500,00"
+            required
+            hint="Obrigatório — não aparece no PDF"
+          />
+        </div>
       </section>
 
       {/* Descrição */}

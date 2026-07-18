@@ -38,6 +38,8 @@ export interface ContractResponse {
   status: ContractStatus
   /** Data de vigência (yyyy-MM-dd). */
   validityDate: string
+  /** Preço do contrato (em reais). Valor informativo, não exibido no PDF. */
+  price: number
   createdAt: string
   updatedAt: string
   createdBy: string | null
@@ -77,6 +79,8 @@ export interface ContractCreateRequest {
   description?: string
   /** Data de vigência (yyyy-MM-dd). Quando omitida, o backend usa a data atual. */
   validityDate?: string
+  /** Preço do contrato (em reais). Obrigatório na criação. Não exibido no PDF. */
+  price?: number
   /** Cláusulas do contrato. Omitir para o backend pré-preencher as 11 padrão. */
   clauses?: ContractClauseRequest[]
 }
@@ -91,6 +95,8 @@ export interface ContractUpdateRequest {
   status?: ContractStatus
   /** Data de vigência (yyyy-MM-dd). */
   validityDate?: string
+  /** Preço do contrato (em reais). Não exibido no PDF. */
+  price?: number
   /** Cláusulas. null = manter; lista (inclusive vazia) = substituição completa. */
   clauses?: ContractClauseRequest[] | null
 }
