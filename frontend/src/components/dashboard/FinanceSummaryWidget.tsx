@@ -4,13 +4,16 @@ import { Card } from '../ui/Card'
 import { Spinner } from '../ui/Spinner'
 import { formatCurrency } from '../../lib/format'
 import { getFinanceSummary } from '../../api/finance.api'
+import { listReceivables } from '../../api/receivable.api'
 import type { FinanceSummary } from '../../types/finance'
 
 /**
  * Linha de indicadores financeiros no topo do dashboard.
  *
- * Mostra totais a pagar/receber (aberto e vencido) e contadores de boletos.
- * Enquanto o backend financeiro não existe, exibe zeros.
+ * Os totais "a pagar" e os contadores de boletos ainda dependem de
+ * `getFinanceSummary` (stub enquanto o backend de contas a pagar não
+ * existe). Os totais "a receber" (aberto e vencido) são calculados no
+ * frontend a partir do endpoint `/api/v1/accounts-receivable?status=ABERTO`.
  */
 interface Indicator {
   label: string
@@ -19,16 +22,45 @@ interface Indicator {
   tone: 'default' | 'warning' | 'danger'
 }
 
+/** Calcula os totais a receber (aberto e vencido) a partir das contas ABERTO. */
+async function fetchReceivableTotals(): Promise<{ aberto: number; vencido: number }> {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  let aberto = 0
+  let vencido = 0
+  let page = 0
+  // Percorre até esgotar as contas em aberto (tamanho 100 por página).
+  for (;;) {
+    const result = await listReceivables({ status: 'ABERTO', size: 100, page })
+    for (const item of result.content) {
+      aberto += item.balance
+      const due = new Date(`${item.dueDate}T00:00:00`)
+      if (due < today) vencido += item.balance
+    }
+    if (result.last || result.content.length === 0) break
+    page += 1
+  }
+  return { aberto, vencido }
+}
+
 export function FinanceSummaryWidget() {
   const [summary, setSummary] = useState<FinanceSummary | null>(null)
+  const [receivableAberto, setReceivableAberto] = useState(0)
+  const [receivableVencido, setReceivableVencido] = useState(0)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
-    getFinanceSummary()
-      .then((data) => {
-        if (!cancelled) setSummary(data)
+    Promise.all([getFinanceSummary(), fetchReceivableTotals()])
+      .then(([s, r]) => {
+        if (cancelled) return
+        setSummary(s)
+        setReceivableAberto(r.aberto)
+        setReceivableVencido(r.vencido)
+      })
+      .catch(() => {
+        // Mantém zeros em caso de erro — o dashboard segue utilizável.
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -61,15 +93,15 @@ export function FinanceSummaryWidget() {
     },
     {
       label: 'A receber (aberto)',
-      value: summary?.totalReceberAberto ?? 0,
+      value: receivableAberto,
       hint: 'Total a receber em aberto',
       tone: 'default',
     },
     {
       label: 'A receber vencido',
-      value: summary?.totalReceberVencido ?? 0,
+      value: receivableVencido,
       hint: 'Recebimentos em atraso',
-      tone: summary?.totalReceberVencido ? 'warning' : 'default',
+      tone: receivableVencido ? 'warning' : 'default',
     },
   ]
 
