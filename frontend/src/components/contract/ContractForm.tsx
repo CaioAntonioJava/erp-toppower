@@ -6,8 +6,8 @@ import type {
   ContractClauseResponse,
   ContractCreateRequest,
   ContractResponse,
+  ContractStatus,
   ContractUpdateRequest,
-  RegistrationStatus,
 } from '../../types/contract'
 import { Input } from '../ui/Input'
 import { Select } from '../ui/Select'
@@ -179,7 +179,7 @@ export function ContractForm({
   // --- Título e descrição ---
   const [title, setTitle] = useState(contract?.title ?? '')
   const [description, setDescription] = useState(contract?.description ?? '')
-  const [status, setStatus] = useState<RegistrationStatus>(
+  const [status, setStatus] = useState<ContractStatus>(
     contract?.status ?? 'ATIVO',
   )
 
@@ -700,23 +700,30 @@ export function ContractForm({
           Define se o contrato está vigente. Contratos inativos permanecem
           no cadastro para fins de histórico.
         </p>
-        <div className="flex gap-2">
-          {(['ATIVO', 'INATIVO'] as RegistrationStatus[]).map((s) => (
-            <button
-              type="button"
-              key={s}
-              onClick={() => setStatus(s)}
-              className={[
-                'inline-flex h-10 items-center rounded-lg border px-3 text-sm font-medium transition-colors',
-                status === s
-                  ? 'border-primary bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-200'
-                  : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800',
-              ].join(' ')}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
+        {status === 'CONCLUIDO' ? (
+          <Alert variant="info">
+            Este contrato está CONCLUIDO e não pode ser editado. Use o botão
+            &quot;Reabrir&quot; na listagem para voltá-lo a ATIVO antes de alterar.
+          </Alert>
+        ) : (
+          <div className="flex gap-2">
+            {(['ATIVO', 'INATIVO'] as ContractStatus[]).map((s) => (
+              <button
+                type="button"
+                key={s}
+                onClick={() => setStatus(s)}
+                className={[
+                  'inline-flex h-10 items-center rounded-lg border px-3 text-sm font-medium transition-colors',
+                  status === s
+                    ? 'border-primary bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-200'
+                    : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800',
+                ].join(' ')}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
       </section>
     </form>
   )

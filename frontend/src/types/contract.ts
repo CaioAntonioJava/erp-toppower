@@ -4,8 +4,13 @@ import type { RegistrationStatus } from './registration'
 // Re-exporta para permitir que callers importem tudo de um lugar.
 export type { RegistrationStatus }
 
-/** Status do contrato (mesmo domínio de outros cadastros). */
-export type ContractStatus = RegistrationStatus
+/**
+ * Status do contrato. Diferente de outros cadastros (que usam apenas
+ * RegistrationStatus = ATIVO | INATIVO), o contrato tem um terceiro
+ * estado CONCLUIDO (execução finalizada), espelhando o ciclo da
+ * proposta técnica.
+ */
+export type ContractStatus = RegistrationStatus | 'CONCLUIDO'
 
 /** Tipo do cliente: CUSTOMER (PF) ou COMPANY (PJ). */
 export type ContractClientType = 'CUSTOMER' | 'COMPANY'
@@ -40,6 +45,8 @@ export interface ContractResponse {
   validityDate: string
   /** Preço do contrato (em reais). Valor informativo, não exibido no PDF. */
   price: number
+  /** Data de entrega (conclusão, yyyy-MM-dd). Nula enquanto não concluído. */
+  deliveryDate: string | null
   createdAt: string
   updatedAt: string
   createdBy: string | null

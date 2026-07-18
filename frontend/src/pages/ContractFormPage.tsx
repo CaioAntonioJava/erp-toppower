@@ -7,8 +7,8 @@ import { Spinner } from '../components/ui/Spinner'
 import { Alert } from '../components/ui/Alert'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { ContractForm } from '../components/contract/ContractForm'
+import { ContractStatusBadge } from '../components/contract/ContractStatusBadge'
 import { StickyFormActions } from '../components/sales/StickyFormActions'
-import { RegistrationStatusBadge } from '../components/client/RegistrationStatusBadge'
 import { RegistrationAuditCard } from '../components/client/RegistrationAuditCard'
 import {
   activateContract,
@@ -139,7 +139,7 @@ export function ContractFormPage() {
                   <span aria-hidden>•</span>
                 </>
               ) : null}
-              <RegistrationStatusBadge status={contract.status} />
+              <ContractStatusBadge status={contract.status} />
             </div>
           ) : mode === 'create' ? (
             <p className="text-sm text-slate-500 dark:text-slate-400">

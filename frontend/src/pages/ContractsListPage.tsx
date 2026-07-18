@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   Check,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Eye,
@@ -8,6 +10,7 @@ import {
   Plus,
   Power,
   Printer,
+  RotateCcw,
   Search,
   X,
 } from 'lucide-react'
@@ -17,21 +20,24 @@ import { Select } from '../components/ui/Select'
 import { Spinner } from '../components/ui/Spinner'
 import { Alert } from '../components/ui/Alert'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
-import { RegistrationStatusBadge } from '../components/client/RegistrationStatusBadge'
+import { ContractStatusBadge } from '../components/contract/ContractStatusBadge'
 import {
   activateContract,
+  completeContract,
   inactivateContract,
   listContracts,
+  reopenContract,
   searchContracts,
 } from '../api/contract.api'
-import type { ContractResponse } from '../types/contract'
-import type { RegistrationStatus } from '../types/registration'
+import type { ContractResponse, ContractStatus } from '../types/contract'
 import { useAuth } from '../context/AuthContext'
 import { useEntityList } from '../hooks/useEntityList'
+import { toApiError } from '../lib/errors'
 
 const STATUS_OPTIONS = [
   { value: 'ALL', label: 'Todos' },
   { value: 'ATIVO', label: 'Ativos' },
+  { value: 'CONCLUIDO', label: 'Concluídos' },
   { value: 'INATIVO', label: 'Inativos' },
 ]
 
@@ -49,7 +55,7 @@ export function ContractsListPage() {
   const { user } = useAuth()
   const isAdmin = user?.role === 'ROLE_ADMIN'
 
-  const list = useEntityList<ContractResponse>({
+  const list = useEntityList<ContractResponse, ContractStatus>({
     api: {
       fetchAll: listContracts,
       search: searchContracts,
@@ -57,6 +63,46 @@ export function ContractsListPage() {
       activate: activateContract,
     },
   })
+
+  // Finalização / reabertura de contrato direto da listagem.
+  const [completeTarget, setCompleteTarget] =
+    useState<ContractResponse | null>(null)
+  const [completing, setCompleting] = useState(false)
+  const [completeError, setCompleteError] = useState<string | null>(null)
+  const [reopenTarget, setReopenTarget] =
+    useState<ContractResponse | null>(null)
+  const [reopening, setReopening] = useState(false)
+  const [reopenError, setReopenError] = useState<string | null>(null)
+
+  async function handleComplete() {
+    if (!completeTarget) return
+    setCompleting(true)
+    setCompleteError(null)
+    try {
+      await completeContract(completeTarget.id)
+      setCompleteTarget(null)
+      await list.reload()
+    } catch (err) {
+      setCompleteError(toApiError(err).message)
+    } finally {
+      setCompleting(false)
+    }
+  }
+
+  async function handleReopen() {
+    if (!reopenTarget) return
+    setReopening(true)
+    setReopenError(null)
+    try {
+      await reopenContract(reopenTarget.id)
+      setReopenTarget(null)
+      await list.reload()
+    } catch (err) {
+      setReopenError(toApiError(err).message)
+    } finally {
+      setReopening(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -102,7 +148,7 @@ export function ContractsListPage() {
             options={STATUS_OPTIONS}
             value={list.statusFilter}
             onChange={(e) =>
-              list.setStatusFilter(e.target.value as 'ALL' | RegistrationStatus)
+              list.setStatusFilter(e.target.value as 'ALL' | ContractStatus)
             }
             aria-label="Filtrar por status"
           />
@@ -115,6 +161,10 @@ export function ContractsListPage() {
         </Alert>
       ) : null}
       {list.error ? <Alert variant="error">{list.error}</Alert> : null}
+      {completeError ? (
+        <Alert variant="error">{completeError}</Alert>
+      ) : null}
+      {reopenError ? <Alert variant="error">{reopenError}</Alert> : null}
 
       {isAdmin && list.hasSelection ? (
         <div className="flex flex-col items-stretch gap-2 rounded-xl border border-primary/30 bg-primary-50 px-4 py-3 text-sm dark:border-primary-900 dark:bg-primary-900/20 sm:flex-row sm:items-center sm:justify-between">
@@ -269,7 +319,7 @@ export function ContractsListPage() {
                         {formatValidityDate(c.validityDate)}
                       </td>
                       <td className="px-4 py-3">
-                        <RegistrationStatusBadge status={c.status} />
+                        <ContractStatusBadge status={c.status} />
                       </td>
                       <td
                         className="px-4 py-3"
@@ -290,12 +340,36 @@ export function ContractsListPage() {
                           >
                             <Printer className="h-4 w-4" />
                           </Button>
+                          {c.status === 'ATIVO' ? (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="!text-emerald-600 hover:!text-emerald-600 dark:!text-emerald-500 dark:hover:!text-emerald-500"
+                              onClick={() => setCompleteTarget(c)}
+                              title="Finalizar contrato"
+                              aria-label="Finalizar contrato"
+                            >
+                              <CheckCircle2 className="h-4 w-4" />
+                            </Button>
+                          ) : null}
+                          {c.status === 'CONCLUIDO' ? (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setReopenTarget(c)}
+                              title="Reabrir contrato"
+                              aria-label="Reabrir contrato"
+                            >
+                              <RotateCcw className="h-4 w-4" />
+                            </Button>
+                          ) : null}
                           <Button
                             size="sm"
                             variant={c.status === 'ATIVO' ? 'ghost' : 'secondary'}
                             onClick={() => list.setConfirmSingle(c)}
                             title={c.status === 'ATIVO' ? 'Inativar' : 'Reativar'}
                             aria-label={c.status === 'ATIVO' ? 'Inativar' : 'Reativar'}
+                            disabled={c.status === 'CONCLUIDO'}
                           >
                             <Power className="h-4 w-4" />
                           </Button>
@@ -382,6 +456,40 @@ export function ContractsListPage() {
         onConfirm={list.handleBulkConfirm}
         onClose={() => {
           if (!list.bulkRunning) list.setConfirmBulk(null)
+        }}
+      />
+
+      <ConfirmDialog
+        open={completeTarget != null}
+        title="Finalizar contrato?"
+        description={
+          completeTarget
+            ? `O contrato "${completeTarget.code}" será marcado como CONCLUIDO e a data de entrega será preenchida com a data de hoje.`
+            : ''
+        }
+        confirmText="Finalizar"
+        confirmVariant="primary"
+        isLoading={completing}
+        onConfirm={handleComplete}
+        onClose={() => {
+          if (!completing) setCompleteTarget(null)
+        }}
+      />
+
+      <ConfirmDialog
+        open={reopenTarget != null}
+        title="Reabrir contrato?"
+        description={
+          reopenTarget
+            ? `O contrato "${reopenTarget.code}" voltará a ficar ATIVO e a data de entrega será limpa.`
+            : ''
+        }
+        confirmText="Reabrir"
+        confirmVariant="primary"
+        isLoading={reopening}
+        onConfirm={handleReopen}
+        onClose={() => {
+          if (!reopening) setReopenTarget(null)
         }}
       />
     </div>

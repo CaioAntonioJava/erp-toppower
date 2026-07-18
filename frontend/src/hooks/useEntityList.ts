@@ -9,22 +9,36 @@ import type { PagedResponse } from '../types/api'
 import type { RegistrationStatus } from '../types/registration'
 import { toApiError } from '../lib/errors'
 
-/** Entidade mínima que o hook precisa para seleção, auditoria e toggle. */
-export interface EntityListItem {
+/**
+ * Tipo de status da entidade. Por padrão é {@link RegistrationStatus}
+ * (ATIVO/INATIVO), mas entidades com ciclo de execução mais rico (ex.:
+ * contrato, que adiciona CONCLUIDO) podem passar um supertipo. O hook
+ * continua tratando apenas ATIVO/INATIVO no toggle e na seleção em massa;
+ * status extras são apenas exibidos/filtrados pela página.
+ */
+export type EntityStatus = RegistrationStatus
+
+/**
+ * Entidade mínima que o hook precisa para seleção, auditoria e toggle.
+ * O status pode ser um supertipo de {@link RegistrationStatus} (ex.:
+ * {@link ContractStatus}, que adiciona CONCLUIDO) — o hook só interage
+ * com ATIVO/INATIVO, mas a entidade pode ter outros valores.
+ */
+export interface EntityListItem<S extends string = EntityStatus> {
   id: number
-  status: RegistrationStatus
+  status: S
 }
 
 /** Operações da API que diferem entre entidades. */
-export interface EntityListApi<T> {
+export interface EntityListApi<T, S extends string = EntityStatus> {
   fetchAll: (params: {
-    status?: RegistrationStatus
+    status?: S
     page: number
     size: number
   }) => Promise<PagedResponse<T>>
   search: (params: {
     query: string
-    status?: RegistrationStatus
+    status?: S
     page: number
     size: number
   }) => Promise<PagedResponse<T>>
@@ -32,25 +46,26 @@ export interface EntityListApi<T> {
   activate: (id: number) => Promise<T>
 }
 
-interface UseEntityListOptions<T> {
-  api: EntityListApi<T>
+interface UseEntityListOptions<T, S extends string = EntityStatus> {
+  api: EntityListApi<T, S>
   pageSize?: number
   /** Tamanho mínimo do termo de busca. Default: 2. */
   minQueryLength?: number
 }
 
 /** Estado e handlers compartilhados entre as listas (Empresas, Clientes PF, ...). */
-export function useEntityList<T extends EntityListItem>({
+export function useEntityList<
+  T extends EntityListItem<S>,
+  S extends string = EntityStatus,
+>({
   api,
   pageSize = 10,
   minQueryLength = 2,
-}: UseEntityListOptions<T>) {
+}: UseEntityListOptions<T, S>) {
   const [page, setPage] = useState(0)
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'ALL' | RegistrationStatus>(
-    'ALL',
-  )
+  const [statusFilter, setStatusFilter] = useState<'ALL' | S>('ALL')
   const [data, setData] = useState<PagedResponse<T> | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -100,9 +115,7 @@ export function useEntityList<T extends EntityListItem>({
     try {
       const currentApi = apiRef.current
       const status =
-        statusFilter === 'ALL'
-          ? undefined
-          : (statusFilter as RegistrationStatus)
+        statusFilter === 'ALL' ? undefined : (statusFilter as S)
       const useSearch = debouncedQuery.length >= minQueryLength
       const result = useSearch
         ? await currentApi.search({

@@ -5,10 +5,10 @@ import type {
   ContractCreateRequest,
   ContractNextCodeResponse,
   ContractResponse,
+  ContractStatus,
   ContractUpdateRequest,
 } from '../types/contract'
 import type { PagedResponse } from '../types/api'
-import type { RegistrationStatus } from '../types/registration'
 
 const BASE = '/api/v1/contracts'
 
@@ -20,7 +20,7 @@ interface PageParams {
 
 /** GET /contracts — listagem paginada (status opcional). */
 export async function listContracts(
-  params: PageParams & { status?: RegistrationStatus },
+  params: PageParams & { status?: ContractStatus },
 ): Promise<PagedResponse<ContractResponse>> {
   const { data } = await api.get<PagedResponse<ContractResponse>>(BASE, {
     params: {
@@ -39,7 +39,7 @@ export async function listContracts(
  */
 export async function searchContracts(params: {
   query?: string
-  status?: RegistrationStatus
+  status?: ContractStatus
   page?: number
   size?: number
 }): Promise<PagedResponse<ContractResponse>> {
@@ -101,6 +101,18 @@ export async function activateContract(id: number): Promise<ContractResponse> {
   const { data } = await api.patch<ContractResponse>(
     `${BASE}/${id}/activate`,
   )
+  return data
+}
+
+/** POST /contracts/{id}/complete — conclusão (ATIVO → CONCLUIDO). */
+export async function completeContract(id: number): Promise<ContractResponse> {
+  const { data } = await api.post<ContractResponse>(`${BASE}/${id}/complete`)
+  return data
+}
+
+/** POST /contracts/{id}/reopen — reabertura (CONCLUIDO → ATIVO). */
+export async function reopenContract(id: number): Promise<ContractResponse> {
+  const { data } = await api.post<ContractResponse>(`${BASE}/${id}/reopen`)
   return data
 }
 
