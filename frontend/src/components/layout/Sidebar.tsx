@@ -17,6 +17,7 @@ import {
   Wrench,
   Cog,
   FilePenLine,
+  Wallet,
 } from 'lucide-react'
 import { Button } from '../ui/Button'
 import { useAuth } from '../../context/AuthContext'
@@ -38,6 +39,7 @@ const navItems: NavItem[] = [
   { to: '/technical-proposals', label: 'Propostas Técnicas', icon: Wrench },
   { to: '/sales-orders', label: 'Pedidos de Venda', icon: ClipboardList },
   { to: '/contracts', label: 'Contratos', icon: FilePenLine },
+  { to: '/receivables', label: 'Contas a Receber', icon: Wallet },
 ]
 
 /** Item de menu exclusivo de administradores — gestão de transportadoras. */
