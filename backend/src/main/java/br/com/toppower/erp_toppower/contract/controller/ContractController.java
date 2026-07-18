@@ -95,8 +95,8 @@ public class ContractController {
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<PagedResponse<ContractResponse>> getAll(
-            @Parameter(description = "Filtro opcional: ATIVO ou INATIVO.", example = "ATIVO",
-                    schema = @Schema(allowableValues = {"ATIVO", "INATIVO"}))
+            @Parameter(description = "Filtro opcional: ATIVO, CONCLUIDO ou INATIVO.", example = "ATIVO",
+                    schema = @Schema(allowableValues = {"ATIVO", "CONCLUIDO", "INATIVO"}))
             @RequestParam(value = "status", required = false) ContractStatus status,
             @Parameter(hidden = true)
             @PageableDefault(size = 20, sort = "validityDate", direction = Sort.Direction.DESC) Pageable pageable) {
@@ -145,8 +145,8 @@ public class ContractController {
             @Parameter(description = "Termo de busca OPCIONAL (mínimo 2 caracteres quando informado). "
                     + "Match em código, título ou descrição.", example = "CL-001")
             @RequestParam(value = "query", required = false) String query,
-            @Parameter(description = "Filtro OPCIONAL: ATIVO ou INATIVO. Omitido = ambos.",
-                    example = "ATIVO", schema = @Schema(allowableValues = {"ATIVO", "INATIVO"}))
+            @Parameter(description = "Filtro OPCIONAL: ATIVO, CONCLUIDO ou INATIVO. Omitido = todos.",
+                    example = "ATIVO", schema = @Schema(allowableValues = {"ATIVO", "CONCLUIDO", "INATIVO"}))
             @RequestParam(value = "status", required = false) ContractStatus status,
             @Parameter(hidden = true)
             @PageableDefault(size = 20, sort = "validityDate", direction = Sort.Direction.DESC) Pageable pageable) {
@@ -228,6 +228,50 @@ public class ContractController {
     })
     public ResponseEntity<ContractResponse> activate(@PathVariable Long id) {
         return ResponseEntity.ok(contractService.activate(id));
+    }
+
+    @PostMapping(value = "/{id}/complete", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Concluir contrato (ATIVO → CONCLUIDO)",
+            description = "Transiciona o contrato do status ATIVO para CONCLUIDO e preenche "
+                    + "automaticamente a data de entrega com a data atual.")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Contrato concluído.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = ContractResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "404", description = "Contrato não encontrado.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "409",
+                    description = "Contrato em estado que impede concluir.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+    })
+    public ResponseEntity<ContractResponse> complete(@PathVariable Long id) {
+        return ResponseEntity.ok(contractService.complete(id));
+    }
+
+    @PostMapping(value = "/{id}/reopen", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Reabrir contrato (CONCLUIDO → ATIVO)",
+            description = "Reabre um contrato CONCLUIDO, voltando-o para ATIVO e limpando a "
+                    + "data de entrega. Útil para corrigir conclusões indevidas.")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Contrato reaberto.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = ContractResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "404", description = "Contrato não encontrado.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "409",
+                    description = "Contrato em estado que impede reabrir.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+    })
+    public ResponseEntity<ContractResponse> reopen(@PathVariable Long id) {
+        return ResponseEntity.ok(contractService.reopen(id));
     }
 
     // ---------------------------------------------------------------------

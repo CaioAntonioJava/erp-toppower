@@ -152,6 +152,15 @@ public class Contract extends OrganizationScopedEntity {
     @Column(name = "price", nullable = false, precision = 12, scale = 2)
     private BigDecimal price;
 
+    /**
+     * Data de entrega (conclusão) do contrato. Preenchida automaticamente
+     * quando o contrato transita para {@link ContractStatus#CONCLUIDO}
+     * via o endpoint dedicado, e limpa quando reaberto. Nula enquanto o
+     * contrato está ATIVO ou INATIVO.
+     */
+    @Column(name = "delivery_date")
+    private LocalDate deliveryDate;
+
     // ---------------------------------------------------------------------
     // Código formatado
     // ---------------------------------------------------------------------

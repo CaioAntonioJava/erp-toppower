@@ -82,6 +82,7 @@ public final class ContractMapper {
                 contract.getStatus(),
                 contract.getValidityDate(),
                 contract.getPrice(),
+                contract.getDeliveryDate(),
                 contract.getCreatedAt(),
                 contract.getUpdatedAt(),
                 contract.getCreatedBy(),

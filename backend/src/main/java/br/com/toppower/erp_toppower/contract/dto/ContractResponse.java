@@ -75,6 +75,10 @@ public record ContractResponse(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         BigDecimal price,
 
+        @Schema(description = "Data de entrega (conclusão). Preenchida quando o "
+                + "contrato transita para CONCLUIDO.")
+        LocalDate deliveryDate,
+
         @Schema(description = "Data de criação.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         Instant createdAt,

@@ -24,6 +24,7 @@ import br.com.toppower.erp_toppower.company.exception.DuplicateCompanyCnpjExcept
 import br.com.toppower.erp_toppower.contract.exception.ContractBusinessException;
 import br.com.toppower.erp_toppower.contract.exception.ContractClientNotFoundException;
 import br.com.toppower.erp_toppower.contract.exception.ContractNotFoundException;
+import br.com.toppower.erp_toppower.contract.exception.ContractStatusTransitionException;
 import br.com.toppower.erp_toppower.contract.exception.InvalidContractClientException;
 import br.com.toppower.erp_toppower.customer.exception.CustomerNotFoundException;
 import br.com.toppower.erp_toppower.customer.exception.DuplicateCustomerCpfException;
@@ -297,6 +298,18 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidContractClientException.class)
     public ResponseEntity<ApiError> handleInvalidContractClient(InvalidContractClientException ex) {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    /**
+     * Transição de status de contrato não permitida pelo estado atual
+     * (ex.: concluir contrato que não está ATIVO, reabrir contrato que
+     * não está CONCLUIDO, editar contrato CONCLUIDO). Usa 409 CONFLICT
+     * para indicar conflito com o estado atual do recurso.
+     */
+    @ExceptionHandler(ContractStatusTransitionException.class)
+    public ResponseEntity<ApiError> handleContractStatusTransition(
+            ContractStatusTransitionException ex) {
+        return build(HttpStatus.CONFLICT, ex.getMessage());
     }
 
     // =====================================================================

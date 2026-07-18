@@ -15,6 +15,7 @@ import br.com.toppower.erp_toppower.contract.enums.ContractStatus;
 import br.com.toppower.erp_toppower.contract.exception.ContractBusinessException;
 import br.com.toppower.erp_toppower.contract.exception.ContractClientNotFoundException;
 import br.com.toppower.erp_toppower.contract.exception.ContractNotFoundException;
+import br.com.toppower.erp_toppower.contract.exception.ContractStatusTransitionException;
 import br.com.toppower.erp_toppower.contract.exception.InvalidContractClientException;
 import br.com.toppower.erp_toppower.contract.mapper.ContractMapper;
 import br.com.toppower.erp_toppower.contract.repository.ContractClauseRepository;
@@ -159,6 +160,14 @@ public class ContractService {
         Contract contract = repository.findById(id)
                 .orElseThrow(() -> new ContractNotFoundException(id));
 
+        // Contratos CONCLUIDOS são imutáveis — usar /reopen para voltar a ATIVO
+        // antes de editar. Espelha o padrão do TechnicalProposalService.
+        if (contract.getStatus() == ContractStatus.CONCLUIDO) {
+            throw new ContractStatusTransitionException(
+                    "Contrato CONCLUIDO não pode ser alterado. Use o endpoint "
+                            + "/reopen para voltar a ATIVO antes de editar.");
+        }
+
         // Computa o cliente efetivo após o PATCH: se o request trouxe um
         // valor (inclusive null), usa o novo; senão mantém o existente.
         Long effectiveCustomer = (request.customerId() != null)
@@ -209,6 +218,48 @@ public class ContractService {
         Contract contract = repository.findById(id)
                 .orElseThrow(() -> new ContractNotFoundException(id));
         contract.setStatus(ContractStatus.ATIVO);
+        Contract saved = repository.save(contract);
+        return toResponseWithClient(saved);
+    }
+
+    // ---------------------------------------------------------------------
+    // Transições de status (ciclo de execução)
+    // ---------------------------------------------------------------------
+
+    /**
+     * Conclui a execução do contrato: {@code ATIVO → CONCLUIDO}. Preenche
+     * automaticamente a data de entrega com {@code LocalDate.now()}.
+     */
+    @Transactional
+    public ContractResponse complete(Long id) {
+        Contract contract = repository.findById(id)
+                .orElseThrow(() -> new ContractNotFoundException(id));
+        if (contract.getStatus() != ContractStatus.ATIVO) {
+            throw new ContractStatusTransitionException(
+                    "Apenas contratos ATIVO podem ser concluídos. Status atual: "
+                            + contract.getStatus());
+        }
+        contract.setStatus(ContractStatus.CONCLUIDO);
+        contract.setDeliveryDate(LocalDate.now());
+        Contract saved = repository.save(contract);
+        return toResponseWithClient(saved);
+    }
+
+    /**
+     * Reabre um contrato CONCLUIDO, voltando-o para ATIVO e limpando a
+     * data de entrega. Útil para corrigir conclusões indevidas.
+     */
+    @Transactional
+    public ContractResponse reopen(Long id) {
+        Contract contract = repository.findById(id)
+                .orElseThrow(() -> new ContractNotFoundException(id));
+        if (contract.getStatus() != ContractStatus.CONCLUIDO) {
+            throw new ContractStatusTransitionException(
+                    "Apenas contratos CONCLUIDO podem ser reabertos. Status atual: "
+                            + contract.getStatus());
+        }
+        contract.setStatus(ContractStatus.ATIVO);
+        contract.setDeliveryDate(null);
         Contract saved = repository.save(contract);
         return toResponseWithClient(saved);
     }
