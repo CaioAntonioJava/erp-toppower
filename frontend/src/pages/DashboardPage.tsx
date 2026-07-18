@@ -3,17 +3,15 @@ import {
   AccountsPayableWidget,
   AccountsReceivableWidget,
   BoletosCadastradosWidget,
-  BoletosDueWidget,
   FinanceSummaryWidget,
 } from '../components/dashboard'
 
 /**
  * Dashboard principal do ERP.
  *
- * Layout em seções, preparado para os módulos financeiros
- * (Contas a Pagar, Contas a Receber e Boletos próximos do vencimento).
- * Os widgets já buscam dados via `api/finance.api.ts` — hoje retornam
- * listas vazias/resumo zero enquanto o backend financeiro não existe.
+ * Layout em seções com os módulos financeiros (Contas a Pagar, Contas a
+ * Receber e indicadores agregados). Os widgets buscam dados via
+ * `api/finance.api.ts` e `api/receivable.api.ts`.
  */
 export function DashboardPage() {
   const { user } = useAuth()
@@ -44,9 +42,6 @@ export function DashboardPage() {
         <AccountsPayableWidget />
         <AccountsReceivableWidget />
       </div>
-
-      {/* Boletos próximos do vencimento — largura total. */}
-      <BoletosDueWidget />
     </div>
   )
 }
