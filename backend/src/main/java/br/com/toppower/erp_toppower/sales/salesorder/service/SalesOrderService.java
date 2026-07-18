@@ -29,6 +29,7 @@ import br.com.toppower.erp_toppower.sales.salesorder.exception.SalesOrderNotFoun
 import br.com.toppower.erp_toppower.sales.salesorder.mapper.SalesOrderMapper;
 import br.com.toppower.erp_toppower.sales.salesorder.repository.SalesOrderItemRepository;
 import br.com.toppower.erp_toppower.sales.salesorder.repository.SalesOrderRepository;
+import br.com.toppower.erp_toppower.receivable.service.ReceivableService;
 import br.com.toppower.erp_toppower.stock.enums.MovementSource;
 import br.com.toppower.erp_toppower.stock.service.StockService;
 import org.springframework.data.domain.Page;
@@ -87,6 +88,7 @@ public class SalesOrderService {
     private final SellerRepository sellerRepository;
     private final StockService stockService;
     private final CarrierRepository carrierRepository;
+    private final ReceivableService receivableService;
 
     public SalesOrderService(SalesOrderRepository salesOrderRepository,
                              SalesOrderItemRepository salesOrderItemRepository,
@@ -96,7 +98,8 @@ public class SalesOrderService {
                              CompanyRepository companyRepository,
                              SellerRepository sellerRepository,
                              StockService stockService,
-                             CarrierRepository carrierRepository) {
+                             CarrierRepository carrierRepository,
+                             ReceivableService receivableService) {
         this.salesOrderRepository = salesOrderRepository;
         this.salesOrderItemRepository = salesOrderItemRepository;
         this.quotationRepository = quotationRepository;
@@ -106,6 +109,7 @@ public class SalesOrderService {
         this.sellerRepository = sellerRepository;
         this.stockService = stockService;
         this.carrierRepository = carrierRepository;
+        this.receivableService = receivableService;
     }
 
     // ---------------------------------------------------------------------
@@ -196,6 +200,12 @@ public class SalesOrderService {
         quotationRepository.save(quotation);
 
         savedHeader.recalculateTotals(items);
+
+        // Gera a conta a receber a partir do valor total do pedido.
+        // Tolerante: se o pedido não tiver cliente/valor válido, a conta
+        // não é gerada (log de aviso dentro do service).
+        receivableService.generateFromSalesOrder(savedHeader, savedHeader.getTotal());
+
         ClientResolved client = resolveClient(savedHeader);
         CarrierResolved carrier = resolveCarrier(savedHeader);
         return SalesOrderMapper.toResponse(savedHeader, items, resolveSellerName(savedHeader),
