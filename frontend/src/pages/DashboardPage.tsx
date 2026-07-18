@@ -34,14 +34,14 @@ export function DashboardPage() {
       {/* Boletos cadastrados pela usuária — cadastro e listagem inline. */}
       <BoletosCadastradosWidget />
 
-      {/* Indicadores financeiros — totais a pagar/receber e boletos. */}
-      <FinanceSummaryWidget />
-
       {/* Colunas: contas a pagar vs contas a receber. */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <AccountsPayableWidget />
         <AccountsReceivableWidget />
       </div>
+
+      {/* Indicadores financeiros — totais a pagar/receber e boletos. */}
+      <FinanceSummaryWidget />
     </div>
   )
 }
