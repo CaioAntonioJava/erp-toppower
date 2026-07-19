@@ -35,7 +35,7 @@ import { toApiError } from '../lib/errors'
 
 const STATUS_OPTIONS = [
   { value: 'ALL', label: 'Todos' },
-  { value: 'ABERTO', label: 'Em aberto' },
+  { value: 'ABERTO', label: 'Aberto' },
   { value: 'PAGO', label: 'Pagos' },
   { value: 'CANCELADO', label: 'Cancelados' },
 ]
@@ -275,14 +275,14 @@ export function ReceivablesListPage() {
                       onClick={() => navigate(`/receivables/${r.id}`)}
                     >
                       <td className="px-4 py-3">
-                        <div className="line-clamp-1 font-medium text-slate-900 dark:text-slate-100">
+                        <div className="line-clamp-1 text-xs font-medium text-slate-900 dark:text-slate-100">
                           {r.description}
                         </div>
                       </td>
                       <td className="px-4 py-3">
                         {r.clientName ? (
                           <div>
-                            <div className="text-slate-900 dark:text-slate-100">
+                            <div className="text-xs text-slate-900 dark:text-slate-100">
                               {r.clientName}
                             </div>
                             {r.clientCode ? (

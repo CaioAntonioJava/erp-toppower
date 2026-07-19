@@ -16,7 +16,7 @@ const toneByStatus: Record<ReceivableStatus, Tone> = {
 }
 
 const labelByStatus: Record<ReceivableStatus, string> = {
-  ABERTO: 'Em aberto',
+  ABERTO: 'Aberto',
   PAGO: 'Pago',
   CANCELADO: 'Cancelado',
 }
