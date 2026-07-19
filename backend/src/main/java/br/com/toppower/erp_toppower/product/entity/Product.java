@@ -36,6 +36,12 @@ public class Product extends OrganizationScopedEntity {
     @Column(name = "code", unique = true, length = 50)
     private String code;
 
+    /**
+     * Unidade de medida em que o produto é comercializado/controlado. Os
+     * valores correspondem aos códigos oficiais da NF-e (tabela SEFAZ),
+     * usados no campo {@code uCom} da NF-e. Persistido como string do enum
+     * (ex.: {@code "UN"}, {@code "MTR"}, {@code "KG"}).
+     */
     @Enumerated(EnumType.STRING)
     @Column(name = "unit_type", nullable = false, length = 20)
     private UnitType unitType;

@@ -30,8 +30,11 @@ public record ProductUpdateRequest(
                 message = "Código aceita apenas letras, números, ponto, underline e hífen")
         String code,
 
-        @Schema(description = "Nova unidade de medida.",
-                allowableValues = {"UNIDADE", "METROS", "BOBINA", "PECAS", "QUILOS", "ROLO"})
+        @Schema(description = "Nova unidade de medida (código SEFAZ usado na NF-e).",
+                allowableValues = {
+                        "UN", "MTR", "M2", "M3", "KG", "G", "L", "ML",
+                        "PC", "CX", "PCT", "RL", "CEM", "PAR", "DZ", "CJ", "FR", "AMP", "BTE"
+                })
         UnitType unitType,
 
         @Schema(description = "Novo status do produto.",

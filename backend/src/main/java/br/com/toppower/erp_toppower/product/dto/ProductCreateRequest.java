@@ -31,9 +31,12 @@ public record ProductCreateRequest(
                 message = "Código aceita apenas letras, números, ponto, underline e hífen")
         String code,
 
-        @Schema(description = "Unidade de medida em que o produto é comercializado.",
-                example = "METROS",
-                allowableValues = {"UNIDADE", "METROS", "BOBINA", "PECAS", "QUILOS", "ROLO"},
+        @Schema(description = "Unidade de medida em que o produto é comercializado (código SEFAZ usado na NF-e).",
+                example = "MTR",
+                allowableValues = {
+                        "UN", "MTR", "M2", "M3", "KG", "G", "L", "ML",
+                        "PC", "CX", "PCT", "RL", "CEM", "PAR", "DZ", "CJ", "FR", "AMP", "BTE"
+                },
                 requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull(message = "Unidade de medida é obrigatória")
         UnitType unitType,

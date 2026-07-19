@@ -21,8 +21,11 @@ public record ProductResponse(
         @Schema(description = "Código único (SKU) do produto.", requiredMode = Schema.RequiredMode.REQUIRED)
         String code,
 
-        @Schema(description = "Unidade de medida.",
-                allowableValues = {"UNIDADE", "METROS", "BOBINA", "PECAS", "QUILOS", "ROLO"},
+        @Schema(description = "Unidade de medida (código SEFAZ usado na NF-e).",
+                allowableValues = {
+                        "UN", "MTR", "M2", "M3", "KG", "G", "L", "ML",
+                        "PC", "CX", "PCT", "RL", "CEM", "PAR", "DZ", "CJ", "FR", "AMP", "BTE"
+                },
                 requiredMode = Schema.RequiredMode.REQUIRED)
         UnitType unitType,
 
