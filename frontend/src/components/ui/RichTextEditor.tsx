@@ -70,6 +70,8 @@ interface RichTextEditorProps {
   className?: string
   /** Quando verdadeiro, desabilita a edição e esconde a toolbar. */
   readOnly?: boolean
+  /** Altura mínima da área editável em pixels. Padrão: 120. */
+  minHeight?: number
 }
 
 /**
@@ -94,6 +96,7 @@ export function RichTextEditor({
   maxLength = 2000,
   className = '',
   readOnly = false,
+  minHeight = 120,
 }: RichTextEditorProps) {
   const generatedId = useId()
   const editorId = id ?? generatedId
@@ -658,8 +661,9 @@ export function RichTextEditor({
           onPaste={handlePaste}
           onKeyUp={refreshActiveStates}
           onMouseUp={refreshActiveStates}
+          style={{ minHeight: `${minHeight}px` }}
           className={[
-            'min-h-[120px] rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none',
+            'rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none',
             'dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100',
             'focus:border-focus focus:ring-2 focus:ring-focus/30',
             'transition-[border-color,box-shadow] duration-500 ease-in-out',
