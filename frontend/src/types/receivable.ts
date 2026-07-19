@@ -63,6 +63,8 @@ export interface ReceivableSummaryResponse {
   dueDate: string
   status: ReceivableStatus
   sourceType: ReceivableSource
+  /** Código do documento de origem (ex.: "CL-001-2026"). Nulo para contas manuais. */
+  sourceCode: string | null
   clientName: string | null
   clientCode: string | null
   paymentDate: string | null
