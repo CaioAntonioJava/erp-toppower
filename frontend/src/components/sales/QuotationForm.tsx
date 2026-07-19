@@ -21,6 +21,7 @@ import { getProduct, searchProducts } from '../../api/product.api'
 import { listSellers } from '../../api/seller.api'
 import { searchQuotationClients, simulateQuotation } from '../../api/quotation.api'
 import type { ProductResponse, UnitType } from '../../types/product'
+import { UNIT_TYPE_OPTIONS } from '../../types/product'
 import type { SellerResponse } from '../../types/seller'
 import type { RegistrationStatus } from '../../types/registration'
 import type {
@@ -1384,12 +1385,9 @@ function ItemRow({
           ].join(' ')}
         >
           <option value="">—</option>
-          <option value="UNIDADE">UN</option>
-          <option value="METROS">MT</option>
-          <option value="BOBINA">BOB</option>
-          <option value="PECAS">PC</option>
-          <option value="QUILOS">KG</option>
-          <option value="ROLO">RL</option>
+          {UNIT_TYPE_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.value}</option>
+          ))}
         </select>
       </div>
 

@@ -13,18 +13,51 @@ export type ProductStatus = RegistrationStatus
 
 /**
  * Unidade de medida em que o produto é comercializado/controlado.
- * Espelha br.com.toppower...product.enums.UnitType.
+ * Espelha br.com.toppower...product.enums.UnitType. Os valores são os
+ * códigos oficiais da NF-e (tabela SEFAZ), usados no campo `uCom` da nota.
  */
-export type UnitType = 'UNIDADE' | 'METROS' | 'BOBINA' | 'PECAS' | 'QUILOS' | 'ROLO'
+export type UnitType =
+  | 'UN'   // Unidade
+  | 'MTR'  // Metro
+  | 'M2'   // Metro quadrado
+  | 'M3'   // Metro cúbico
+  | 'KG'   // Quilograma
+  | 'G'    // Grama
+  | 'L'    // Litro
+  | 'ML'   // Mililitro
+  | 'PC'   // Peça
+  | 'CX'   // Caixa
+  | 'PCT'  // Pacote
+  | 'RL'   // Rolo
+  | 'CEM'  // Cento
+  | 'PAR'  // Par
+  | 'DZ'   // Dúzia
+  | 'CJ'   // Conjunto
+  | 'FR'   // Fardo
+  | 'AMP'  // Ampola
+  | 'BTE'  // Botão
 
-/** Rótulos em português para cada `UnitType`. */
+/** Rótulos em português para cada `UnitType` (código SEFAZ da NF-e). */
 export const UNIT_TYPE_LABELS: Record<UnitType, string> = {
-  UNIDADE: 'Unidade',
-  METROS: 'Metros',
-  BOBINA: 'Bobina',
-  PECAS: 'Peças',
-  QUILOS: 'Quilos',
-  ROLO: 'Rolo',
+  UN: 'Unidade',
+  MTR: 'Metro',
+  M2: 'Metro quadrado',
+  M3: 'Metro cúbico',
+  KG: 'Quilograma',
+  G: 'Grama',
+  L: 'Litro',
+  ML: 'Mililitro',
+  PC: 'Peça',
+  CX: 'Caixa',
+  PCT: 'Pacote',
+  RL: 'Rolo',
+  CEM: 'Cento',
+  PAR: 'Par',
+  DZ: 'Dúzia',
+  CJ: 'Conjunto',
+  FR: 'Fardo',
+  AMP: 'Ampola',
+  BTE: 'Botão',
 }
 
 /** Opções prontas para uso com o componente `Select`. */

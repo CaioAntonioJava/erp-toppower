@@ -85,7 +85,7 @@ export function ProductForm({
   const [code, setCode] = useState(product?.code ?? '')
   const [name, setName] = useState(product?.name ?? '')
   const [unitType, setUnitType] = useState<UnitType>(
-    product?.unitType ?? 'UNIDADE',
+    product?.unitType ?? 'UN',
   )
   const [price, setPrice] = useState<string>(
     product?.price != null ? fillCents(String(product.price)) : '',
