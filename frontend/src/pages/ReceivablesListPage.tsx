@@ -18,6 +18,7 @@ import { Spinner } from '../components/ui/Spinner'
 import { Alert } from '../components/ui/Alert'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { ReceivableStatusBadge } from '../components/receivable/ReceivableStatusBadge'
+import { ReceivablePaymentModal } from '../components/receivable/ReceivablePaymentModal'
 import {
   activateReceivable,
   cancelReceivable,
@@ -95,6 +96,7 @@ export function ReceivablesListPage() {
   const [activateTarget, setActivateTarget] = useState<ReceivableSummaryResponse | null>(null)
   const [activating, setActivating] = useState(false)
   const [activateError, setActivateError] = useState<string | null>(null)
+  const [paymentTarget, setPaymentTarget] = useState<ReceivableSummaryResponse | null>(null)
 
   // Debounce simples da busca textual.
   useEffect(() => {
@@ -338,7 +340,7 @@ export function ReceivablesListPage() {
                             <Button
                               size="sm"
                               variant="ghost"
-                              onClick={() => navigate(`/receivables/${r.id}`)}
+                              onClick={() => setPaymentTarget(r)}
                               title="Registrar pagamento"
                               aria-label="Registrar pagamento"
                               className="!text-emerald-600 hover:!text-emerald-600 dark:!text-emerald-500 dark:hover:!text-emerald-500"
@@ -404,6 +406,13 @@ export function ReceivablesListPage() {
           </div>
         </div>
       </div>
+
+      <ReceivablePaymentModal
+        receivable={paymentTarget}
+        open={paymentTarget != null}
+        onClose={() => setPaymentTarget(null)}
+        onSuccess={() => reload()}
+      />
 
       <ConfirmDialog
         open={cancelTarget != null}

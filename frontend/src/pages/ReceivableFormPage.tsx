@@ -13,12 +13,12 @@ import { Spinner } from '../components/ui/Spinner'
 import { Alert } from '../components/ui/Alert'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { ReceivableStatusBadge } from '../components/receivable/ReceivableStatusBadge'
+import { ReceivablePaymentModal } from '../components/receivable/ReceivablePaymentModal'
 import {
   activateReceivable,
   cancelReceivable,
   createReceivable,
   getReceivable,
-  registerPayment,
   removePayment,
   updateReceivable,
 } from '../api/receivable.api'
@@ -26,7 +26,6 @@ import { searchContractClients } from '../api/contract.api'
 import type {
   ReceivableClientType,
   ReceivableCreateRequest,
-  ReceivablePaymentRequest,
   ReceivableResponse,
   ReceivableSource,
   ReceivableUpdateRequest,
@@ -100,11 +99,6 @@ export function ReceivableFormPage() {
 
   // --- Modal de pagamento ---
   const [paymentOpen, setPaymentOpen] = useState(false)
-  const [paymentAmount, setPaymentAmount] = useState('')
-  const [paymentDate, setPaymentDate] = useState(todayISO())
-  const [paymentNotes, setPaymentNotes] = useState('')
-  const [paymentSubmitting, setPaymentSubmitting] = useState(false)
-  const [paymentError, setPaymentError] = useState<string | null>(null)
 
   // --- Modal de remover pagamento ---
   const [removePayTarget, setRemovePayTarget] =
@@ -209,38 +203,6 @@ export function ReceivableFormPage() {
       setSubmitError(toApiError(err).message)
     } finally {
       setSubmitting(false)
-    }
-  }
-
-  async function handleRegisterPayment() {
-    if (!receivable) return
-    const amount = parseNumber(paymentAmount)
-    if (amount == null || amount <= 0) {
-      setPaymentError('Valor do pagamento inválido.')
-      return
-    }
-    if (!paymentDate) {
-      setPaymentError('Data do pagamento é obrigatória.')
-      return
-    }
-    setPaymentSubmitting(true)
-    setPaymentError(null)
-    try {
-      const payload: ReceivablePaymentRequest = {
-        amount,
-        paymentDate,
-        notes: paymentNotes || null,
-      }
-      const updated = await registerPayment(receivable.id, payload)
-      setReceivable(updated)
-      setPaymentOpen(false)
-      setPaymentAmount('')
-      setPaymentNotes('')
-      setPaymentDate(todayISO())
-    } catch (err) {
-      setPaymentError(toApiError(err).message)
-    } finally {
-      setPaymentSubmitting(false)
     }
   }
 
@@ -562,55 +524,12 @@ export function ReceivableFormPage() {
       </div>
 
       {/* Modal de registrar pagamento */}
-      {paymentOpen ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4 backdrop-blur-sm"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget && !paymentSubmitting) setPaymentOpen(false)
-          }}
-        >
-          <div className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900">
-            <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-800">
-              <h2 className="text-base font-semibold">Registrar pagamento</h2>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Saldo devedor atual: R$ {formatBRLValue(balance)}.
-              </p>
-            </div>
-            <div className="space-y-4 px-5 py-4">
-              {paymentError ? <Alert variant="error">{paymentError}</Alert> : null}
-              <Input
-                label="Valor do pagamento (R$)"
-                required
-                value={paymentAmount}
-                onChange={(e) => setPaymentAmount(e.target.value)}
-                placeholder="0,00"
-              />
-              <Input
-                label="Data do pagamento"
-                required
-                type="date"
-                value={paymentDate}
-                onChange={(e) => setPaymentDate(e.target.value)}
-              />
-              <Input
-                label="Observações"
-                value={paymentNotes}
-                onChange={(e) => setPaymentNotes(e.target.value)}
-                placeholder="Ex.: PIX, transferência…"
-                maxLength={500}
-              />
-            </div>
-            <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4 dark:border-slate-800">
-              <Button variant="secondary" onClick={() => setPaymentOpen(false)} disabled={paymentSubmitting}>
-                Cancelar
-              </Button>
-              <Button onClick={handleRegisterPayment} isLoading={paymentSubmitting}>
-                Registrar
-              </Button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <ReceivablePaymentModal
+        receivable={receivable}
+        open={paymentOpen}
+        onClose={() => setPaymentOpen(false)}
+        onSuccess={(updated) => setReceivable(updated)}
+      />
 
       <ConfirmDialog
         open={removePayTarget != null}
