@@ -5,23 +5,33 @@ import { Card } from '../ui/Card'
 import { Badge } from '../ui/Badge'
 import { Spinner } from '../ui/Spinner'
 import { formatCurrency, formatDate } from '../../lib/format'
-import { listAccountsReceivableOpen } from '../../api/finance.api'
-import type { AccountReceivable, AccountStatus } from '../../types/finance'
+import { listReceivables } from '../../api/receivable.api'
+import type { ReceivableSummaryResponse } from '../../types/receivable'
 
 /**
- * Widget de Contas a Receber — lista os próximos recebimentos em aberto.
- *
- * Preparado para ligar ao endpoint `/api/v1/accounts-receivable` quando o
- * backend financeiro existir. Hoje exibe estado vazio.
+ * Widget de Contas a Receber — lista os próximos recebimentos em aberto
+ * (status ABERTO), ordenados por vencimento ascendente.
  */
-const STATUS_LABEL: Record<AccountStatus, string> = {
+function isOverdue(iso: string): boolean {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return new Date(`${iso}T00:00:00`) < today
+}
+
+/** Status de apresentação derivado do vencimento: ATRASADO quando vencido. */
+function displayStatus(item: ReceivableSummaryResponse): 'ABERTO' | 'ATRASADO' | 'PAGO' | 'CANCELADO' {
+  if (item.status === 'ABERTO' && isOverdue(item.dueDate)) return 'ATRASADO'
+  return item.status
+}
+
+const STATUS_LABEL: Record<'ABERTO' | 'ATRASADO' | 'PAGO' | 'CANCELADO', string> = {
   ABERTO: 'Aberto',
   PAGO: 'Pago',
   ATRASADO: 'Atrasado',
   CANCELADO: 'Cancelado',
 }
 
-const STATUS_TONE: Record<AccountStatus, 'neutral' | 'success' | 'warning' | 'danger'> = {
+const STATUS_TONE: Record<'ABERTO' | 'ATRASADO' | 'PAGO' | 'CANCELADO', 'neutral' | 'success' | 'warning' | 'danger'> = {
   ABERTO: 'neutral',
   PAGO: 'success',
   ATRASADO: 'danger',
@@ -29,15 +39,18 @@ const STATUS_TONE: Record<AccountStatus, 'neutral' | 'success' | 'warning' | 'da
 }
 
 export function AccountsReceivableWidget() {
-  const [items, setItems] = useState<AccountReceivable[]>([])
+  const [items, setItems] = useState<ReceivableSummaryResponse[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
-    listAccountsReceivableOpen()
-      .then((data) => {
-        if (!cancelled) setItems(data)
+    listReceivables({ status: 'ABERTO', size: 5 })
+      .then((page) => {
+        if (!cancelled) setItems(page.content)
+      })
+      .catch(() => {
+        if (!cancelled) setItems([])
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -55,7 +68,7 @@ export function AccountsReceivableWidget() {
           <h2 className="text-sm font-semibold">Contas a Receber</h2>
         </div>
         <Link
-          to="/accounts-receivable"
+          to="/receivables"
           className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
         >
           Ver todas
@@ -72,24 +85,27 @@ export function AccountsReceivableWidget() {
           <EmptyState text="Nenhuma conta a receber em aberto." />
         ) : (
           <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-            {items.slice(0, 5).map((item) => (
-              <li key={item.id} className="flex items-center justify-between py-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{item.descricao}</p>
-                  <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-                    {item.cliente} · Venc. {formatDate(item.dataVencimento)}
-                  </p>
-                </div>
-                <div className="ml-3 flex shrink-0 items-center gap-3">
-                  <span className="text-sm font-semibold">
-                    {formatCurrency(item.valor)}
-                  </span>
-                  <Badge tone={STATUS_TONE[item.status]}>
-                    {STATUS_LABEL[item.status]}
-                  </Badge>
-                </div>
-              </li>
-            ))}
+            {items.map((item) => {
+              const status = displayStatus(item)
+              return (
+                <li key={item.id} className="flex items-center justify-between py-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{item.description}</p>
+                    <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                      {item.clientName ?? '—'} · Venc. {formatDate(item.dueDate)}
+                    </p>
+                  </div>
+                  <div className="ml-3 flex shrink-0 items-center gap-3">
+                    <span className="text-sm font-semibold">
+                      {formatCurrency(item.balance)}
+                    </span>
+                    <Badge tone={STATUS_TONE[status]}>
+                      {STATUS_LABEL[status]}
+                    </Badge>
+                  </div>
+                </li>
+              )
+            })}
           </ul>
         )}
       </div>

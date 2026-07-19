@@ -544,6 +544,7 @@ export function OrganizationFormPage() {
             onChange={(val) => updateField('contractDefaultDescription', val)}
             maxLength={4000}
             aria-label="Descrição padrão de contratos"
+            minHeight={320}
           />
         </section>
 

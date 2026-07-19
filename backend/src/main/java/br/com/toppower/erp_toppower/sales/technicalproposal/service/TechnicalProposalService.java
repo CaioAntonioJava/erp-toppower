@@ -32,6 +32,8 @@ import br.com.toppower.erp_toppower.sales.technicalproposal.repository.Technical
 import br.com.toppower.erp_toppower.sales.technicalproposal.repository.TechnicalProposalProductItemRepository;
 import br.com.toppower.erp_toppower.sales.technicalproposal.repository.TechnicalProposalRepository;
 import br.com.toppower.erp_toppower.sales.technicalproposal.repository.TechnicalProposalServiceItemRepository;
+import br.com.toppower.erp_toppower.receivable.repository.ReceivableRepository;
+import br.com.toppower.erp_toppower.receivable.service.ReceivableService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -76,6 +78,8 @@ public class TechnicalProposalService {
     private final ProductRepository productRepository;
     private final CarrierRepository carrierRepository;
     private final OrganizationRepository organizationRepository;
+    private final ReceivableService receivableService;
+    private final ReceivableRepository receivableRepository;
 
     public TechnicalProposalService(TechnicalProposalRepository repository,
                                     TechnicalProposalServiceItemRepository serviceItemRepository,
@@ -85,7 +89,9 @@ public class TechnicalProposalService {
                                     CompanyRepository companyRepository,
                                     ProductRepository productRepository,
                                     CarrierRepository carrierRepository,
-                                    OrganizationRepository organizationRepository) {
+                                    OrganizationRepository organizationRepository,
+                                    ReceivableService receivableService,
+                                    ReceivableRepository receivableRepository) {
         this.repository = repository;
         this.serviceItemRepository = serviceItemRepository;
         this.productItemRepository = productItemRepository;
@@ -95,6 +101,8 @@ public class TechnicalProposalService {
         this.productRepository = productRepository;
         this.carrierRepository = carrierRepository;
         this.organizationRepository = organizationRepository;
+        this.receivableService = receivableService;
+        this.receivableRepository = receivableRepository;
     }
 
     // ---------------------------------------------------------------------
@@ -345,12 +353,20 @@ public class TechnicalProposalService {
         tp.setStatus(TechnicalProposalStatus.CONCLUIDA);
         tp.setDeliveryDate(LocalDate.now());
         repository.save(tp);
-        return toResponseWithItems(tp);
+
+        // Carrega os itens para recalcular o total antes de gerar a conta.
+        TechnicalProposalResponse response = toResponseWithItems(tp);
+        receivableService.generateFromTechnicalProposal(tp, tp.getTotal());
+        return response;
     }
 
     /**
      * Reabre uma proposta CONCLUIDA para EM_ANDAMENTO, limpando a data
      * de entrega. Útil para corrigir conclusões indevidas.
+     *
+     * <p>Se existir uma conta a receber vinculada, ela será cancelada
+     * apenas se ainda não tiver pagamentos registrados; caso contrário a
+     * reabertura é bloqueada.</p>
      */
     @Transactional
     public TechnicalProposalResponse reopen(Long id) {
@@ -360,6 +376,12 @@ public class TechnicalProposalService {
                     "Apenas propostas CONCLUIDA podem ser reabertas. Status atual: "
                             + tp.getStatus());
         }
+
+        // Cancela (ou bloqueia) a conta a receber vinculada, se houver.
+        receivableRepository.findActiveByTechnicalProposalId(tp.getId())
+                .ifPresent(r -> receivableService.cancelIfNoPayments(
+                        r.getId(), "a proposta técnica " + tp.formattedCode()));
+
         tp.setStatus(TechnicalProposalStatus.EM_ANDAMENTO);
         tp.setDeliveryDate(null);
         repository.save(tp);

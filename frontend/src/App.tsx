@@ -28,6 +28,8 @@ import { TechnicalProposalPrintPage } from './pages/TechnicalProposalPrintPage'
 import { ContractsListPage } from './pages/ContractsListPage'
 import { ContractFormPage } from './pages/ContractFormPage'
 import { ContractPrintPage } from './pages/ContractPrintPage'
+import { ReceivablesListPage } from './pages/ReceivablesListPage'
+import { ReceivableFormPage } from './pages/ReceivableFormPage'
 import { UsersListPage } from './pages/UsersListPage'
 import { UserFormPage } from './pages/UserFormPage'
 import { CarriersListPage } from './pages/CarriersListPage'
@@ -89,6 +91,9 @@ export default function App() {
         <Route path="/contracts" element={<ContractsListPage />} />
         <Route path="/contracts/new" element={<ContractFormPage />} />
         <Route path="/contracts/:id" element={<ContractFormPage />} />
+        <Route path="/receivables" element={<ReceivablesListPage />} />
+        <Route path="/receivables/new" element={<ReceivableFormPage />} />
+        <Route path="/receivables/:id" element={<ReceivableFormPage />} />
 
         {/* Rotas administrativas — gestão de usuários (ROLE_ADMIN). */}
         <Route path="/users" element={<AdminRoute><UsersListPage /></AdminRoute>} />

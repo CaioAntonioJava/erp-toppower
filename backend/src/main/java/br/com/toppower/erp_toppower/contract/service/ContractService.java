@@ -24,6 +24,8 @@ import br.com.toppower.erp_toppower.customer.entity.Customer;
 import br.com.toppower.erp_toppower.customer.repository.CustomerRepository;
 import br.com.toppower.erp_toppower.organization.entity.Organization;
 import br.com.toppower.erp_toppower.organization.repository.OrganizationRepository;
+import br.com.toppower.erp_toppower.receivable.repository.ReceivableRepository;
+import br.com.toppower.erp_toppower.receivable.service.ReceivableService;
 import br.com.toppower.erp_toppower.servicetemplate.entity.ServiceTemplate;
 import br.com.toppower.erp_toppower.servicetemplate.repository.ServiceTemplateRepository;
 import org.springframework.data.domain.Page;
@@ -70,19 +72,25 @@ public class ContractService {
     private final CustomerRepository customerRepository;
     private final CompanyRepository companyRepository;
     private final ServiceTemplateRepository serviceTemplateRepository;
+    private final ReceivableService receivableService;
+    private final ReceivableRepository receivableRepository;
 
     public ContractService(ContractRepository repository,
                            ContractClauseRepository clauseRepository,
                            OrganizationRepository organizationRepository,
                            CustomerRepository customerRepository,
                            CompanyRepository companyRepository,
-                           ServiceTemplateRepository serviceTemplateRepository) {
+                           ServiceTemplateRepository serviceTemplateRepository,
+                           ReceivableService receivableService,
+                           ReceivableRepository receivableRepository) {
         this.repository = repository;
         this.clauseRepository = clauseRepository;
         this.organizationRepository = organizationRepository;
         this.customerRepository = customerRepository;
         this.companyRepository = companyRepository;
         this.serviceTemplateRepository = serviceTemplateRepository;
+        this.receivableService = receivableService;
+        this.receivableRepository = receivableRepository;
     }
 
     // ---------------------------------------------------------------------
@@ -242,12 +250,21 @@ public class ContractService {
         contract.setStatus(ContractStatus.CONCLUIDO);
         contract.setDeliveryDate(LocalDate.now());
         Contract saved = repository.save(contract);
+
+        // Gera a conta a receber a partir do preço do contrato.
+        receivableService.generateFromContract(saved);
+
         return toResponseWithClient(saved);
     }
 
     /**
      * Reabre um contrato CONCLUIDO, voltando-o para ATIVO e limpando a
      * data de entrega. Útil para corrigir conclusões indevidas.
+     *
+     * <p>Se existir uma conta a receber vinculada, ela será cancelada
+     * apenas se ainda não tiver pagamentos registrados; caso contrário a
+     * reabertura é bloqueada ({@link br.com.toppower.erp_toppower.receivable
+     * .exception.ReceivableBusinessException#cannotReopenWithPayments}).</p>
      */
     @Transactional
     public ContractResponse reopen(Long id) {
@@ -258,6 +275,12 @@ public class ContractService {
                     "Apenas contratos CONCLUIDO podem ser reabertos. Status atual: "
                             + contract.getStatus());
         }
+
+        // Cancela (ou bloqueia) a conta a receber vinculada, se houver.
+        receivableRepository.findActiveByContractId(contract.getId())
+                .ifPresent(r -> receivableService.cancelIfNoPayments(
+                        r.getId(), "o contrato " + contract.formattedCode()));
+
         contract.setStatus(ContractStatus.ATIVO);
         contract.setDeliveryDate(null);
         Contract saved = repository.save(contract);

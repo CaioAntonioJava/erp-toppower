@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Eye,
   FileText,
+  Play,
   Plus,
   Printer,
   Search,
@@ -20,6 +21,7 @@ import { TechnicalProposalStatusBadge } from '../components/sales/TechnicalPropo
 import {
   completeTechnicalProposal,
   listTechnicalProposals,
+  startTechnicalProposal,
 } from '../api/technicalProposal.api'
 import { toApiError } from '../lib/errors'
 import type {
@@ -76,6 +78,21 @@ export function TechnicalProposalsListPage() {
   const [completing, setCompleting] = useState(false)
   const [completeError, setCompleteError] = useState<string | null>(null)
 
+  // Início de execução direto da listagem (ABERTA → EM_ANDAMENTO).
+  const [startTarget, setStartTarget] =
+    useState<TechnicalProposalSummaryResponse | null>(null)
+  const [starting, setStarting] = useState(false)
+  const [startError, setStartError] = useState<string | null>(null)
+
+  /** Recarrega a página atual mantendo os filtros aplicados. */
+  async function reloadCurrentPage() {
+    const params: Parameters<typeof listTechnicalProposals>[0] = { page, size }
+    if (status !== 'ALL') params.status = status
+    if (debouncedCode.length > 0) params.code = debouncedCode
+    const result = await listTechnicalProposals(params)
+    setData(result)
+  }
+
   async function handleComplete() {
     if (!completeTarget) return
     setCompleting(true)
@@ -83,16 +100,27 @@ export function TechnicalProposalsListPage() {
     try {
       await completeTechnicalProposal(completeTarget.id)
       setCompleteTarget(null)
-      // Recarrega a página atual para refletir o novo status.
-      const params: Parameters<typeof listTechnicalProposals>[0] = { page, size }
-      if (status !== 'ALL') params.status = status
-      if (debouncedCode.length > 0) params.code = debouncedCode
-      const result = await listTechnicalProposals(params)
-      setData(result)
+      await reloadCurrentPage()
     } catch (err) {
       setCompleteError(toApiError(err).message)
     } finally {
       setCompleting(false)
+    }
+  }
+
+  async function handleStart() {
+    if (!startTarget) return
+    setStarting(true)
+    setStartError(null)
+    try {
+      await startTechnicalProposal(startTarget.id)
+      setStartTarget(null)
+      // Ao iniciar, a linha passa a exibir o botão de finalizar.
+      await reloadCurrentPage()
+    } catch (err) {
+      setStartError(toApiError(err).message)
+    } finally {
+      setStarting(false)
     }
   }
 
@@ -175,6 +203,7 @@ export function TechnicalProposalsListPage() {
 
       {error ? <Alert variant="error">{error}</Alert> : null}
       {completeError ? <Alert variant="error">{completeError}</Alert> : null}
+      {startError ? <Alert variant="error">{startError}</Alert> : null}
 
       {/* Tabela */}
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -271,6 +300,18 @@ export function TechnicalProposalsListPage() {
                         >
                           <Printer className="h-4 w-4" />
                         </Button>
+                        {tp.status === 'ABERTA' ? (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="!text-primary hover:!text-primary"
+                            onClick={() => setStartTarget(tp)}
+                            title="Iniciar execução"
+                            aria-label="Iniciar execução"
+                          >
+                            <Play className="h-4 w-4" />
+                          </Button>
+                        ) : null}
                         {tp.status === 'EM_ANDAMENTO' ? (
                           <Button
                             size="sm"
@@ -338,6 +379,23 @@ export function TechnicalProposalsListPage() {
         onConfirm={handleComplete}
         onClose={() => {
           if (!completing) setCompleteTarget(null)
+        }}
+      />
+
+      <ConfirmDialog
+        open={startTarget != null}
+        title="Iniciar execução?"
+        description={
+          startTarget
+            ? `A proposta ${startTarget.code} passará de ABERTA para EM_ANDAMENTO.`
+            : ''
+        }
+        confirmText="Iniciar"
+        confirmVariant="primary"
+        isLoading={starting}
+        onConfirm={handleStart}
+        onClose={() => {
+          if (!starting) setStartTarget(null)
         }}
       />
     </div>
