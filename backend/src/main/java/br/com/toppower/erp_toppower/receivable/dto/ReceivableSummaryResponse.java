@@ -49,6 +49,10 @@ public record ReceivableSummaryResponse(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         ReceivableSource sourceType,
 
+        @Schema(description = "Código do documento de origem (ex.: \"CL-001-2026\", "
+                + "\"PL-001-2026\" ou número do pedido). Nulo para contas manuais.")
+        String sourceCode,
+
         @Schema(description = "Nome resolvido do cliente/empresa.")
         String clientName,
 
