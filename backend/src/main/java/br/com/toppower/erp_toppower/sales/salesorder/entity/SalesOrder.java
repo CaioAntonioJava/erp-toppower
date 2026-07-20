@@ -248,9 +248,11 @@ public class SalesOrder extends OrganizationScopedEntity {
 
     /**
      * Margem de lucro (percentual) aplicada sobre o preço unitário dos
-     * itens na <b>criação/edição direta</b> do pedido. Opcional — quando
-     * nula, nenhum acréscimo é aplicado ({@code unitPrice == baseUnitPrice}
-     * nos itens).
+     * itens sem margem própria, na <b>criação/edição direta</b> do
+     * pedido. Opcional — quando nula, nenhum acréscimo é aplicado aos
+     * itens que não tenham margem própria ({@code unitPrice ==
+     * baseUnitPrice} nesses itens). Itens com margem própria
+     * ({@link SalesOrderItem#getProfitMargin()}) sobrescrevem este valor.
      *
      * <p><b>Nunca</b> é populada na conversão de {@code Quotation}: a
      * margem da proposta já vem embutida no snapshot dos itens, e o

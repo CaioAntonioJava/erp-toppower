@@ -1,11 +1,8 @@
 package br.com.toppower.erp_toppower.sales.salesorder.entity;
 
 import br.com.toppower.erp_toppower.common.entity.OrganizationScopedEntity;
-import br.com.toppower.erp_toppower.sales.quotation.enums.DiscountType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -16,23 +13,22 @@ import java.math.BigDecimal;
 
 /**
  * Linha de um pedido de venda: um produto (referenciado por ID) com
- * sua quantidade, preço unitário e desconto próprios.
+ * sua quantidade, preço unitário e margem de lucro próprios.
  *
  * <p>Cada item pertence a um único {@link SalesOrder}, identificado por
  * {@link #salesOrderId}. A relação não é mapeada via JPA (o projeto
  * não utiliza relacionamentos JPA para coleções); o serviço carrega os
  * itens com um {@code findBySalesOrderId} no repositório de itens.</p>
  *
- * <p>O campo {@link #totalPrice} armazena o <b>total líquido</b> da
- * linha, resultado de {@code (unitPrice * quantity) - discount}, onde
- * {@code discount} é interpretado conforme {@link #discountType}
- * (valor fixo em R$ ou percentual). Esse é o valor que entra no
- * somatório do {@code subtotal} do {@code SalesOrder}, de modo que o
- * desconto por item afeta diretamente o total final.</p>
+ * <p>O campo {@link #totalPrice} armazena o total da linha, resultado
+ * de {@code unitPrice * quantity}, onde {@code unitPrice} já reflete a
+ * margem de lucro aplicada (a do item quando informada, senão a do
+ * cabeçalho). Esse é o valor que entra no somatório do {@code subtotal}
+ * do {@code SalesOrder}.</p>
  *
- * <p>Diferente da proposta, o item do pedido <b>não</b> carrega margem
- * de lucro — o pedido é o documento externo enviado ao cliente, e a
- * margem é informação interna mantida apenas na {@code Quotation}.</p>
+ * <p>Na conversão a partir de uma {@code Quotation}, os preços dos itens
+ * já vêm com a margem embutida (snapshot); nesse caso {@link #profitMargin}
+ * é copiada da cotação para rastreabilidade, mas não é reaplicada.</p>
  */
 @Entity
 @Table(
@@ -69,42 +65,33 @@ public class SalesOrderItem extends OrganizationScopedEntity {
 
     /**
      * Preço unitário do produto <b>no momento da emissão</b> do pedido
-     * (snapshot). Não é atualizado quando o preço do {@code Product}
-     * muda depois.
+     * (snapshot), já com a margem de lucro efetiva embutida. Não é
+     * atualizado quando o preço do {@code Product} muda depois.
      */
     @Column(name = "unit_price", nullable = false, precision = 10, scale = 2)
     private BigDecimal unitPrice;
 
     /**
-     * Preço unitário original enviado pelo usuário (sem margem de lucro
-     * — o pedido não carrega margem, então aqui é apenas o valor que
-     * veio da cotação antes da aplicação da margem, preservado para
-     * rastreabilidade e para suportar eventual reversão
-     * pedido → cotação no futuro).
+     * Preço unitário original enviado pelo usuário (sem margem de lucro).
+     * Preservado para que a edição do pedido não reaplique a margem
+     * sobre o snapshot já majorado, e para rastreabilidade.
      */
     @Column(name = "base_unit_price", nullable = false, precision = 10, scale = 2)
     private BigDecimal baseUnitPrice;
 
     /**
-     * Tipo de aplicação do desconto desta linha ({@link #discount}).
-     * Nulo quando não há desconto.
+     * Margem de lucro (em %) aplicada especificamente a esta linha.
+     * Quando informada, sobrescreve a margem do cabeçalho do pedido para
+     * este item. Nula quando a linha usa a margem do cabeçalho (ou
+     * quando o pedido veio de conversão, já com a margem embutida no
+     * snapshot).
      */
-    @Enumerated(EnumType.STRING)
-    @Column(name = "discount_type", length = 20)
-    private DiscountType discountType;
+    @Column(name = "profit_margin", precision = 5, scale = 2)
+    private BigDecimal profitMargin;
 
     /**
-     * Valor do desconto aplicado a esta linha.
-     *
-     * <p>Interpretado de acordo com {@link #discountType}: valor fixo
-     * (R$) ou percentual (%). Nulo quando não há desconto.</p>
-     */
-    @Column(name = "discount", precision = 10, scale = 2)
-    private BigDecimal discount;
-
-    /**
-     * Total <b>líquido</b> da linha: {@code unitPrice * quantity} menos
-     * o desconto desta linha (quando houver).
+     * Total da linha: {@code unitPrice * quantity}, sendo
+     * {@code unitPrice} já majorado pela margem efetiva.
      *
      * <p>Calculado e persistido pelo serviço no momento de criar ou
      * atualizar o item. É este o valor que entra no somatório do

@@ -574,23 +574,13 @@ public class SalesOrderService {
     }
 
     /**
-     * Valida regras de negócio dos itens: quantidade, preço, e
-     * consistência entre {@code discount} e {@code discountType}.
+     * Valida regras de negócio dos itens: quantidade e preço
+     * (a consistência de margem é opcional — o pedido não exige margem,
+     * nem no cabeçalho nem por item).
      */
     private void validateItemsConsistency(List<SalesOrderItemRequest> items) {
         if (items == null || items.isEmpty()) {
             throw new SalesOrderBusinessException("O pedido deve ter ao menos um item.");
-        }
-        for (int i = 0; i < items.size(); i++) {
-            SalesOrderItemRequest it = items.get(i);
-            if (it.discount() != null && it.discountType() == null) {
-                throw new SalesOrderBusinessException(
-                        "Item #" + (i + 1) + ": discountType é obrigatório quando discount é informado.");
-            }
-            if (it.discountType() != null && (it.discount() == null || it.discount().signum() == 0)) {
-                throw new SalesOrderBusinessException(
-                        "Item #" + (i + 1) + ": discount é obrigatório quando discountType é informado.");
-            }
         }
     }
 

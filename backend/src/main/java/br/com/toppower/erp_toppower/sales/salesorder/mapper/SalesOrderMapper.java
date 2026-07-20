@@ -22,15 +22,16 @@ import java.util.List;
 /**
  * Conversões entre entidades do agregado {@code SalesOrder} e seus DTOs.
  *
- * <p>Inclui o cálculo do {@code totalPrice} de cada item (líquido,
- * considerando o desconto por item) que afeta o total final do
- * pedido.</p>
+ * <p>Inclui o cálculo do {@code totalPrice} de cada item que afeta o
+ * total final do pedido.</p>
  *
- * <p>Na <b>criação/edição direta</b>, a margem de lucro opcional do
- * header ({@code profitMargin}) é aplicada item a item aqui: o
- * {@code baseUnitPrice} preserva o preço original (sem margem) e o
- * {@code unitPrice} reflete a majoração
- * {@code baseUnitPrice × (1 + profitMargin/100)}.</p>
+ * <p>Na <b>criação/edição direta</b>, a margem de lucro é aplicada item a
+ * item aqui. Cada item pode informar sua própria margem
+ * ({@code profitMargin} no DTO do item), que sobrescreve a margem do
+ * cabeçalho para aquela linha; quando o item não a informa, usa a
+ * margem do cabeçalho. O {@code baseUnitPrice} preserva o preço
+ * original (sem margem) e o {@code unitPrice} reflete a majoração
+ * {@code baseUnitPrice × (1 + margemEfetiva/100)}.</p>
  *
  * <p>Na conversão de uma {@code Quotation} para {@code SalesOrder}
  * ({@link #fromQuotationItem(QuotationItem, UUID, BigDecimal)}), os
@@ -38,7 +39,8 @@ import java.util.List;
  * {@code QuotationMapper} aplica a margem item a item no momento da
  * criação/atualização). Por isso, esta conversão apenas copia os
  * valores, sem aplicar fator adicional — e o header convertido fica
- * com {@code profitMargin} nulo.</p>
+ * com {@code profitMargin} nulo. A margem por item da cotação é copiada
+ * para rastreabilidade.</p>
  */
 public final class SalesOrderMapper {
 
@@ -51,17 +53,19 @@ public final class SalesOrderMapper {
 
     /**
      * Cria uma entidade {@link SalesOrderItem} a partir do DTO de request,
-     * aplicando a margem de lucro (quando informada) sobre o
-     * {@code unitPrice} e calculando o {@code totalPrice} como
-     * {@code (unitPrice × (1 + profitMargin/100)) × quantity − discount}
-     * (com o desconto interpretado conforme {@code discountType}).
+     * aplicando a margem de lucro efetiva (a do item quando informada,
+     * senão a do cabeçalho) sobre o {@code unitPrice} e calculando o
+     * {@code totalPrice} como
+     * {@code unitPrice × (1 + margemEfetiva/100) × quantity}.
      *
-     * @param request       DTO da linha
+     * @param request        DTO da linha
      * @param salesOrderUuid UUID do pedido
-     * @param profitMargin  margem de lucro opcional; nula ou zero não aplica acréscimo
+     * @param profitMargin   margem de lucro do cabeçalho (usada quando o
+     *                       item não informa a própria)
      */
     public static SalesOrderItem toItemEntity(SalesOrderItemRequest request, Long salesOrderId,
                                                BigDecimal profitMargin) {
+        BigDecimal effectiveMargin = effectiveMargin(request.profitMargin(), profitMargin);
         SalesOrderItem item = new SalesOrderItem();
         item.setSalesOrderId(salesOrderId);
         item.setProductId(request.productId());
@@ -69,23 +73,21 @@ public final class SalesOrderMapper {
         // Preço base (sem margem) — persistido para que a edição do
         // pedido não reaplique a margem sobre o snapshot.
         item.setBaseUnitPrice(request.unitPrice());
-        // Snapshot final: baseUnitPrice × (1 + profitMargin/100).
-        item.setUnitPrice(applyProfitMargin(request.unitPrice(), profitMargin));
-        item.setDiscountType(request.discountType());
-        item.setDiscount(request.discount());
+        // Snapshot final: baseUnitPrice × (1 + margemEfetiva/100).
+        item.setUnitPrice(applyProfitMargin(request.unitPrice(), effectiveMargin));
+        // Margem do item (null = herdou a do cabeçalho).
+        item.setProfitMargin(request.profitMargin());
         item.setTotalPrice(calculateItemTotalPrice(
                 request.unitPrice(),
                 request.quantity(),
-                request.discount(),
-                request.discountType(),
-                profitMargin));
+                effectiveMargin));
         return item;
     }
 
     /**
      * Cria uma entidade {@link SalesOrderItem} a partir de um item de
-     * proposta (snapshot na conversão). Copia produto, quantidade, tipo
-     * de desconto, desconto e totais <b>sem aplicar fator de margem</b>:
+     * proposta (snapshot na conversão). Copia produto, quantidade,
+     * margem por item e totais <b>sem aplicar fator de margem</b>:
      * a margem de lucro da proposta já está embutida em
      * {@code source.unitPrice} e {@code source.totalPrice}, calculada
      * item a item pelo {@code QuotationMapper} no momento da
@@ -115,8 +117,8 @@ public final class SalesOrderMapper {
         // Preserva o preço base (sem margem) vindo da cotação, para
         // rastreabilidade e eventual reversão pedido → cotação.
         item.setBaseUnitPrice(source.getBaseUnitPrice());
-        item.setDiscountType(source.getDiscountType());
-        item.setDiscount(source.getDiscount());
+        // Preserva a margem por item da cotação (rastreabilidade).
+        item.setProfitMargin(source.getProfitMargin());
         item.setTotalPrice(source.getTotalPrice());
         return item;
     }
@@ -129,8 +131,7 @@ public final class SalesOrderMapper {
                 item.getUnitPrice(),
                 item.getBaseUnitPrice(),
                 lineSubtotal(item),
-                item.getDiscountType(),
-                item.getDiscount(),
+                item.getProfitMargin(),
                 item.getTotalPrice());
     }
 
@@ -143,48 +144,27 @@ public final class SalesOrderMapper {
     }
 
     /**
-     * Calcula o total líquido de uma linha:
-     * {@code unitPrice * quantity} menos o desconto (valor fixo ou percentual).
+     * Resolve a margem efetiva de um item: a do próprio item quando
+     * informada, senão a do cabeçalho.
      */
-    static BigDecimal calculateItemTotalPrice(BigDecimal unitPrice,
-                                              BigDecimal quantity,
-                                              BigDecimal discount,
-                                              DiscountType discountType) {
-        return calculateItemTotalPrice(unitPrice, quantity, discount, discountType, null);
+    static BigDecimal effectiveMargin(BigDecimal itemMargin, BigDecimal headerMargin) {
+        return (itemMargin != null && itemMargin.signum() != 0) ? itemMargin : headerMargin;
     }
 
     /**
-     * Calcula o total líquido de uma linha, aplicando a margem de lucro
-     * <b>antes</b> do desconto da própria linha (espelha
-     * {@code QuotationMapper.calculateItemTotalPrice}):
-     * <pre>
-     *   unitPriceComMargem = unitPrice × (1 + profitMargin/100)
-     *   gross              = unitPriceComMargem × quantity
-     *   desconto           = gross × discount%        (se PERCENT)
-     *                      | discount (R$ fixo)       (se AMOUNT)
-     *   totalPrice         = gross − desconto
-     * </pre>
+     * Calcula o total de uma linha (sem margem aplicada aqui — o preço
+     * informado já é o base sem margem; overload usado quando não há
+     * margem do cabeçalho).
      */
     static BigDecimal calculateItemTotalPrice(BigDecimal unitPrice,
                                               BigDecimal quantity,
-                                              BigDecimal discount,
-                                              DiscountType discountType,
                                               BigDecimal profitMargin) {
         if (unitPrice == null || quantity == null) {
             return BigDecimal.ZERO;
         }
         BigDecimal unitPriceWithMargin = applyProfitMargin(unitPrice, profitMargin);
         BigDecimal gross = unitPriceWithMargin.multiply(quantity);
-        if (discount == null || discountType == null || discount.signum() == 0) {
-            return gross.setScale(2, RoundingMode.HALF_UP);
-        }
-        BigDecimal discountAmount = switch (discountType) {
-            case AMOUNT -> discount;
-            case PERCENT -> gross.multiply(discount)
-                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        };
-        BigDecimal net = gross.subtract(discountAmount);
-        return net.setScale(2, RoundingMode.HALF_UP);
+        return gross.setScale(2, RoundingMode.HALF_UP);
     }
 
     /**
