@@ -401,7 +401,7 @@ export function QuotationDetailPage() {
                 <th className="px-4 py-3 font-medium text-right">Qtd.</th>
                 <th className="px-4 py-3 font-medium text-right">Preço un.</th>
                 <th className="px-4 py-3 font-medium text-right">Subtotal</th>
-                <th className="px-4 py-3 font-medium text-right">Desc.</th>
+                <th className="px-4 py-3 font-medium text-right">Margem (%)</th>
                 <th className="px-4 py-3 font-medium text-right">Total</th>
               </tr>
             </thead>
@@ -434,7 +434,9 @@ export function QuotationDetailPage() {
                     {brlFormatter.format(it.lineSubtotal)}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-xs">
-                    {formatDiscount(it.discountType, it.discount)}
+                    {it.profitMargin != null
+                      ? `${it.profitMargin.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}%`
+                      : '—'}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-xs font-semibold">
                     {brlFormatter.format(it.totalPrice)}

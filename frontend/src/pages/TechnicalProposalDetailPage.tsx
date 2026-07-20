@@ -41,15 +41,6 @@ function formatDate(iso: string | null | undefined): string {
   })
 }
 
-function formatDiscount(
-  type: string | null | undefined,
-  value: number | null | undefined,
-): string {
-  if (type == null || value == null) return '—'
-  if (type === 'PERCENT') return `${value}%`
-  return brlFormatter.format(value)
-}
-
 export function TechnicalProposalDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -426,7 +417,6 @@ export function TechnicalProposalDetailPage() {
                       <th className="px-4 py-3 font-medium">Produto</th>
                       <th className="px-4 py-3 text-right font-medium">Qtde</th>
                       <th className="px-4 py-3 text-right font-medium">Preço unit.</th>
-                      <th className="px-4 py-3 text-right font-medium">Desconto</th>
                       <th className="px-4 py-3 text-right font-medium">Total</th>
                     </tr>
                   </thead>
@@ -444,9 +434,6 @@ export function TechnicalProposalDetailPage() {
                         </td>
                         <td className="px-4 py-3 text-right font-mono text-xs text-slate-700 dark:text-slate-200">
                           {brlFormatter.format(p.unitPrice)}
-                        </td>
-                        <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-300">
-                          {formatDiscount(p.discountType, p.discount)}
                         </td>
                         <td className="px-4 py-3 text-right font-mono text-xs font-semibold text-slate-700 dark:text-slate-200">
                           {brlFormatter.format(p.totalPrice)}
