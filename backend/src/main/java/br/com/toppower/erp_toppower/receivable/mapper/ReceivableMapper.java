@@ -68,6 +68,7 @@ public final class ReceivableMapper {
                 r.getPaymentCondition(),
                 r.getSalesOrderId(),
                 r.getSalesOrderNumber(),
+                r.getSalesOrderCode(),
                 r.getTechnicalProposalId(),
                 r.getTechnicalProposalCode(),
                 r.getContractId(),
@@ -109,17 +110,21 @@ public final class ReceivableMapper {
      * Resolve o código do documento de origem conforme {@link ReceivableSource}.
      * Para {@link ReceivableSource#MANUAL} retorna {@code null} (não há
      * documento de origem); para {@link ReceivableSource#SALES_ORDER} retorna
-     * o número do pedido (como String); para proposta técnica e contrato,
-     * retorna o código formatado persistido no snapshot.
+     * o código formatado do pedido (snapshot {@code salesOrderCode}),
+     * com fallback para {@code salesOrderNumber} em contas antigas pré-refatoração;
+     * para proposta técnica e contrato, retorna o código formatado persistido
+     * no snapshot.
      */
     private static String sourceCodeOf(Receivable r) {
         if (r.getSourceType() == null) {
             return null;
         }
         return switch (r.getSourceType()) {
-            case SALES_ORDER -> (r.getSalesOrderNumber() != null)
-                    ? r.getSalesOrderNumber().toString()
-                    : null;
+            case SALES_ORDER -> (r.getSalesOrderCode() != null)
+                    ? r.getSalesOrderCode()
+                    : (r.getSalesOrderNumber() != null)
+                            ? r.getSalesOrderNumber().toString()
+                            : null;
             case TECHNICAL_PROPOSAL -> r.getTechnicalProposalCode();
             case CONTRACT -> r.getContractCode();
             case MANUAL -> null;

@@ -340,7 +340,10 @@ public final class SalesOrderMapper {
 
         return new SalesOrderResponse(
                 order.getId(),
-                order.getNumber(),
+                order.getPrefix(),
+                order.getSequence(),
+                order.getYear(),
+                order.formattedCode(),
                 order.getOrderDate(),
                 order.getCustomerId(),
                 order.getCompanyId(),
@@ -390,7 +393,10 @@ public final class SalesOrderMapper {
 
         return new SalesOrderSummaryResponse(
                 order.getId(),
-                order.getNumber(),
+                order.getPrefix(),
+                order.getSequence(),
+                order.getYear(),
+                order.formattedCode(),
                 order.getOrderDate(),
                 clientType,
                 clientId,

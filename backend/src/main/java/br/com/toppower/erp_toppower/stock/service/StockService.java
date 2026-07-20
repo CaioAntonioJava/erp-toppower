@@ -70,7 +70,7 @@ public class StockService {
     @Transactional
     public StockMovement registrarSaida(Long productId, BigDecimal quantity,
                                         MovementSource source, Long sourceId,
-                                        Long sourceNumber, String reason) {
+                                        String sourceNumber, String reason) {
         if (quantity == null || quantity.signum() <= 0) {
             throw new IllegalArgumentException("Quantidade de saída deve ser positiva.");
         }
@@ -106,7 +106,7 @@ public class StockService {
      */
     @Transactional
     public void registrarSaidaEmLote(List<SaidaItem> items, MovementSource source,
-                                     Long sourceId, Long sourceNumber, String reason) {
+                                     Long sourceId, String sourceNumber, String reason) {
         for (SaidaItem item : items) {
             registrarSaida(item.productId(), item.quantity(),
                     source, sourceId, sourceNumber, reason);
@@ -124,7 +124,7 @@ public class StockService {
     @Transactional
     public StockMovement registrarEntrada(Long productId, BigDecimal quantity,
                                           MovementSource source, Long sourceId,
-                                          Long sourceNumber, String reason) {
+                                          String sourceNumber, String reason) {
         if (quantity == null || quantity.signum() <= 0) {
             throw new IllegalArgumentException("Quantidade de entrada deve ser positiva.");
         }

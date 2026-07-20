@@ -73,6 +73,10 @@ public record ReceivableResponse(
         @Schema(description = "Número do pedido de venda de origem, se aplicável.")
         Long salesOrderNumber,
 
+        @Schema(description = "Código formatado do pedido de venda de origem, se aplicável.",
+                example = "PV-2800-2026")
+        String salesOrderCode,
+
         @Schema(description = "ID da proposta técnica de origem, se aplicável.")
         Long technicalProposalId,
 

@@ -1,7 +1,7 @@
 package br.com.toppower.erp_toppower.sales.salesorder.controller;
 
 import br.com.toppower.erp_toppower.common.dto.PagedResponse;
-import br.com.toppower.erp_toppower.sales.salesorder.dto.NextSalesOrderNumberResponse;
+import br.com.toppower.erp_toppower.sales.salesorder.dto.NextSalesOrderCodeResponse;
 import br.com.toppower.erp_toppower.sales.salesorder.dto.SalesOrderCreateRequest;
 import br.com.toppower.erp_toppower.sales.salesorder.dto.SalesOrderFromQuotationRequest;
 import br.com.toppower.erp_toppower.sales.salesorder.dto.SalesOrderResponse;
@@ -57,12 +57,12 @@ public class SalesOrderController {
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Criar pedido de venda (direto)",
-            description = "Cria um novo pedido de venda sem proposta de origem. O número é gerado "
-                    + "automaticamente a partir de 1000 (incremento de +1 por pedido). A data de "
-                    + "emissão é preenchida com a data atual e o status inicial é ABERTO. Deve "
-                    + "referenciar exatamente um cliente (PF) ou uma empresa (PJ). Deve ter ao "
-                    + "menos um item. Não há margem de lucro — o pedido é o documento externo "
-                    + "enviado ao cliente.")
+            description = "Cria um novo pedido de venda sem proposta de origem. O código é gerado "
+                    + "automaticamente no formato PV-NNNN-AAAA (ex.: PV-2800-2026), com sequência "
+                    + "independente por Organization/ano. A data de emissão é preenchida com a data "
+                    + "atual e o status inicial é ABERTO. Deve referenciar exatamente um cliente (PF) "
+                    + "ou uma empresa (PJ). Deve ter ao menos um item. Não há margem de lucro — o "
+                    + "pedido é o documento externo enviado ao cliente.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
     @ApiResponses({
@@ -114,21 +114,23 @@ public class SalesOrderController {
     // Pré-visualização de número
     // =====================================================================
 
-    @GetMapping(value = "/next-number", produces = MediaType.APPLICATION_JSON_VALUE)
-    @Operation(summary = "Pré-visualizar próximo número de pedido",
-            description = "Retorna o próximo número sequencial (ex.: 1000, 1001, 1002, ...) "
-                    + "que seria atribuído ao próximo pedido. Não persiste nada.")
+    @GetMapping(value = "/next-code", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Pré-visualizar próximo código de pedido",
+            description = "Retorna o próximo código (ex.: PV-2800-2026) que seria atribuído ao "
+                    + "próximo pedido. A sequência é independente por Organization/ano, "
+                    + "inicia em 2800 no ano corrente de bootstrap e reseta para 1 ao virar "
+                    + "o ano. Não persiste nada.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Próximo número retornado com sucesso.",
+            @ApiResponse(responseCode = "200", description = "Próximo código retornado com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = NextSalesOrderNumberResponse.class))),
+                            schema = @Schema(implementation = NextSalesOrderCodeResponse.class))),
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<NextSalesOrderNumberResponse> getNextNumber() {
-        return ResponseEntity.ok(new NextSalesOrderNumberResponse(salesOrderService.getNextNumber()));
+    public ResponseEntity<NextSalesOrderCodeResponse> getNextCode() {
+        return ResponseEntity.ok(salesOrderService.getNextCode());
     }
 
     // =====================================================================
@@ -170,38 +172,41 @@ public class SalesOrderController {
             @Parameter(description = "ID do vendedor.")
             @RequestParam(value = "sellerId", required = false) Long sellerId,
 
-            @Parameter(description = "Trecho do número (ex.: '100' para 1000, 1001, ...).",
-                    example = "100")
-            @RequestParam(value = "number", required = false) String number,
+            @Parameter(description = "Trecho do código (ex.: 'PV-28', '2800' ou '2026').",
+                    example = "PV-28")
+            @RequestParam(value = "code", required = false) String code,
 
             @Parameter(description = "Número da proposta de origem (filtro exato).",
                     example = "1500")
             @RequestParam(value = "quotationNumber", required = false) Long quotationNumber,
 
             @Parameter(hidden = true)
-            @PageableDefault(size = 20, sort = {"orderDate", "number"}, direction = Sort.Direction.DESC)
+            @PageableDefault(size = 20, sort = {"orderDate", "sequence"}, direction = Sort.Direction.DESC)
             Pageable pageable) {
 
         return ResponseEntity.ok(salesOrderService.search(
-                status, startDate, endDate, clientId, sellerId, number, quotationNumber, pageable));
+                status, startDate, endDate, clientId, sellerId, code, quotationNumber, pageable));
     }
 
-    @GetMapping(value = "/by-number/{number}", produces = MediaType.APPLICATION_JSON_VALUE)
-    @Operation(summary = "Buscar pedido por número",
-            description = "Retorna o pedido cujo número bate exatamente com o informado.")
+    @GetMapping(value = "/by-code/{code}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Buscar pedido por código",
+            description = "Retorna o pedido cujo código formatado (ex.: PV-2800-2026) bate "
+                    + "exatamente com o informado.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Pedido encontrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = SalesOrderResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Código inválido.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "404", description = "Pedido não encontrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<SalesOrderResponse> getByNumber(@PathVariable Long number) {
-        return ResponseEntity.ok(salesOrderService.getByNumber(number));
+    public ResponseEntity<SalesOrderResponse> getByCode(@PathVariable String code) {
+        return ResponseEntity.ok(salesOrderService.getByCode(code));
     }
 
     @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -342,7 +347,7 @@ public class SalesOrderController {
         SalesOrderResponse so = salesOrderService.getById(id);
         byte[] pdf = pdfService.renderPdf(id);
 
-        String fname = "pedido-" + so.number() + ".pdf";
+        String fname = "pedido-" + so.code() + ".pdf";
         ContentDisposition cd = "attachment".equalsIgnoreCase(disposition)
                 ? ContentDisposition.attachment().filename(fname).build()
                 : ContentDisposition.inline().filename(fname).build();

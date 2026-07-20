@@ -176,7 +176,7 @@ class SalesPdfServiceTest {
      */
     @SuppressWarnings("unused")
     private static class SalesOrderLike {
-        private final Long number;
+        private final String code;
         private final LocalDate orderDate;
         private final String clientName;
         private final String clientCode;
@@ -196,14 +196,14 @@ class SalesPdfServiceTest {
         private final String notes;
         private final List<?> items;
 
-        SalesOrderLike(Long number, LocalDate orderDate, String clientName, String clientCode,
+        SalesOrderLike(String code, LocalDate orderDate, String clientName, String clientCode,
                        String attention, String sellerName,
                        br.com.toppower.erp_toppower.sales.salesorder.enums.SalesOrderStatus status,
                        Long quotationNumber, PaymentCondition paymentCondition, FreightType freightType,
                        BigDecimal freightValue, Object discountType, BigDecimal discount,
                        String carrierName, BigDecimal subtotal, BigDecimal total,
                        BigDecimal globalDiscountValue, String notes, List<?> items) {
-            this.number = number; this.orderDate = orderDate;
+            this.code = code; this.orderDate = orderDate;
             this.clientName = clientName; this.clientCode = clientCode;
             this.attention = attention; this.sellerName = sellerName;
             this.status = status; this.quotationNumber = quotationNumber;
@@ -216,7 +216,7 @@ class SalesPdfServiceTest {
             this.notes = notes; this.items = items;
         }
 
-        public Long getNumber() { return number; }
+        public String getCode() { return code; }
         public LocalDate getOrderDate() { return orderDate; }
         public String getClientName() { return clientName; }
         public String getClientCode() { return clientCode; }
@@ -350,7 +350,7 @@ class SalesPdfServiceTest {
     void renderSalesOrderPdf_producesValidPdf() {
         Map<String, Object> model = baseModel();
         SalesOrderLike order = new SalesOrderLike(
-                1000L,
+                "PV-2800-2026",
                 LocalDate.of(2026, 7, 8),
                 "Cliente Teste LTDA",
                 "EMP000001",

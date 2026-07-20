@@ -12,6 +12,7 @@ import br.com.toppower.erp_toppower.sales.quotation.enums.QuotationStatus;
 import br.com.toppower.erp_toppower.sales.quotation.exception.QuotationNotFoundException;
 import br.com.toppower.erp_toppower.sales.quotation.repository.QuotationItemRepository;
 import br.com.toppower.erp_toppower.sales.quotation.repository.QuotationRepository;
+import br.com.toppower.erp_toppower.sales.salesorder.dto.NextSalesOrderCodeResponse;
 import br.com.toppower.erp_toppower.sales.salesorder.dto.SalesOrderCreateRequest;
 import br.com.toppower.erp_toppower.sales.salesorder.dto.SalesOrderFromQuotationRequest;
 import br.com.toppower.erp_toppower.sales.salesorder.dto.SalesOrderItemRequest;
@@ -48,7 +49,8 @@ import java.util.List;
  *
  * <p>Responsabilidades principais:</p>
  * <ul>
- *   <li>Gerar o número sequencial a partir de {@code 1000};</li>
+ *   <li>Gerar o código do pedido no formato {@code PV-2800-2026}
+ *       (prefixo fixo + sequência por Organization/ano + ano corrente);</li>
  *   <li>Validar a invariante de cliente (exatamente um entre
  *       {@code customerId} e {@code companyId});</li>
  *   <li>Converter uma {@code Quotation} ATIVA em pedido (snapshot +
@@ -76,8 +78,15 @@ import java.util.List;
 @Service
 public class SalesOrderService {
 
-    /** Valor inicial da sequência (primeiro pedido emitido será {@code 1000}). */
-    static final long INITIAL_NUMBER = 1000L;
+    /**
+     * Sequência inicial do primeiro ano de operação. O primeiro pedido
+     * do ano corrente de bootstrap (2026) recebe {@code 2800}; nos anos
+     * seguintes a sequência reinicia em {@code 1}.
+     */
+    static final long INITIAL_SEQUENCE = 2800L;
+
+    /** Prefixo fixo do código do pedido de venda. */
+    static final String PREFIX = br.com.toppower.erp_toppower.sales.salesorder.entity.SalesOrder.DEFAULT_PREFIX;
 
     private final SalesOrderRepository salesOrderRepository;
     private final SalesOrderItemRepository salesOrderItemRepository;
@@ -123,7 +132,7 @@ public class SalesOrderService {
         validateItemsConsistency(request.items());
 
         SalesOrder header = SalesOrderMapper.toEntity(request);
-        header.setNumber(generateNextNumber());
+        applyNextCode(header);
 
         SalesOrder savedHeader = salesOrderRepository.save(header);
 
@@ -184,7 +193,7 @@ public class SalesOrderService {
         validateCarrierReference(quotation.getCarrierId(), true);
 
         SalesOrder header = SalesOrderMapper.fromQuotation(quotation, quotationItems, override);
-        header.setNumber(generateNextNumber());
+        applyNextCode(header);
 
         SalesOrder savedHeader = salesOrderRepository.save(header);
 
@@ -230,13 +239,16 @@ public class SalesOrderService {
     }
 
     @Transactional(readOnly = true)
-    public SalesOrderResponse getByNumber(Long number) {
-        // A numeração é independente por Organization: o mesmo número pode
-        // existir em empresas diferentes. Restringe a busca à Organization
-        // ativa para não devolver o pedido de outra empresa.
-        Long orgId = OrganizationContext.require();
-        SalesOrder o = salesOrderRepository.findByNumberAndOrganizationId(number, orgId)
-                .orElseThrow(() -> new SalesOrderNotFoundException(number));
+    public SalesOrderResponse getByCode(String code) {
+        // O código é independente por Organization: o mesmo código pode
+        // existir em empresas diferentes. A busca por (prefix, sequence,
+        // year) já é naturalmente única por Organization, mas o filtro
+        // multi-tenant é aplicado automaticamente pelo organizationFilter
+        // na query do repositório (entidade escopada).
+        ParsedCode parsed = ParsedCode.parse(code);
+        SalesOrder o = salesOrderRepository
+                .findByPrefixAndSequenceAndYear(parsed.prefix(), parsed.sequence(), parsed.year())
+                .orElseThrow(() -> new SalesOrderNotFoundException(code));
         List<SalesOrderItem> items = salesOrderItemRepository
                 .findBySalesOrderIdOrderByCreatedAtAsc(o.getId());
         o.recalculateTotals(items);
@@ -255,7 +267,7 @@ public class SalesOrderService {
      * @param endDate          data de emissão até (opcional)
      * @param clientId       ID do cliente (PF ou PJ) (opcional)
      * @param sellerId       ID do vendedor (opcional)
-     * @param numberLike      trecho do número (opcional)
+     * @param codeLike        trecho do código (ex.: "PV-28" ou "2026") (opcional)
      * @param quotationNumber número da proposta de origem (opcional)
      * @param pageable         paginação e ordenação
      */
@@ -265,9 +277,11 @@ public class SalesOrderService {
                                                            LocalDate endDate,
                                                            Long clientId,
                                                            Long sellerId,
-                                                           String numberLike,
+                                                           String codeLike,
                                                            Long quotationNumber,
                                                            Pageable pageable) {
+        String like = (codeLike != null && !codeLike.isBlank())
+                ? "%" + codeLike.toLowerCase().trim() + "%" : null;
         Specification<SalesOrder> spec = (root, query, cb) -> {
             List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
             if (status != null) {
@@ -289,10 +303,17 @@ public class SalesOrderService {
             if (sellerId != null) {
                 predicates.add(cb.equal(root.get("sellerId"), sellerId));
             }
-            if (numberLike != null && !numberLike.isBlank()) {
-                predicates.add(cb.like(
-                        cb.lower(root.get("number")),
-                        "%" + numberLike.toLowerCase().trim() + "%"));
+            if (like != null) {
+                // O código formatado não é persistido; o filtro permissivo
+                // combina prefixo (like), sequência (as string) e ano (as
+                // string), permitindo buscar por "PV-28", "2800" ou "2026".
+                jakarta.persistence.criteria.Predicate byPrefix =
+                        cb.like(cb.lower(root.get("prefix")), like);
+                jakarta.persistence.criteria.Predicate bySequence =
+                        cb.like(cb.lower(root.get("sequence").as(String.class)), like);
+                jakarta.persistence.criteria.Predicate byYear =
+                        cb.like(cb.lower(root.get("year").as(String.class)), like);
+                predicates.add(cb.or(byPrefix, bySequence, byYear));
             }
             if (quotationNumber != null) {
                 predicates.add(cb.equal(root.get("quotationNumber"), quotationNumber));
@@ -411,8 +432,8 @@ public class SalesOrderService {
                     .toList();
             stockService.registrarSaidaEmLote(
                     saidas, MovementSource.SALES_ORDER,
-                    o.getId(), o.getNumber(),
-                    "Pedido de venda " + o.getNumber());
+                    o.getId(), o.formattedCode(),
+                    "Pedido de venda " + o.formattedCode());
         }
 
         o.setStatus(next);
@@ -457,7 +478,7 @@ public class SalesOrderService {
             // Devolve o estoque das saídas ainda não estornadas deste pedido.
             stockService.estornarSaidasPorOrigem(
                     o.getId(), MovementSource.SALES_ORDER,
-                    "Cancelamento do pedido de venda " + o.getNumber());
+                    "Cancelamento do pedido de venda " + o.formattedCode());
         }
         o.setStatus(SalesOrderStatus.CANCELADO);
         SalesOrder saved = salesOrderRepository.save(o);
@@ -476,15 +497,21 @@ public class SalesOrderService {
     // ---------------------------------------------------------------------
 
     /**
-     * Retorna o próximo número que seria atribuído a um novo pedido,
-     * sem persistir nada. Útil para o frontend exibir o valor previsto
+     * Retorna o código que seria atribuído ao próximo pedido, sem
+     * persistir nada. Útil para o frontend exibir o valor previsto
      * no formulário antes do envio.
+     *
+     * <p>A sequência é independente por Organization/ano (multi-empresa),
+     * iniciando em {@code INITIAL_SEQUENCE} no ano corrente de bootstrap
+     * e reiniciando em {@code 1} ao virar o ano.</p>
      */
     @Transactional(readOnly = true)
-    public Long getNextNumber() {
-        // A pré-visualização do próximo número é independente por
-        // Organization: cada empresa tem sua própria sequência.
-        return generateNextNumber();
+    public NextSalesOrderCodeResponse getNextCode() {
+        Long orgId = OrganizationContext.require();
+        int year = LocalDate.now().getYear();
+        long sequence = generateNextSequence(year, orgId);
+        String code = PREFIX + "-" + String.format("%04d", sequence) + "-" + year;
+        return new NextSalesOrderCodeResponse(PREFIX, sequence, year, code);
     }
 
     // ---------------------------------------------------------------------
@@ -492,19 +519,34 @@ public class SalesOrderService {
     // ---------------------------------------------------------------------
 
     /**
-     * Gera o próximo número sequencial de pedido para a Organization
-     * ativa (a partir de {@code 1000} no primeiro pedido da empresa).
-     * A sequência é independente por Organization — cada empresa reinicia
-     * em 1000 e incrementa de +1 em +1, sem compartilhar a contagem com
-     * as demais.
+     * Aplica o próximo código disponível ao pedido: prefixo fixo
+     * {@link #PREFIX}, sequência independente por Organization/ano e
+     * ano corrente.
      */
-    private Long generateNextNumber() {
+    private void applyNextCode(SalesOrder order) {
         Long orgId = OrganizationContext.require();
-        Long maxNumber = salesOrderRepository.findMaxNumberByOrganizationId(orgId);
-        if (maxNumber == null) {
-            return INITIAL_NUMBER;
+        int year = LocalDate.now().getYear();
+        long sequence = generateNextSequence(year, orgId);
+        order.setPrefix(PREFIX);
+        order.setSequence(sequence);
+        order.setYear(year);
+    }
+
+    /**
+     * Gera a próxima sequência para o ano e Organization informados.
+     * Reinicia em {@code INITIAL_SEQUENCE} no primeiro pedido do ano
+     * corrente de bootstrap, e em {@code 1} nos anos seguintes — o
+     * reset por ano decorre naturalmente da cláusula
+     * {@code WHERE year = :year} (sem pedidos para o novo ano, o MAX
+     * retorna {@code null}).
+     */
+    private long generateNextSequence(int year, Long organizationId) {
+        Long maxSequence = salesOrderRepository.findMaxSequenceByYearAndOrganizationId(year, organizationId);
+        if (maxSequence == null) {
+            int currentYear = LocalDate.now().getYear();
+            return (year == currentYear) ? INITIAL_SEQUENCE : 1L;
         }
-        return maxNumber + 1L;
+        return maxSequence + 1L;
     }
 
     /**
@@ -656,5 +698,31 @@ public class SalesOrderService {
             case ABERTO -> SalesOrderStatus.FINALIZADO;
             case FINALIZADO, CANCELADO -> null;
         };
+    }
+
+    /**
+     * Parser do código formatado ({@code PV-2800-2026}) nos campos
+     * persistidos. Espelha {@code TechnicalProposalService.ParsedCode}.
+     */
+    private record ParsedCode(String prefix, Long sequence, Integer year) {
+        static ParsedCode parse(String code) {
+            if (code == null || code.isBlank()) {
+                throw new SalesOrderBusinessException("Código inválido: " + code);
+            }
+            String[] parts = code.trim().split("-");
+            if (parts.length != 3) {
+                throw new SalesOrderBusinessException(
+                        "Código deve estar no formato PV-2800-2026: " + code);
+            }
+            try {
+                return new ParsedCode(
+                        parts[0].toUpperCase(),
+                        Long.parseLong(parts[1]),
+                        Integer.parseInt(parts[2]));
+            } catch (NumberFormatException ex) {
+                throw new SalesOrderBusinessException(
+                        "Código deve estar no formato PV-2800-2026: " + code);
+            }
+        }
     }
 }

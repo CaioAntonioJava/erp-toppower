@@ -37,11 +37,14 @@ import java.util.List;
  *       ({@link #quotationId} e {@link #quotationNumber} nulos).</li>
  * </ul>
  *
- * <p>O número do pedido é gerado pelo serviço de aplicação no momento
- * do cadastro, iniciando em {@code 1000} e incrementando em +1 a cada
- * novo pedido. É um valor numérico ({@code Long}), não pode ser
- * alterado via JPA ({@code updatable = false}) e deve ser único no
- * sistema.</p>
+ * <p>O código do pedido é gerado pelo serviço de aplicação no momento
+ * do cadastro, no formato {@code <prefix>-<sequence>-<year>} (ex.:
+ * {@code PV-2800-2026}). O prefixo é fixo ({@link #DEFAULT_PREFIX}); a
+ * sequência é independente por Organization/ano, iniciando em
+ * {@code 2800} no primeiro ano de operação e resetando para {@code 1}
+ * ao virar o ano (ex.: {@code PV-0001-2027}). Os campos
+ * {@code prefix}/{@code sequence}/{@code year} são imutáveis via JPA
+ * ({@code updatable = false}) e a combinação é única por Organization.</p>
  *
  * <p>O comprador é referenciado por exatamente <b>um</b> dos campos
  * {@link #customerId} ou {@link #companyId}; o serviço de aplicação
@@ -77,8 +80,8 @@ import java.util.List;
         name = "sales_orders",
         uniqueConstraints = {
                 @jakarta.persistence.UniqueConstraint(
-                        name = "uk_sales_order_org_number",
-                        columnNames = {"organization_uuid", "number"})
+                        name = "uk_sales_order_org_code",
+                        columnNames = {"organization_uuid", "prefix", "sequence", "year"})
         }
 )
 @Getter
@@ -86,16 +89,32 @@ import java.util.List;
 @NoArgsConstructor
 public class SalesOrder extends OrganizationScopedEntity {
 
+    /** Prefixo fixo do código de pedido de venda. Hoje sempre {@code "PV"}. */
+    public static final String DEFAULT_PREFIX = "PV";
+
     /**
-     * Número sequencial do pedido, sem prefixo. Ex.: {@code 1000},
-     * {@code 1001}, {@code 1002}, ...
-     *
-     * <p>Gerado automaticamente pelo serviço a partir do maior número
-     * já emitido, iniciando em {@code 1000} no primeiro pedido.
-     * Imutável via JPA ({@code updatable = false}) e único no sistema.</p>
+     * Prefixo do código do pedido (ex.: {@code "PV"}), copiado no momento
+     * da criação. Imutável após a criação ({@code updatable = false}).
      */
-    @Column(name = "number", nullable = false, updatable = false)
-    private Long number;
+    @Column(name = "prefix", nullable = false, updatable = false, length = 10)
+    private String prefix;
+
+    /**
+     * Numeral sequencial do código, reiniciando em {@code 1} a cada novo
+     * ano (no primeiro ano de operação inicia em {@code 2800}). Exibido
+     * com 4 dígitos no código formatado ({@code PV-2800-2026}). Imutável
+     * após a criação ({@code updatable = false}).
+     */
+    @Column(name = "sequence", nullable = false, updatable = false)
+    private Long sequence;
+
+    /**
+     * Ano de emissão do pedido, parte final do código (ex.: {@code 2026}
+     * em {@code PV-2800-2026}). Imutável após a criação
+     * ({@code updatable = false}).
+     */
+    @Column(name = "year", nullable = false, updatable = false)
+    private Integer year;
 
     /**
      * Data de emissão do pedido (data comercial, não timestamp).
@@ -242,6 +261,18 @@ public class SalesOrder extends OrganizationScopedEntity {
     private BigDecimal profitMargin;
 
     // ---------------------------------------------------------------------
+    // Código formatado
+    // ---------------------------------------------------------------------
+
+    /**
+     * Código de exibição no formato {@code PV-2800-2026}, derivado de
+     * {@link #prefix}, {@link #sequence} e {@link #year}.
+     */
+    public String formattedCode() {
+        return String.format("%s-%04d-%d", prefix, sequence, year);
+    }
+
+    // ---------------------------------------------------------------------
     // Campos calculados (não persistidos)
     // ---------------------------------------------------------------------
 
@@ -342,13 +373,19 @@ public class SalesOrder extends OrganizationScopedEntity {
     }
 
     /**
-     * Inicialização padrão antes de persistir: preenche a data de emissão
+     * Inicialização padrão antes de persistir: preenche o prefixo com
+     * {@link #DEFAULT_PREFIX} (fallback de bootstrap), a data de emissão
      * com a data atual e o status com {@link SalesOrderStatus#ABERTO}
      * caso ainda não tenham sido definidos pelo chamador. Não
      * sobrescreve valores previamente atribuídos.
      */
     @PrePersist
     private void onPrePersist() {
+        // O prefixo é injetado pelo service. Fallback mantido por
+        // segurança, igual ao TechnicalProposal.
+        if (prefix == null) {
+            prefix = DEFAULT_PREFIX;
+        }
         if (orderDate == null) {
             orderDate = LocalDate.now();
         }

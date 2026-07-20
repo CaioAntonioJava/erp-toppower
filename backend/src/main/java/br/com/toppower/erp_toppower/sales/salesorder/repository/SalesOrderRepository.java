@@ -13,34 +13,32 @@ import java.util.Optional;
 public interface SalesOrderRepository extends JpaRepository<SalesOrder, Long>,
         JpaSpecificationExecutor<SalesOrder> {
 
-    boolean existsByNumber(Long number);
-
-    Optional<SalesOrder> findByNumber(Long number);
-
     /**
-     * Busca um pedido pelo número dentro de uma Organization específica.
-     * Necessário porque, com a numeração por empresa, o mesmo número pode
-     * existir em Organizations diferentes — a busca global por número não
-     * distingue a empresa emissora.
+     * Busca um pedido pelo código formatado decomposto nos campos
+     * persistidos ({@code prefix}, {@code sequence}, {@code year}).
      */
-    Optional<SalesOrder> findByNumberAndOrganizationId(Long number, Long organizationId);
+    Optional<SalesOrder> findByPrefixAndSequenceAndYear(String prefix, Long sequence, Integer year);
 
     /**
-     * Retorna o maior número de pedido já emitido para a Organization
-     * informada. Usado para gerar o próximo número sequencial (a partir
-     * de {@code 1000} no primeiro pedido da empresa), de forma
-     * independente por Organization (multi-empresa).
+     * Retorna o maior número de sequência já emitido para o ano e
+     * Organization informados. Usado para gerar o próximo código
+     * sequencial (reseta a {@code 1} quando o ano muda — ou a
+     * {@code INITIAL_SEQUENCE} no primeiro ano de operação; cada
+     * Organization tem sua própria sequência).
      *
      * <p>Retorna {@code null} quando ainda não houver nenhum pedido
-     * para a Organization informada. Nesse caso, o serviço usa
-     * {@code 1000} como ponto de partida.</p>
+     * para a combinação (year, organization_id) informada.</p>
      *
      * <p>O filtro é explícito no WHERE (em vez de depender do
      * {@code organizationFilter} do Hibernate) porque o Hibernate não
      * aplica {@code @Filter} de forma confiável em queries agregadas
      * (MAX). Segue o mesmo padrão de
-     * {@code TechnicalProposalRepository.findMaxSequenceByYearAndOrganizationUuid}.</p>
+     * {@code TechnicalProposalRepository.findMaxSequenceByYearAndOrganizationId}.</p>
      */
-    @Query("SELECT MAX(o.number) FROM SalesOrder o WHERE o.organizationId = :organizationId")
-    Long findMaxNumberByOrganizationId(@Param("organizationId") Long organizationId);
+    @Query("""
+            SELECT MAX(o.sequence) FROM SalesOrder o
+            WHERE o.year = :year AND o.organizationId = :organizationId
+            """)
+    Long findMaxSequenceByYearAndOrganizationId(@Param("year") Integer year,
+                                                @Param("organizationId") Long organizationId);
 }

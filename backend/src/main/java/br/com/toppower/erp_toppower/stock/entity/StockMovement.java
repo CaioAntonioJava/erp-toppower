@@ -80,11 +80,11 @@ public class StockMovement extends OrganizationScopedEntity {
     private Long sourceId;
 
     /**
-     * Número legível do documento de origem (ex.: {@code SalesOrder.number}).
+     * Código legível do documento de origem (ex.: {@code PV-2800-2026}).
      * Snapshot para exibição em históricos sem precisar reconsultar a origem.
      */
     @Column(name = "source_number")
-    private Long sourceNumber;
+    private String sourceNumber;
 
     /** Observação livre descrevendo o motivo da movimentação. */
     @Column(name = "reason", length = 500)
@@ -111,7 +111,7 @@ public class StockMovement extends OrganizationScopedEntity {
     public StockMovement(Long productId, BigDecimal quantityChange,
                          BigDecimal stockBefore, BigDecimal stockAfter,
                          MovementType type, MovementSource source,
-                         Long sourceId, Long sourceNumber, String reason) {
+                         Long sourceId, String sourceNumber, String reason) {
         this.productId = productId;
         this.quantityChange = quantityChange;
         this.stockBefore = stockBefore;

@@ -27,9 +27,21 @@ public record SalesOrderResponse(
         @Schema(description = "Identificador único (UUID) do pedido.", requiredMode = Schema.RequiredMode.REQUIRED)
         Long id,
 
-        @Schema(description = "Número sequencial do pedido (sem prefixo).", example = "1000",
+        @Schema(description = "Prefixo do código do pedido (ex.: \"PV\").", example = "PV",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        Long number,
+        String prefix,
+
+        @Schema(description = "Numeral sequencial do código (reseta por ano).", example = "2800",
+                requiredMode = Schema.RequiredMode.REQUIRED)
+        Long sequence,
+
+        @Schema(description = "Ano de emissão, parte final do código.", example = "2026",
+                requiredMode = Schema.RequiredMode.REQUIRED)
+        Integer year,
+
+        @Schema(description = "Código formatado completo (ex.: \"PV-2800-2026\").",
+                example = "PV-2800-2026", requiredMode = Schema.RequiredMode.REQUIRED)
+        String code,
 
         @Schema(description = "Data de emissão do pedido.", example = "2026-07-02",
                 requiredMode = Schema.RequiredMode.REQUIRED)

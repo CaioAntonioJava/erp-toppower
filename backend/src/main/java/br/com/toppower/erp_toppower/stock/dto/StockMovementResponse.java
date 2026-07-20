@@ -61,9 +61,9 @@ public record StockMovementResponse(
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         Long sourceId,
 
-        @Schema(description = "Número legível do documento de origem (ex.: SalesOrder.number).",
-                example = "1001", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        Long sourceNumber,
+        @Schema(description = "Código legível do documento de origem (ex.: PV-2800-2026).",
+                example = "PV-2800-2026", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        String sourceNumber,
 
         @Schema(description = "Observação livre descrevendo o motivo da movimentação.",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)

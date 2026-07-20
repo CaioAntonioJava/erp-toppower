@@ -151,11 +151,18 @@ public class Receivable extends OrganizationScopedEntity {
     private Long salesOrderId;
 
     /**
-     * Número do pedido de venda que originou a conta (snapshot).
-     * Imutável após a criação.
+     * Número do pedido de venda que originou a conta (snapshot da
+     * sequência do código). Imutável após a criação.
      */
     @Column(name = "sales_order_number", updatable = false)
     private Long salesOrderNumber;
+
+    /**
+     * Código formatado do pedido de venda que originou a conta (snapshot,
+     * ex.: "PV-2800-2026"). Imutável após a criação.
+     */
+    @Column(name = "sales_order_code", updatable = false, length = 30)
+    private String salesOrderCode;
 
     /**
      * ID da proposta técnica que originou a conta. Nulo quando

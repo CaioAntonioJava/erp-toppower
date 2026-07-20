@@ -302,13 +302,14 @@ public class ReceivableService {
         }
 
         Receivable r = new Receivable();
-        r.setDescription("Pedido de Venda " + order.getNumber());
+        r.setDescription("Pedido de Venda " + order.formattedCode());
         r.setValue(total);
         r.setSourceType(ReceivableSource.SALES_ORDER);
         r.setCustomerId(order.getCustomerId());
         r.setCompanyId(order.getCompanyId());
         r.setSalesOrderId(order.getId());
-        r.setSalesOrderNumber(order.getNumber());
+        r.setSalesOrderNumber(order.getSequence());
+        r.setSalesOrderCode(order.formattedCode());
         r.setPaymentCondition(displayPaymentCondition(order.getPaymentCondition()));
         LocalDate base = (order.getOrderDate() != null) ? order.getOrderDate() : LocalDate.now();
         int days = PaymentConditionParser.firstTermDays(order.getPaymentCondition());

@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
   <meta charset="UTF-8"/>
-  <title th:text="'Pedido de Venda nº ' + ${order.number}">Pedido de Venda</title>
+  <title th:text="'Pedido de Venda nº ' + ${order.code}">Pedido de Venda</title>
   <style th:replace="~{pdf/styles :: shared}"></style>
 </head>
 <body>
@@ -13,7 +13,7 @@
 <!-- Barra de acento + título do documento -->
 <div class="doc-accent">&#160;</div>
 <div class="doc-title"
-     th:text="'Pedido de Venda nº ' + ${order.number}">Pedido de Venda</div>
+     th:text="'Pedido de Venda nº ' + ${order.code}">Pedido de Venda</div>
 <div class="doc-subtitle">
   Emitido em
   <span th:text="${#temporals.format(order.orderDate, 'dd/MM/yyyy')}">--/--/----</span>
