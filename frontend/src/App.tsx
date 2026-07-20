@@ -30,6 +30,7 @@ import { ContractFormPage } from './pages/ContractFormPage'
 import { ContractPrintPage } from './pages/ContractPrintPage'
 import { ReceivablesListPage } from './pages/ReceivablesListPage'
 import { ReceivableFormPage } from './pages/ReceivableFormPage'
+import { ReceivableReportsPage } from './pages/ReceivableReportsPage'
 import { UsersListPage } from './pages/UsersListPage'
 import { UserFormPage } from './pages/UserFormPage'
 import { CarriersListPage } from './pages/CarriersListPage'
@@ -91,9 +92,10 @@ export default function App() {
         <Route path="/contracts" element={<ContractsListPage />} />
         <Route path="/contracts/new" element={<ContractFormPage />} />
         <Route path="/contracts/:id" element={<ContractFormPage />} />
-        <Route path="/receivables" element={<ReceivablesListPage />} />
-        <Route path="/receivables/new" element={<ReceivableFormPage />} />
-        <Route path="/receivables/:id" element={<ReceivableFormPage />} />
+    <Route path="/receivables" element={<ReceivablesListPage />} />
+    <Route path="/receivables/new" element={<ReceivableFormPage />} />
+    <Route path="/receivables/:id" element={<ReceivableFormPage />} />
+    <Route path="/receivables/reports" element={<ReceivableReportsPage />} />
 
         {/* Rotas administrativas — gestão de usuários (ROLE_ADMIN). */}
         <Route path="/users" element={<AdminRoute><UsersListPage /></AdminRoute>} />

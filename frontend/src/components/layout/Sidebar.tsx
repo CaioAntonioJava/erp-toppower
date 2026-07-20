@@ -1,6 +1,7 @@
 import { Fragment } from 'react'
 import { NavLink } from 'react-router-dom'
 import {
+  BarChart3,
   Briefcase,
   Building2,
   ClipboardList,
@@ -72,6 +73,7 @@ const navSections: NavSection[] = [
     title: 'Financeiro',
     items: [
       { to: '/receivables', label: 'Contas a Receber', icon: Wallet },
+      { to: '/receivables/reports', label: 'Relatórios', icon: BarChart3 },
     ],
   },
   {
