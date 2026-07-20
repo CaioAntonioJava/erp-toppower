@@ -217,6 +217,26 @@ public class ReceivableController {
         return ResponseEntity.ok(receivableService.registerPayment(id, request));
     }
 
+    @PostMapping(value = "/{id}/settle", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Liquidar saldo devedor",
+            description = "Cria um único pagamento cobrindo todo o saldo devedor restante da conta, "
+                    + "transitando-a para PAGO. Rejeita contas que não estejam ABERTO ou que já "
+                    + "estejam totalmente quitadas.")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Conta liquidada.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = ReceivableResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Conta não encontrada.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "409", description = "Conta não está ABERTO ou não há saldo devedor.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+    })
+    public ResponseEntity<ReceivableResponse> settle(@PathVariable Long id) {
+        return ResponseEntity.ok(receivableService.settle(id));
+    }
+
     @DeleteMapping(value = "/{id}/payments/{paymentId}",
             produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Remover pagamento",

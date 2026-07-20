@@ -266,6 +266,41 @@ public class ReceivableService {
         return toResponseWithPayments(saved);
     }
 
+    /**
+     * Liquida todo o saldo devedor da conta em um único pagamento,
+     * transita para PAGO. Rejeita contas que não estejam ABERTO e
+     * contas sem saldo devedor (totalmente quitadas).
+     */
+    @Transactional
+    public ReceivableResponse settle(Long receivableId) {
+        Receivable r = repository.findById(receivableId)
+                .orElseThrow(() -> new ReceivableNotFoundException(receivableId));
+        if (r.getStatus() != ReceivableStatus.ABERTO) {
+            throw ReceivableBusinessException.notOpenForPayment();
+        }
+
+        BigDecimal currentPaid = (r.getPaidAmount() != null) ? r.getPaidAmount() : BigDecimal.ZERO;
+        BigDecimal balance = r.getValue().subtract(currentPaid);
+        if (balance.signum() <= 0) {
+            throw new ReceivableBusinessException(
+                    "A conta não possui saldo devedor a liquidar.");
+        }
+
+        ReceivablePayment payment = new ReceivablePayment();
+        payment.setReceivableId(receivableId);
+        payment.setAmount(balance);
+        payment.setPaymentDate(LocalDate.now());
+        payment.setNotes("Liquidação automática do saldo devedor.");
+        paymentRepository.save(payment);
+
+        recomputePaidAmount(r);
+        recomputeStatusFromPayments(r);
+        recomputePaymentDate(r);
+
+        Receivable saved = repository.save(r);
+        return toResponseWithPayments(saved);
+    }
+
     @Transactional(readOnly = true)
     public List<ReceivablePayment> listPayments(Long receivableId) {
         if (!repository.existsById(receivableId)) {
