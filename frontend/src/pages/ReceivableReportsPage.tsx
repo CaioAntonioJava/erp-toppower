@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
-import { BarChart3, Calendar, Wallet } from 'lucide-react'
+import { Calendar, Wallet } from 'lucide-react'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Select } from '../components/ui/Select'
 import { Spinner } from '../components/ui/Spinner'
 import { Alert } from '../components/ui/Alert'
+import { Modal } from '../components/ui/Modal'
 import {
   getAgingReport,
   getClientPositionReport,
@@ -100,7 +101,13 @@ function formatDate(iso: string | null | undefined): string {
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
-export function ReceivableReportsPage() {
+export function ReceivableReportsModal({
+  open,
+  onClose,
+}: {
+  open: boolean
+  onClose: () => void
+}) {
   const [tab, setTab] = useState<ReportTab>('aging')
   const [sourceFilter, setSourceFilter] = useState<ReceivableSource | 'ALL'>('ALL')
 
@@ -170,10 +177,11 @@ export function ReceivableReportsPage() {
   }, [dueTo, sourceFilter])
 
   useEffect(() => {
+    if (!open) return
     if (tab === 'aging') reloadAging()
     else if (tab === 'flow') reloadFlow()
     else reloadClient()
-  }, [tab, reloadAging, reloadFlow, reloadClient])
+  }, [open, tab, reloadAging, reloadFlow, reloadClient])
 
   // Atalhos rápidos de período — preenchem os campos de data conforme o relatório.
   function applyShortcut(kind: 'today' | '7d' | '30d' | 'thisMonth' | 'prevMonth' | '60d' | '90d') {
@@ -204,17 +212,14 @@ export function ReceivableReportsPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      <header className="mb-6 flex flex-col gap-2">
-        <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
-          <BarChart3 className="h-6 w-6" />
-          <h1 className="text-2xl font-bold">Relatórios de Contas a Receber</h1>
-        </div>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Posição de contas a receber, fluxo de recebimentos e visão por cliente.
-        </p>
-      </header>
-
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Relatórios de Contas a Receber"
+      description="Posição de contas a receber, fluxo de recebimentos e visão por cliente."
+      maxWidth="max-w-6xl"
+    >
+      <div className="space-y-4">
       {/* Abas de relatório */}
       <div className="mb-4 flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-white p-1 dark:border-slate-800 dark:bg-slate-900">
         {TAB_OPTIONS.map((t) => (
@@ -359,7 +364,8 @@ export function ReceivableReportsPage() {
           ) : null}
         </>
       )}
-    </div>
+      </div>
+    </Modal>
   )
 }
 

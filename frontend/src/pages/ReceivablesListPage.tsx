@@ -5,6 +5,7 @@ import {
   ChevronRight,
   CheckCircle2,
   DollarSign,
+  BarChart3,
   Plus,
   RotateCcw,
   Search,
@@ -18,6 +19,7 @@ import { Spinner } from '../components/ui/Spinner'
 import { Alert } from '../components/ui/Alert'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { ReceivableStatusBadge } from '../components/receivable/ReceivableStatusBadge'
+import { ReceivableReportsModal } from './ReceivableReportsPage'
 import { ReceivablePaymentModal } from '../components/receivable/ReceivablePaymentModal'
 import {
   activateReceivable,
@@ -105,6 +107,7 @@ export function ReceivablesListPage() {
   const [settleTarget, setSettleTarget] = useState<ReceivableSummaryResponse | null>(null)
   const [settling, setSettling] = useState(false)
   const [settleError, setSettleError] = useState<string | null>(null)
+  const [reportsOpen, setReportsOpen] = useState(false)
 
   // Debounce simples da busca textual.
   useEffect(() => {
@@ -207,6 +210,14 @@ export function ReceivablesListPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setReportsOpen(true)}
+          >
+            <BarChart3 className="h-4 w-4" />
+            Relatórios
+          </Button>
           <Link to="/receivables/new">
             <Button>
               <Plus className="h-4 w-4" />
@@ -522,6 +533,8 @@ export function ReceivablesListPage() {
           if (!settling) setSettleTarget(null)
         }}
       />
+
+      <ReceivableReportsModal open={reportsOpen} onClose={() => setReportsOpen(false)} />
     </div>
   )
 }
