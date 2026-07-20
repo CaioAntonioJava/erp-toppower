@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Building2, Eye, ImageIcon, Plus, Power } from 'lucide-react'
+import { Building2, ImageIcon, Plus, Power } from 'lucide-react'
 import { Button } from '../components/ui/Button'
 import { Spinner } from '../components/ui/Spinner'
 import { Alert } from '../components/ui/Alert'
@@ -212,13 +212,6 @@ export function OrganizationsListPage() {
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="flex items-center justify-end gap-1">
-                        <Button
-                          size="sm" variant="ghost"
-                          onClick={() => navigate(`/organizations/${org.id}`)}
-                          title="Ver / editar" aria-label="Ver / editar"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
                         <Button
                           size="sm"
                           variant={org.status === 'ATIVO' ? 'ghost' : 'secondary'}

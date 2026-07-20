@@ -4,7 +4,6 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  Eye,
   FileText,
   Play,
   Plus,
@@ -277,15 +276,6 @@ export function TechnicalProposalsListPage() {
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="flex items-center justify-end gap-1">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => navigate(`/technical-proposals/${tp.id}`)}
-                          title="Ver detalhe"
-                          aria-label="Ver detalhe"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
                         <Button
                           size="sm"
                           variant="ghost"

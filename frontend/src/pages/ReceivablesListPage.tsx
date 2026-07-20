@@ -4,7 +4,6 @@ import {
   ChevronLeft,
   ChevronRight,
   DollarSign,
-  Eye,
   Plus,
   RotateCcw,
   Search,
@@ -359,13 +358,6 @@ export function ReceivablesListPage() {
                         onClick={(e) => e.stopPropagation()}
                       >
                         <div className="flex items-center justify-end gap-1">
-                          <Button
-                            size="sm" variant="ghost"
-                            onClick={() => navigate(`/receivables/${r.id}`)}
-                            title="Ver / detalhe" aria-label="Ver / detalhe"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
                           {r.status === 'ABERTO' ? (
                             <Button
                               size="sm"

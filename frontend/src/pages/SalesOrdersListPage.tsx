@@ -4,7 +4,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardList,
-  Eye,
   Plus,
   Printer,
   Search,
@@ -270,15 +269,6 @@ export function SalesOrdersListPage() {
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="flex items-center justify-end gap-1">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => navigate(`/sales-orders/${o.id}`)}
-                          title="Ver resumo"
-                          aria-label="Ver resumo"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
                         <Button
                           size="sm"
                           variant="ghost"

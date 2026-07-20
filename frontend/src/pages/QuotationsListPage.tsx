@@ -4,7 +4,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardList,
-  Eye,
   FileText,
   Plus,
   Printer,
@@ -294,15 +293,6 @@ export function QuotationsListPage() {
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="flex items-center justify-end gap-1">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => navigate(`/quotations/${q.id}`)}
-                          title="Ver resumo"
-                          aria-label="Ver resumo"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
                         <Button
                           size="sm"
                           variant="ghost"

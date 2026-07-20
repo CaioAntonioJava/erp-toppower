@@ -5,7 +5,6 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  Eye,
   FileSignature,
   Plus,
   Power,
@@ -326,13 +325,6 @@ export function ContractsListPage() {
                         onClick={(e) => e.stopPropagation()}
                       >
                         <div className="flex items-center justify-end gap-1">
-                          <Button
-                            size="sm" variant="ghost"
-                            onClick={() => navigate(`/contracts/${c.id}`)}
-                            title="Ver / editar" aria-label="Ver / editar"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
                           <Button
                             size="sm" variant="ghost"
                             onClick={() => window.open(`/contracts/${c.id}/pdf`, '_blank', 'noopener,noreferrer')}

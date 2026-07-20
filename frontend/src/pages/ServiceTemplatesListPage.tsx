@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import {
   ChevronLeft,
   ChevronRight,
-  Eye,
   Plus,
   Search,
   Wrench,
@@ -143,13 +142,12 @@ export function ServiceTemplatesListPage() {
                 <th className="px-4 py-3 font-medium">Categoria</th>
                 <th className="px-4 py-3 font-medium">Descrição</th>
                 <th className="px-4 py-3 font-medium">Atualizado em</th>
-                <th className="px-4 py-3 text-right font-medium">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-12 text-center">
+                  <td colSpan={4} className="px-4 py-12 text-center">
                     <div className="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400">
                       <Spinner size="sm" /> Carregando…
                     </div>
@@ -157,7 +155,7 @@ export function ServiceTemplatesListPage() {
                 </tr>
               ) : items.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-12 text-center">
+                  <td colSpan={4} className="px-4 py-12 text-center">
                     <div className="flex flex-col items-center gap-2 text-slate-500 dark:text-slate-400">
                       <Wrench className="h-8 w-8 opacity-60" />
                       <p className="text-sm">Nenhum serviço encontrado.</p>
@@ -199,20 +197,6 @@ export function ServiceTemplatesListPage() {
                           por {s.updatedBy}
                         </div>
                       ) : null}
-                    </td>
-                    <td
-                      className="px-4 py-3"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          size="sm" variant="ghost"
-                          onClick={() => navigate(`/service-templates/${s.id}`)}
-                          title="Ver / editar" aria-label="Ver / editar"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </div>
                     </td>
                   </tr>
                 ))

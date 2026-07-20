@@ -4,7 +4,6 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
-  Eye,
   Plus,
   Power,
   Search,
@@ -271,13 +270,6 @@ export function CompaniesListPage() {
                         onClick={(e) => e.stopPropagation()}
                       >
                         <div className="flex items-center justify-end gap-1">
-                          <Button
-                            size="sm" variant="ghost"
-                            onClick={() => navigate(`/companies/${c.id}`)}
-                            title="Ver / editar" aria-label="Ver / editar"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
                           <Button
                             size="sm"
                             variant={c.status === 'ATIVO' ? 'ghost' : 'secondary'}
