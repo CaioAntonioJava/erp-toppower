@@ -105,3 +105,9 @@ export async function listPayments(
   )
   return data
 }
+
+/** POST /accounts-receivable/{id}/settle — liquidar todo o saldo devedor. */
+export async function settleReceivable(id: number): Promise<ReceivableResponse> {
+  const { data } = await api.post<ReceivableResponse>(`${BASE}/${id}/settle`)
+  return data
+}

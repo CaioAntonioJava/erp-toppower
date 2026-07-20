@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import {
   ChevronLeft,
   ChevronRight,
+  CheckCircle2,
   DollarSign,
   Plus,
   RotateCcw,
@@ -22,6 +23,7 @@ import {
   activateReceivable,
   cancelReceivable,
   listReceivables,
+  settleReceivable,
 } from '../api/receivable.api'
 import type {
   ReceivableFilters,
@@ -100,6 +102,9 @@ export function ReceivablesListPage() {
   const [activating, setActivating] = useState(false)
   const [activateError, setActivateError] = useState<string | null>(null)
   const [paymentTarget, setPaymentTarget] = useState<ReceivableSummaryResponse | null>(null)
+  const [settleTarget, setSettleTarget] = useState<ReceivableSummaryResponse | null>(null)
+  const [settling, setSettling] = useState(false)
+  const [settleError, setSettleError] = useState<string | null>(null)
 
   // Debounce simples da busca textual.
   useEffect(() => {
@@ -167,6 +172,21 @@ export function ReceivablesListPage() {
       setActivateError(toApiError(err).message)
     } finally {
       setActivating(false)
+    }
+  }
+
+  async function handleSettle() {
+    if (!settleTarget) return
+    setSettling(true)
+    setSettleError(null)
+    try {
+      await settleReceivable(settleTarget.id)
+      setSettleTarget(null)
+      await reload()
+    } catch (err) {
+      setSettleError(toApiError(err).message)
+    } finally {
+      setSettling(false)
     }
   }
 
@@ -255,6 +275,7 @@ export function ReceivablesListPage() {
       {error ? <Alert variant="error">{error}</Alert> : null}
       {cancelError ? <Alert variant="error">{cancelError}</Alert> : null}
       {activateError ? <Alert variant="error">{activateError}</Alert> : null}
+      {settleError ? <Alert variant="error">{settleError}</Alert> : null}
 
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div className="overflow-x-auto">
@@ -374,6 +395,21 @@ export function ReceivablesListPage() {
                             <Button
                               size="sm"
                               variant="ghost"
+                              onClick={() => {
+                                setSettleError(null)
+                                setSettleTarget(r)
+                              }}
+                              title="Liquidar saldo devedor"
+                              aria-label="Liquidar saldo devedor"
+                              className="!text-emerald-600 hover:!text-emerald-600 dark:!text-emerald-500 dark:hover:!text-emerald-500"
+                            >
+                              <CheckCircle2 className="h-4 w-4" />
+                            </Button>
+                          ) : null}
+                          {r.status === 'ABERTO' ? (
+                            <Button
+                              size="sm"
+                              variant="ghost"
                               onClick={() => setCancelTarget(r)}
                               title="Cancelar conta"
                               aria-label="Cancelar conta"
@@ -467,6 +503,23 @@ export function ReceivablesListPage() {
         onConfirm={handleActivate}
         onClose={() => {
           if (!activating) setActivateTarget(null)
+        }}
+      />
+
+      <ConfirmDialog
+        open={settleTarget != null}
+        title="Liquidar saldo devedor?"
+        description={
+          settleTarget
+            ? `Será registrado um pagamento cobrindo todo o saldo devedor de R$ ${settleTarget.balance.toFixed(2).replace('.', ',')} da conta "${settleTarget.description}", transitando-a para PAGO.`
+            : ''
+        }
+        confirmText="Liquidar"
+        confirmVariant="primary"
+        isLoading={settling}
+        onConfirm={handleSettle}
+        onClose={() => {
+          if (!settling) setSettleTarget(null)
         }}
       />
     </div>
