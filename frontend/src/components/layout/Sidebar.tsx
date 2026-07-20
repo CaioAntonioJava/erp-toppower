@@ -87,7 +87,7 @@ const navSections: NavSection[] = [
 ]
 
 /** Sidebar com os links principais. Mantida simples para um MVP. */
-export function Sidebar() {
+export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
   const { user } = useAuth()
   const isAdmin = user?.role === 'ROLE_ADMIN'
 
@@ -96,15 +96,23 @@ export function Sidebar() {
     : navSections.filter((s) => !s.adminOnly)
 
   return (
-    <aside className="hidden w-60 shrink-0 border-r border-slate-200 bg-white px-4 py-6 md:flex md:flex-col dark:border-slate-800 dark:bg-slate-900">
-      <div className="mb-8 flex items-center gap-2 px-2">
-        <div className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-white">
+    <aside
+      className={[
+        'hidden border-r border-slate-200 bg-white py-6 transition-[width] duration-300 md:flex md:flex-col dark:border-slate-800 dark:bg-slate-900',
+        collapsed ? 'w-16' : 'w-60',
+      ].join(' ')}
+    >
+      {/* Logo / marca */}
+      <div className="mb-8 flex items-center justify-center gap-2 px-2">
+        <div className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-white">
           <Users className="h-5 w-5" />
         </div>
-        <span className="text-base font-semibold">ERP TOP POWER</span>
+        {!collapsed ? (
+          <span className="text-base font-semibold">ERP TOP POWER</span>
+        ) : null}
       </div>
 
-      <nav className="flex flex-col gap-1">
+      <nav className="flex flex-col gap-1 px-2">
         {sections.map((section, sectionIndex) => (
           <Fragment key={section.title}>
             {/* Separador horizontal acima de cada seção (exceto a primeira). */}
@@ -115,10 +123,12 @@ export function Sidebar() {
               />
             ) : null}
 
-            {/* Rótulo da seção — uppercase, cinza claro. */}
-            <p className="px-3 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-              {section.title}
-            </p>
+            {/* Rótulo da seção — só aparece quando expandido */}
+            {!collapsed ? (
+              <p className="px-3 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                {section.title}
+              </p>
+            ) : null}
 
             {section.items.map((item) => {
               const Icon = item.icon
@@ -130,18 +140,20 @@ export function Sidebar() {
                     className={({ isActive }) =>
                       [
                         'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                        collapsed ? 'justify-center' : '',
                         isActive
                           ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-200'
                           : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800',
                       ].join(' ')
                     }
+                    title={collapsed ? item.label : undefined}
                   >
-                    <Icon className="h-4 w-4" />
-                    {item.label}
+                    <Icon className="h-4 w-4 shrink-0" />
+                    {!collapsed ? item.label : null}
                   </NavLink>
 
                   {/* Ação rápida logo abaixo do menu Produtos: importação de XML. */}
-                  {item.to === '/products' ? (
+                  {item.to === '/products' && !collapsed ? (
                     <Button
                       variant="primary"
                       size="sm"

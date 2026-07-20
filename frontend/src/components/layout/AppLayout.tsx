@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
@@ -46,6 +47,7 @@ export function AppLayout() {
   const { revision } = useOrganization()
   const { pathname } = useLocation()
   const fullWidth = isFullWidthRoute(pathname)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   // Modo "setup inicial": sem sidebar, mas com Topbar (usuário/logout)
   if (hasProfile === false) {
@@ -88,9 +90,9 @@ export function AppLayout() {
   // Modo normal: sidebar + topbar + conteúdo + rodapé com seletor de tema
   return (
     <div className="flex min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-      <Sidebar />
+      <Sidebar collapsed={sidebarCollapsed} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar />
+        <Topbar onToggleSidebar={() => setSidebarCollapsed((v) => !v)} />
         <main className="flex-1 overflow-y-auto p-6">
           {/* max-w-7xl (1280px) dá mais espaço para desktop, especialmente
               para a seção de endereço (Logradouro, Cidade). Em mobile o
