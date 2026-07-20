@@ -30,6 +30,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -84,7 +85,7 @@ public class QuotationService {
     public QuotationResponse create(QuotationCreateRequest request) {
         validateClientReference(request.customerId(), request.companyId(), true);
         validateCarrierReference(request.carrierId(), true);
-        validateItemsConsistency(request.items(), null);
+        validateItemsConsistency(request.items(), request.profitMargin(), null);
 
         Quotation header = QuotationMapper.toEntity(request);
         header.setNumber(generateNextNumber());
@@ -236,7 +237,9 @@ public class QuotationService {
 
         // Se a lista de itens foi enviada, valida e substitui por completo
         if (request.items() != null) {
-            validateItemsConsistency(request.items(), null);
+            BigDecimal effectiveHeaderMargin = (request.profitMargin() != null)
+                    ? request.profitMargin() : q.getProfitMargin();
+            validateItemsConsistency(request.items(), effectiveHeaderMargin, null);
             quotationItemRepository.deleteByQuotationId(id);
             quotationItemRepository.flush();
         }
@@ -383,28 +386,31 @@ public class QuotationService {
     }
 
     /**
-     * Valida regras de negócio dos itens: quantidade, preço, e
-     * consistência entre {@code discount} e {@code discountType}.
+     * Valida regras de negócio dos itens: lista não vazia e consistência
+     * da margem (cabeçalho ou por item).
      *
-     * @param items     itens a validar
-     * @param currentQuotationId  ID da proposta (não utilizado por
-     *                               enquanto, reservado para validações
-     *                               futuras como unicidade de produto)
+     * <p>A margem de lucro é obrigatória em algum nível: ou o cabeçalho
+     * informa {@code profitMargin}, ou ao menos um item informa sua
+     * própria margem. Itens sem margem própria herdam a do cabeçalho;
+     * itens com margem própria a sobrescrevem.</p>
+     *
+     * @param items             itens a validar
+     * @param headerProfitMargin margem do cabeçalho (pode ser nula quando
+     *                            todos os itens têm margem própria)
+     * @param currentQuotationId ID da proposta (reservado para validações
+     *                           futuras, ex.: unicidade de produto)
      */
-    private void validateItemsConsistency(List<QuotationItemRequest> items, Long currentQuotationId) {
+    private void validateItemsConsistency(List<QuotationItemRequest> items,
+                                          BigDecimal headerProfitMargin,
+                                          Long currentQuotationId) {
         if (items == null || items.isEmpty()) {
             throw new QuotationBusinessException("A proposta deve ter ao menos um item.");
         }
-        for (int i = 0; i < items.size(); i++) {
-            QuotationItemRequest it = items.get(i);
-            if (it.discount() != null && it.discountType() == null) {
-                throw new QuotationBusinessException(
-                        "Item #" + (i + 1) + ": discountType é obrigatório quando discount é informado.");
-            }
-            if (it.discountType() != null && (it.discount() == null || it.discount().signum() == 0)) {
-                throw new QuotationBusinessException(
-                        "Item #" + (i + 1) + ": discount é obrigatório quando discountType é informado.");
-            }
+        boolean algumItemComMargem = items.stream()
+                .anyMatch(it -> it.profitMargin() != null && it.profitMargin().signum() != 0);
+        if (headerProfitMargin == null && !algumItemComMargem) {
+            throw new QuotationBusinessException(
+                    "Informe a margem de lucro do cabeçalho ou a margem de cada item.");
         }
     }
 

@@ -1,6 +1,5 @@
 package br.com.toppower.erp_toppower.sales.quotation.dto;
 
-import br.com.toppower.erp_toppower.sales.quotation.enums.DiscountType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
@@ -38,15 +37,10 @@ public record QuotationSimulateItemRequest(
         @Digits(integer = 8, fraction = 2, message = "Preço unitário inválido")
         BigDecimal unitPrice,
 
-        @Schema(description = "Tipo de aplicação do desconto da linha (AMOUNT = R$ fixo, PERCENT = %).",
-                allowableValues = {"AMOUNT", "PERCENT"},
-                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        DiscountType discountType,
-
-        @Schema(description = "Valor do desconto da linha, interpretado conforme discountType.",
-                example = "10.00", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        @DecimalMin(value = "0.00", message = "Desconto não pode ser negativo")
-        @Digits(integer = 8, fraction = 2, message = "Desconto inválido")
-        BigDecimal discount
+        @Schema(description = "Margem de lucro (%) aplicada a esta linha. Sobrescreve a margem do cabeçalho.",
+                example = "12.00", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        @DecimalMin(value = "0.00", message = "Margem de lucro não pode ser negativa")
+        @Digits(integer = 3, fraction = 2, message = "Margem de lucro inválida")
+        BigDecimal profitMargin
 ) {
 }

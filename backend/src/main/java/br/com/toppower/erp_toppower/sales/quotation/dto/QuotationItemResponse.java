@@ -1,13 +1,13 @@
 package br.com.toppower.erp_toppower.sales.quotation.dto;
 
-import br.com.toppower.erp_toppower.sales.quotation.enums.DiscountType;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
 
 /**
- * Linha de produto retornada pela API, com o total líquido já calculado
- * ({@code unitPrice * quantity - discount}).
+ * Linha de produto retornada pela API, com o total já calculado
+ * ({@code unitPrice * quantity}, sendo {@code unitPrice} já majorado
+ * pela margem efetiva).
  */
 @Schema(name = "QuotationItemResponse", description = "Linha de produto de uma proposta comercial.")
 public record QuotationItemResponse(
@@ -31,21 +31,18 @@ public record QuotationItemResponse(
                 example = "130.43", requiredMode = Schema.RequiredMode.REQUIRED)
         BigDecimal baseUnitPrice,
 
-        @Schema(description = "Subtotal bruto da linha (unitPrice * quantity), antes do desconto da linha.",
+        @Schema(description = "Subtotal bruto da linha (unitPrice * quantity).",
                 example = "300.00", requiredMode = Schema.RequiredMode.REQUIRED)
         BigDecimal lineSubtotal,
 
-        @Schema(description = "Tipo de aplicação do desconto da linha.",
-                allowableValues = {"AMOUNT", "PERCENT"},
-                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        DiscountType discountType,
+        @Schema(description = "Margem de lucro (%) aplicada a esta linha. "
+                + "Nula quando a linha usou a margem do cabeçalho da proposta.",
+                example = "12.00", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        BigDecimal profitMargin,
 
-        @Schema(description = "Valor do desconto da linha (R$ ou %).",
-                example = "10.00", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        BigDecimal discount,
-
-        @Schema(description = "Total líquido da linha (subtotal - desconto da linha). Entra no subtotal da proposta.",
-                example = "290.00", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "Total da linha (unitPrice * quantity, já com margem embutida). "
+                + "Entra no subtotal da proposta.",
+                example = "300.00", requiredMode = Schema.RequiredMode.REQUIRED)
         BigDecimal totalPrice
 ) {
 }

@@ -207,7 +207,8 @@ public class Quotation extends OrganizationScopedEntity {
 
     /**
      * Margem de lucro aplicada na proposta, expressa em porcentagem
-     * (ex.: {@code 10.00} = 10%). Obrigatória.
+     * (ex.: {@code 10.00} = 10%). Opcional — quando informada, é aplicada
+     * a todos os itens que não tenham margem própria.
      *
      * <p>É aplicada <b>item a item</b> pelo {@code QuotationMapper} no
      * momento da criação/atualização dos itens, majorando o
@@ -216,13 +217,14 @@ public class Quotation extends OrganizationScopedEntity {
      * {@code totalPrice} do item. Com isso, o {@link #total} da proposta
      * passa a ser simplesmente
      * {@code subtotal − desconto global + frete}, sendo {@code subtotal}
-     * a soma dos totais líquidos dos itens (já com margem embutida).</p>
+     * a soma dos totais dos itens (já com margem embutida).</p>
      *
-     * <p>Nota: registros criados antes da refatoração podem ter
-     * {@code unitPrice}/{@code totalPrice} sem margem — esses itens não
-     * serão retroativamente recalculados.</p>
+     * <p>Quando {@code null} e nenhum item informar margem própria, o
+     * serviço rejeita a proposta (deve haver ao menos uma margem). Um
+     * item pode sobrescrever a margem do cabeçalho informando sua própria
+     * margem em {@link QuotationItem#getProfitMargin()}.</p>
      */
-    @Column(name = "profit_margin", nullable = false, precision = 5, scale = 2)
+    @Column(name = "profit_margin", precision = 5, scale = 2)
     private BigDecimal profitMargin;
 
     // ---------------------------------------------------------------------

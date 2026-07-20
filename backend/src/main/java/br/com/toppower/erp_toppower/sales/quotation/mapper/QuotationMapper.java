@@ -21,12 +21,13 @@ import java.util.List;
 /**
  * Conversões entre entidades do agregado {@code Quotation} e seus DTOs.
  *
- * <p>A margem de lucro ({@code profitMargin}) do header é aplicada
- * <b>item a item</b> aqui: o {@code unitPrice} persistido já reflete a
- * majoração e o {@code totalPrice} é calculado sobre esse preço
- * majorado, líquido do desconto da própria linha. Com isso, o total da
- * proposta é simplesmente a soma dos itens (já com margem e já líquido
- * do desconto por item), menos o desconto global e mais o frete.</p>
+ * <p>A margem de lucro é aplicada <b>item a item</b> aqui. Cada item pode
+ * informar sua própria margem ({@code profitMargin} no DTO do item), que
+ * sobrescreve a margem do cabeçalho para aquela linha; quando o item não
+ * a informa, usa a margem do cabeçalho. O {@code unitPrice} persistido já
+ * reflete a majoração e o {@code totalPrice} é calculado sobre esse
+ * preço majorado. Com isso, o total da proposta é simplesmente a soma
+ * dos itens (já com margem), menos o desconto global e mais o frete.</p>
  */
 public final class QuotationMapper {
 
@@ -39,14 +40,15 @@ public final class QuotationMapper {
 
     /**
      * Cria uma entidade {@link QuotationItem} a partir do DTO de request,
-     * aplicando a margem de lucro no {@code unitPrice} e calculando o
+     * aplicando a margem de lucro efetiva (a do item quando informada,
+     * senão a do cabeçalho) sobre o {@code unitPrice} e calculando o
      * {@code totalPrice} como
-     * {@code (unitPrice × (1 + profitMargin/100)) × quantity − discount}
-     * (com o desconto interpretado conforme {@code discountType}).
+     * {@code unitPrice × (1 + margemEfetiva/100) × quantity}.
      */
     public static QuotationItem toItemEntity(QuotationItemRequest request,
                                              Long quotationId,
                                              BigDecimal profitMargin) {
+        BigDecimal effectiveMargin = effectiveMargin(request.profitMargin(), profitMargin);
         QuotationItem item = new QuotationItem();
         item.setQuotationId(quotationId);
         item.setProductId(request.productId());
@@ -54,43 +56,39 @@ public final class QuotationMapper {
         // Preço base (sem margem) — persistido para que a edição da
         // proposta não reaplique a margem sobre o snapshot.
         item.setBaseUnitPrice(request.unitPrice());
-        // Snapshot final: baseUnitPrice × (1 + profitMargin/100).
-        item.setUnitPrice(applyProfitMargin(request.unitPrice(), profitMargin));
-        item.setDiscountType(request.discountType());
-        item.setDiscount(request.discount());
+        // Snapshot final: baseUnitPrice × (1 + margemEfetiva/100).
+        item.setUnitPrice(applyProfitMargin(request.unitPrice(), effectiveMargin));
+        // Margem do item (null = herdou a do cabeçalho).
+        item.setProfitMargin(request.profitMargin());
         item.setTotalPrice(calculateItemTotalPrice(
                 request.unitPrice(),
                 request.quantity(),
-                request.discount(),
-                request.discountType(),
-                profitMargin));
+                effectiveMargin));
         return item;
     }
 
     /**
      * Cria uma entidade {@link QuotationItem} a partir do DTO permissivo
-     * de simulação. Campos nulos (quantidade/preço/desconto) são tratados
+     * de simulação. Campos nulos (quantidade/preço/margem) são tratados
      * como zero pelo cálculo — o preview pode ser disparado com o
      * formulário em estado intermediário.
      */
     public static QuotationItem toItemEntity(QuotationSimulateItemRequest request,
                                              Long quotationId,
                                              BigDecimal profitMargin) {
+        BigDecimal effectiveMargin = effectiveMargin(request.profitMargin(), profitMargin);
         QuotationItem item = new QuotationItem();
         item.setQuotationId(quotationId);
         item.setProductId(request.productId());
         item.setQuantity(request.quantity());
         // Preço base (sem margem) — persistido junto do snapshot.
         item.setBaseUnitPrice(request.unitPrice());
-        item.setUnitPrice(applyProfitMargin(request.unitPrice(), profitMargin));
-        item.setDiscountType(request.discountType());
-        item.setDiscount(request.discount());
+        item.setUnitPrice(applyProfitMargin(request.unitPrice(), effectiveMargin));
+        item.setProfitMargin(request.profitMargin());
         item.setTotalPrice(calculateItemTotalPrice(
                 request.unitPrice(),
                 request.quantity(),
-                request.discount(),
-                request.discountType(),
-                profitMargin));
+                effectiveMargin));
         return item;
     }
 
@@ -102,8 +100,7 @@ public final class QuotationMapper {
                 item.getUnitPrice(),
                 item.getBaseUnitPrice(),
                 lineSubtotal(item),
-                item.getDiscountType(),
-                item.getDiscount(),
+                item.getProfitMargin(),
                 item.getTotalPrice());
     }
 
@@ -113,6 +110,14 @@ public final class QuotationMapper {
         }
         return item.getUnitPrice().multiply(item.getQuantity())
                 .setScale(2, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Resolve a margem efetiva de um item: a do próprio item quando
+     * informada, senão a do cabeçalho.
+     */
+    static BigDecimal effectiveMargin(BigDecimal itemMargin, BigDecimal headerMargin) {
+        return (itemMargin != null && itemMargin.signum() != 0) ? itemMargin : headerMargin;
     }
 
     /**
@@ -134,36 +139,22 @@ public final class QuotationMapper {
     }
 
     /**
-     * Calcula o total líquido de uma linha, aplicando a margem de lucro
-     * <b>antes</b> do desconto da própria linha:
+     * Calcula o total de uma linha, aplicando a margem de lucro efetiva
+     * sobre o preço unitário:
      * <pre>
-     *   unitPriceComMargem = unitPrice × (1 + profitMargin/100)
-     *   gross              = unitPriceComMargem × quantity
-     *   desconto           = gross × discount%        (se PERCENT)
-     *                      | discount (R$ fixo)       (se AMOUNT)
-     *   totalPrice         = gross − desconto
+     *   unitPriceComMargem = unitPrice × (1 + margemEfetiva/100)
+     *   totalPrice         = unitPriceComMargem × quantity
      * </pre>
      */
     static BigDecimal calculateItemTotalPrice(BigDecimal unitPrice,
                                                BigDecimal quantity,
-                                               BigDecimal discount,
-                                               DiscountType discountType,
                                                BigDecimal profitMargin) {
         if (unitPrice == null || quantity == null) {
             return BigDecimal.ZERO;
         }
         BigDecimal unitPriceWithMargin = applyProfitMargin(unitPrice, profitMargin);
         BigDecimal gross = unitPriceWithMargin.multiply(quantity);
-        if (discount == null || discountType == null || discount.signum() == 0) {
-            return gross.setScale(2, RoundingMode.HALF_UP);
-        }
-        BigDecimal discountAmount = switch (discountType) {
-            case AMOUNT -> discount;
-            case PERCENT -> gross.multiply(discount)
-                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        };
-        BigDecimal net = gross.subtract(discountAmount);
-        return net.setScale(2, RoundingMode.HALF_UP);
+        return gross.setScale(2, RoundingMode.HALF_UP);
     }
 
     // ---------------------------------------------------------------------

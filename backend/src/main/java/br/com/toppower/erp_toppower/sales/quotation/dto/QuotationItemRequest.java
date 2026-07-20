@@ -1,6 +1,5 @@
 package br.com.toppower.erp_toppower.sales.quotation.dto;
 
-import br.com.toppower.erp_toppower.sales.quotation.enums.DiscountType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
@@ -13,8 +12,9 @@ import java.math.BigDecimal;
  * {@code QuotationCreateRequest} quanto no {@code QuotationUpdateRequest}.
  *
  * <p>O {@code totalPrice} <b>não</b> é informado pelo cliente — ele é
- * calculado pelo serviço como {@code unitPrice * quantity - discount}
- * (desconto interpretado conforme {@code discountType}).</p>
+ * calculado pelo serviço como {@code unitPrice * quantity}, sendo o
+ * {@code unitPrice} já majorado pela margem efetiva (a do item quando
+ * informada, senão a do cabeçalho).</p>
  */
 @Schema(name = "QuotationItemRequest", description = "Linha de produto de uma proposta comercial.")
 public record QuotationItemRequest(
@@ -38,17 +38,13 @@ public record QuotationItemRequest(
         @Digits(integer = 8, fraction = 2, message = "Preço unitário inválido")
         BigDecimal unitPrice,
 
-        @Schema(description = "Tipo de aplicação do desconto da linha (AMOUNT = R$ fixo, PERCENT = %). "
-                + "Quando omitido, a linha não tem desconto.",
-                allowableValues = {"AMOUNT", "PERCENT"},
-                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        DiscountType discountType,
-
-        @Schema(description = "Valor do desconto da linha, interpretado conforme discountType. "
-                + "Quando omitido, a linha não tem desconto.",
-                example = "10.00", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        @DecimalMin(value = "0.00", message = "Desconto não pode ser negativo")
-        @Digits(integer = 8, fraction = 2, message = "Desconto inválido")
-        BigDecimal discount
+        @Schema(description = "Margem de lucro (%) aplicada a esta linha. "
+                + "Sobrescreve a margem do cabeçalho quando informada, permitindo "
+                + "margens diferentes por produto. Quando omitida, a linha usa a "
+                + "margem do cabeçalho da proposta.",
+                example = "12.00", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        @DecimalMin(value = "0.00", message = "Margem de lucro não pode ser negativa")
+        @Digits(integer = 3, fraction = 2, message = "Margem de lucro inválida")
+        BigDecimal profitMargin
 ) {
 }
