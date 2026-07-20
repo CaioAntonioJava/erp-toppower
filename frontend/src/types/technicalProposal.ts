@@ -119,8 +119,6 @@ export interface TechnicalProposalProductItemRequest {
   productId: number
   quantity: number
   unitPrice: number
-  discountType?: DiscountType | null
-  discount?: number | null
 }
 
 /** Linha de produto retornada pela API. */
@@ -131,8 +129,6 @@ export interface TechnicalProposalProductItemResponse {
   /** Preço unitário do produto (snapshot no momento da emissão). */
   unitPrice: number
   lineSubtotal: number
-  discountType: DiscountType | null
-  discount: number | null
   totalPrice: number
 }
 

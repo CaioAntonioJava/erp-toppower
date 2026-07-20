@@ -79,9 +79,12 @@ export interface SalesOrderItemResponse {
   baseUnitPrice: number
   /** Subtotal bruto da linha (unitPrice * quantity). */
   lineSubtotal: number
-  discountType: import('./quotation').DiscountType | null
-  discount: number | null
-  /** Total líquido da linha (lineSubtotal - desconto da linha). */
+  /**
+   * Margem de lucro (%) aplicada a esta linha (null = usou a margem do
+   * cabeçalho do pedido).
+   */
+  profitMargin: number | null
+  /** Total da linha (lineSubtotal, já com margem embutida). */
   totalPrice: number
 }
 
@@ -90,8 +93,8 @@ export interface SalesOrderItemRequest {
   productId: number
   quantity: number
   unitPrice: number
-  discountType?: import('./quotation').DiscountType
-  discount?: number | null
+  /** Margem de lucro (%) aplicada a esta linha. Omitir/usar null = usa a do cabeçalho. */
+  profitMargin?: number | null
 }
 
 /**
@@ -279,16 +282,15 @@ export interface SalesOrderFilters {
 // /simulate. Para oferecer o mesmo preview em tempo real no formulário,
 // replicamos aqui a fórmula do backend:
 //
-//   unitPriceComMargem = unitPrice × (1 + profitMargin/100)   (se houver margem)
-//   item.totalPrice = unitPriceComMargem * quantity - discountAmount
-//     discountAmount = AMOUNT ? discount : gross * discount / 100
+//   unitPriceComMargem = unitPrice × (1 + margemEfetiva/100)   (se houver margem)
+//   item.totalPrice = unitPriceComMargem * quantity
 //   subtotal = Σ item.totalPrice
 //   globalDiscountValue = AMOUNT ? discount : subtotal * discount / 100
 //   total = (subtotal - globalDiscountValue) + freight
 //   totalQuantity = Σ item.quantity
 //
-// A margem, quando informada, é aplicada sobre o preço unitário antes
-// do desconto da linha — espelhando SalesOrderMapper.calculateItemTotalPrice.
+// A margem efetiva de cada item é a do próprio item quando informada,
+// senão a do cabeçalho — espelhando SalesOrderMapper.
 
 /** Arredonda para 2 casas (HALF_UP), como o backend (BigDecimal). */
 export function round2(n: number): number {
@@ -311,29 +313,20 @@ export function applyProfitMargin(
 }
 
 /**
- * Calcula o total líquido de uma linha de item, espelhando
+ * Calcula o total de uma linha de item, espelhando
  * `SalesOrderMapper.calculateItemTotalPrice`. A margem, quando
- * informada, é aplicada sobre o preço unitário antes do desconto da
- * linha.
+ * informada, é aplicada sobre o preço unitário (a do item quando
+ * informada, senão a do cabeçalho).
  */
 export function calculateItemTotalPrice(
   unitPrice: number,
   quantity: number,
-  discount: number | null,
-  discountType: import('./quotation').DiscountType | null,
   profitMargin?: number | null,
 ): number {
   if (unitPrice == null || quantity == null) return 0
   const unitPriceWithMargin = applyProfitMargin(unitPrice, profitMargin)
   const gross = unitPriceWithMargin * quantity
-  if (discount == null || discountType == null || discount === 0) {
-    return round2(gross)
-  }
-  const discountAmount =
-    discountType === 'AMOUNT'
-      ? discount
-      : round2((gross * discount) / 100)
-  return round2(gross - discountAmount)
+  return round2(gross)
 }
 
 /**
@@ -362,16 +355,15 @@ export interface SalesOrderTotals {
 
 /**
  * Calcula todos os totais do pedido a partir dos itens e condições,
- * espelhando `SalesOrder.recalculateTotals`. A margem, quando
- * informada, é aplicada sobre o preço unitário de cada item antes do
- * desconto da linha.
+ * espelhando `SalesOrder.recalculateTotals`. A margem efetiva de cada
+ * item é a do próprio item quando informada, senão a do cabeçalho
+ * (`profitMargin`).
  */
 export function calculateSalesOrderTotals(
   items: ReadonlyArray<{
     quantity: number
     unitPrice: number
-    discount: number | null
-    discountType: import('./quotation').DiscountType | null
+    profitMargin?: number | null
   }>,
   discount: number | null,
   discountType: import('./quotation').DiscountType | null,
@@ -379,7 +371,13 @@ export function calculateSalesOrderTotals(
   profitMargin?: number | null,
 ): SalesOrderTotals {
   const subtotal = items.reduce(
-    (acc, it) => acc + calculateItemTotalPrice(it.unitPrice, it.quantity, it.discount, it.discountType, profitMargin),
+    (acc, it) =>
+      acc +
+      calculateItemTotalPrice(
+        it.unitPrice,
+        it.quantity,
+        it.profitMargin != null ? it.profitMargin : profitMargin,
+      ),
     0,
   )
   const totalQuantity = items.reduce((acc, it) => acc + (it.quantity ?? 0), 0)

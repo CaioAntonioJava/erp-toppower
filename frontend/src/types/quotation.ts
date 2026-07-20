@@ -157,9 +157,13 @@ export interface QuotationItemResponse {
   baseUnitPrice: number
   /** Subtotal bruto da linha (unitPrice * quantity). */
   lineSubtotal: number
-  discountType: DiscountType | null
-  discount: number | null
-  /** Total líquido da linha (lineSubtotal - desconto da linha). */
+  /**
+   * Margem de lucro (%) aplicada a esta linha (null = usou a margem do
+   * cabeçalho da proposta). Quando informada, sobrescreve a margem do
+   * cabeçalho para este item.
+   */
+  profitMargin: number | null
+  /** Total da linha (lineSubtotal, já com margem embutida). */
   totalPrice: number
 }
 
@@ -168,8 +172,11 @@ export interface QuotationItemRequest {
   productId: number
   quantity: number
   unitPrice: number
-  discountType?: DiscountType
-  discount?: number | null
+  /**
+   * Margem de lucro (%) aplicada a esta linha. Omitir/usar null faz a
+   * linha usar a margem do cabeçalho.
+   */
+  profitMargin?: number | null
 }
 
 /**
@@ -278,10 +285,11 @@ export interface QuotationCreateRequest {
   /** Valor do frete (manual). */
   freightValue?: number | null
   /**
-   * Margem de lucro aplicada sobre o total da proposta (em %). Obrigatória
-   * na criação. Ex.: 10 = 10%.
+   * Margem de lucro (%) aplicada a todos os itens sem margem própria.
+   * Opcional na criação quando todos os itens informam margem própria.
+   * Ex.: 10 = 10%.
    */
-  profitMargin: number
+  profitMargin: number | null
   /** ID da transportadora (Carrier) responsável pelo frete. Opcional. */
   carrierId?: number | null
 }
@@ -303,10 +311,11 @@ export interface QuotationUpdateRequest {
   /** Valor do frete (manual). */
   freightValue?: number | null
   /**
-   * Margem de lucro aplicada sobre o total da proposta (em %). Opcional no
-   * PATCH (quando omitida, mantém o valor atual). Ex.: 10 = 10%.
+   * Margem de lucro (%) aplicada a todos os itens sem margem própria.
+   * Opcional no PATCH (quando omitida, mantém o valor atual). Ex.: 10
+   * = 10%.
    */
-  profitMargin?: number
+  profitMargin?: number | null
   /** ID da transportadora (Carrier). null = remover a transportadora vinculada. */
   carrierId?: number | null
 }
@@ -342,8 +351,8 @@ export interface QuotationSimulateItemRequest {
   productId?: number | null
   quantity?: number | null
   unitPrice?: number | null
-  discountType?: DiscountType | null
-  discount?: number | null
+  /** Margem de lucro (%) aplicada a esta linha (sobrescreve a do cabeçalho). */
+  profitMargin?: number | null
 }
 
 /**
