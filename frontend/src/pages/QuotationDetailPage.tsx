@@ -166,8 +166,8 @@ export function QuotationDetailPage() {
     setConvertError(null)
     try {
       const order = await createSalesOrderFromQuotation(quotation.id)
-      // Navega para o detalhe do pedido recém-criado.
-      navigate(`/sales-orders/${order.id}`)
+      // Navega para a edição do pedido recém-criado.
+      navigate(`/sales-orders/${order.id}/edit`)
     } catch (err) {
       setConvertError(toApiError(err).message)
     } finally {
