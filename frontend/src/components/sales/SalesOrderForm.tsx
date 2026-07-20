@@ -183,9 +183,12 @@ export function SalesOrderForm({
         productLabel: '',
         // Unidade de medida (UN/MT/BOB) — também hidratada via `getProduct`.
         unitType: null,
-        // Carrega o preço base (sem margem) no campo "Preço" para que a
-        // edição não reaplique a margem sobre um snapshot já majorado.
-        unitPrice: it.baseUnitPrice ?? it.unitPrice,
+        // Se o pedido tem profitMargin próprio (criação direta), carrega o
+        // preço base para que a margem seja reaplicada. Se veio de conversão
+        // (profitMargin nulo), o preço unitário já tem a margem embutida.
+        unitPrice: salesOrder?.profitMargin != null
+          ? (it.baseUnitPrice ?? it.unitPrice)
+          : it.unitPrice,
         quantity: it.quantity,
         discountType: it.discountType ?? null,
         discount: it.discount ?? null,
