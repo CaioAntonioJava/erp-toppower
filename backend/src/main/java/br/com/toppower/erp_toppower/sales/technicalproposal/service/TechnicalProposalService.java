@@ -590,8 +590,7 @@ public class TechnicalProposalService {
     }
 
     /**
-     * Valida regras dos itens de produto: existência do produto e
-     * consistência entre {@code discount} e {@code discountType}.
+     * Valida regras dos itens de produto: existência do produto.
      */
     private void validateProductItems(List<TechnicalProposalProductItemRequest> products,
                                       boolean verifyProductExists) {
@@ -600,17 +599,6 @@ public class TechnicalProposalService {
         }
         for (int i = 0; i < products.size(); i++) {
             TechnicalProposalProductItemRequest it = products.get(i);
-            if (it.discount() != null && it.discountType() == null) {
-                throw new TechnicalProposalBusinessException(
-                        "Produto #" + (i + 1)
-                                + ": discountType é obrigatório quando discount é informado.");
-            }
-            if (it.discountType() != null
-                    && (it.discount() == null || it.discount().signum() == 0)) {
-                throw new TechnicalProposalBusinessException(
-                        "Produto #" + (i + 1)
-                                + ": discount é obrigatório quando discountType é informado.");
-            }
             if (verifyProductExists
                     && it.productId() != null
                     && !productRepository.existsById(it.productId())) {
@@ -707,9 +695,7 @@ public class TechnicalProposalService {
                 .map(item -> new TechnicalProposalProductItemRequest(
                         item.getProductId(),
                         item.getQuantity(),
-                        item.getUnitPrice(),
-                        item.getDiscountType(),
-                        item.getDiscount()))
+                        item.getUnitPrice()))
                 .toList();
     }
 

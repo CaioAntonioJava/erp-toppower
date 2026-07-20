@@ -13,8 +13,7 @@ import java.math.BigDecimal;
  * {@code TechnicalProposalUpdateRequest}.
  *
  * <p>O {@code totalPrice} <b>não</b> é informado pelo cliente — ele é
- * calculado pelo serviço como {@code unitPrice * quantity - discount}
- * (desconto interpretado conforme {@code discountType}).</p>
+ * calculado pelo serviço como {@code unitPrice * quantity}.</p>
  */
 @Schema(name = "TechnicalProposalProductItemRequest",
         description = "Linha de produto de uma proposta técnica.")
@@ -37,19 +36,6 @@ public record TechnicalProposalProductItemRequest(
         @NotNull(message = "Preço unitário é obrigatório")
         @DecimalMin(value = "0.00", message = "Preço unitário não pode ser negativo")
         @Digits(integer = 8, fraction = 2, message = "Preço unitário inválido")
-        BigDecimal unitPrice,
-
-        @Schema(description = "Tipo de aplicação do desconto da linha (AMOUNT = R$ fixo, PERCENT = %). "
-                + "Quando omitido, a linha não tem desconto.",
-                allowableValues = {"AMOUNT", "PERCENT"},
-                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        br.com.toppower.erp_toppower.sales.quotation.enums.DiscountType discountType,
-
-        @Schema(description = "Valor do desconto da linha, interpretado conforme discountType. "
-                + "Quando omitido, a linha não tem desconto.",
-                example = "10.00", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        @DecimalMin(value = "0.00", message = "Desconto não pode ser negativo")
-        @Digits(integer = 8, fraction = 2, message = "Desconto inválido")
-        BigDecimal discount
+        BigDecimal unitPrice
 ) {
 }

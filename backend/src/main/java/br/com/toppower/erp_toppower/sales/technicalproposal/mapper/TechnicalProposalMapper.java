@@ -32,15 +32,13 @@ import java.util.List;
  * <p>O {@code unitPrice} dos itens de produto e o {@code price} dos
  * itens de serviço são persistidos como snapshots do valor informado
  * pelo usuário; o {@code totalPrice} do item de produto é calculado
- * como {@code unitPrice × quantity − discount} (com o desconto
- * interpretado conforme {@code discountType}). Com isso, o total da
- * proposta técnica é simplesmente a soma dos itens (já líquido do
- * desconto por item), menos o desconto global e mais o frete.</p>
+ * como {@code unitPrice × quantity}. Com isso, o total da proposta
+ * técnica é simplesmente a soma dos itens, menos o desconto global e
+ * mais o frete.</p>
  *
  * <p>Inclui:</p>
  * <ul>
- *   <li>cálculo do {@code totalPrice} de cada item de produto (líquido,
- *       considerando o desconto por item);</li>
+ *   <li>cálculo do {@code totalPrice} de cada item de produto;</li>
  *   <li>construção do endereço embutido a partir do DTO permissivo;</li>
  *   <li>aplicação de PATCH parcial sobre o header.</li>
  * </ul>
@@ -87,8 +85,7 @@ public final class TechnicalProposalMapper {
     /**
      * Cria uma entidade {@link TechnicalProposalProductItem} a partir do
      * DTO de request, calculando o {@code totalPrice} como
-     * {@code unitPrice × quantity − discount} (com o desconto
-     * interpretado conforme {@code discountType}).
+     * {@code unitPrice × quantity}.
      */
     public static TechnicalProposalProductItem toProductItemEntity(
             TechnicalProposalProductItemRequest request, Long technicalProposalId) {
@@ -97,13 +94,9 @@ public final class TechnicalProposalMapper {
         item.setProductId(request.productId());
         item.setQuantity(request.quantity());
         item.setUnitPrice(request.unitPrice());
-        item.setDiscountType(request.discountType());
-        item.setDiscount(request.discount());
         item.setTotalPrice(calculateProductItemTotalPrice(
                 request.unitPrice(),
-                request.quantity(),
-                request.discount(),
-                request.discountType()));
+                request.quantity()));
         return item;
     }
 
@@ -115,8 +108,6 @@ public final class TechnicalProposalMapper {
                 item.getQuantity(),
                 item.getUnitPrice(),
                 productLineSubtotal(item),
-                item.getDiscountType(),
-                item.getDiscount(),
                 item.getTotalPrice());
     }
 
@@ -157,32 +148,16 @@ public final class TechnicalProposalMapper {
     }
 
     /**
-     * Calcula o total líquido de uma linha de produto:
-     * <pre>
-     *   gross              = unitPrice × quantity
-     *   desconto           = gross × discount%        (se PERCENT)
-     *                      | discount (R$ fixo)       (se AMOUNT)
-     *   totalPrice         = gross − desconto
-     * </pre>
+     * Calcula o total de uma linha de produto:
+     * {@code totalPrice = unitPrice × quantity}.
      */
     static BigDecimal calculateProductItemTotalPrice(BigDecimal unitPrice,
-                                                     BigDecimal quantity,
-                                                     BigDecimal discount,
-                                                     DiscountType discountType) {
+                                                     BigDecimal quantity) {
         if (unitPrice == null || quantity == null) {
             return BigDecimal.ZERO;
         }
         BigDecimal gross = unitPrice.multiply(quantity);
-        if (discount == null || discountType == null || discount.signum() == 0) {
-            return gross.setScale(2, RoundingMode.HALF_UP);
-        }
-        BigDecimal discountAmount = switch (discountType) {
-            case AMOUNT -> discount;
-            case PERCENT -> gross.multiply(discount)
-                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        };
-        BigDecimal net = gross.subtract(discountAmount);
-        return net.setScale(2, RoundingMode.HALF_UP);
+        return gross.setScale(2, RoundingMode.HALF_UP);
     }
 
     // ---------------------------------------------------------------------

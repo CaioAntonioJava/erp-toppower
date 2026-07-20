@@ -1,11 +1,8 @@
 package br.com.toppower.erp_toppower.sales.technicalproposal.entity;
 
 import br.com.toppower.erp_toppower.common.entity.OrganizationScopedEntity;
-import br.com.toppower.erp_toppower.sales.quotation.enums.DiscountType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -16,13 +13,13 @@ import java.math.BigDecimal;
 
 /**
  * Linha de produto de uma proposta técnica: um produto (referenciado por
- * ID) com sua quantidade, preço unitário e desconto próprios.
+ * ID) com sua quantidade e preço unitário próprios.
  *
- * <p>Análogo ao {@code QuotationItem} do módulo de propostas comerciais.
- * O campo {@link #totalPrice} armazena o <b>total líquido</b> da linha,
- * resultado de {@code (unitPrice * quantity) - discount}, onde
- * {@code discount} é interpretado conforme {@link #discountType}. Esse é
- * o valor que entra no somatório do subtotal da {@link TechnicalProposal}.</p>
+ * <p>Análogo ao {@code QuotationItem} do módulo de propostas comerciais,
+ * mas sem margem de lucro por item (a proposta técnica não carrega
+ * conceito de margem). O campo {@link #totalPrice} armazena o total da
+ * linha, resultado de {@code unitPrice * quantity}. Esse é o valor que
+ * entra no somatório do subtotal da {@link TechnicalProposal}.</p>
  */
 @Entity
 @Table(
@@ -65,26 +62,9 @@ public class TechnicalProposalProductItem extends OrganizationScopedEntity {
     private BigDecimal unitPrice;
 
     /**
-     * Tipo de aplicação do desconto desta linha ({@link #discount}).
-     * Nulo quando não há desconto.
-     */
-    @Enumerated(EnumType.STRING)
-    @Column(name = "discount_type", length = 20)
-    private DiscountType discountType;
-
-    /**
-     * Valor do desconto aplicado a esta linha, interpretado conforme
-     * {@link #discountType} (valor fixo em R$ ou percentual). Nulo quando
-     * não há desconto.
-     */
-    @Column(name = "discount", precision = 10, scale = 2)
-    private BigDecimal discount;
-
-    /**
-     * Total <b>líquido</b> da linha: {@code unitPrice * quantity} menos
-     * o desconto desta linha (quando houver). Calculado e persistido pelo
-     * serviço no momento de criar ou atualizar o item. É este o valor que
-     * entra no somatório do subtotal da proposta.
+     * Total da linha: {@code unitPrice * quantity}. Calculado e
+     * persistido pelo serviço no momento de criar ou atualizar o item.
+     * É este o valor que entra no somatório do subtotal da proposta.
      */
     @Column(name = "total_price", nullable = false, precision = 10, scale = 2)
     private BigDecimal totalPrice;
