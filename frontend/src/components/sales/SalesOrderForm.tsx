@@ -70,13 +70,16 @@ interface ItemDraft {
   unitType: UnitType | null
   unitPrice: number
   quantity: number
-  discountType: DiscountType | null
-  discount: number | null
+  /**
+   * Margem de lucro (%) aplicada a esta linha. Null = usar a margem do
+   * cabeçalho. Quando informada, sobrescreve a margem do cabeçalho.
+   */
+  profitMargin: number | null
 }
 
 /**
  * Teto absoluto para valores unitários e totais do pedido (9 bilhões).
- * Evita overflow numérico no cálculo de `qty * unitPrice - discount`.
+ * Evita overflow numérico no cálculo de `qty * unitPrice`.
  */
 const MAX_ITEM_VALUE = 9_000_000_000
 
@@ -184,14 +187,16 @@ export function SalesOrderForm({
         // Unidade de medida (UN/MT/BOB) — também hidratada via `getProduct`.
         unitType: null,
         // Se o pedido tem profitMargin próprio (criação direta), carrega o
-        // preço base para que a margem seja reaplicada. Se veio de conversão
-        // (profitMargin nulo), o preço unitário já tem a margem embutida.
+        // preço base para que a margem seja reaplicada e preserva a margem
+        // por item (override). Se veio de conversão (profitMargin nulo),
+        // o preço unitário já tem a margem embutida (snapshot) e não
+        // carregamos a margem por item — editar o pedido não reaplica
+        // margem sobre o snapshot.
         unitPrice: salesOrder?.profitMargin != null
           ? (it.baseUnitPrice ?? it.unitPrice)
           : it.unitPrice,
         quantity: it.quantity,
-        discountType: it.discountType ?? null,
-        discount: it.discount ?? null,
+        profitMargin: salesOrder?.profitMargin != null ? (it.profitMargin ?? null) : null,
       }))
     }
     if (!salesOrder) {
@@ -203,8 +208,7 @@ export function SalesOrderForm({
           unitType: null,
           unitPrice: 0,
           quantity: 1,
-          discountType: null,
-          discount: null,
+          profitMargin: null,
         },
       ]
     }
@@ -429,8 +433,7 @@ export function SalesOrderForm({
         // Pré-preenche com 1 unidade para evitar que o item novo entre
         // com quantidade zero (o que dispararia erro de validação no submit).
         quantity: 1,
-        discountType: null,
-        discount: null,
+        profitMargin: null,
       },
     ])
   }
@@ -461,17 +464,21 @@ export function SalesOrderForm({
   // Diferente das propostas, o backend de pedidos NÃO expõe um endpoint
   // /simulate. Replicamos a fórmula do backend (SalesOrderMapper /
   // SalesOrder.recalculateTotals) para oferecer o mesmo preview em tempo
-  // real. A margem de lucro, quando informada, é aplicada sobre o preço
-  // unitário de cada item antes do desconto da linha.
+  // real. A margem efetiva de cada item é a do próprio item quando
+  // informada, senão a do cabeçalho.
   const discountNumber = discountType !== '' ? parseNumber(discount) : null
   const freightValueNumber = parseNumber(freightValue)
   const profitMarginNumber = parseNumber(profitMargin)
+  // Verdadeiro quando ao menos um item tem margem própria — nesse caso a
+  // margem do cabeçalho é desabilitada.
+  const algumItemComMargem = items.some(
+    (it) => it.profitMargin != null && it.profitMargin !== 0,
+  )
   const totals = calculateSalesOrderTotals(
     items.map((it) => ({
       quantity: it.quantity,
       unitPrice: it.unitPrice,
-      discount: it.discount,
-      discountType: it.discountType,
+      profitMargin: it.profitMargin,
     })),
     discountNumber,
     discountType !== '' ? discountType : null,
@@ -572,8 +579,7 @@ export function SalesOrderForm({
         quantity: it.quantity,
         unitPrice: it.unitPrice,
       }
-      if (it.discountType != null) base.discountType = it.discountType
-      if (it.discount != null) base.discount = it.discount
+      if (it.profitMargin != null) base.profitMargin = it.profitMargin
       return base
     })
 
@@ -807,21 +813,25 @@ export function SalesOrderForm({
         <div className="mb-6 flex flex-wrap items-end justify-between gap-2">
           <h3 className="text-base font-semibold">Itens</h3>
           <div className="flex flex-wrap items-end gap-3">
-            <Input
-              id="sales-order-profit-margin"
-              type="number"
-              inputMode="decimal"
-              step="0.01"
-              min={0}
-              placeholder="Margem de lucro (%)"
-              aria-label="Margem de lucro (%)"
-              value={profitMargin}
-              onChange={(e) => setProfitMargin(e.target.value)}
-              onBlur={getBlurHandler('profitMargin')}
-              error={shouldShowError('profitMargin', fieldErrors.profitMargin)}
-              rightAdornment={<span aria-hidden>%</span>}
-              className="max-w-[200px]"
-            />
+            <div className="max-w-[200px]">
+              <Input
+                id="sales-order-profit-margin"
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                min={0}
+                placeholder={
+                  algumItemComMargem ? 'Itens com margem própria' : 'Margem de lucro (%)'
+                }
+                aria-label="Margem de lucro (%)"
+                value={profitMargin}
+                onChange={(e) => setProfitMargin(e.target.value)}
+                onBlur={getBlurHandler('profitMargin')}
+                error={shouldShowError('profitMargin', fieldErrors.profitMargin)}
+                rightAdornment={<span aria-hidden>%</span>}
+                disabled={algumItemComMargem}
+              />
+            </div>
             <Button type="button" variant="primary" onClick={addItem} className="mb-0.5">
               <Plus className="h-4 w-4" />
               Adicionar item
@@ -848,14 +858,17 @@ export function SalesOrderForm({
                 lineTotal={calculateItemTotalPrice(
                   it.unitPrice,
                   it.quantity,
-                  it.discount,
-                  it.discountType,
-                  profitMarginNumber,
+                  it.profitMargin != null ? it.profitMargin : profitMarginNumber,
                 )}
-                // Preço unitário já com margem aplicado — calculado
+                // Preço unitário já com margem aplicada — calculado
                 // localmente (espelha `SalesOrderMapper.applyProfitMargin`).
-                // Quando a margem está vazia/zero, devolve o próprio preço.
-                unitPriceWithMargin={applyProfitMargin(it.unitPrice, profitMarginNumber)}
+                // A margem efetiva é a do item quando informada, senão a do
+                // cabeçalho. Quando ambas são vazias/zero, devolve o próprio
+                // preço.
+                unitPriceWithMargin={applyProfitMargin(
+                  it.unitPrice,
+                  it.profitMargin != null ? it.profitMargin : profitMarginNumber,
+                )}
                 fieldErrors={fieldErrors}
                 productOptions={productOptions}
                 productSearching={
@@ -1123,28 +1136,11 @@ function ItemRow({
   const total = lineTotal
   const quantityField = `items.${index}.quantity`
   const unitPriceField = `items.${index}.unitPrice`
-  const discountField = `items.${index}.discount`
   const productField = `items.${index}.product`
 
   const productError = showError(productField, fieldErrors[productField])
   const quantityError = showError(quantityField, fieldErrors[quantityField])
   const unitPriceError = showError(unitPriceField, fieldErrors[unitPriceField])
-
-  // Estado local de exibição para o campo de Desconto. Permite mostrar o
-  // valor formatado com 2 casas decimais (ex.: "80,00") mesmo quando o
-  // número armazenado for 80. O estado é sincronizado com o número
-  // externo sempre que ele muda e formatado no blur.
-  //
-  // O campo Preço passou a ser readonly e reflete o valor já com a
-  // margem de lucro aplicada (vindo da prop `unitPriceWithMargin`); por
-  // isso não precisa mais de estado de exibição próprio.
-  const [discountDisplay, setDiscountDisplay] = useState<string>(
-    item.discount != null ? formatBRLValue(item.discount) : '',
-  )
-
-  useEffect(() => {
-    setDiscountDisplay(item.discount != null ? formatBRLValue(item.discount) : '')
-  }, [item.discount])
 
   // Estilo base dos inputs compactos da linha. Mesmo padrão visual dos
   // campos da tabela — borda + focus ring com a cor `--color-focus`.
@@ -1297,43 +1293,22 @@ function ItemRow({
             unitPriceError ? inputError : '',
           ].join(' ')}
         />
-        {item.unitPrice !== unitPriceWithMargin ? (
-          <p className="mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">
-            Base {brlFormatter.format(item.unitPrice)} + margem
-          </p>
-        ) : null}
       </div>
 
-      {/* Desconto */}
+      {/* Margem de lucro (%) — sobrescreve a margem do cabeçalho para este item. */}
       <div role="cell" className="min-w-0">
-        {isFirst ? <label className={labelCls}>Desconto</label> : null}
+        {isFirst ? <label className={labelCls}>Margem (%)</label> : null}
         <input
-          type="text"
+          type="number"
           inputMode="decimal"
-          aria-label="Desconto"
-          placeholder="0,00"
-          value={discountDisplay}
+          step="0.01"
+          min={0}
+          aria-label="Margem de lucro do item (%)"
+          placeholder="%"
+          value={item.profitMargin ?? ''}
           onChange={(e) => {
-            setDiscountDisplay(e.target.value)
-            const v = parseNumber(e.target.value)
-            onPatch({
-              discount: v,
-              discountType: v != null ? 'AMOUNT' : null,
-            })
-          }}
-          onBlur={() => {
-            // Normaliza para 2 casas decimais no formato brasileiro
-            // (vírgula): "80" → "80,00"; "45,9" → "45,90". Se o campo
-            // estiver vazio, limpa o desconto e o tipo.
-            if (discountDisplay.trim() === '') {
-              onPatch({ discount: null, discountType: null })
-            } else {
-              const formatted = formatBRLValue(discountDisplay)
-              setDiscountDisplay(formatted)
-              const n = parseNumber(formatted)
-              onPatch({ discount: n, discountType: 'AMOUNT' })
-            }
-            getBlurHandler(discountField)()
+            const v = e.target.value
+            onPatch({ profitMargin: v === '' ? null : parseNumber(v) ?? null })
           }}
           className={[inputBase, 'text-right'].join(' ')}
         />

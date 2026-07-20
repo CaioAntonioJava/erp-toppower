@@ -68,13 +68,16 @@ interface ItemDraft {
   unitType: UnitType | null
   unitPrice: number
   quantity: number
-  discountType: DiscountType | null
-  discount: number | null
+  /**
+   * Margem de lucro (%) aplicada a esta linha. Null = usar a margem do
+   * cabeçalho. Quando informada, sobrescreve a margem do cabeçalho.
+   */
+  profitMargin: number | null
 }
 
 /**
  * Teto absoluto para valores unitários e totais da proposta (9 bilhões).
- * Evita overflow numérico no cálculo de `qty * unitPrice - discount`.
+ * Evita overflow numérico no cálculo de `qty * unitPrice`.
  */
 const MAX_ITEM_VALUE = 9_000_000_000
 
@@ -192,8 +195,7 @@ export function QuotationForm({
         // com margem e o `totalPrice` líquido.
         unitPrice: it.baseUnitPrice ?? it.unitPrice,
         quantity: it.quantity,
-        discountType: it.discountType ?? null,
-        discount: it.discount ?? null,
+        profitMargin: it.profitMargin ?? null,
       }))
     }
     if (!quotation) {
@@ -205,8 +207,7 @@ export function QuotationForm({
           unitType: null,
           unitPrice: 0,
           quantity: 1,
-          discountType: null,
-          discount: null,
+          profitMargin: null,
         },
       ]
     }
@@ -457,8 +458,7 @@ export function QuotationForm({
         // Pré-preenche com 1 unidade para evitar que o item novo entre
         // com quantidade zero (o que dispararia erro de validação no submit).
         quantity: 1,
-        discountType: null,
-        discount: null,
+        profitMargin: null,
       },
     ])
   }
@@ -491,6 +491,12 @@ export function QuotationForm({
   // debounce sempre que os campos relevantes mudam.
   const [simulation, setSimulation] = useState<QuotationSimulateResponse | null>(null)
 
+  // Verdadeiro quando ao menos um item tem margem própria — nesse caso a
+  // margem do cabeçalho é desabilitada (e opcional).
+  const algumItemComMargem = items.some(
+    (it) => it.profitMargin != null && it.profitMargin !== 0,
+  )
+
   useEffect(() => {
     let cancelled = false
     const handle = setTimeout(() => {
@@ -498,8 +504,7 @@ export function QuotationForm({
         productId: it.productId || null,
         quantity: it.quantity,
         unitPrice: it.unitPrice,
-        ...(it.discountType != null ? { discountType: it.discountType } : {}),
-        ...(it.discount != null ? { discount: it.discount } : {}),
+        ...(it.profitMargin != null ? { profitMargin: it.profitMargin } : {}),
       }))
       const payload = {
         ...(clientType === 'CUSTOMER'
@@ -625,11 +630,12 @@ export function QuotationForm({
       }
     }
 
-    // Margem de lucro é obrigatória e não pode ser negativa.
+    // Margem de lucro: obrigatória quando nenhum item tem margem própria.
+    // Não pode ser negativa.
     const margin = parseNumber(profitMargin)
-    if (margin == null) {
+    if (!algumItemComMargem && margin == null) {
       errs.profitMargin = 'Margem de lucro é obrigatória.'
-    } else if (margin < 0) {
+    } else if (margin != null && margin < 0) {
       errs.profitMargin = 'Margem de lucro não pode ser negativa.'
     }
 
@@ -650,8 +656,7 @@ export function QuotationForm({
         quantity: it.quantity,
         unitPrice: it.unitPrice,
       }
-      if (it.discountType != null) base.discountType = it.discountType
-      if (it.discount != null) base.discount = it.discount
+      if (it.profitMargin != null) base.profitMargin = it.profitMargin
       return base
     })
 
@@ -686,7 +691,11 @@ export function QuotationForm({
         payload.freightType = freightType === '' ? null : freightType
         payload.freightValue = parseNumber(freightValue)
         payload.carrierId = carrierId || null
-        payload.profitMargin = parseNumber(profitMargin) ?? 0
+        // Margem do cabeçalho: envia null quando algum item tem margem própria
+        // (o campo fica desabilitado no form nesse caso).
+        payload.profitMargin = algumItemComMargem
+          ? (parseNumber(profitMargin) ?? null)
+          : (parseNumber(profitMargin) ?? 0)
 
         // Override admin: envia `number`/`issueDate` no payload. O backend
         // atual (QuotationUpdateRequest) não inclui esses campos, então o
@@ -711,7 +720,10 @@ export function QuotationForm({
         const payload: QuotationCreateRequest = {
           sellerId: sellerId!,
           items: itemsPayload,
-          profitMargin: parseNumber(profitMargin) ?? 0,
+          // Margem do cabeçalho: envia null quando algum item tem margem própria.
+          profitMargin: algumItemComMargem
+            ? (parseNumber(profitMargin) ?? null)
+            : (parseNumber(profitMargin) ?? 0),
         }
         if (clientType === 'CUSTOMER') {
           payload.customerId = clientId ? Number(clientId) : null
@@ -931,14 +943,15 @@ export function QuotationForm({
                 inputMode="decimal"
                 step="0.01"
                 min={0}
-                placeholder="Adicionar %"
+                placeholder={algumItemComMargem ? 'Itens com margem própria' : 'Adicionar %'}
                 aria-label="Margem de lucro (%)"
                 value={profitMargin}
                 onChange={(e) => setProfitMargin(e.target.value)}
                 onBlur={getBlurHandler('profitMargin')}
                 error={shouldShowError('profitMargin', fieldErrors.profitMargin)}
                 rightAdornment={<span aria-hidden>%</span>}
-                required
+                disabled={algumItemComMargem}
+                required={!algumItemComMargem}
               />
             </div>
             <Button type="button" variant="primary" onClick={addItem} className="mb-0.5 mr-6">
@@ -1257,14 +1270,13 @@ function ItemRow({
   const total = lineTotal
   const quantityField = `items.${index}.quantity`
   const unitPriceField = `items.${index}.unitPrice`
-  const discountField = `items.${index}.discount`
   const productField = `items.${index}.product`
 
   const productError = showError(productField, fieldErrors[productField])
   const quantityError = showError(quantityField, fieldErrors[quantityField])
   const unitPriceError = showError(unitPriceField, fieldErrors[unitPriceField])
 
-  // Estado local de exibição para os campos monetários (Preço e Desconto).
+  // Estado local de exibição para o campo monetário (Preço).
   // Permite mostrar o valor formatado com 2 casas decimais (ex.: "80,00")
   // mesmo quando o número armazenado for 80. O estado é sincronizado com
   // o número externo sempre que ele muda (ex.: ao selecionar um produto,
@@ -1272,17 +1284,10 @@ function ItemRow({
   const [unitPriceDisplay, setUnitPriceDisplay] = useState<string>(
     item.unitPrice != null ? formatBRLValue(item.unitPrice) : '',
   )
-  const [discountDisplay, setDiscountDisplay] = useState<string>(
-    item.discount != null ? formatBRLValue(item.discount) : '',
-  )
 
   useEffect(() => {
     setUnitPriceDisplay(item.unitPrice != null ? formatBRLValue(item.unitPrice) : '')
   }, [item.unitPrice])
-
-  useEffect(() => {
-    setDiscountDisplay(item.discount != null ? formatBRLValue(item.discount) : '')
-  }, [item.discount])
 
   // Estilo base dos inputs compactos da linha. Mesmo padrão visual dos
   // campos da tabela — borda + focus ring com a cor `--color-focus`.
@@ -1438,43 +1443,22 @@ function ItemRow({
             unitPriceError ? inputError : '',
           ].join(' ')}
         />
-        {unitPriceWithMargin != null && item.unitPrice !== unitPriceWithMargin ? (
-          <p className="mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">
-            Base {brlFormatter.format(item.unitPrice)} + margem
-          </p>
-        ) : null}
       </div>
 
-      {/* Desconto */}
+      {/* Margem de lucro (%) — sobrescreve a margem do cabeçalho para este item. */}
       <div role="cell" className="min-w-0">
-        {isFirst ? <label className={labelCls}>Desconto</label> : null}
+        {isFirst ? <label className={labelCls}>Margem (%)</label> : null}
         <input
-          type="text"
+          type="number"
           inputMode="decimal"
-          aria-label="Desconto"
-          placeholder="0,00"
-          value={discountDisplay}
+          step="0.01"
+          min={0}
+          aria-label="Margem de lucro do item (%)"
+          placeholder="%"
+          value={item.profitMargin ?? ''}
           onChange={(e) => {
-            setDiscountDisplay(e.target.value)
-            const v = parseNumber(e.target.value)
-            onPatch({
-              discount: v,
-              discountType: v != null ? 'AMOUNT' : null,
-            })
-          }}
-          onBlur={() => {
-            // Normaliza para 2 casas decimais no formato brasileiro
-            // (vírgula): "80" → "80,00"; "45,9" → "45,90". Se o campo
-            // estiver vazio, limpa o desconto e o tipo.
-            if (discountDisplay.trim() === '') {
-              onPatch({ discount: null, discountType: null })
-            } else {
-              const formatted = formatBRLValue(discountDisplay)
-              setDiscountDisplay(formatted)
-              const n = parseNumber(formatted)
-              onPatch({ discount: n, discountType: 'AMOUNT' })
-            }
-            getBlurHandler(discountField)()
+            const v = e.target.value
+            onPatch({ profitMargin: v === '' ? null : parseNumber(v) ?? null })
           }}
           className={[inputBase, 'text-right'].join(' ')}
         />
