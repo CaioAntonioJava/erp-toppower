@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
-  ArrowLeft,
   Check,
   DollarSign,
   Trash2,
 } from 'lucide-react'
+import { BackButton } from '../components/ui/BackButton'
+import { PAYMENT_CONDITION_OPTIONS } from '../types/quotation'
+import type { PaymentCondition } from '../types/quotation'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { Select } from '../components/ui/Select'
@@ -82,7 +84,9 @@ export function ReceivableFormPage() {
   const [description, setDescription] = useState('')
   const [valueStr, setValueStr] = useState('')
   const [dueDate, setDueDate] = useState(todayISO())
-  const [paymentCondition, setPaymentCondition] = useState('')
+  const [paymentCondition, setPaymentCondition] = useState<PaymentCondition | ''>(
+    receivable?.paymentCondition ?? '',
+  )
   const [clientType, setClientType] = useState<ReceivableClientType>('CUSTOMER')
   const [clientId, setClientId] = useState<number | null>(null)
   const [clientLabel, setClientLabel] = useState('')
@@ -259,9 +263,7 @@ export function ReceivableFormPage() {
   if (detailError && !receivable) {
     return (
       <div className="space-y-4">
-        <Link to="/receivables" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
-          <ArrowLeft className="h-4 w-4" /> Voltar à lista
-        </Link>
+        <BackButton variant="ghost" label="Voltar para a lista" fallback="/receivables" />
         <Alert variant="error">{detailError}</Alert>
       </div>
     )
@@ -275,12 +277,7 @@ export function ReceivableFormPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <Link
-            to="/receivables"
-            className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
-          >
-            <ArrowLeft className="h-4 w-4" /> Contas a Receber
-          </Link>
+          <BackButton />
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">
             {isEdit ? 'Conta a Receber' : 'Nova Conta a Receber'}
           </h1>
@@ -361,12 +358,17 @@ export function ReceivableFormPage() {
             error={shouldShowError('dueDate', fieldErrors.dueDate) ? fieldErrors.dueDate : null}
             disabled={!canEdit}
           />
-          <Input
+          <Select
             label="Condição de pagamento"
             value={paymentCondition}
-            onChange={(e) => setPaymentCondition(e.target.value)}
-            placeholder="Ex.: 30/60/90"
-            maxLength={100}
+            onChange={(e) =>
+              setPaymentCondition(e.target.value as PaymentCondition | '')
+            }
+            options={[
+              { value: '', label: 'Selecione...' },
+              ...PAYMENT_CONDITION_OPTIONS,
+            ]}
+            aria-label="Condição de pagamento"
             disabled={readOnly || !canEdit}
           />
 

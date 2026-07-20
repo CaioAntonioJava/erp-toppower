@@ -1,5 +1,6 @@
 package br.com.toppower.erp_toppower.receivable.dto;
 
+import br.com.toppower.erp_toppower.sales.quotation.enums.PaymentCondition;
 import br.com.toppower.erp_toppower.receivable.enums.ReceivableSource;
 import br.com.toppower.erp_toppower.receivable.enums.ReceivableStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -64,8 +65,8 @@ public record ReceivableResponse(
         @Schema(description = "Código resolvido do cliente/empresa.")
         String clientCode,
 
-        @Schema(description = "Condição de pagamento (texto livre informativo).")
-        String paymentCondition,
+        @Schema(description = "Condição de pagamento (mesmo domínio das propostas comerciais).")
+        PaymentCondition paymentCondition,
 
         @Schema(description = "ID do pedido de venda de origem, se aplicável.")
         Long salesOrderId,

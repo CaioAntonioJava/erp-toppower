@@ -21,6 +21,8 @@ import {
 } from '../../api/technicalProposal.api'
 import { listServiceTemplatesByCategory } from '../../api/servicetemplate.api'
 import type { ClientSummaryResponse } from '../../types/quotation'
+import { PAYMENT_CONDITION_OPTIONS } from '../../types/quotation'
+import type { PaymentCondition } from '../../types/quotation'
 import type {
   TechnicalProposalClientType,
   TechnicalProposalConditionRequest,
@@ -126,6 +128,9 @@ export function TechnicalProposalForm({
   const [notes] = useState<string>(proposal?.notes ?? '')
   const [generalPrice, setGeneralPrice] = useState<string>(
     proposal?.generalPrice != null ? formatBRLValue(proposal.generalPrice) : '',
+  )
+  const [paymentCondition, setPaymentCondition] = useState<PaymentCondition | ''>(
+    proposal?.paymentCondition ?? '',
   )
 
   // === código gerado pelo servidor ===
@@ -513,6 +518,7 @@ export function TechnicalProposalForm({
         payload.notes = notes.trim() ? notes.trim() : null
         const gp = parseNumber(generalPrice)
         payload.generalPrice = gp != null ? gp : null
+        payload.paymentCondition = paymentCondition === '' ? null : paymentCondition
 
         await onSaveUpdate(payload)
         setSuccess('Proposta atualizada com sucesso!')
@@ -536,6 +542,9 @@ export function TechnicalProposalForm({
         if (notes.trim()) payload.notes = notes.trim()
         const gp = parseNumber(generalPrice)
         if (gp != null) payload.generalPrice = gp
+        if (paymentCondition !== '') {
+          payload.paymentCondition = paymentCondition
+        }
 
         await onSaveCreate(payload)
         setSuccess('Proposta criada com sucesso!')
@@ -814,39 +823,51 @@ export function TechnicalProposalForm({
 	        )}
 		      </section>
 
-		      {/* Preço geral (opcional, sem regras de cálculo) */}
-		      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-		        <h3 className="mb-4 text-base font-semibold">Preço geral</h3>
-		        <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
-		          Preço geral da proposta, de preenchimento livre. Não participa de
-		          cálculos automáticos — apenas um valor informativo.
-		        </p>
-		        <div className="max-w-xs">
-		          <Input
-		            label="Preço geral"
-		            value={generalPrice}
-		            onChange={(e) => setGeneralPrice(e.target.value)}
-		            onBlur={() => {
-		              const trimmed = generalPrice.trim()
-		              if (!trimmed) return
-		              // Se não tem vírgula, adiciona ",00"
-		              if (!trimmed.includes(',')) {
-		                setGeneralPrice(trimmed + ',00')
-		              } else {
-		                // Se tem vírgula mas não tem centavos, completa
-		                const parts = trimmed.split(',')
-		                if (parts.length === 2 && parts[1].length === 0) {
-		                  setGeneralPrice(trimmed + '00')
-		                } else if (parts.length === 2 && parts[1].length === 1) {
-		                  setGeneralPrice(trimmed + '0')
-		                }
-		              }
-		            }}
-		            placeholder="Ex.: 1.500,00"
-		            hint="Opcional — preço informativo"
-		          />
-		        </div>
-		      </section>
+	      {/* Preço geral + Condição de pagamento */}
+	      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+	        <h3 className="mb-4 text-base font-semibold">Preço geral</h3>
+	        <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+	          Preço geral da proposta, de preenchimento livre. Não participa de
+	          cálculos automáticos — apenas um valor informativo.
+	        </p>
+	        <div className="grid gap-4 sm:grid-cols-2">
+	          <Input
+	            label="Preço geral"
+	            value={generalPrice}
+	            onChange={(e) => setGeneralPrice(e.target.value)}
+	            onBlur={() => {
+	              const trimmed = generalPrice.trim()
+	              if (!trimmed) return
+	              // Se não tem vírgula, adiciona ",00"
+	              if (!trimmed.includes(',')) {
+	                setGeneralPrice(trimmed + ',00')
+	              } else {
+	                // Se tem vírgula mas não tem centavos, completa
+	                const parts = trimmed.split(',')
+	                if (parts.length === 2 && parts[1].length === 0) {
+	                  setGeneralPrice(trimmed + '00')
+	                } else if (parts.length === 2 && parts[1].length === 1) {
+	                  setGeneralPrice(trimmed + '0')
+	                }
+	              }
+	            }}
+	            placeholder="Ex.: 1.500,00"
+	            hint="Opcional — preço informativo"
+	          />
+	          <Select
+	            label="Condição de pagamento"
+	            value={paymentCondition}
+	            onChange={(e) =>
+	              setPaymentCondition(e.target.value as PaymentCondition | '')
+	            }
+	            options={[
+	              { value: '', label: 'Selecione...' },
+	              ...PAYMENT_CONDITION_OPTIONS,
+	            ]}
+	            aria-label="Condição de pagamento"
+	          />
+	        </div>
+	      </section>
 
 		      {/* Condições */}
 	      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">

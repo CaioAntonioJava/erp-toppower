@@ -310,7 +310,7 @@ public class ReceivableService {
         r.setSalesOrderId(order.getId());
         r.setSalesOrderNumber(order.getSequence());
         r.setSalesOrderCode(order.formattedCode());
-        r.setPaymentCondition(displayPaymentCondition(order.getPaymentCondition()));
+        r.setPaymentCondition(order.getPaymentCondition());
         LocalDate base = (order.getOrderDate() != null) ? order.getOrderDate() : LocalDate.now();
         int days = PaymentConditionParser.firstTermDays(order.getPaymentCondition());
         r.setDueDate(base.plusDays(days));
@@ -347,7 +347,7 @@ public class ReceivableService {
         r.setCompanyId(proposal.getCompanyId());
         r.setTechnicalProposalId(proposal.getId());
         r.setTechnicalProposalCode(proposal.formattedCode());
-        r.setPaymentCondition(displayPaymentCondition(proposal.getPaymentCondition()));
+        r.setPaymentCondition(proposal.getPaymentCondition());
         int days = PaymentConditionParser.firstTermDays(proposal.getPaymentCondition());
         r.setDueDate(LocalDate.now().plusDays(days));
         return Optional.of(repository.save(r));
@@ -508,10 +508,6 @@ public class ReceivableService {
                     .orElse(ClientResolved.EMPTY);
         }
         return ClientResolved.EMPTY;
-    }
-
-    private static String displayPaymentCondition(PaymentCondition condition) {
-        return (condition == null) ? null : condition.getDisplayName();
     }
 
     private record ClientResolved(String name, String code) {

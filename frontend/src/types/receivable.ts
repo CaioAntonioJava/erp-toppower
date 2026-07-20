@@ -1,3 +1,5 @@
+import type { PaymentCondition } from './quotation'
+
 /** Tipos do módulo de contas a receber. Espelham os DTOs do backend. */
 
 /** Status do ciclo de vida de uma conta a receber. */
@@ -37,7 +39,7 @@ export interface ReceivableResponse {
   companyId: number | null
   clientName: string | null
   clientCode: string | null
-  paymentCondition: string | null
+  paymentCondition: PaymentCondition | null
   salesOrderId: number | null
   salesOrderNumber: number | null
   technicalProposalId: number | null
@@ -78,14 +80,14 @@ export interface ReceivableCreateRequest {
   dueDate: string
   customerId?: number | null
   companyId?: number | null
-  paymentCondition?: string | null
+  paymentCondition?: PaymentCondition | null
 }
 
 /** Corpo de PATCH /api/v1/accounts-receivable/{id}. Campos opcionais. */
 export interface ReceivableUpdateRequest {
   description?: string
   dueDate?: string
-  paymentCondition?: string | null
+  paymentCondition?: PaymentCondition | null
 }
 
 /** Corpo de POST /api/v1/accounts-receivable/{id}/payments. */

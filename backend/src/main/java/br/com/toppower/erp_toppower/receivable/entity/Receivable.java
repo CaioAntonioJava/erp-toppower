@@ -2,6 +2,7 @@ package br.com.toppower.erp_toppower.receivable.entity;
 
 import br.com.toppower.erp_toppower.common.annotation.UpperCase;
 import br.com.toppower.erp_toppower.common.entity.OrganizationScopedEntity;
+import br.com.toppower.erp_toppower.sales.quotation.enums.PaymentCondition;
 import br.com.toppower.erp_toppower.receivable.enums.ReceivableSource;
 import br.com.toppower.erp_toppower.receivable.enums.ReceivableStatus;
 import jakarta.persistence.Column;
@@ -135,12 +136,12 @@ public class Receivable extends OrganizationScopedEntity {
     private Long companyId;
 
     /**
-     * Condição de pagamento (texto livre informativo, ex.: "30/60/90").
-     * Opcional.
+     * Condição de pagamento acordada com o devedor. Reutiliza o enum do
+     * módulo de propostas comerciais. Opcional.
      */
-    @UpperCase
-    @Column(name = "payment_condition", length = 100)
-    private String paymentCondition;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_condition", length = 50)
+    private PaymentCondition paymentCondition;
 
     /**
      * ID do pedido de venda que originou a conta. Nulo quando

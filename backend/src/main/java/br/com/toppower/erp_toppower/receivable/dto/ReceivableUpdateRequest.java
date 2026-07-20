@@ -1,5 +1,6 @@
 package br.com.toppower.erp_toppower.receivable.dto;
 
+import br.com.toppower.erp_toppower.sales.quotation.enums.PaymentCondition;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Size;
 
@@ -24,10 +25,8 @@ public record ReceivableUpdateRequest(
                 example = "2026-08-17", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         LocalDate dueDate,
 
-        @Schema(description = "Condição de pagamento (texto livre informativo).",
-                example = "30/60/90", requiredMode = Schema.RequiredMode.NOT_REQUIRED,
-                maxLength = 100)
-        @Size(max = 100, message = "Condição de pagamento deve ter no máximo {max} caracteres")
-        String paymentCondition
+        @Schema(description = "Condição de pagamento (mesmo domínio das propostas comerciais).",
+                example = "PARCELAS_30_60_90", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        PaymentCondition paymentCondition
 ) {
 }
