@@ -324,7 +324,8 @@ public class TechnicalProposalService {
     // ---------------------------------------------------------------------
 
     /**
-     * Inicia a execução: {@code ABERTA → EM_ANDAMENTO}.
+     * Inicia a execução: {@code ABERTA → EM_ANDAMENTO}. Gera
+     * automaticamente a conta a receber vinculada à proposta.
      */
     @Transactional
     public TechnicalProposalResponse start(Long id) {
@@ -335,7 +336,11 @@ public class TechnicalProposalService {
         }
         tp.setStatus(TechnicalProposalStatus.EM_ANDAMENTO);
         repository.save(tp);
-        return toResponseWithItems(tp);
+
+        // Carrega itens e recalcula totais antes de gerar a conta a receber.
+        TechnicalProposalResponse response = toResponseWithItems(tp);
+        receivableService.generateFromTechnicalProposal(tp, tp.getTotal());
+        return response;
     }
 
     /**
@@ -354,10 +359,7 @@ public class TechnicalProposalService {
         tp.setDeliveryDate(LocalDate.now());
         repository.save(tp);
 
-        // Carrega os itens para recalcular o total antes de gerar a conta.
-        TechnicalProposalResponse response = toResponseWithItems(tp);
-        receivableService.generateFromTechnicalProposal(tp, tp.getTotal());
-        return response;
+        return toResponseWithItems(tp);
     }
 
     /**
