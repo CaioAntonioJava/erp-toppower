@@ -98,7 +98,6 @@
       <th class="num" style="width:7%;">Qtd.</th>
       <th class="num" style="width:12%;">Preço un.</th>
       <th class="num" style="width:12%;">Subtotal</th>
-      <th class="num" style="width:9%;">Desc.</th>
       <th class="num" style="width:13%;">Total</th>
     </tr>
     </thead>
@@ -115,12 +114,6 @@
           th:text="${'R$ ' + #numbers.formatDecimal(it.unitPrice, 1, 'POINT', 2, 'COMMA')}">0,00</td>
       <td class="num money"
           th:text="${'R$ ' + #numbers.formatDecimal(it.lineSubtotal, 1, 'POINT', 2, 'COMMA')}">0,00</td>
-      <td class="num"
-          th:text="${it.discountType != null and it.discount != null
-                      ? (it.discountType.name() == 'PERCENT'
-                          ? #numbers.formatDecimal(it.discount, 1, 'POINT', 2, 'COMMA') + '%'
-                          : 'R$ ' + #numbers.formatDecimal(it.discount, 1, 'POINT', 2, 'COMMA'))
-                      : ''}"></td>
       <td class="num money"
           th:text="${'R$ ' + #numbers.formatDecimal(it.totalPrice, 1, 'POINT', 2, 'COMMA')}">0,00</td>
     </tr>
