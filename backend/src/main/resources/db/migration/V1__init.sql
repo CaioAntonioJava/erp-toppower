@@ -173,9 +173,11 @@ SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_S
 SET @sql = IF(@has_idx = 0, 'CREATE UNIQUE INDEX uk_quotation_org_number ON quotations (organization_id, number)', 'DO 0');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- uk_sales_order_org_number (organization_id, number)
+-- uk_sales_order_org_number (organization_id, number) — apenas se a coluna number existir
+SET @has_number_col = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'sales_orders' AND COLUMN_NAME = 'number');
 SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'sales_orders' AND INDEX_NAME = 'uk_sales_order_org_number');
-SET @sql = IF(@has_idx = 0, 'CREATE UNIQUE INDEX uk_sales_order_org_number ON sales_orders (organization_id, number)', 'DO 0');
+SET @sql = IF(@has_number_col > 0 AND @has_idx = 0, 'CREATE UNIQUE INDEX uk_sales_order_org_number ON sales_orders (organization_id, number)', 'DO 0');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- uk_technical_proposal_org_code (organization_id, prefix, sequence, year)
