@@ -34,12 +34,13 @@ PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 -- 2. Backfill: prefixo fixo "PV"; sequência = number antigo; ano = ano
 --    de emissão (order_date). Roda em todo boot (idempotente — só afeta
 --    linhas onde sequence ainda é 0 e number não é nulo).
-UPDATE sales_orders
-   SET prefix = 'PV',
-       sequence = number,
-       year = YEAR(order_date)
- WHERE number IS NOT NULL
-   AND sequence = 0;
+--    Guardado por @has_number porque a V21 pode ter dropado a coluna.
+SET @has_number := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'sales_orders' AND COLUMN_NAME = 'number');
+SET @sql := IF(@has_number > 0,
+    'UPDATE sales_orders SET prefix = ''PV'', sequence = number, year = YEAR(order_date) WHERE number IS NOT NULL AND sequence = 0',
+    'DO 0');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- 3. Substitui a UK: dropa a antiga (organization_id, number) e cria a
 --    nova (organization_id, prefix, sequence, year).
