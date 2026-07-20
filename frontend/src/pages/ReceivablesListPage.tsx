@@ -226,22 +226,30 @@ export function ReceivablesListPage() {
             }
             aria-label="Filtrar por origem"
           />
-          <Input
-            label="Vencimento de"
-            type="date"
-            value={dueFrom}
-            onChange={(e) => setDueFrom(e.target.value)}
-            max={dueTo || undefined}
-            aria-label="Filtrar por vencimento a partir de"
-          />
-          <Input
-            label="Vencimento até"
-            type="date"
-            value={dueTo}
-            onChange={(e) => setDueTo(e.target.value)}
-            min={dueFrom || undefined}
-            aria-label="Filtrar por vencimento até"
-          />
+          <div className="w-full">
+            <Input
+              type="date"
+              value={dueFrom}
+              onChange={(e) => setDueFrom(e.target.value)}
+              max={dueTo || undefined}
+              aria-label="Filtrar por vencimento a partir de"
+            />
+            <p className="mt-1.5 text-sm text-slate-700 dark:text-slate-200">
+              Vencimento de
+            </p>
+          </div>
+          <div className="w-full">
+            <Input
+              type="date"
+              value={dueTo}
+              onChange={(e) => setDueTo(e.target.value)}
+              min={dueFrom || undefined}
+              aria-label="Filtrar por vencimento até"
+            />
+            <p className="mt-1.5 text-sm text-slate-700 dark:text-slate-200">
+              Vencimento até
+            </p>
+          </div>
         </div>
       </div>
 
