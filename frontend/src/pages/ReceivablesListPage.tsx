@@ -83,6 +83,10 @@ export function ReceivablesListPage() {
     useState<ReceivableSource | 'ALL'>('ALL')
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
+  // Filtro por intervalo de vencimento (yyyy-MM-dd). String vazia = sem
+  // filtro; o backend recebe dueFrom/dueTo quando definidos.
+  const [dueFrom, setDueFrom] = useState('')
+  const [dueTo, setDueTo] = useState('')
   const [page, setPage] = useState(0)
   const size = 20
 
@@ -108,6 +112,8 @@ export function ReceivablesListPage() {
     status: statusFilter,
     sourceType: sourceFilter,
     query: debouncedQuery.length >= 2 ? debouncedQuery : undefined,
+    dueFrom: dueFrom || undefined,
+    dueTo: dueTo || undefined,
     page,
     size,
   }
@@ -124,7 +130,7 @@ export function ReceivablesListPage() {
       setLoading(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, sourceFilter, debouncedQuery, page])
+  }, [statusFilter, sourceFilter, debouncedQuery, dueFrom, dueTo, page])
 
   useEffect(() => {
     reload()
@@ -133,7 +139,7 @@ export function ReceivablesListPage() {
   // Reseta a páginação sempre que os filtros mudam.
   useEffect(() => {
     setPage(0)
-  }, [statusFilter, sourceFilter, debouncedQuery])
+  }, [statusFilter, sourceFilter, debouncedQuery, dueFrom, dueTo])
 
   async function handleCancel() {
     if (!cancelTarget) return
@@ -192,7 +198,7 @@ export function ReceivablesListPage() {
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <div className="grid gap-3 sm:grid-cols-[1fr_220px_220px]">
+        <div className="grid gap-3 sm:grid-cols-[1fr_200px_200px] lg:grid-cols-[1fr_200px_200px_180px_180px]">
           <Input
             placeholder="Buscar por descrição, código do contrato/proposta…"
             value={query}
@@ -219,6 +225,22 @@ export function ReceivablesListPage() {
               setSourceFilter(e.target.value as ReceivableSource | 'ALL')
             }
             aria-label="Filtrar por origem"
+          />
+          <Input
+            label="Vencimento de"
+            type="date"
+            value={dueFrom}
+            onChange={(e) => setDueFrom(e.target.value)}
+            max={dueTo || undefined}
+            aria-label="Filtrar por vencimento a partir de"
+          />
+          <Input
+            label="Vencimento até"
+            type="date"
+            value={dueTo}
+            onChange={(e) => setDueTo(e.target.value)}
+            min={dueFrom || undefined}
+            aria-label="Filtrar por vencimento até"
           />
         </div>
       </div>
