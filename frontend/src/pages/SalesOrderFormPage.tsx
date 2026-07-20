@@ -11,11 +11,12 @@ import { StickyFormActions } from '../components/sales/StickyFormActions'
 import { RegistrationAuditCard } from '../components/client/RegistrationAuditCard'
 import {
   createSalesOrder,
-  getNextSalesOrderNumber,
+  getNextSalesOrderCode,
   getSalesOrder,
   updateSalesOrder,
 } from '../api/salesOrder.api'
 import type {
+  NextSalesOrderCodeResponse,
   SalesOrderCreateRequest,
   SalesOrderResponse,
   SalesOrderUpdateRequest,
@@ -39,10 +40,10 @@ export function SalesOrderFormPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const isAdmin = user?.role === 'ROLE_ADMIN'
-  // A numeração de pedido é independente por empresa: o próximo número
+  // O código do pedido é independente por empresa/ano: o próximo código
   // precisa ser re-buscado sempre que a Organization ativa muda (igual ao
   // TechnicalProposalFormPage). Sem isso, ao trocar de empresa no Topbar o
-  // número exibido no formulário fica desatualizado.
+  // código exibido no formulário fica desatualizado.
   const { activeOrganization } = useOrganization()
   const activeOrganizationId = activeOrganization?.id ?? null
 
@@ -50,7 +51,7 @@ export function SalesOrderFormPage() {
   const [salesOrder, setSalesOrder] = useState<SalesOrderResponse | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-  const [nextNumber, setNextNumber] = useState<number | null>(null)
+  const [nextCode, setNextCode] = useState<NextSalesOrderCodeResponse | null>(null)
 
   // Ref do contêiner de ações no cabeçalho. O `StickyFormActions`
   // observa esse elemento: quando ele sai do viewport, o menu sticky
@@ -59,28 +60,28 @@ export function SalesOrderFormPage() {
   // primeiro render, com `mode !== 'loading'`).
   const actionsRef = useRef<HTMLDivElement>(null)
 
-  // Modo CREATE: pré-visualiza o próximo número para exibir no header.
-  // Re-busca sempre que a Organization ativa muda, pois cada empresa tem
-  // sua própria sequência (1000, 1001, ... independente por empresa).
+  // Modo CREATE: pré-visualiza o próximo código (PV-NNNN-AAAA) para exibir
+  // no header. Re-busca sempre que a Organization ativa muda, pois cada
+  // empresa tem sua própria sequência por ano.
   useEffect(() => {
     if (id) return
     if (!activeOrganizationId) {
       // Sem Organization ativa: limpa o preview e aguarda seleção no Topbar.
       setMode('create')
-      setNextNumber(null)
+      setNextCode(null)
       return
     }
     let cancelled = false
     setMode('create')
-    setNextNumber(null)
-    getNextSalesOrderNumber()
-      .then((n) => {
+    setNextCode(null)
+    getNextSalesOrderCode()
+      .then((code) => {
         if (cancelled) return
-        setNextNumber(n)
+        setNextCode(code)
       })
       .catch(() => {
         if (cancelled) return
-        setNextNumber(null)
+        setNextCode(null)
       })
     return () => {
       cancelled = true
@@ -259,7 +260,7 @@ export function SalesOrderFormPage() {
             <SalesOrderForm
               key={`${activeOrganizationId ?? 'no-org'}-${mode}-${id ?? 'new'}`}
               salesOrder={canEdit ? salesOrder ?? undefined : undefined}
-              initialNumber={mode === 'create' ? nextNumber : null}
+              initialCode={mode === 'create' ? nextCode : null}
               onSaveCreate={handleCreate}
               onSaveUpdate={handleUpdate}
             />

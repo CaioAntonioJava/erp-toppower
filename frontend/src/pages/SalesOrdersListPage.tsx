@@ -63,8 +63,8 @@ export function SalesOrdersListPage() {
 
   // Filtros
   const [status, setStatus] = useState<SalesOrderStatus | 'ALL'>('ALL')
-  const [number, setNumber] = useState('')
-  const [debouncedNumber, setDebouncedNumber] = useState('')
+  const [code, setCode] = useState('')
+  const [debouncedCode, setDebouncedCode] = useState('')
   const [page, setPage] = useState(0)
   const size = 10
 
@@ -79,16 +79,16 @@ export function SalesOrdersListPage() {
     useState<SalesOrderSummaryResponse | null>(null)
   const [canceling, setCanceling] = useState(false)
 
-  // Debounce do filtro por número.
+  // Debounce do filtro por código.
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedNumber(number.trim()), 300)
+    const t = setTimeout(() => setDebouncedCode(code.trim()), 300)
     return () => clearTimeout(t)
-  }, [number])
+  }, [code])
 
   // Reset de página ao mudar filtros.
   useEffect(() => {
     setPage(0)
-  }, [status, debouncedNumber])
+  }, [status, debouncedCode])
 
   // Carregamento.
   useEffect(() => {
@@ -97,7 +97,7 @@ export function SalesOrdersListPage() {
     setError(null)
     const params: Parameters<typeof listSalesOrders>[0] = { page, size }
     if (status !== 'ALL') params.status = status
-    if (debouncedNumber.length > 0) params.number = debouncedNumber
+    if (debouncedCode.length > 0) params.code = debouncedCode
     listSalesOrders(params)
       .then((result) => {
         if (cancelled) return
@@ -114,7 +114,7 @@ export function SalesOrdersListPage() {
     return () => {
       cancelled = true
     }
-  }, [status, debouncedNumber, page])
+  }, [status, debouncedCode, page])
 
   async function handleCancel() {
     if (!confirmCancel) return
@@ -126,7 +126,7 @@ export function SalesOrdersListPage() {
       // Recarrega a página atual.
       const params: Parameters<typeof listSalesOrders>[0] = { page, size }
       if (status !== 'ALL') params.status = status
-      if (debouncedNumber.length > 0) params.number = debouncedNumber
+      if (debouncedCode.length > 0) params.code = debouncedCode
       const result = await listSalesOrders(params)
       setData(result)
     } catch (err) {
@@ -173,12 +173,12 @@ export function SalesOrdersListPage() {
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div className="grid gap-3 sm:grid-cols-[1fr_220px]">
           <Input
-            placeholder="Buscar por número (ex.: 1000)…"
-            value={number}
-            onChange={(e) => setNumber(e.target.value)}
+            placeholder="Buscar por código (ex.: PV-2800)…"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
             leftAdornment={<Search className="h-4 w-4" />}
             hint={
-              number.trim().length > 0 && number.trim().length < 2
+              code.trim().length > 0 && code.trim().length < 2
                 ? 'Digite ao menos 2 caracteres para buscar.'
                 : undefined
             }
@@ -243,7 +243,7 @@ export function SalesOrdersListPage() {
                     onClick={() => navigate(`/sales-orders/${o.id}/edit`)}
                   >
                     <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-slate-700 dark:text-slate-200">
-                      {o.number}
+                      {o.code}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-slate-600 dark:text-slate-300">
                       {formatDate(o.orderDate)}
@@ -347,8 +347,8 @@ export function SalesOrdersListPage() {
         title="Cancelar pedido?"
         description={
           confirmCancel?.status === 'FINALIZADO'
-            ? `O pedido ${confirmCancel?.number} será marcado como CANCELADO. Como já estava finalizado, as saídas de estoque serão estornadas automaticamente, devolvendo o saldo dos itens aos produtos. O registro não é apagado.`
-            : `O pedido ${confirmCancel?.number} será marcado como CANCELADO. O registro não é apagado.`
+            ? `O pedido ${confirmCancel?.code} será marcado como CANCELADO. Como já estava finalizado, as saídas de estoque serão estornadas automaticamente, devolvendo o saldo dos itens aos produtos. O registro não é apagado.`
+            : `O pedido ${confirmCancel?.code} será marcado como CANCELADO. O registro não é apagado.`
         }
         confirmText="Cancelar pedido"
         confirmVariant="danger"

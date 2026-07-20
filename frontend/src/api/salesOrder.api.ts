@@ -1,7 +1,7 @@
 import api from './client'
 import type { PagedResponse } from '../types/api'
 import type {
-  NextSalesOrderNumberResponse,
+  NextSalesOrderCodeResponse,
   SalesOrderCreateRequest,
   SalesOrderFilters,
   SalesOrderFromQuotationRequest,
@@ -27,7 +27,7 @@ export async function listSalesOrders(
         endDate: filters.endDate,
         clientId: filters.clientId,
         sellerId: filters.sellerId,
-        number: filters.number,
+        code: filters.code,
         quotationNumber: filters.quotationNumber,
       },
     },
@@ -35,27 +35,17 @@ export async function listSalesOrders(
   return data
 }
 
-/** GET /sales-orders/next-number — pré-visualiza o próximo número. */
-export async function getNextSalesOrderNumber(): Promise<number> {
-  const { data } = await api.get<NextSalesOrderNumberResponse>(
-    `${BASE}/next-number`,
+/** GET /sales-orders/next-code — pré-visualiza o próximo código. */
+export async function getNextSalesOrderCode(): Promise<NextSalesOrderCodeResponse> {
+  const { data } = await api.get<NextSalesOrderCodeResponse>(
+    `${BASE}/next-code`,
   )
-  return data.number
+  return data
 }
 
 /** GET /sales-orders/{id} — detalhe completo (com itens e totais). */
 export async function getSalesOrder(id: number): Promise<SalesOrderResponse> {
   const { data } = await api.get<SalesOrderResponse>(`${BASE}/${id}`)
-  return data
-}
-
-/** GET /sales-orders/by-number/{number} — busca exata por número. */
-export async function getSalesOrderByNumber(
-  number: number,
-): Promise<SalesOrderResponse> {
-  const { data } = await api.get<SalesOrderResponse>(
-    `${BASE}/by-number/${encodeURIComponent(String(number))}`,
-  )
   return data
 }
 

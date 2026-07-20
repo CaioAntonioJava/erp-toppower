@@ -33,6 +33,7 @@ import type {
   QuotationClientType,
 } from '../../types/quotation'
 import type {
+  NextSalesOrderCodeResponse,
   SalesOrderClientType,
   SalesOrderCreateRequest,
   SalesOrderItemRequest,
@@ -53,8 +54,8 @@ import { QUOTATION_CLIENT_TYPE_LABELS } from '../../types/quotation'
 interface SalesOrderFormProps {
   /** Pedido existente (modo edição). Quando omitido, é cadastro novo. */
   salesOrder?: SalesOrderResponse
-  /** Próximo número previsto pelo backend (modo create). */
-  initialNumber?: number | null
+  /** Próximo código previsto pelo backend (modo create). */
+  initialCode?: NextSalesOrderCodeResponse | null
   onSaveCreate: (payload: SalesOrderCreateRequest) => Promise<void>
   onSaveUpdate: (payload: SalesOrderUpdateRequest) => Promise<void>
 }
@@ -101,7 +102,7 @@ function todayIso(): string {
 
 export function SalesOrderForm({
   salesOrder,
-  initialNumber = null,
+  initialCode = null,
   onSaveCreate,
   onSaveUpdate,
 }: SalesOrderFormProps) {
@@ -149,20 +150,21 @@ export function SalesOrderForm({
   )
 
   // === campos gerados pelo servidor ===
-  // O número vem do backend (a partir de 1000). Pré-preenchido em create
-  // com `initialNumber` (next-number) e em edit com `salesOrder.number`.
-  // Data de emissão: preenchida automaticamente pelo servidor; exibida em
-  // create como hoje e em edit como o valor persistido. Ambos bloqueados
-  // (o backend não aceita esses campos no payload de pedido).
-  const [number, setNumber] = useState<string>(() => {
-    if (salesOrder?.number != null) return String(salesOrder.number)
-    if (initialNumber != null) return String(initialNumber)
+  // O código vem do backend no formato PV-NNNN-AAAA (ex.: PV-2800-2026).
+  // Pré-preenchido em create com `initialCode` (next-code) e em edit com
+  // `salesOrder.code`. Data de emissão: preenchida automaticamente pelo
+  // servidor; exibida em create como hoje e em edit como o valor
+  // persistido. Ambos bloqueados (o backend não aceita esses campos no
+  // payload de pedido).
+  const [code, setCode] = useState<string>(() => {
+    if (salesOrder?.code != null) return salesOrder.code
+    if (initialCode?.code != null) return initialCode.code
     return ''
   })
-  // Marca se o usuário editou manualmente o número. Usado para evitar
-  // sobrescrever a digitação quando o `initialNumber` chega
+  // Marca se o usuário editou manualmente o código. Usado para evitar
+  // sobrescrever a digitação quando o `initialCode` chega
   // assincronamente após a primeira renderização do formulário.
-  const numberDirtyRef = useRef<boolean>(false)
+  const codeDirtyRef = useRef<boolean>(false)
   const [orderDate, setOrderDate] = useState<string>(
     salesOrder?.orderDate ?? todayIso(),
   )
@@ -251,16 +253,16 @@ export function SalesOrderForm({
   }, [])
 
 
-  // Sincroniza o número do pedido com o `initialNumber` que chega
-  // assincronamente do endpoint `/sales-orders/next-number`. Em modo
+  // Sincroniza o código do pedido com o `initialCode` que chega
+  // assincronamente do endpoint `/sales-orders/next-code`. Em modo
   // create, o componente monta antes do fetch resolver, então precisamos
   // refletir o valor assim que ele chega — sem sobrescrever a digitação.
   useEffect(() => {
     if (salesOrder) return
-    if (initialNumber == null) return
-    if (numberDirtyRef.current) return
-    setNumber(String(initialNumber))
-  }, [initialNumber, salesOrder])
+    if (initialCode == null) return
+    if (codeDirtyRef.current) return
+    setCode(initialCode.code)
+  }, [initialCode, salesOrder])
 
   // Pré-preenche o rótulo do cliente no modo edição.
   //
@@ -670,20 +672,19 @@ export function SalesOrderForm({
         <div className="grid gap-4 sm:grid-cols-[160px_180px_1fr]">
           <Input
             label="Número do pedido"
-            type="number"
-            inputMode="numeric"
-            min={1}
-            value={number}
+            type="text"
+            inputMode="text"
+            value={code}
             onChange={(e) => {
-              numberDirtyRef.current = true
-              setNumber(e.target.value)
+              codeDirtyRef.current = true
+              setCode(e.target.value)
             }}
-            onBlur={getBlurHandler('number')}
-            error={shouldShowError('number', fieldErrors.number)}
+            onBlur={getBlurHandler('code')}
+            error={shouldShowError('code', fieldErrors.code)}
             disabled
             readOnly
-            hint="Gerado automaticamente (a partir de 1000)."
-            className="max-w-[160px]"
+            hint="Gerado automaticamente (PV-2800-2026)."
+            className="max-w-[200px] font-mono"
           />
           <Select
             label="Tipo de cliente"

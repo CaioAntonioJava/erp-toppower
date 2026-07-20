@@ -248,7 +248,7 @@ export function SalesOrderDetailPage() {
         <div>
           <BackButton fallback="/sales-orders" />
           <h1 className="mt-4 flex items-center gap-3 text-2xl font-semibold tracking-tight">
-            <span>Pedido {salesOrder.number}</span>
+            <span>Pedido {salesOrder.code}</span>
             <SalesOrderStatusBadge status={salesOrder.status} />
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -527,8 +527,8 @@ export function SalesOrderDetailPage() {
         title="Cancelar pedido?"
         description={
           salesOrder.status === 'FINALIZADO'
-            ? `O pedido ${salesOrder.number} será marcado como CANCELADO. Como já estava finalizado, as saídas de estoque serão estornadas automaticamente, devolvendo o saldo dos itens aos produtos. O registro não é apagado.`
-            : `O pedido ${salesOrder.number} será marcado como CANCELADO. O registro não é apagado. Pedidos CANCELADOS não podem ser revertidos.`
+            ? `O pedido ${salesOrder.code} será marcado como CANCELADO. Como já estava finalizado, as saídas de estoque serão estornadas automaticamente, devolvendo o saldo dos itens aos produtos. O registro não é apagado.`
+            : `O pedido ${salesOrder.code} será marcado como CANCELADO. O registro não é apagado. Pedidos CANCELADOS não podem ser revertidos.`
         }
         confirmText="Cancelar pedido"
         confirmVariant="danger"

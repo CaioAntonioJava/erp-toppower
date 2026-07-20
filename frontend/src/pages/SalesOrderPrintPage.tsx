@@ -20,7 +20,7 @@ export function SalesOrderPrintPage() {
     let cancelled = false
     getSalesOrder(Number(id!))
       .then((o) => {
-        if (!cancelled) setTitle(`Pedido de Venda nº ${o.number}`)
+        if (!cancelled) setTitle(`Pedido de Venda nº ${o.code}`)
       })
       .catch(() => {/* mantém título genérico */})
     return () => { cancelled = true }

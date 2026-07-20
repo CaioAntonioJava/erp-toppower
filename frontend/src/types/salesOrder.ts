@@ -104,7 +104,14 @@ export interface SalesOrderItemRequest {
  */
 export interface SalesOrderResponse {
   id: number
-  number: number
+  /** Prefixo do código (ex.: "PV"). */
+  prefix: string
+  /** Numeral sequencial (reseta por ano). */
+  sequence: number
+  /** Ano de emissão, parte final do código. */
+  year: number
+  /** Código formatado completo (ex.: "PV-2800-2026"). */
+  code: string
   /** Data de emissão (yyyy-MM-dd). */
   orderDate: string
   customerId: number | null
@@ -162,7 +169,14 @@ export interface SalesOrderResponse {
  */
 export interface SalesOrderSummaryResponse {
   id: number
-  number: number
+  /** Prefixo do código (ex.: "PV"). */
+  prefix: string
+  /** Numeral sequencial (reseta por ano). */
+  sequence: number
+  /** Ano de emissão, parte final do código. */
+  year: number
+  /** Código formatado completo (ex.: "PV-2800-2026"). */
+  code: string
   orderDate: string
   clientType: SalesOrderClientType
   clientId: number
@@ -233,9 +247,13 @@ export interface SalesOrderFromQuotationRequest {
   notes?: string | null
 }
 
-/** Resposta do endpoint /sales-orders/next-number. */
-export interface NextSalesOrderNumberResponse {
-  number: number
+/** Resposta do endpoint /sales-orders/next-code. */
+export interface NextSalesOrderCodeResponse {
+  prefix: string
+  sequence: number
+  year: number
+  /** Código formatado completo (ex.: "PV-2800-2026"). */
+  code: string
 }
 
 /** Filtros suportados no endpoint de listagem/busca de pedidos. */
@@ -245,7 +263,8 @@ export interface SalesOrderFilters {
   endDate?: string
   clientId?: number
   sellerId?: number
-  number?: string
+  /** Trecho do código (ex.: "PV-28", "2800" ou "2026"). */
+  code?: string
   /** Filtro exato pelo número da proposta de origem. */
   quotationNumber?: number
   page?: number
