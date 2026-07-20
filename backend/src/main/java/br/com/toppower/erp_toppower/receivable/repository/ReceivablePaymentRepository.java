@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,6 +19,13 @@ public interface ReceivablePaymentRepository extends JpaRepository<ReceivablePay
      * (asc) para apresentação do histórico.
      */
     List<ReceivablePayment> findByReceivableIdOrderByPaymentDateAsc(Long receivableId);
+
+    /**
+     * Lista os pagamentos cuja data de pagamento está no intervalo
+     * [from, to] (inclusive). Usado pelo relatório de fluxo de
+     * recebimentos.
+     */
+    List<ReceivablePayment> findByPaymentDateBetween(LocalDate from, LocalDate to);
 
     /**
      * Soma o valor de todos os pagamentos de uma conta. Retorna zero
