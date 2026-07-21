@@ -11,9 +11,35 @@ export type ReceivableSource = 'MANUAL' | 'SALES_ORDER' | 'TECHNICAL_PROPOSAL' |
 /** Tipo do cliente devedor: CUSTOMER (PF) ou COMPANY (PJ). */
 export type ReceivableClientType = 'CUSTOMER' | 'COMPANY'
 
+/** Parcela programada de uma conta a receber. */
+export interface ReceivableInstallmentResponse {
+  id: number
+  installmentNumber: number
+  amount: number
+  paidAmount: number
+  /** Saldo devedor da parcela (amount - paidAmount). */
+  balance: number
+  /** Vencimento programado (yyyy-MM-dd). */
+  dueDate: string
+  status: ReceivableStatus
+  /** Data do último pagamento da parcela (yyyy-MM-dd). Nula se não houver. */
+  paymentDate: string | null
+}
+
+/** Preview de parcela gerada a partir da condição de pagamento. */
+export interface ReceivableInstallmentPreviewResponse {
+  installmentNumber: number
+  amount: number
+  dueDate: string
+}
+
 /** Pagamento avulso de uma conta a receber. */
 export interface ReceivablePaymentResponse {
   id: number
+  /** ID da parcela vinculada, se aplicável. */
+  installmentId: number | null
+  /** Número da parcela vinculada (0 para pagamentos antigos sem parcela). */
+  installmentNumber: number
   amount: number
   /** Data do pagamento (yyyy-MM-dd). */
   paymentDate: string
@@ -31,7 +57,7 @@ export interface ReceivableResponse {
   paidAmount: number
   /** Saldo devedor (value - paidAmount). */
   balance: number
-  /** Data de vencimento (yyyy-MM-dd). */
+  /** Vencimento-base (1ª parcela, yyyy-MM-dd). */
   dueDate: string
   status: ReceivableStatus
   sourceType: ReceivableSource
@@ -40,6 +66,8 @@ export interface ReceivableResponse {
   clientName: string | null
   clientCode: string | null
   paymentCondition: PaymentCondition | null
+  /** Quantidade de parcelas programadas. */
+  installmentsCount: number
   salesOrderId: number | null
   salesOrderNumber: number | null
   technicalProposalId: number | null
@@ -48,6 +76,8 @@ export interface ReceivableResponse {
   contractCode: string | null
   /** Data do último pagamento (yyyy-MM-dd). Nula se não houver pagamentos. */
   paymentDate: string | null
+  /** Parcelas programadas ordenadas por número. */
+  installments: ReceivableInstallmentResponse[]
   payments: ReceivablePaymentResponse[]
   createdAt: string
   updatedAt: string
@@ -69,18 +99,31 @@ export interface ReceivableSummaryResponse {
   sourceCode: string | null
   clientName: string | null
   clientCode: string | null
+  /** Quantidade de parcelas programadas. */
+  installmentsCount: number
   paymentDate: string | null
+}
+
+/** Parcela programada informada no cadastro/geração. */
+export interface ReceivableInstallmentRequest {
+  amount: number
+  /** Vencimento programado (yyyy-MM-dd). */
+  dueDate: string
 }
 
 /** Corpo de POST /api/v1/accounts-receivable (cadastro manual). */
 export interface ReceivableCreateRequest {
   description: string
   value: number
-  /** Data de vencimento (yyyy-MM-dd). */
+  /** Data de emissão (yyyy-MM-dd). Base para cálculo dos vencimentos das parcelas automáticas. */
+  issueDate?: string
+  /** Vencimento-base / 1ª parcela (yyyy-MM-dd). */
   dueDate: string
   customerId?: number | null
   companyId?: number | null
   paymentCondition?: PaymentCondition | null
+  /** Parcelas explícitas. Quando omitido, o backend gera a partir da condição ou 1 parcela à vista. */
+  installments?: ReceivableInstallmentRequest[] | null
 }
 
 /** Corpo de PATCH /api/v1/accounts-receivable/{id}. Campos opcionais. */
@@ -90,12 +133,29 @@ export interface ReceivableUpdateRequest {
   paymentCondition?: PaymentCondition | null
 }
 
-/** Corpo de POST /api/v1/accounts-receivable/{id}/payments. */
+/** Corpo de POST /api/v1/accounts-receivable/{id}/installments/{installmentId}/payments. */
 export interface ReceivablePaymentRequest {
   amount: number
   /** Data do pagamento (yyyy-MM-dd). */
   paymentDate: string
   notes?: string | null
+}
+
+/** Corpo de POST /api/v1/accounts-receivable/{id}/installments/generate (botão Gerar parcelas). */
+export interface GenerateInstallmentsRequest {
+  paymentCondition?: PaymentCondition | null
+  /** Data-base para o cálculo dos vencimentos. Default: vencimento-base da conta. */
+  baseDate?: string
+  /** Parcelas explícitas (alternativa à paymentCondition). */
+  installments?: ReceivableInstallmentRequest[] | null
+}
+
+/** Corpo de POST /api/v1/accounts-receivable/installments/preview. */
+export interface PreviewInstallmentsRequest {
+  paymentCondition: PaymentCondition
+  value: number
+  /** Data-base. Default: hoje. */
+  baseDate?: string
 }
 
 /** Filtros suportados na listagem de contas a receber. */

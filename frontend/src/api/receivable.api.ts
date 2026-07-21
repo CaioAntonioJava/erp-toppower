@@ -8,8 +8,12 @@
 import api from './client'
 import type { PagedResponse } from '../types/api'
 import type {
+  GenerateInstallmentsRequest,
+  PreviewInstallmentsRequest,
   ReceivableCreateRequest,
   ReceivableFilters,
+  ReceivableInstallmentPreviewResponse,
+  ReceivableInstallmentResponse,
   ReceivablePaymentRequest,
   ReceivablePaymentResponse,
   ReceivableResponse,
@@ -73,13 +77,58 @@ export async function activateReceivable(id: number): Promise<ReceivableResponse
   return data
 }
 
-/** POST /accounts-receivable/{id}/payments — registra pagamento avulso. */
-export async function registerPayment(
+/** POST /accounts-receivable/{id}/installments/{installmentId}/payments — registra pagamento em parcela. */
+export async function registerInstallmentPayment(
   id: number,
+  installmentId: number,
   payload: ReceivablePaymentRequest,
 ): Promise<ReceivableResponse> {
   const { data } = await api.post<ReceivableResponse>(
-    `${BASE}/${id}/payments`,
+    `${BASE}/${id}/installments/${installmentId}/payments`,
+    payload,
+  )
+  return data
+}
+
+/** POST /accounts-receivable/{id}/installments/{installmentId}/settle — liquidar saldo de parcela. */
+export async function settleInstallment(
+  id: number,
+  installmentId: number,
+): Promise<ReceivableResponse> {
+  const { data } = await api.post<ReceivableResponse>(
+    `${BASE}/${id}/installments/${installmentId}/settle`,
+  )
+  return data
+}
+
+/** GET /accounts-receivable/{id}/installments — lista parcelas programadas. */
+export async function listInstallments(
+  id: number,
+): Promise<ReceivableInstallmentResponse[]> {
+  const { data } = await api.get<ReceivableInstallmentResponse[]>(
+    `${BASE}/${id}/installments`,
+  )
+  return data
+}
+
+/** POST /accounts-receivable/{id}/installments/generate — botão Gerar parcelas. */
+export async function generateInstallments(
+  id: number,
+  payload: GenerateInstallmentsRequest,
+): Promise<ReceivableResponse> {
+  const { data } = await api.post<ReceivableResponse>(
+    `${BASE}/${id}/installments/generate`,
+    payload,
+  )
+  return data
+}
+
+/** POST /accounts-receivable/installments/preview — preview de parcelas a partir da condição. */
+export async function previewInstallments(
+  payload: PreviewInstallmentsRequest,
+): Promise<ReceivableInstallmentPreviewResponse[]> {
+  const { data } = await api.post<ReceivableInstallmentPreviewResponse[]>(
+    `${BASE}/installments/preview`,
     payload,
   )
   return data
@@ -96,7 +145,7 @@ export async function removePayment(
   return data
 }
 
-/** GET /accounts-receivable/{id}/payments — histórico de pagamentos. */
+/** GET /accounts-receivable/{id}/payments — histórico de pagamentos (com número da parcela). */
 export async function listPayments(
   id: number,
 ): Promise<ReceivablePaymentResponse[]> {
@@ -106,7 +155,7 @@ export async function listPayments(
   return data
 }
 
-/** POST /accounts-receivable/{id}/settle — liquidar todo o saldo devedor. */
+/** POST /accounts-receivable/{id}/settle — liquidar todas as parcelas abertas. */
 export async function settleReceivable(id: number): Promise<ReceivableResponse> {
   const { data } = await api.post<ReceivableResponse>(`${BASE}/${id}/settle`)
   return data

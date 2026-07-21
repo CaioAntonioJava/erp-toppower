@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   Check,
   DollarSign,
+  Layers,
   Trash2,
 } from 'lucide-react'
 import { BackButton } from '../components/ui/BackButton'
@@ -20,14 +21,18 @@ import {
   activateReceivable,
   cancelReceivable,
   createReceivable,
+  generateInstallments,
   getReceivable,
+  previewInstallments,
   removePayment,
+  settleInstallment,
   updateReceivable,
 } from '../api/receivable.api'
 import { searchContractClients } from '../api/contract.api'
 import type {
   ReceivableClientType,
   ReceivableCreateRequest,
+  ReceivableInstallmentPreviewResponse,
   ReceivableResponse,
   ReceivableSource,
   ReceivableUpdateRequest,
@@ -66,8 +71,6 @@ interface FieldErrors {
   value?: string
   dueDate?: string
   client?: string
-  paymentAmount?: string
-  paymentDate?: string
 }
 
 export function ReceivableFormPage() {
@@ -85,7 +88,7 @@ export function ReceivableFormPage() {
   const [valueStr, setValueStr] = useState('')
   const [dueDate, setDueDate] = useState(todayISO())
   const [paymentCondition, setPaymentCondition] = useState<PaymentCondition | ''>(
-    receivable?.paymentCondition ?? '',
+    '',
   )
   const [clientType, setClientType] = useState<ReceivableClientType>('CUSTOMER')
   const [clientId, setClientId] = useState<number | null>(null)
@@ -96,6 +99,10 @@ export function ReceivableFormPage() {
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
+  // --- Preview de parcelas (modo criação) ---
+  const [preview, setPreview] = useState<ReceivableInstallmentPreviewResponse[]>([])
+  const [previewLoading, setPreviewLoading] = useState(false)
+
   const clientTypeRef = useRef(clientType)
   useEffect(() => {
     clientTypeRef.current = clientType
@@ -103,6 +110,16 @@ export function ReceivableFormPage() {
 
   // --- Modal de pagamento ---
   const [paymentOpen, setPaymentOpen] = useState(false)
+
+  // --- Modal de liquidar parcela ---
+  const [settleInstallmentTarget, setSettleInstallmentTarget] = useState<
+    { installmentId: number; installmentNumber: number; balance: number } | null
+  >(null)
+  const [settlingInst, setSettlingInst] = useState(false)
+
+  // --- Modal de Gerar parcelas (ação pós-criação) ---
+  const [generateOpen, setGenerateOpen] = useState(false)
+  const [generating, setGenerating] = useState(false)
 
   // --- Modal de remover pagamento ---
   const [removePayTarget, setRemovePayTarget] =
@@ -132,6 +149,37 @@ export function ReceivableFormPage() {
       .catch((err) => setDetailError(toApiError(err).message))
       .finally(() => setLoadingDetail(false))
   }, [id, isEdit])
+
+  // --- Preview de parcelas (modo criação) ---
+  // Sempre que a condição ou o valor mudarem (e houver condição), busca o
+  // preview no backend. Usa a data de hoje como base.
+  const previewValue = useMemo(() => parseNumber(valueStr), [valueStr])
+  useEffect(() => {
+    if (isEdit || !paymentCondition || previewValue == null || previewValue <= 0) {
+      setPreview([])
+      return
+    }
+    let cancelled = false
+    setPreviewLoading(true)
+    const timer = setTimeout(async () => {
+      try {
+        const result = await previewInstallments({
+          paymentCondition,
+          value: previewValue,
+          baseDate: todayISO(),
+        })
+        if (!cancelled) setPreview(result)
+      } catch {
+        if (!cancelled) setPreview([])
+      } finally {
+        if (!cancelled) setPreviewLoading(false)
+      }
+    }, 350)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [isEdit, paymentCondition, previewValue])
 
   // --- Busca de cliente (debounce) ---
   function handleClientQuery(value: string) {
@@ -192,6 +240,8 @@ export function ReceivableFormPage() {
         setReceivable(updated)
         setTouched({})
       } else {
+        // Na criação, deixamos o backend gerar as parcelas a partir da
+        // condição (quando parcelada) ou criar 1 parcela à vista.
         const payload: ReceivableCreateRequest = {
           description,
           value,
@@ -221,6 +271,39 @@ export function ReceivableFormPage() {
       setSubmitError(toApiError(err).message)
     } finally {
       setRemovingPay(false)
+    }
+  }
+
+  async function handleSettleInstallment() {
+    if (!receivable || !settleInstallmentTarget) return
+    setSettlingInst(true)
+    try {
+      const updated = await settleInstallment(
+        receivable.id,
+        settleInstallmentTarget.installmentId,
+      )
+      setReceivable(updated)
+      setSettleInstallmentTarget(null)
+    } catch (err) {
+      setSubmitError(toApiError(err).message)
+    } finally {
+      setSettlingInst(false)
+    }
+  }
+
+  async function handleGenerateInstallments() {
+    if (!receivable) return
+    setGenerating(true)
+    try {
+      const updated = await generateInstallments(receivable.id, {
+        paymentCondition: receivable.paymentCondition ?? null,
+      })
+      setReceivable(updated)
+      setGenerateOpen(false)
+    } catch (err) {
+      setSubmitError(toApiError(err).message)
+    } finally {
+      setGenerating(false)
     }
   }
 
@@ -271,7 +354,16 @@ export function ReceivableFormPage() {
 
   const readOnly = receivable != null && receivable.sourceType !== 'MANUAL'
   const canEdit = receivable == null || receivable.status === 'ABERTO'
-  const balance = receivable?.balance ?? parseNumber(valueStr) ?? 0
+  // Botão "Gerar parcelas" aparece quando a conta é ABERTO, tem apenas 1
+  // parcela (à vista), nenhum pagamento registrado e possui condição de
+  // pagamento parcelada (ou qualquer condição — o backend valida).
+  const canGenerateInstallments =
+    receivable != null &&
+    receivable.status === 'ABERTO' &&
+    receivable.installmentsCount === 1 &&
+    receivable.paidAmount === 0 &&
+    receivable.payments.length === 0 &&
+    receivable.paymentCondition != null
 
   return (
     <div className="space-y-6">
@@ -287,6 +379,9 @@ export function ReceivableFormPage() {
               {receivable.contractCode ? ` • ${receivable.contractCode}` : ''}
               {receivable.technicalProposalCode ? ` • ${receivable.technicalProposalCode}` : ''}
               {receivable.salesOrderNumber ? ` • PV ${receivable.salesOrderNumber}` : ''}
+              {receivable.installmentsCount > 1
+                ? ` • ${receivable.installmentsCount} parcela(s)`
+                : ''}
             </p>
           ) : (
             <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -349,7 +444,7 @@ export function ReceivableFormPage() {
             placeholder="0,00"
           />
           <Input
-            label="Data de vencimento"
+            label="Data de vencimento (1ª parcela)"
             required
             type="date"
             value={dueDate}
@@ -357,6 +452,11 @@ export function ReceivableFormPage() {
             onBlur={getBlurHandler('dueDate')}
             error={shouldShowError('dueDate', fieldErrors.dueDate) ? fieldErrors.dueDate : null}
             disabled={!canEdit}
+            hint={
+              !isEdit
+                ? 'Vencimento-base usado quando a condição de pagamento não é informada (à vista).'
+                : undefined
+            }
           />
           <Select
             label="Condição de pagamento"
@@ -370,6 +470,11 @@ export function ReceivableFormPage() {
             ]}
             aria-label="Condição de pagamento"
             disabled={readOnly || !canEdit}
+            hint={
+              !isEdit
+                ? 'Quando informada e com múltiplos prazos, as parcelas são geradas automaticamente a partir dos prazos.'
+                : undefined
+            }
           />
 
           {/* Cliente */}
@@ -434,57 +539,127 @@ export function ReceivableFormPage() {
             ) : null}
           </div>
         </div>
-      </div>
 
-      {/* Histórico de pagamentos (apenas detalhe) */}
-      {receivable ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-base font-semibold">Pagamentos</h2>
-            {receivable.status === 'ABERTO' ? (
-              <Button size="sm" onClick={() => setPaymentOpen(true)}>
-                <DollarSign className="h-4 w-4" />
-                Registrar pagamento
-              </Button>
+        {/* Preview de parcelas (apenas na criação, quando há condição parcelada) */}
+        {!isEdit && (preview.length > 1 || previewLoading) ? (
+          <div className="mt-6">
+            <div className="mb-2 flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Preview das parcelas</h3>
+              {previewLoading ? <Spinner size="sm" /> : null}
+            </div>
+            <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">
+              Parcelas que serão geradas a partir da condição de pagamento
+              informada (base: hoje).
+            </p>
+            {preview.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-800">
+                  <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-950/40 dark:text-slate-400">
+                    <tr>
+                      <th className="px-3 py-2 font-medium">Parcela</th>
+                      <th className="px-3 py-2 text-right font-medium">Valor</th>
+                      <th className="px-3 py-2 font-medium">Vencimento</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                    {preview.map((p) => (
+                      <tr key={p.installmentNumber}>
+                        <td className="px-3 py-2 text-slate-700 dark:text-slate-200">
+                          {p.installmentNumber}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-2 text-right text-slate-900 dark:text-slate-100">
+                          R$ {formatBRLValue(p.amount)}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-2 text-slate-600 dark:text-slate-300">
+                          {formatDate(p.dueDate)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             ) : null}
           </div>
-          {receivable.payments.length === 0 ? (
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Nenhum pagamento registrado. Saldo devedor: R$ {formatBRLValue(balance)}.
-            </p>
-          ) : (
+        ) : null}
+      </div>
+
+      {/* Parcelas programadas + pagamentos (apenas detalhe) */}
+      {receivable ? (
+        <div className="space-y-6">
+          {/* Parcelas */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-base font-semibold">Parcelas</h2>
+              <div className="flex items-center gap-2">
+                {canGenerateInstallments ? (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => setGenerateOpen(true)}
+                  >
+                    <Layers className="h-4 w-4" />
+                    Gerar parcelas
+                  </Button>
+                ) : null}
+                {receivable.status === 'ABERTO' ? (
+                  <Button size="sm" onClick={() => setPaymentOpen(true)}>
+                    <DollarSign className="h-4 w-4" />
+                    Registrar pagamento
+                  </Button>
+                ) : null}
+              </div>
+            </div>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-800">
                 <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-950/40 dark:text-slate-400">
                   <tr>
-                    <th className="px-3 py-2 font-medium">Data</th>
+                    <th className="px-3 py-2 font-medium">Parcela</th>
                     <th className="px-3 py-2 text-right font-medium">Valor</th>
-                    <th className="px-3 py-2 font-medium">Observações</th>
+                    <th className="px-3 py-2 text-right font-medium">Pago</th>
+                    <th className="px-3 py-2 text-right font-medium">Saldo</th>
+                    <th className="px-3 py-2 font-medium">Vencimento</th>
+                    <th className="px-3 py-2 font-medium">Status</th>
                     <th className="px-3 py-2 text-right font-medium">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                  {receivable.payments.map((p) => (
-                    <tr key={p.id}>
-                      <td className="whitespace-nowrap px-3 py-2 text-slate-700 dark:text-slate-200">
-                        {formatDate(p.paymentDate)}
+                  {receivable.installments.map((inst) => (
+                    <tr key={inst.id}>
+                      <td className="px-3 py-2 text-slate-700 dark:text-slate-200">
+                        {inst.installmentNumber}/{receivable.installmentsCount}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2 text-right text-slate-900 dark:text-slate-100">
+                        R$ {formatBRLValue(inst.amount)}
                       </td>
                       <td className="whitespace-nowrap px-3 py-2 text-right text-emerald-700 dark:text-emerald-400">
-                        R$ {formatBRLValue(p.amount)}
+                        R$ {formatBRLValue(inst.paidAmount)}
                       </td>
-                      <td className="px-3 py-2 text-slate-600 dark:text-slate-300">
-                        {p.notes ?? '—'}
+                      <td className="whitespace-nowrap px-3 py-2 text-right font-medium text-slate-900 dark:text-slate-100">
+                        R$ {formatBRLValue(inst.balance)}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2 text-slate-600 dark:text-slate-300">
+                        {formatDate(inst.dueDate)}
+                      </td>
+                      <td className="px-3 py-2">
+                        <ReceivableStatusBadge status={inst.status} />
                       </td>
                       <td className="px-3 py-2 text-right">
-                        {receivable.status !== 'CANCELADO' ? (
+                        {inst.status === 'ABERTO' && receivable.status === 'ABERTO' ? (
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => setRemovePayTarget({ paymentId: p.id, amount: p.amount })}
-                            title="Remover pagamento"
-                            aria-label="Remover pagamento"
+                            onClick={() =>
+                              setSettleInstallmentTarget({
+                                installmentId: inst.id,
+                                installmentNumber: inst.installmentNumber,
+                                balance: inst.balance,
+                              })
+                            }
+                            title="Liquidar parcela"
+                            aria-label="Liquidar parcela"
+                            className="!text-emerald-600 hover:!text-emerald-600 dark:!text-emerald-500 dark:hover:!text-emerald-500"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Check className="h-4 w-4" />
                           </Button>
                         ) : null}
                       </td>
@@ -493,7 +668,62 @@ export function ReceivableFormPage() {
                 </tbody>
               </table>
             </div>
-          )}
+          </div>
+
+          {/* Histórico de pagamentos */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <h2 className="mb-4 text-base font-semibold">Pagamentos</h2>
+            {receivable.payments.length === 0 ? (
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Nenhum pagamento registrado. Saldo devedor: R$ {formatBRLValue(receivable.balance)}.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-800">
+                  <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-950/40 dark:text-slate-400">
+                    <tr>
+                      <th className="px-3 py-2 font-medium">Data</th>
+                      <th className="px-3 py-2 font-medium">Parcela</th>
+                      <th className="px-3 py-2 text-right font-medium">Valor</th>
+                      <th className="px-3 py-2 font-medium">Observações</th>
+                      <th className="px-3 py-2 text-right font-medium">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                    {receivable.payments.map((p) => (
+                      <tr key={p.id}>
+                        <td className="whitespace-nowrap px-3 py-2 text-slate-700 dark:text-slate-200">
+                          {formatDate(p.paymentDate)}
+                        </td>
+                        <td className="px-3 py-2 text-slate-600 dark:text-slate-300">
+                          {p.installmentNumber || '—'}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-2 text-right text-emerald-700 dark:text-emerald-400">
+                          R$ {formatBRLValue(p.amount)}
+                        </td>
+                        <td className="px-3 py-2 text-slate-600 dark:text-slate-300">
+                          {p.notes ?? '—'}
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          {receivable.status !== 'CANCELADO' ? (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setRemovePayTarget({ paymentId: p.id, amount: p.amount })}
+                              title="Remover pagamento"
+                              aria-label="Remover pagamento"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          ) : null}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       ) : null}
 
@@ -534,11 +764,45 @@ export function ReceivableFormPage() {
       />
 
       <ConfirmDialog
+        open={settleInstallmentTarget != null}
+        title="Liquidar parcela?"
+        description={
+          settleInstallmentTarget
+            ? `Será registrado um pagamento cobrindo todo o saldo devedor (R$ ${settleInstallmentTarget.balance.toFixed(2).replace('.', ',')}) da parcela ${settleInstallmentTarget.installmentNumber}, transitando-a para PAGO.`
+            : ''
+        }
+        confirmText="Liquidar parcela"
+        confirmVariant="primary"
+        isLoading={settlingInst}
+        onConfirm={handleSettleInstallment}
+        onClose={() => {
+          if (!settlingInst) setSettleInstallmentTarget(null)
+        }}
+      />
+
+      <ConfirmDialog
+        open={generateOpen}
+        title="Gerar parcelas?"
+        description={
+          receivable?.paymentCondition
+            ? `A conta será particionada em parcelas a partir da condição de pagamento "${receivable.paymentCondition}". A parcela única atual (sem pagamentos) será substituída. Esta operação não pode ser desfeita a partir da UI.`
+            : 'A conta será particionada em parcelas a partir da condição de pagamento.'
+        }
+        confirmText="Gerar parcelas"
+        confirmVariant="primary"
+        isLoading={generating}
+        onConfirm={handleGenerateInstallments}
+        onClose={() => {
+          if (!generating) setGenerateOpen(false)
+        }}
+      />
+
+      <ConfirmDialog
         open={removePayTarget != null}
         title="Remover pagamento?"
         description={
           removePayTarget
-            ? `O pagamento de R$ ${formatBRLValue(removePayTarget.amount)} será removido e o saldo devedor recalculado.`
+            ? `O pagamento de R$ ${formatBRLValue(removePayTarget.amount)} será removido e o saldo devedor da parcela e da conta serão recalculados.`
             : ''
         }
         confirmText="Remover"
@@ -553,7 +817,7 @@ export function ReceivableFormPage() {
       <ConfirmDialog
         open={confirmCancel}
         title="Cancelar conta a receber?"
-        description="A conta será marcada como CANCELADA e poderá ser reativada depois."
+        description="A conta será marcada como CANCELADA e poderá ser reativada depois. As parcelas em aberto sem pagamentos também serão canceladas."
         confirmText="Cancelar conta"
         confirmVariant="danger"
         isLoading={toggling}

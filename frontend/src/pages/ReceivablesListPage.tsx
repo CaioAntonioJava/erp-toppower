@@ -20,7 +20,6 @@ import { Alert } from '../components/ui/Alert'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { ReceivableStatusBadge } from '../components/receivable/ReceivableStatusBadge'
 import { ReceivableReportsModal } from './ReceivableReportsPage'
-import { ReceivablePaymentModal } from '../components/receivable/ReceivablePaymentModal'
 import {
   activateReceivable,
   cancelReceivable,
@@ -103,7 +102,6 @@ export function ReceivablesListPage() {
   const [activateTarget, setActivateTarget] = useState<ReceivableSummaryResponse | null>(null)
   const [activating, setActivating] = useState(false)
   const [activateError, setActivateError] = useState<string | null>(null)
-  const [paymentTarget, setPaymentTarget] = useState<ReceivableSummaryResponse | null>(null)
   const [settleTarget, setSettleTarget] = useState<ReceivableSummaryResponse | null>(null)
   const [settling, setSettling] = useState(false)
   const [settleError, setSettleError] = useState<string | null>(null)
@@ -341,6 +339,11 @@ export function ReceivablesListPage() {
                         <div className="line-clamp-1 text-xs font-medium text-slate-900 dark:text-slate-100">
                           {r.sourceCode ?? r.description}
                         </div>
+                        {r.installmentsCount > 1 ? (
+                          <div className="text-xs text-slate-500 dark:text-slate-400">
+                            {r.installmentsCount} parcela(s)
+                          </div>
+                        ) : null}
                       </td>
                       <td className="px-4 py-3">
                         {r.clientName ? (
@@ -391,16 +394,17 @@ export function ReceivablesListPage() {
                       >
                         <div className="flex items-center justify-end gap-1">
                           {r.status === 'ABERTO' ? (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => setPaymentTarget(r)}
-                              title="Registrar pagamento"
-                              aria-label="Registrar pagamento"
-                              className="!text-emerald-600 hover:!text-emerald-600 dark:!text-emerald-500 dark:hover:!text-emerald-500"
-                            >
-                              <DollarSign className="h-4 w-4" />
-                            </Button>
+                            <Link to={`/receivables/${r.id}`}>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                title="Registrar pagamento"
+                                aria-label="Registrar pagamento"
+                                className="!text-emerald-600 hover:!text-emerald-600 dark:!text-emerald-500 dark:hover:!text-emerald-500"
+                              >
+                                <DollarSign className="h-4 w-4" />
+                              </Button>
+                            </Link>
                           ) : null}
                           {r.status === 'ABERTO' ? (
                             <Button
@@ -410,8 +414,8 @@ export function ReceivablesListPage() {
                                 setSettleError(null)
                                 setSettleTarget(r)
                               }}
-                              title="Liquidar saldo devedor"
-                              aria-label="Liquidar saldo devedor"
+                              title="Liquidar todas as parcelas abertas"
+                              aria-label="Liquidar todas as parcelas abertas"
                               className="!text-emerald-600 hover:!text-emerald-600 dark:!text-emerald-500 dark:hover:!text-emerald-500"
                             >
                               <CheckCircle2 className="h-4 w-4" />
@@ -476,13 +480,6 @@ export function ReceivablesListPage() {
         </div>
       </div>
 
-      <ReceivablePaymentModal
-        receivable={paymentTarget}
-        open={paymentTarget != null}
-        onClose={() => setPaymentTarget(null)}
-        onSuccess={() => reload()}
-      />
-
       <ConfirmDialog
         open={cancelTarget != null}
         title="Cancelar conta a receber?"
@@ -519,10 +516,10 @@ export function ReceivablesListPage() {
 
       <ConfirmDialog
         open={settleTarget != null}
-        title="Liquidar saldo devedor?"
+        title="Liquidar todas as parcelas abertas?"
         description={
           settleTarget
-            ? `Será registrado um pagamento cobrindo todo o saldo devedor de R$ ${settleTarget.balance.toFixed(2).replace('.', ',')} da conta "${settleTarget.description}", transitando-a para PAGO.`
+            ? `Serão registrados pagamentos cobrindo o saldo devedor de todas as parcelas ABERTO da conta "${settleTarget.description}" (saldo total R$ ${settleTarget.balance.toFixed(2).replace('.', ',')}), transitando-a para PAGO.`
             : ''
         }
         confirmText="Liquidar"
