@@ -4,20 +4,27 @@ import br.com.toppower.erp_toppower.common.dto.PagedResponse;
 import br.com.toppower.erp_toppower.company.repository.CompanyRepository;
 import br.com.toppower.erp_toppower.contract.entity.Contract;
 import br.com.toppower.erp_toppower.customer.repository.CustomerRepository;
+import br.com.toppower.erp_toppower.receivable.dto.GenerateInstallmentsRequest;
+import br.com.toppower.erp_toppower.receivable.dto.PreviewInstallmentsRequest;
 import br.com.toppower.erp_toppower.receivable.dto.ReceivableCreateRequest;
+import br.com.toppower.erp_toppower.receivable.dto.ReceivableInstallmentPreviewResponse;
+import br.com.toppower.erp_toppower.receivable.dto.ReceivableInstallmentRequest;
 import br.com.toppower.erp_toppower.receivable.dto.ReceivablePaymentRequest;
 import br.com.toppower.erp_toppower.receivable.dto.ReceivableResponse;
 import br.com.toppower.erp_toppower.receivable.dto.ReceivableSummaryResponse;
 import br.com.toppower.erp_toppower.receivable.dto.ReceivableUpdateRequest;
 import br.com.toppower.erp_toppower.receivable.entity.Receivable;
+import br.com.toppower.erp_toppower.receivable.entity.ReceivableInstallment;
 import br.com.toppower.erp_toppower.receivable.entity.ReceivablePayment;
 import br.com.toppower.erp_toppower.receivable.enums.ReceivableSource;
 import br.com.toppower.erp_toppower.receivable.enums.ReceivableStatus;
 import br.com.toppower.erp_toppower.receivable.exception.InvalidReceivableClientException;
 import br.com.toppower.erp_toppower.receivable.exception.ReceivableBusinessException;
+import br.com.toppower.erp_toppower.receivable.exception.ReceivableInstallmentNotFoundException;
 import br.com.toppower.erp_toppower.receivable.exception.ReceivableNotFoundException;
 import br.com.toppower.erp_toppower.receivable.exception.ReceivablePaymentNotFoundException;
 import br.com.toppower.erp_toppower.receivable.mapper.ReceivableMapper;
+import br.com.toppower.erp_toppower.receivable.repository.ReceivableInstallmentRepository;
 import br.com.toppower.erp_toppower.receivable.repository.ReceivablePaymentRepository;
 import br.com.toppower.erp_toppower.receivable.repository.ReceivableRepository;
 import br.com.toppower.erp_toppower.sales.quotation.enums.PaymentCondition;
@@ -32,6 +39,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,14 +50,20 @@ import java.util.Optional;
  *
  * <p>Responsabilidades principais:</p>
  * <ul>
- *   <li>CRUD manual (create, list, getById, update, cancelar, reativar);</li>
- *   <li>Registro e remoção de pagamentos avulsos, com recálculo automático
- *       do {@code paidAmount} e do status (ABERTO ↔ PAGO);</li>
- *   <li>Geração automática de contas a partir de documentos de origem
- *       (pedido de venda, proposta técnica, contrato);</li>
- *   <li>Cancelamento defensivo da conta vinculada quando um documento
- *       de origem é reaberto — bloqueando a reabertura se a conta já
- *       tiver pagamentos registrados.</li>
+ *   <li>CRUD manual (create, search, getById, update, cancelar, reativar);</li>
+ *   <li>Geração automática de parcelas programadas a partir da condição
+ *       de pagamento (quando as parcelas explícitas não são informadas)
+ *       ou uso das parcelas explícitas informadas pelo usuário;</li>
+ *   <li>Ação pós-criação "Gerar parcelas" para particionar uma conta
+ *       de parcela única em múltiplas parcelas a partir da condição;</li>
+ *   <li>Preview de parcelas (cálculo puro, sem persistir);</li>
+ *   <li>Registro e remoção de pagamentos avulsos contra parcelas, com
+ *       recálculo automático do {@code paidAmount} da parcela, do
+ *       {@code paidAmount} da conta e dos status (parcela → PAGO quando
+ *       quitada; conta → PAGO quando todas as parcelas quitadas);</li>
+ *   <li>Baixa total de uma parcela ou de todas as parcelas abertas;</li>
+ *   <li>Geração automática de conta a receber a partir de documentos de
+ *       origem (pedido de venda, proposta técnica, contrato).</li>
  * </ul>
  */
 @Service
@@ -57,17 +71,21 @@ public class ReceivableService {
 
     private static final Logger log = LoggerFactory.getLogger(ReceivableService.class);
     private static final int MIN_SEARCH_QUERY_LENGTH = 2;
+    private static final int SCALE = 2;
 
     private final ReceivableRepository repository;
+    private final ReceivableInstallmentRepository installmentRepository;
     private final ReceivablePaymentRepository paymentRepository;
     private final CustomerRepository customerRepository;
     private final CompanyRepository companyRepository;
 
     public ReceivableService(ReceivableRepository repository,
+                             ReceivableInstallmentRepository installmentRepository,
                              ReceivablePaymentRepository paymentRepository,
                              CustomerRepository customerRepository,
                              CompanyRepository companyRepository) {
         this.repository = repository;
+        this.installmentRepository = installmentRepository;
         this.paymentRepository = paymentRepository;
         this.customerRepository = customerRepository;
         this.companyRepository = companyRepository;
@@ -81,8 +99,25 @@ public class ReceivableService {
     public ReceivableResponse create(ReceivableCreateRequest request) {
         validateClientReference(request.customerId(), request.companyId(), true);
         Receivable r = ReceivableMapper.toEntity(request);
+        if (request.issueDate() != null) {
+            // issueDate não é persistido na entidade (não há coluna), mas
+            // é usado como base para o cálculo dos vencimentos das parcelas
+            // automáticas. Para manter o vencimento-base coerente quando o
+            // usuário informar issueDate, recalculamos dueDate abaixo.
+        }
         Receivable saved = repository.save(r);
-        return toResponseWithPayments(saved);
+
+        List<ReceivableInstallment> installments = buildInstallments(saved, request);
+        // Valida coerência: soma das parcelas == value.
+        validateInstallmentSum(installments, saved.getValue());
+        installmentRepository.saveAll(installments);
+        saved.setInstallmentsCount(installments.size());
+        // Ajusta o vencimento-base para a primeira parcela (garante
+        // coerência quando o usuário informou dueDate divergente da
+        // primeira parcela explícita).
+        saved.setDueDate(installments.get(0).getDueDate());
+        Receivable persisted = repository.save(saved);
+        return toResponseWithDetails(persisted);
     }
 
     // ---------------------------------------------------------------------
@@ -151,7 +186,7 @@ public class ReceivableService {
     @Transactional(readOnly = true)
     public ReceivableResponse getById(Long id) {
         return repository.findById(id)
-                .map(this::toResponseWithPayments)
+                .map(this::toResponseWithDetails)
                 .orElseThrow(() -> new ReceivableNotFoundException(id));
     }
 
@@ -172,12 +207,12 @@ public class ReceivableService {
         }
         ReceivableMapper.applyUpdate(r, request);
         Receivable saved = repository.save(r);
-        return toResponseWithPayments(saved);
+        return toResponseWithDetails(saved);
     }
 
     /**
-     * Soft delete: marca a conta como CANCELADA. Bloqueada para contas
-     * PAGO (precisa reabrir/manter conforme necessário).
+     * Soft delete: marca a conta como CANCELADA. Cancela também as
+     * parcelas ABERTO (sem pagamentos). Bloqueada para contas PAGO.
      */
     @Transactional
     public void cancel(Long id) {
@@ -188,11 +223,24 @@ public class ReceivableService {
         }
         r.setStatus(ReceivableStatus.CANCELADO);
         repository.save(r);
+        // Cancela parcelas ainda ABERTO (sem pagamentos registrados).
+        List<ReceivableInstallment> installments =
+                installmentRepository.findByReceivableIdOrderByInstallmentNumberAsc(id);
+        for (ReceivableInstallment inst : installments) {
+            if (inst.getStatus() == ReceivableStatus.ABERTO) {
+                BigDecimal paid = paymentRepository.sumAmountByInstallmentId(inst.getId());
+                if (paid == null || paid.signum() <= 0) {
+                    inst.setStatus(ReceivableStatus.CANCELADO);
+                    installmentRepository.save(inst);
+                }
+            }
+        }
     }
 
     /**
      * Reativa uma conta CANCELADA, voltando para ABERTO. Recalcula o
-     * status com base no paidAmount (volta para PAGO se já quitada).
+     * status com base nos pagamentos (volta para PAGO se já quitada).
+     * Reativa também as parcelas CANCELADAS sem pagamentos.
      */
     @Transactional
     public ReceivableResponse activate(Long id) {
@@ -203,47 +251,169 @@ public class ReceivableService {
                     "Apenas contas CANCELADAS podem ser reativadas. Status atual: "
                             + r.getStatus());
         }
-        recomputeStatusFromPayments(r);
+        // Reativa parcelas CANCELADAS sem pagamentos.
+        List<ReceivableInstallment> installments =
+                installmentRepository.findByReceivableIdOrderByInstallmentNumberAsc(id);
+        for (ReceivableInstallment inst : installments) {
+            if (inst.getStatus() == ReceivableStatus.CANCELADO) {
+                BigDecimal paid = paymentRepository.sumAmountByInstallmentId(inst.getId());
+                if (paid == null || paid.signum() <= 0) {
+                    inst.setStatus(ReceivableStatus.ABERTO);
+                    installmentRepository.save(inst);
+                }
+            }
+        }
+        recomputeReceivableState(r);
         Receivable saved = repository.save(r);
-        return toResponseWithPayments(saved);
+        return toResponseWithDetails(saved);
     }
 
     // ---------------------------------------------------------------------
-    // Pagamentos
+    // Parcelas — ação pós-criação "Gerar parcelas"
     // ---------------------------------------------------------------------
 
     /**
-     * Registra um pagamento avulso contra a conta. Recalcula paidAmount e
-     * transita para PAGO quando o saldo devedor zera.
+     * Gera parcelas programadas em uma conta a receber existente,
+     * particionando o valor total. Ação disparada pelo botão "Gerar
+     * parcelas" na UI.
+     *
+     * <p>Pré-requisitos (validados):</p>
+     * <ul>
+     *   <li>Conta ABERTO;</li>
+     *   <li>{@code installmentsCount == 1} (não pode já ser parcelada);</li>
+     *   <li>{@code paidAmount == 0} e nenhum pagamento registrado;</li>
+     *   <li>Condição de pagamento informada (no request ou na conta) OU
+     *       parcelas explícitas no request.</li>
+     * </ul>
      */
     @Transactional
-    public ReceivableResponse registerPayment(Long receivableId, ReceivablePaymentRequest request) {
+    public ReceivableResponse generateInstallments(Long receivableId,
+                                                   GenerateInstallmentsRequest request) {
         Receivable r = repository.findById(receivableId)
                 .orElseThrow(() -> new ReceivableNotFoundException(receivableId));
         if (r.getStatus() != ReceivableStatus.ABERTO) {
-            throw ReceivableBusinessException.notOpenForPayment();
+            throw ReceivableBusinessException.cannotGenerateInstallments(
+                    "a conta deve estar ABERTO (status atual: " + r.getStatus() + ").");
+        }
+        if (r.getInstallmentsCount() > 1) {
+            throw ReceivableBusinessException.cannotGenerateInstallments(
+                    "a conta já possui " + r.getInstallmentsCount() + " parcelas.");
+        }
+        BigDecimal alreadyPaid = paymentRepository.sumAmountByReceivableId(receivableId);
+        if (alreadyPaid != null && alreadyPaid.signum() > 0) {
+            throw ReceivableBusinessException.cannotGenerateInstallments(
+                    "a conta já possui pagamentos registrados.");
         }
 
-        BigDecimal currentPaid = (r.getPaidAmount() != null) ? r.getPaidAmount() : BigDecimal.ZERO;
-        BigDecimal balance = r.getValue().subtract(currentPaid);
-        if (request.amount().compareTo(balance) > 0) {
-            throw ReceivableBusinessException.paymentExceedsBalance(request.amount(), balance);
+        LocalDate baseDate = (request.baseDate() != null)
+                ? request.baseDate()
+                : r.getDueDate();
+
+        List<ReceivableInstallment> newInstallments;
+        if (request.installments() != null && !request.installments().isEmpty()) {
+            // Parcelas explícitas informadas no request.
+            newInstallments = buildExplicitInstallments(r, request.installments());
+        } else if (request.paymentCondition() != null) {
+            // Condição informada no request sobrescreve a da conta.
+            newInstallments = buildInstallmentsFromCondition(r, request.paymentCondition(), baseDate);
+        } else if (r.getPaymentCondition() != null) {
+            // Usa a condição persistida na conta.
+            newInstallments = buildInstallmentsFromCondition(r, r.getPaymentCondition(), baseDate);
+        } else {
+            throw ReceivableBusinessException.cannotGenerateInstallments(
+                    "informe a condição de pagamento ou as parcelas explícitas.");
         }
+        validateInstallmentSum(newInstallments, r.getValue());
 
-        ReceivablePayment payment = ReceivableMapper.toPaymentEntity(receivableId, request);
-        paymentRepository.save(payment);
+        // Remove a parcela única original (sempre nº 1, ABERTO, sem
+        // pagamentos — validado acima) e persiste as novas.
+        List<ReceivableInstallment> existing =
+                installmentRepository.findByReceivableIdOrderByInstallmentNumberAsc(receivableId);
+        for (ReceivableInstallment old : existing) {
+            installmentRepository.delete(old);
+        }
+        installmentRepository.flush();
+        installmentRepository.saveAll(newInstallments);
 
-        recomputePaidAmount(r);
-        recomputeStatusFromPayments(r);
-        recomputePaymentDate(r);
-
+        r.setInstallmentsCount(newInstallments.size());
+        r.setDueDate(newInstallments.get(0).getDueDate());
+        if (request.paymentCondition() != null) {
+            r.setPaymentCondition(request.paymentCondition());
+        }
         Receivable saved = repository.save(r);
-        return toResponseWithPayments(saved);
+        return toResponseWithDetails(saved);
     }
 
     /**
-     * Remove um pagamento e recalcula paidAmount/status. Se a conta volta
-     * a ter saldo devedor, status vira ABERTO novamente.
+     * Preview de parcelas que seriam geradas a partir de uma condição de
+     * pagamento e um valor total. Não persiste — apenas calcula.
+     */
+    public List<ReceivableInstallmentPreviewResponse> previewInstallments(
+            PreviewInstallmentsRequest request) {
+        LocalDate baseDate = (request.baseDate() != null) ? request.baseDate() : LocalDate.now();
+        List<Integer> terms = PaymentConditionTerms.terms(request.paymentCondition());
+        List<ReceivableInstallment> projected = buildInstallmentsFromTerms(
+                request.value(), terms, baseDate, null);
+        return projected.stream()
+                .map(i -> new ReceivableInstallmentPreviewResponse(
+                        i.getInstallmentNumber(), i.getAmount(), i.getDueDate()))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReceivableInstallment> listInstallments(Long receivableId) {
+        if (!repository.existsById(receivableId)) {
+            throw new ReceivableNotFoundException(receivableId);
+        }
+        return installmentRepository.findByReceivableIdOrderByInstallmentNumberAsc(receivableId);
+    }
+
+    // ---------------------------------------------------------------------
+    // Pagamentos (contra parcelas)
+    // ---------------------------------------------------------------------
+
+    /**
+     * Registra um pagamento avulso contra uma parcela. Recalcula o
+     * paidAmount e status da parcela, e em cascata o paidAmount e
+     * status da conta pai.
+     */
+    @Transactional
+    public ReceivableResponse registerPayment(Long receivableId,
+                                              Long installmentId,
+                                              ReceivablePaymentRequest request) {
+        Receivable r = repository.findById(receivableId)
+                .orElseThrow(() -> new ReceivableNotFoundException(receivableId));
+        if (r.getStatus() != ReceivableStatus.ABERTO) {
+            throw ReceivableBusinessException.installmentNotOpenForPayment();
+        }
+        ReceivableInstallment inst = installmentRepository
+                .findByIdAndReceivableId(installmentId, receivableId)
+                .orElseThrow(() -> new ReceivableInstallmentNotFoundException(installmentId, receivableId));
+        if (inst.getStatus() != ReceivableStatus.ABERTO) {
+            throw ReceivableBusinessException.installmentNotOpenForPayment();
+        }
+
+        BigDecimal currentPaid = (inst.getPaidAmount() != null) ? inst.getPaidAmount() : BigDecimal.ZERO;
+        BigDecimal balance = inst.getAmount().subtract(currentPaid);
+        if (request.amount().compareTo(balance) > 0) {
+            throw ReceivableBusinessException.paymentExceedsInstallmentBalance(request.amount(), balance);
+        }
+
+        ReceivablePayment payment = ReceivableMapper.toPaymentEntity(receivableId, installmentId, request);
+        paymentRepository.save(payment);
+
+        recomputeInstallmentState(inst);
+        recomputeReceivableState(r);
+
+        installmentRepository.save(inst);
+        Receivable saved = repository.save(r);
+        return toResponseWithDetails(saved);
+    }
+
+    /**
+     * Remove um pagamento e recalcula paidAmount/status da parcela e
+     * da conta. A conta/parcela podem voltar para ABERTO se houver
+     * saldo devedor novamente.
      */
     @Transactional
     public ReceivableResponse removePayment(Long receivableId, Long paymentId) {
@@ -255,50 +425,98 @@ public class ReceivableService {
         }
         ReceivablePayment payment = paymentRepository.findByIdAndReceivableId(paymentId, receivableId)
                 .orElseThrow(() -> new ReceivablePaymentNotFoundException(paymentId, receivableId));
+        Long installmentId = payment.getInstallmentId();
         paymentRepository.delete(payment);
         paymentRepository.flush();
 
-        recomputePaidAmount(r);
-        recomputeStatusFromPayments(r);
-        recomputePaymentDate(r);
+        if (installmentId != null) {
+            installmentRepository.findById(installmentId).ifPresent(this::recomputeInstallmentState);
+        }
+        recomputeReceivableState(r);
 
         Receivable saved = repository.save(r);
-        return toResponseWithPayments(saved);
+        return toResponseWithDetails(saved);
     }
 
     /**
-     * Liquida todo o saldo devedor da conta em um único pagamento,
-     * transita para PAGO. Rejeita contas que não estejam ABERTO e
-     * contas sem saldo devedor (totalmente quitadas).
+     * Liquida todo o saldo devedor de uma parcela em um único pagamento,
+     * transitando-a para PAGO. Rejeita parcelas que não estejam ABERTO
+     * ou que já estejam quitadas.
+     */
+    @Transactional
+    public ReceivableResponse settleInstallment(Long receivableId, Long installmentId) {
+        Receivable r = repository.findById(receivableId)
+                .orElseThrow(() -> new ReceivableNotFoundException(receivableId));
+        if (r.getStatus() != ReceivableStatus.ABERTO) {
+            throw ReceivableBusinessException.installmentNotOpenForPayment();
+        }
+        ReceivableInstallment inst = installmentRepository
+                .findByIdAndReceivableId(installmentId, receivableId)
+                .orElseThrow(() -> new ReceivableInstallmentNotFoundException(installmentId, receivableId));
+        if (inst.getStatus() != ReceivableStatus.ABERTO) {
+            throw ReceivableBusinessException.installmentNotOpenForPayment();
+        }
+
+        BigDecimal currentPaid = (inst.getPaidAmount() != null) ? inst.getPaidAmount() : BigDecimal.ZERO;
+        BigDecimal balance = inst.getAmount().subtract(currentPaid);
+        if (balance.signum() <= 0) {
+            throw new ReceivableBusinessException(
+                    "A parcela não possui saldo devedor a liquidar.");
+        }
+
+        ReceivablePayment payment = new ReceivablePayment();
+        payment.setReceivableId(receivableId);
+        payment.setInstallmentId(installmentId);
+        payment.setAmount(balance);
+        payment.setPaymentDate(LocalDate.now());
+        payment.setNotes("Liquidação automática do saldo da parcela.");
+        paymentRepository.save(payment);
+
+        recomputeInstallmentState(inst);
+        recomputeReceivableState(r);
+
+        installmentRepository.save(inst);
+        Receivable saved = repository.save(r);
+        return toResponseWithDetails(saved);
+    }
+
+    /**
+     * Baixa todas as parcelas ABERTO de uma conta em um único passo,
+     * transitando a conta para PAGO. Rejeita contas que não estejam
+     * ABERTO.
      */
     @Transactional
     public ReceivableResponse settle(Long receivableId) {
         Receivable r = repository.findById(receivableId)
                 .orElseThrow(() -> new ReceivableNotFoundException(receivableId));
         if (r.getStatus() != ReceivableStatus.ABERTO) {
-            throw ReceivableBusinessException.notOpenForPayment();
+            throw ReceivableBusinessException.installmentNotOpenForPayment();
         }
-
-        BigDecimal currentPaid = (r.getPaidAmount() != null) ? r.getPaidAmount() : BigDecimal.ZERO;
-        BigDecimal balance = r.getValue().subtract(currentPaid);
-        if (balance.signum() <= 0) {
-            throw new ReceivableBusinessException(
-                    "A conta não possui saldo devedor a liquidar.");
+        List<ReceivableInstallment> installments =
+                installmentRepository.findByReceivableIdOrderByInstallmentNumberAsc(receivableId);
+        LocalDate today = LocalDate.now();
+        for (ReceivableInstallment inst : installments) {
+            if (inst.getStatus() != ReceivableStatus.ABERTO) {
+                continue;
+            }
+            BigDecimal currentPaid = (inst.getPaidAmount() != null) ? inst.getPaidAmount() : BigDecimal.ZERO;
+            BigDecimal balance = inst.getAmount().subtract(currentPaid);
+            if (balance.signum() <= 0) {
+                continue;
+            }
+            ReceivablePayment payment = new ReceivablePayment();
+            payment.setReceivableId(receivableId);
+            payment.setInstallmentId(inst.getId());
+            payment.setAmount(balance);
+            payment.setPaymentDate(today);
+            payment.setNotes("Liquidação automática do saldo da parcela.");
+            paymentRepository.save(payment);
+            recomputeInstallmentState(inst);
+            installmentRepository.save(inst);
         }
-
-        ReceivablePayment payment = new ReceivablePayment();
-        payment.setReceivableId(receivableId);
-        payment.setAmount(balance);
-        payment.setPaymentDate(LocalDate.now());
-        payment.setNotes("Liquidação automática do saldo devedor.");
-        paymentRepository.save(payment);
-
-        recomputePaidAmount(r);
-        recomputeStatusFromPayments(r);
-        recomputePaymentDate(r);
-
+        recomputeReceivableState(r);
         Receivable saved = repository.save(r);
-        return toResponseWithPayments(saved);
+        return toResponseWithDetails(saved);
     }
 
     @Transactional(readOnly = true)
@@ -318,7 +536,7 @@ public class ReceivableService {
      * conversão de proposta em pedido). Usa o total do pedido (recebido
      * como parâmetro, pois é um campo {@code @Transient} calculado em
      * memória pelo SalesOrderService) e a condição de pagamento (enum)
-     * para o vencimento.
+     * para gerar as parcelas programadas.
      */
     @Transactional
     public Optional<Receivable> generateFromSalesOrder(SalesOrder order, BigDecimal total) {
@@ -347,9 +565,15 @@ public class ReceivableService {
         r.setSalesOrderCode(order.formattedCode());
         r.setPaymentCondition(order.getPaymentCondition());
         LocalDate base = (order.getOrderDate() != null) ? order.getOrderDate() : LocalDate.now();
-        int days = PaymentConditionParser.firstTermDays(order.getPaymentCondition());
-        r.setDueDate(base.plusDays(days));
-        return Optional.of(repository.save(r));
+        r.setDueDate(base); // ajustado abaixo para a 1ª parcela
+        Receivable saved = repository.save(r);
+
+        List<Integer> terms = PaymentConditionTerms.terms(order.getPaymentCondition());
+        List<ReceivableInstallment> installments = buildInstallmentsFromTerms(total, terms, base, saved.getId());
+        installmentRepository.saveAll(installments);
+        saved.setInstallmentsCount(installments.size());
+        saved.setDueDate(installments.get(0).getDueDate());
+        return Optional.of(repository.save(saved));
     }
 
     /**
@@ -383,9 +607,16 @@ public class ReceivableService {
         r.setTechnicalProposalId(proposal.getId());
         r.setTechnicalProposalCode(proposal.formattedCode());
         r.setPaymentCondition(proposal.getPaymentCondition());
-        int days = PaymentConditionParser.firstTermDays(proposal.getPaymentCondition());
-        r.setDueDate(LocalDate.now().plusDays(days));
-        return Optional.of(repository.save(r));
+        LocalDate base = LocalDate.now();
+        r.setDueDate(base);
+        Receivable saved = repository.save(r);
+
+        List<Integer> terms = PaymentConditionTerms.terms(proposal.getPaymentCondition());
+        List<ReceivableInstallment> installments = buildInstallmentsFromTerms(total, terms, base, saved.getId());
+        installmentRepository.saveAll(installments);
+        saved.setInstallmentsCount(installments.size());
+        saved.setDueDate(installments.get(0).getDueDate());
+        return Optional.of(repository.save(saved));
     }
 
     /**
@@ -416,10 +647,22 @@ public class ReceivableService {
         r.setCompanyId(contract.getCompanyId());
         r.setContractId(contract.getId());
         r.setContractCode(contract.formattedCode());
-        // Contrato não possui paymentCondition — fallback 30 dias.
-        int days = PaymentConditionParser.firstTermDays((String) null);
-        r.setDueDate(LocalDate.now().plusDays(days));
-        return Optional.of(repository.save(r));
+        // Contrato pode ter paymentCondition (V24) ou não — fallback 30 dias.
+        PaymentCondition condition = contract.getPaymentCondition();
+        r.setPaymentCondition(condition);
+        LocalDate base = LocalDate.now();
+        r.setDueDate(base);
+        Receivable saved = repository.save(r);
+
+        List<Integer> terms = (condition != null)
+                ? PaymentConditionTerms.terms(condition)
+                : PaymentConditionTerms.terms((PaymentCondition) null);
+        List<ReceivableInstallment> installments = buildInstallmentsFromTerms(
+                contract.getPrice(), terms, base, saved.getId());
+        installmentRepository.saveAll(installments);
+        saved.setInstallmentsCount(installments.size());
+        saved.setDueDate(installments.get(0).getDueDate());
+        return Optional.of(repository.save(saved));
     }
 
     /**
@@ -457,54 +700,186 @@ public class ReceivableService {
     }
 
     // ---------------------------------------------------------------------
-    // Helpers
+    // Helpers — recálculo de estado
     // ---------------------------------------------------------------------
 
     /**
-     * Recalcula {@code paidAmount} a partir da soma dos pagamentos no banco.
+     * Recalcula paidAmount, status e paymentDate da parcela a partir
+     * dos pagamentos vinculados. Não altera CANCELADO.
      */
-    private void recomputePaidAmount(Receivable r) {
-        BigDecimal sum = paymentRepository.sumAmountByReceivableId(r.getId());
-        r.setPaidAmount(sum != null ? sum : BigDecimal.ZERO);
+    private void recomputeInstallmentState(ReceivableInstallment inst) {
+        if (inst.getStatus() == ReceivableStatus.CANCELADO) {
+            return;
+        }
+        BigDecimal sum = paymentRepository.sumAmountByInstallmentId(inst.getId());
+        inst.setPaidAmount(sum != null ? sum : BigDecimal.ZERO);
+        if (inst.getPaidAmount().compareTo(inst.getAmount()) >= 0) {
+            inst.setStatus(ReceivableStatus.PAGO);
+        } else {
+            inst.setStatus(ReceivableStatus.ABERTO);
+        }
+        // paymentDate da parcela = data do pagamento mais recente.
+        List<ReceivablePayment> payments =
+                paymentRepository.findByInstallmentIdOrderByPaymentDateAsc(inst.getId());
+        if (payments.isEmpty()) {
+            inst.setPaymentDate(null);
+        } else {
+            inst.setPaymentDate(payments.get(payments.size() - 1).getPaymentDate());
+        }
     }
 
     /**
-     * Ajusta o status com base no paidAmount. PAGO quando
-     * {@code paidAmount >= value}; ABERTO caso contrário. Não altera
-     * CANCELADO (apenas {@link #activate} sai de CANCELADO).
+     * Recalcula paidAmount, status e paymentDate da conta a partir das
+     * parcelas. Não altera CANCELADO. A conta transita para PAGO
+     * apenas quando <b>todas</b> as parcelas estão PAGO (ou seja, não
+     * há parcelas ABERTO).
      */
-    private void recomputeStatusFromPayments(Receivable r) {
+    private void recomputeReceivableState(Receivable r) {
         if (r.getStatus() == ReceivableStatus.CANCELADO) {
             return;
         }
-        BigDecimal paid = (r.getPaidAmount() != null) ? r.getPaidAmount() : BigDecimal.ZERO;
-        if (paid.compareTo(r.getValue()) >= 0) {
-            r.setStatus(ReceivableStatus.PAGO);
-        } else {
-            r.setStatus(ReceivableStatus.ABERTO);
+        BigDecimal sum = paymentRepository.sumAmountByReceivableId(r.getId());
+        r.setPaidAmount(sum != null ? sum : BigDecimal.ZERO);
+        List<ReceivableInstallment> installments =
+                installmentRepository.findByReceivableIdOrderByInstallmentNumberAsc(r.getId());
+        boolean anyOpen = installments.stream()
+                .anyMatch(i -> i.getStatus() == ReceivableStatus.ABERTO);
+        r.setStatus(anyOpen ? ReceivableStatus.ABERTO : ReceivableStatus.PAGO);
+        // paymentDate da conta = data do pagamento mais recente entre
+        // todas as parcelas.
+        LocalDate latest = installments.stream()
+                .map(ReceivableInstallment::getPaymentDate)
+                .filter(java.util.Objects::nonNull)
+                .max(LocalDate::compareTo)
+                .orElse(null);
+        r.setPaymentDate(latest);
+    }
+
+    // ---------------------------------------------------------------------
+    // Helpers — geração de parcelas
+    // ---------------------------------------------------------------------
+
+    /**
+     * Constrói as parcelas programadas conforme o request de criação:
+     * <ul>
+     *   <li>Se {@code installments} explícitas informadas → usa-as
+     *       diretamente;</li>
+     *   <li>Se {@code paymentCondition} informada e sem parcelas
+     *       explícitas → gera parcelas automáticas a partir dos prazos
+     *       da condição (ex.: PARCELAS_30_60_90 → 3 parcelas com
+     *       vencimentos base+30, base+60, base+90), distribuindo o
+     *       valor igualmente com residual na última;</li>
+     *   <li>Caso contrário → 1 parcela (à vista) com valor total e
+     *       vencimento-base.</li>
+     * </ul>
+     */
+    private List<ReceivableInstallment> buildInstallments(Receivable receivable,
+                                                          ReceivableCreateRequest request) {
+        List<ReceivableInstallmentRequest> raw = request.installments();
+        if (raw != null && !raw.isEmpty()) {
+            return buildExplicitInstallments(receivable, raw);
         }
+        if (request.paymentCondition() != null) {
+            List<Integer> terms = PaymentConditionTerms.terms(request.paymentCondition());
+            if (terms.size() > 1) {
+                LocalDate base = (request.issueDate() != null) ? request.issueDate() : LocalDate.now();
+                return buildInstallmentsFromTerms(receivable.getValue(), terms, base, receivable.getId());
+            }
+        }
+        return ReceivableMapper.toInstallments(receivable.getId(), request);
     }
 
     /**
-     * Atualiza {@code paymentDate} com a data do pagamento mais recente
-     * (ou null se não houver pagamentos).
+     * Materializa parcelas explícitas informadas no request (criação ou
+     * geração pós-criação). Preserva valores e vencimentos informados.
      */
-    private void recomputePaymentDate(Receivable r) {
-        List<ReceivablePayment> payments =
-                paymentRepository.findByReceivableIdOrderByPaymentDateAsc(r.getId());
-        if (payments.isEmpty()) {
-            r.setPaymentDate(null);
-        } else {
-            r.setPaymentDate(payments.get(payments.size() - 1).getPaymentDate());
+    private List<ReceivableInstallment> buildExplicitInstallments(Receivable receivable,
+                                                                  List<ReceivableInstallmentRequest> raw) {
+        List<ReceivableInstallment> result = new ArrayList<>(raw.size());
+        int n = 1;
+        for (ReceivableInstallmentRequest r : raw) {
+            ReceivableInstallment inst = new ReceivableInstallment();
+            inst.setReceivableId(receivable.getId());
+            inst.setInstallmentNumber(n++);
+            inst.setAmount(r.amount());
+            inst.setDueDate(r.dueDate());
+            inst.setPaidAmount(BigDecimal.ZERO);
+            inst.setStatus(ReceivableStatus.ABERTO);
+            result.add(inst);
+        }
+        return result;
+    }
+
+    /**
+     * Gera parcelas a partir de uma condição de pagamento, usando
+     * {@link PaymentConditionTerms#terms(PaymentCondition)} para obter
+     * os prazos (em dias). Distribui o valor total igualmente, com o
+     * residual absorvido pela última parcela.
+     */
+    private List<ReceivableInstallment> buildInstallmentsFromCondition(Receivable receivable,
+                                                                       PaymentCondition condition,
+                                                                       LocalDate baseDate) {
+        List<Integer> terms = PaymentConditionTerms.terms(condition);
+        return buildInstallmentsFromTerms(receivable.getValue(), terms, baseDate, receivable.getId());
+    }
+
+    /**
+     * Gera parcelas a partir de uma lista de prazos (em dias),
+     * distribuindo o valor total igualmente, com o residual absorvido
+     * pela última parcela para que a soma bata exatamente com o valor.
+     */
+    private List<ReceivableInstallment> buildInstallmentsFromTerms(BigDecimal total,
+                                                                   List<Integer> terms,
+                                                                   LocalDate baseDate,
+                                                                   Long receivableId) {
+        int n = terms.size();
+        if (n <= 0) {
+            n = 1;
+            terms = List.of(PaymentConditionTerms.DEFAULT_DAYS);
+        }
+        BigDecimal baseShare = total.divide(BigDecimal.valueOf(n), SCALE, RoundingMode.HALF_UP);
+        BigDecimal accumulated = BigDecimal.ZERO;
+        List<ReceivableInstallment> result = new ArrayList<>(n);
+        for (int i = 0; i < n; i++) {
+            ReceivableInstallment inst = new ReceivableInstallment();
+            inst.setReceivableId(receivableId);
+            inst.setInstallmentNumber(i + 1);
+            // Última parcela absorve o residual de arredondamento.
+            if (i == n - 1) {
+                inst.setAmount(total.subtract(accumulated));
+            } else {
+                inst.setAmount(baseShare);
+                accumulated = accumulated.add(baseShare);
+            }
+            inst.setDueDate(baseDate.plusDays(terms.get(i)));
+            inst.setPaidAmount(BigDecimal.ZERO);
+            inst.setStatus(ReceivableStatus.ABERTO);
+            result.add(inst);
+        }
+        return result;
+    }
+
+    /**
+     * Valida que a soma dos valores das parcelas bate com o valor total
+     * da conta. Tolerância de 1 centavo para diferenças de arredondamento
+     * quando o usuário informou parcelas explícitas (não esperado, mas
+     * possível em entradas manuais).
+     */
+    private void validateInstallmentSum(List<ReceivableInstallment> installments, BigDecimal total) {
+        BigDecimal sum = installments.stream()
+                .map(ReceivableInstallment::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal diff = sum.subtract(total).abs();
+        if (diff.compareTo(new BigDecimal("0.01")) > 0) {
+            throw new ReceivableBusinessException(
+                    "A soma das parcelas (" + sum + ") não bate com o valor total da conta ("
+                            + total + "). Diferença: " + diff + ".");
         }
     }
 
-    private ReceivableResponse toResponseWithPayments(Receivable r) {
-        List<ReceivablePayment> payments =
-                paymentRepository.findByReceivableIdOrderByPaymentDateAsc(r.getId());
-        ClientResolved client = resolveClient(r);
-        return ReceivableMapper.toResponse(r, client.name(), client.code(), payments);
-    }
+    // ---------------------------------------------------------------------
+    // Helpers — validação e resolução de cliente
+    // ---------------------------------------------------------------------
 
     private void validateClientReference(Long customerId, Long companyId, boolean verifyExists) {
         if (customerId == null && companyId == null) {
@@ -543,6 +918,15 @@ public class ReceivableService {
                     .orElse(ClientResolved.EMPTY);
         }
         return ClientResolved.EMPTY;
+    }
+
+    private ReceivableResponse toResponseWithDetails(Receivable r) {
+        List<ReceivableInstallment> installments =
+                installmentRepository.findByReceivableIdOrderByInstallmentNumberAsc(r.getId());
+        List<ReceivablePayment> payments =
+                paymentRepository.findByReceivableIdOrderByPaymentDateAsc(r.getId());
+        ClientResolved client = resolveClient(r);
+        return ReceivableMapper.toResponse(r, client.name(), client.code(), installments, payments);
     }
 
     private record ClientResolved(String name, String code) {

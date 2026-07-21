@@ -1,12 +1,17 @@
 package br.com.toppower.erp_toppower.receivable.controller;
 
 import br.com.toppower.erp_toppower.common.dto.PagedResponse;
+import br.com.toppower.erp_toppower.receivable.dto.GenerateInstallmentsRequest;
+import br.com.toppower.erp_toppower.receivable.dto.PreviewInstallmentsRequest;
 import br.com.toppower.erp_toppower.receivable.dto.ReceivableCreateRequest;
+import br.com.toppower.erp_toppower.receivable.dto.ReceivableInstallmentPreviewResponse;
+import br.com.toppower.erp_toppower.receivable.dto.ReceivableInstallmentResponse;
 import br.com.toppower.erp_toppower.receivable.dto.ReceivablePaymentRequest;
 import br.com.toppower.erp_toppower.receivable.dto.ReceivablePaymentResponse;
 import br.com.toppower.erp_toppower.receivable.dto.ReceivableResponse;
 import br.com.toppower.erp_toppower.receivable.dto.ReceivableSummaryResponse;
 import br.com.toppower.erp_toppower.receivable.dto.ReceivableUpdateRequest;
+import br.com.toppower.erp_toppower.receivable.entity.ReceivableInstallment;
 import br.com.toppower.erp_toppower.receivable.entity.ReceivablePayment;
 import br.com.toppower.erp_toppower.receivable.enums.ReceivableSource;
 import br.com.toppower.erp_toppower.receivable.enums.ReceivableStatus;
@@ -41,13 +46,17 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/accounts-receivable")
 @RequiredArgsConstructor
 @Tag(name = "Contas a Receber",
-        description = "Cadastro e gestão de contas a receber, com pagamentos parciais e geração "
-                + "automática a partir de pedidos de venda, propostas técnicas e contratos.")
+        description = "Cadastro e gestão de contas a receber, com parcelas programadas, pagamentos "
+                + "parciais e geração automática a partir de pedidos de venda, propostas técnicas e "
+                + "contratos.")
 public class ReceivableController {
 
     private final ReceivableService receivableService;
@@ -55,7 +64,9 @@ public class ReceivableController {
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Cadastrar conta a receber (manual)",
             description = "Cria manualmente uma conta a receber. A origem é sempre MANUAL. "
-                    + "Status default = ABERTO, paidAmount = 0.")
+                    + "Status default = ABERTO, paidAmount = 0. As parcelas podem ser informadas "
+                    + "explicitamente ou geradas automaticamente a partir da condição de "
+                    + "pagamento; quando nenhuma das duas, cria-se uma única parcela à vista.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @ApiResponses({
@@ -110,7 +121,8 @@ public class ReceivableController {
 
     @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Buscar conta a receber por ID",
-            description = "Retorna uma conta a receber pelo ID, incluindo o histórico de pagamentos.")
+            description = "Retorna uma conta a receber pelo ID, incluindo as parcelas programadas "
+                    + "e o histórico de pagamentos.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @ApiResponses({
@@ -152,7 +164,7 @@ public class ReceivableController {
     @DeleteMapping("/{id}")
     @Operation(summary = "Cancelar conta a receber (soft delete)",
             description = "Define status como CANCELADO. Não remove fisicamente o registro. "
-                    + "Bloqueada para contas PAGO.")
+                    + "Cancela também as parcelas ABERTO sem pagamentos. Bloqueada para contas PAGO.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @ApiResponses({
@@ -171,7 +183,8 @@ public class ReceivableController {
 
     @PatchMapping(value = "/{id}/activate", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Reativar conta a receber",
-            description = "Volta uma conta CANCELADA para ABERTO (ou PAGO, se já quitada).")
+            description = "Volta uma conta CANCELADA para ABERTO (ou PAGO, se já quitada). "
+                    + "Reativa também as parcelas CANCELADAS sem pagamentos.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @ApiResponses({
@@ -190,15 +203,86 @@ public class ReceivableController {
     }
 
     // =====================================================================
-    // Pagamentos avulsos
+    // Parcelas programadas
     // =====================================================================
 
-    @PostMapping(value = "/{id}/payments", consumes = MediaType.APPLICATION_JSON_VALUE,
+    @PostMapping(value = "/installments/preview", consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    @Operation(summary = "Registrar pagamento",
-            description = "Adiciona um pagamento avulso à conta, abatendo do saldo devedor. "
-                    + "A conta transita para PAGO automaticamente quando o saldo zerar. "
-                    + "Bloqueia pagamentos que excedam o saldo devedor.")
+    @Operation(summary = "Preview de parcelas a partir da condição de pagamento",
+            description = "Calcula as parcelas que seriam geradas a partir de uma condição de "
+                    + "pagamento e um valor total, sem persistir. Útil para exibir o preview "
+                    + "antes de salvar a conta ou acionar o botão 'Gerar parcelas'.")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Preview calculado.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = ReceivableInstallmentPreviewResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Erro de validação.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+    })
+    public ResponseEntity<List<ReceivableInstallmentPreviewResponse>> previewInstallments(
+            @Valid @RequestBody PreviewInstallmentsRequest request) {
+        return ResponseEntity.ok(receivableService.previewInstallments(request));
+    }
+
+    @PostMapping(value = "/{id}/installments/generate", consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Gerar parcelas programadas (botão Gerar parcelas)",
+            description = "Particiona o valor total de uma conta ABERTO (parcela única, sem "
+                    + "pagamentos) em N parcelas programadas a partir da condição de pagamento "
+                    + "ou de parcelas explícitas. Rejeita contas já parceladas, PAGO/CANCELADO "
+                    + "ou com pagamentos registrados.")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Parcelas geradas.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = ReceivableResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Erro de validação.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "404", description = "Conta não encontrada.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "409", description = "Conta não atende aos pré-requisitos.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+    })
+    public ResponseEntity<ReceivableResponse> generateInstallments(
+            @PathVariable Long id,
+            @Valid @RequestBody GenerateInstallmentsRequest request) {
+        return ResponseEntity.ok(receivableService.generateInstallments(id, request));
+    }
+
+    @GetMapping(value = "/{id}/installments", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Listar parcelas programadas da conta",
+            description = "Retorna as parcelas programadas da conta, ordenadas por número.")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Lista de parcelas.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = ReceivableInstallmentResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Conta não encontrada.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+    })
+    public ResponseEntity<List<ReceivableInstallmentResponse>> listInstallments(@PathVariable Long id) {
+        List<ReceivableInstallment> installments = receivableService.listInstallments(id);
+        return ResponseEntity.ok(installments.stream()
+                .map(ReceivableMapper::toInstallmentResponse)
+                .toList());
+    }
+
+    // =====================================================================
+    // Pagamentos (contra parcelas)
+    // =====================================================================
+
+    @PostMapping(value = "/{id}/installments/{installmentId}/payments",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Registrar pagamento em parcela",
+            description = "Adiciona um pagamento avulso contra uma parcela, abatendo do saldo "
+                    + "da parcela. A parcela transita para PAGO automaticamente quando o saldo "
+                    + "zerar, e a conta transita para PAGO quando todas as parcelas estão "
+                    + "quitadas. Bloqueia pagamentos que excedam o saldo da parcela.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @ApiResponses({
@@ -207,21 +291,45 @@ public class ReceivableController {
                             schema = @Schema(implementation = ReceivableResponse.class))),
             @ApiResponse(responseCode = "400", description = "Erro de validação.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "404", description = "Conta não encontrada.",
+            @ApiResponse(responseCode = "404", description = "Conta ou parcela não encontrada.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "409", description = "Pagamento excede saldo ou conta não está ABERTO.",
+            @ApiResponse(responseCode = "409", description = "Pagamento excede saldo ou parcela não está ABERTO.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<ReceivableResponse> registerPayment(@PathVariable Long id,
-                                                             @Valid @RequestBody ReceivablePaymentRequest request) {
-        return ResponseEntity.ok(receivableService.registerPayment(id, request));
+    public ResponseEntity<ReceivableResponse> registerPayment(
+            @PathVariable Long id,
+            @PathVariable Long installmentId,
+            @Valid @RequestBody ReceivablePaymentRequest request) {
+        return ResponseEntity.ok(receivableService.registerPayment(id, installmentId, request));
+    }
+
+    @PostMapping(value = "/{id}/installments/{installmentId}/settle",
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Liquidar saldo de parcela",
+            description = "Cria um único pagamento cobrindo todo o saldo devedor restante da "
+                    + "parcela, transitando-a para PAGO. Rejeita parcelas que não estejam ABERTO "
+                    + "ou que já estejam totalmente quitadas.")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Parcela liquidada.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = ReceivableResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Conta ou parcela não encontrada.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "409", description = "Parcela não está ABERTO ou não há saldo.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+    })
+    public ResponseEntity<ReceivableResponse> settleInstallment(
+            @PathVariable Long id,
+            @PathVariable Long installmentId) {
+        return ResponseEntity.ok(receivableService.settleInstallment(id, installmentId));
     }
 
     @PostMapping(value = "/{id}/settle", produces = MediaType.APPLICATION_JSON_VALUE)
-    @Operation(summary = "Liquidar saldo devedor",
-            description = "Cria um único pagamento cobrindo todo o saldo devedor restante da conta, "
-                    + "transitando-a para PAGO. Rejeita contas que não estejam ABERTO ou que já "
-                    + "estejam totalmente quitadas.")
+    @Operation(summary = "Liquidar todas as parcelas abertas",
+            description = "Cria pagamentos cobrindo o saldo devedor de todas as parcelas ABERTO "
+                    + "da conta, transitando-a para PAGO. Rejeita contas que não estejam ABERTO.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @ApiResponses({
@@ -230,7 +338,7 @@ public class ReceivableController {
                             schema = @Schema(implementation = ReceivableResponse.class))),
             @ApiResponse(responseCode = "404", description = "Conta não encontrada.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "409", description = "Conta não está ABERTO ou não há saldo devedor.",
+            @ApiResponse(responseCode = "409", description = "Conta não está ABERTO.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<ReceivableResponse> settle(@PathVariable Long id) {
@@ -240,8 +348,9 @@ public class ReceivableController {
     @DeleteMapping(value = "/{id}/payments/{paymentId}",
             produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Remover pagamento",
-            description = "Remove um pagamento da conta e recalcula paidAmount/status. "
-                    + "Se a conta volta a ter saldo devedor, status vira ABERTO.")
+            description = "Remove um pagamento da conta e recalcula paidAmount/status da "
+                    + "parcela e da conta. Se a parcela volta a ter saldo devedor, status vira "
+                    + "ABERTO novamente.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @ApiResponses({
@@ -260,7 +369,8 @@ public class ReceivableController {
 
     @GetMapping(value = "/{id}/payments", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Listar pagamentos da conta",
-            description = "Retorna o histórico de pagamentos da conta, ordenado por data.")
+            description = "Retorna o histórico de pagamentos da conta, ordenado por data, "
+                    + "incluindo o número da parcela vinculada a cada pagamento.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @ApiResponses({
@@ -272,6 +382,11 @@ public class ReceivableController {
     })
     public ResponseEntity<List<ReceivablePaymentResponse>> listPayments(@PathVariable Long id) {
         List<ReceivablePayment> payments = receivableService.listPayments(id);
-        return ResponseEntity.ok(payments.stream().map(ReceivableMapper::toPaymentResponse).toList());
+        List<ReceivableInstallment> installments = receivableService.listInstallments(id);
+        Map<Long, ReceivableInstallment> installmentById = installments.stream()
+                .collect(Collectors.toMap(ReceivableInstallment::getId, Function.identity()));
+        return ResponseEntity.ok(payments.stream()
+                .map(p -> ReceivableMapper.toPaymentResponse(p, installmentById))
+                .toList());
     }
 }
