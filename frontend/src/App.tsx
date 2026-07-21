@@ -30,6 +30,8 @@ import { ContractFormPage } from './pages/ContractFormPage'
 import { ContractPrintPage } from './pages/ContractPrintPage'
 import { ReceivablesListPage } from './pages/ReceivablesListPage'
 import { ReceivableFormPage } from './pages/ReceivableFormPage'
+import { PayablesListPage } from './pages/PayablesListPage'
+import { PayableFormPage } from './pages/PayableFormPage'
 import { UsersListPage } from './pages/UsersListPage'
 import { UserFormPage } from './pages/UserFormPage'
 import { CarriersListPage } from './pages/CarriersListPage'
@@ -94,6 +96,9 @@ export default function App() {
     <Route path="/receivables" element={<ReceivablesListPage />} />
     <Route path="/receivables/new" element={<ReceivableFormPage />} />
     <Route path="/receivables/:id" element={<ReceivableFormPage />} />
+    <Route path="/payables" element={<PayablesListPage />} />
+    <Route path="/payables/new" element={<PayableFormPage />} />
+    <Route path="/payables/:id" element={<PayableFormPage />} />
 
         {/* Rotas administrativas — gestão de usuários (ROLE_ADMIN). */}
         <Route path="/users" element={<AdminRoute><UsersListPage /></AdminRoute>} />

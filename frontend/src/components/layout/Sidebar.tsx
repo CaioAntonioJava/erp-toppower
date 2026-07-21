@@ -18,6 +18,7 @@ import {
   Cog,
   FilePenLine,
   Wallet,
+  Receipt,
 } from 'lucide-react'
 import { Button } from '../ui/Button'
 import { useAuth } from '../../context/AuthContext'
@@ -72,6 +73,7 @@ const navSections: NavSection[] = [
     title: 'Financeiro',
     items: [
       { to: '/receivables', label: 'Contas a Receber', icon: Wallet },
+      { to: '/payables', label: 'Contas a Pagar', icon: Receipt },
     ],
   },
   {
