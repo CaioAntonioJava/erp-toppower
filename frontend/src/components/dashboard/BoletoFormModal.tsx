@@ -2,8 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import { X, Paperclip } from 'lucide-react'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
+import { Spinner } from '../ui/Spinner'
 import { Alert } from '../ui/Alert'
 import { parseNumber } from '../../lib/money'
+import { searchSuppliers } from '../../api/supplier.api'
+import type { SupplierResponse } from '../../types/supplier'
 import type { NovoBoletoInput } from '../../hooks/useBoletosStorage'
 
 interface BoletoFormModalProps {
@@ -48,6 +51,13 @@ export function BoletoFormModal({ open, onClose, onSubmit }: BoletoFormModalProp
   const [submitting, setSubmitting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
+  // Fornecedor vinculado (opcional). Quando selecionado, o backend gera
+  // automaticamente uma conta a pagar a partir do boleto.
+  const [supplierQuery, setSupplierQuery] = useState('')
+  const [supplierId, setSupplierId] = useState<number | null>(null)
+  const [supplierOptions, setSupplierOptions] = useState<SupplierResponse[]>([])
+  const [supplierSearching, setSupplierSearching] = useState(false)
+
   // Bloqueia scroll do body enquanto aberto.
   useEffect(() => {
     if (!open) return
@@ -75,9 +85,34 @@ export function BoletoFormModal({ open, onClose, onSubmit }: BoletoFormModalProp
       setAttachment(null)
       setError(null)
       setSubmitting(false)
+      setSupplierQuery('')
+      setSupplierId(null)
+      setSupplierOptions([])
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }, [open])
+
+  // Busca de fornecedor (debounce) — opcional. Quando um fornecedor é
+  // selecionado, o backend gera uma conta a pagar ao cadastrar o boleto.
+  function handleSupplierQuery(value: string): void {
+    const trimmed = value.trim()
+    if (trimmed.length < 2) {
+      setSupplierOptions([])
+      return
+    }
+    setSupplierSearching(true)
+    const timer = setTimeout(async () => {
+      try {
+        const result = await searchSuppliers({ query: trimmed, page: 0, size: 20 })
+        setSupplierOptions(result.content)
+      } catch {
+        setSupplierOptions([])
+      } finally {
+        setSupplierSearching(false)
+      }
+    }, 300)
+    void timer
+  }
 
   if (!open) return null
 
@@ -117,6 +152,7 @@ export function BoletoFormModal({ open, onClose, onSubmit }: BoletoFormModalProp
         payee,
         value: valor,
         dueDate,
+        supplierId: supplierId ?? null,
         attachment: attachment ?? undefined,
       })
     } catch (err) {
@@ -193,6 +229,51 @@ export function BoletoFormModal({ open, onClose, onSubmit }: BoletoFormModalProp
             value={form.payee}
             onChange={(e) => setField('payee', e.target.value)}
           />
+
+          {/* Fornecedor vinculado (opcional). Quando selecionado, o
+              backend gera automaticamente uma conta a pagar a partir
+              deste boleto. */}
+          <div>
+            <Input
+              label="Fornecedor vinculado (opcional)"
+              placeholder="Buscar por nome ou CNPJ…"
+              value={supplierQuery}
+              onChange={(e) => {
+                setSupplierQuery(e.target.value)
+                setSupplierId(null)
+                handleSupplierQuery(e.target.value)
+              }}
+              hint={
+                supplierId
+                  ? 'Ao cadastrar o boleto, será gerada uma conta a pagar no módulo de Contas a Pagar.'
+                  : 'Selecione um fornecedor para gerar automaticamente uma conta a pagar.'
+              }
+              rightAdornment={supplierSearching ? <Spinner size="sm" /> : undefined}
+            />
+            {supplierOptions.length > 0 && !supplierId ? (
+              <ul className="mt-1 max-h-48 overflow-auto rounded-lg border border-slate-200 bg-white text-sm dark:border-slate-700 dark:bg-slate-900">
+                {supplierOptions.map((s) => (
+                  <li key={s.id}>
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800"
+                      onClick={() => {
+                        setSupplierId(s.id)
+                        setSupplierQuery(s.tradeName || s.legalName)
+                        setSupplierOptions([])
+                      }}
+                    >
+                      <span className="text-slate-900 dark:text-slate-100">
+                        {s.tradeName || s.legalName}
+                      </span>
+                      <span className="text-xs text-slate-500">{s.taxId}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Input
               label="Valor (R$)"

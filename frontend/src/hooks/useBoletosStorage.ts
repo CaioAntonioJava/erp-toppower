@@ -23,6 +23,9 @@ export interface NovoBoletoInput {
   value: number
   /** Data de vencimento no formato ISO (yyyy-MM-dd). */
   dueDate: string
+  /** ID do fornecedor vinculado. Quando informado, o cadastro do boleto
+   * dispara a geração automática de uma conta a pagar no backend. */
+  supplierId?: number | null
   /** Anexo opcional (PDF/PNG/JPEG) enviado junto com o cadastro. */
   attachment?: File
 }
@@ -98,6 +101,7 @@ export function useBoletosStorage() {
       payee: input.payee,
       value: input.value,
       dueDate: input.dueDate,
+      supplierId: input.supplierId ?? null,
     })
     const due = toDue(created)
     setItems((prev) => [...prev, due])

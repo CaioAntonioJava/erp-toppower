@@ -13,6 +13,10 @@ export interface BoletoResponse {
   /** Data de vencimento no formato ISO (yyyy-MM-dd). */
   dueDate: string
   status: RegistrationStatus
+  /** ID do fornecedor vinculado, se houver. */
+  supplierId: number | null
+  /** Nome de exibição do fornecedor vinculado, se houver. */
+  supplierName: string | null
   createdAt: string
   updatedAt: string
   createdBy: string | null
@@ -27,6 +31,9 @@ export interface BoletoCreateRequest {
   /** Data de vencimento no formato ISO (yyyy-MM-dd). */
   dueDate: string
   status?: RegistrationStatus
+  /** ID do fornecedor vinculado. Quando informado, o cadastro do boleto
+   * dispara a geração automática de uma conta a pagar. */
+  supplierId?: number | null
 }
 
 /** Corpo de PATCH /api/v1/boletos/{id}. Todos os campos opcionais. */
@@ -37,6 +44,8 @@ export interface BoletoUpdateRequest {
   /** Data de vencimento no formato ISO (yyyy-MM-dd). */
   dueDate?: string
   status?: RegistrationStatus
+  /** ID do fornecedor vinculado. */
+  supplierId?: number | null
 }
 
 /** Filtros suportados na listagem/busca de boletos. */
