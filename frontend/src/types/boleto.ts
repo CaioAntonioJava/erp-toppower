@@ -7,7 +7,7 @@ export type { RegistrationStatus }
 /** Resposta de boleto. Espelha br.com.toppower...boleto.dto.BoletoResponse. */
 export interface BoletoResponse {
   id: number
-  documentNumber: string
+  description: string
   payee: string
   value: number
   /** Data de vencimento no formato ISO (yyyy-MM-dd). */
@@ -21,7 +21,7 @@ export interface BoletoResponse {
 
 /** Corpo de POST /api/v1/boletos. */
 export interface BoletoCreateRequest {
-  documentNumber: string
+  description: string
   payee: string
   value: number
   /** Data de vencimento no formato ISO (yyyy-MM-dd). */
@@ -31,7 +31,7 @@ export interface BoletoCreateRequest {
 
 /** Corpo de PATCH /api/v1/boletos/{id}. Todos os campos opcionais. */
 export interface BoletoUpdateRequest {
-  documentNumber?: string
+  description?: string
   payee?: string
   value?: number
   /** Data de vencimento no formato ISO (yyyy-MM-dd). */

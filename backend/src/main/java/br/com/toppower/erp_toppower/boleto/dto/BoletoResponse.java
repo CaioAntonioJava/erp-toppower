@@ -14,9 +14,9 @@ public record BoletoResponse(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         Long id,
 
-        @Schema(description = "Número do documento do boleto.",
+        @Schema(description = "Descrição do boleto.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        String documentNumber,
+        String description,
 
         @Schema(description = "Beneficiário do boleto.",
                 requiredMode = Schema.RequiredMode.REQUIRED)

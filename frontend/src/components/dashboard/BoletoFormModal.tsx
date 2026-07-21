@@ -14,14 +14,14 @@ interface BoletoFormModalProps {
 
 /** Estado do formulário de cadastro de boleto. */
 interface FormState {
-  documentNumber: string
+  description: string
   payee: string
   valor: string
   dueDate: string
 }
 
 const EMPTY: FormState = {
-  documentNumber: '',
+  description: '',
   payee: '',
   valor: '',
   dueDate: '',
@@ -87,13 +87,13 @@ export function BoletoFormModal({ open, onClose, onSubmit }: BoletoFormModalProp
 
   async function handleSubmit(e: React.FormEvent): Promise<void> {
     e.preventDefault()
-    const documentNumber = form.documentNumber.trim()
+    const description = form.description.trim()
     const payee = form.payee.trim()
     const valor = parseNumber(form.valor)
     const dueDate = form.dueDate
 
-    if (!documentNumber) {
-      setError('Informe o número do documento/boleto.')
+    if (!description) {
+      setError('Informe a descrição do boleto.')
       return
     }
     if (!payee) {
@@ -113,7 +113,7 @@ export function BoletoFormModal({ open, onClose, onSubmit }: BoletoFormModalProp
     setSubmitting(true)
     try {
       await onSubmit({
-        documentNumber,
+        description,
         payee,
         value: valor,
         dueDate,
@@ -180,11 +180,11 @@ export function BoletoFormModal({ open, onClose, onSubmit }: BoletoFormModalProp
 
         <div className="space-y-4 px-5 py-5">
           <Input
-            label="Número do documento"
+            label="Descrição do boleto"
             required
-            placeholder="Ex.: 12345/1"
-            value={form.documentNumber}
-            onChange={(e) => setField('documentNumber', e.target.value)}
+            placeholder="Ex.: Pagamento fornecedor XYZ"
+            value={form.description}
+            onChange={(e) => setField('description', e.target.value)}
           />
           <Input
             label="Beneficiário"

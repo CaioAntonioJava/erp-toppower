@@ -16,9 +16,9 @@ import java.time.LocalDate;
 @Schema(name = "BoletoUpdateRequest", description = "Dados para atualização parcial de um boleto (PATCH).")
 public record BoletoUpdateRequest(
 
-        @Schema(description = "Novo número do documento.", maxLength = 50)
-        @Size(max = 50, message = "Número do documento deve ter no máximo {max} caracteres")
-        String documentNumber,
+        @Schema(description = "Nova descrição do boleto.", maxLength = 200)
+        @Size(max = 200, message = "Descrição do boleto deve ter no máximo {max} caracteres")
+        String description,
 
         @Schema(description = "Novo beneficiário.", maxLength = 200)
         @Size(max = 200, message = "Beneficiário deve ter no máximo {max} caracteres")

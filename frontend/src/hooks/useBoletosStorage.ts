@@ -18,7 +18,7 @@ import type { BoletoDue } from '../types/finance'
 
 /** Campos do formulário de cadastro de boleto. */
 export interface NovoBoletoInput {
-  documentNumber: string
+  description: string
   payee: string
   value: number
   /** Data de vencimento no formato ISO (yyyy-MM-dd). */
@@ -47,7 +47,7 @@ function toDue(boleto: BoletoResponse): BoletoDue {
   const dias = diasAteVencimento(boleto.dueDate)
   return {
     id: boleto.id,
-    numeroDocumento: boleto.documentNumber,
+    descricao: boleto.description,
     pagador: boleto.payee,
     valor: boleto.value,
     dataVencimento: boleto.dueDate,
@@ -94,7 +94,7 @@ export function useBoletosStorage() {
    */
   const add = useCallback(async (input: NovoBoletoInput): Promise<BoletoDue> => {
     const created = await createBoleto({
-      documentNumber: input.documentNumber,
+      description: input.description,
       payee: input.payee,
       value: input.value,
       dueDate: input.dueDate,

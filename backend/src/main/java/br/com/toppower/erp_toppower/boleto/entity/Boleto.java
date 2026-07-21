@@ -22,7 +22,7 @@ import java.time.LocalDate;
  * <p>Herda {@link OrganizationScopedEntity} (Long + auditoria + isolamento
  * multi-tenant via {@code organization_id}). Os campos de negócio são:</p>
  * <ul>
- *   <li>{@code documentNumber} — número do documento do boleto (obrigatório).</li>
+ *   <li>{@code description} — descrição do boleto (obrigatório).</li>
  *   <li>{@code payee} — beneficiário (quem recebe o pagamento).</li>
  *   <li>{@code value} — valor do boleto.</li>
  *   <li>{@code dueDate} — data de vencimento.</li>
@@ -37,12 +37,12 @@ import java.time.LocalDate;
 public class Boleto extends OrganizationScopedEntity {
 
     /**
-     * Número do documento do boleto (campo obrigatório).
+     * Descrição do boleto (campo obrigatório).
      * Salvo em MAIÚSCULAS (UpperCaseFieldListener).
      */
     @UpperCase
-    @Column(name = "document_number", nullable = false, length = 50)
-    private String documentNumber;
+    @Column(name = "description", nullable = false, length = 200)
+    private String description;
 
     /**
      * Beneficiário do boleto — quem deve receber o pagamento.

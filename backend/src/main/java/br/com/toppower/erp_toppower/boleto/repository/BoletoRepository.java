@@ -14,7 +14,7 @@ import org.springframework.stereotype.Repository;
 public interface BoletoRepository extends JpaRepository<Boleto, Long>,
         JpaSpecificationExecutor<Boleto> {
 
-    boolean existsByDocumentNumber(String documentNumber);
+    boolean existsByDescription(String description);
 
     Page<Boleto> findByStatus(RegistrationStatus status, Pageable pageable);
 
@@ -26,13 +26,13 @@ public interface BoletoRepository extends JpaRepository<Boleto, Long>,
      *   <li>Ambos nulos → retorna todos os boletos (paginado)</li>
      * </ul>
      * Quando {@code query} é informado, busca case-insensitive em
-     * {@code documentNumber} ou {@code payee}.
+     * {@code description} ou {@code payee}.
      */
     @Query("""
             SELECT b FROM Boleto b
             WHERE (:status IS NULL OR b.status = :status)
               AND (:query IS NULL
-                OR LOWER(b.documentNumber) LIKE LOWER(CONCAT('%', :query, '%'))
+                OR LOWER(b.description) LIKE LOWER(CONCAT('%', :query, '%'))
                 OR LOWER(b.payee) LIKE LOWER(CONCAT('%', :query, '%')))
             """)
     Page<Boleto> searchByQuery(@Param("status") RegistrationStatus status,

@@ -128,7 +128,7 @@ export function BoletosCadastradosWidget() {
                 <li key={boleto.id} className="flex items-center justify-between py-3">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">
-                      {boleto.numeroDocumento}
+                      {boleto.descricao}
                     </p>
                     <p className="truncate text-xs text-slate-500 dark:text-slate-400">
                       {boleto.pagador} · Venc. {formatDate(boleto.dataVencimento)}
@@ -155,7 +155,7 @@ export function BoletosCadastradosWidget() {
                         setActionError(null)
                         setAnexosBoleto({
                           id: boleto.id,
-                          label: `${boleto.numeroDocumento} · ${boleto.pagador}`,
+                          label: `${boleto.descricao} · ${boleto.pagador}`,
                         })
                       }}
                       className="rounded p-1 text-slate-400 hover:bg-primary-50 hover:text-primary dark:hover:bg-primary-900/30"

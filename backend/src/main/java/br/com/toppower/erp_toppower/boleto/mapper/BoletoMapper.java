@@ -21,7 +21,7 @@ public final class BoletoMapper {
      */
     public static Boleto toEntity(BoletoCreateRequest request) {
         Boleto boleto = new Boleto();
-        boleto.setDocumentNumber(request.documentNumber());
+        boleto.setDescription(request.description());
         boleto.setPayee(request.payee());
         boleto.setValue(request.value());
         boleto.setDueDate(request.dueDate());
@@ -32,7 +32,7 @@ public final class BoletoMapper {
     public static BoletoResponse toResponse(Boleto boleto) {
         return new BoletoResponse(
                 boleto.getId(),
-                boleto.getDocumentNumber(),
+                boleto.getDescription(),
                 boleto.getPayee(),
                 boleto.getValue(),
                 boleto.getDueDate(),
@@ -49,8 +49,8 @@ public final class BoletoMapper {
      * Apenas campos não nulos do request sobrescrevem o estado atual.
      */
     public static void applyUpdate(Boleto boleto, BoletoUpdateRequest request) {
-        if (request.documentNumber() != null) {
-            boleto.setDocumentNumber(request.documentNumber());
+        if (request.description() != null) {
+            boleto.setDescription(request.description());
         }
         if (request.payee() != null) {
             boleto.setPayee(request.payee());

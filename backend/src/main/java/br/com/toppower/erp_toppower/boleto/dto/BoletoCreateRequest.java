@@ -14,11 +14,11 @@ import java.time.LocalDate;
 @Schema(name = "BoletoCreateRequest", description = "Dados para cadastro de um novo boleto.")
 public record BoletoCreateRequest(
 
-        @Schema(description = "Número do documento do boleto.",
-                example = "000123456", requiredMode = Schema.RequiredMode.REQUIRED, maxLength = 50)
-        @NotBlank(message = "Número do documento é obrigatório")
-        @Size(max = 50, message = "Número do documento deve ter no máximo {max} caracteres")
-        String documentNumber,
+        @Schema(description = "Descrição do boleto.",
+                example = "Pagamento fornecedor XYZ", requiredMode = Schema.RequiredMode.REQUIRED, maxLength = 200)
+        @NotBlank(message = "Descrição do boleto é obrigatória")
+        @Size(max = 200, message = "Descrição do boleto deve ter no máximo {max} caracteres")
+        String description,
 
         @Schema(description = "Beneficiário do boleto (quem recebe o pagamento).",
                 example = "EMPRESA XPTO LTDA", requiredMode = Schema.RequiredMode.REQUIRED, maxLength = 200)

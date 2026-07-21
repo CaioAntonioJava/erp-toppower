@@ -5,7 +5,7 @@ import br.com.toppower.erp_toppower.boleto.dto.BoletoResponse;
 import br.com.toppower.erp_toppower.boleto.dto.BoletoUpdateRequest;
 import br.com.toppower.erp_toppower.boleto.entity.Boleto;
 import br.com.toppower.erp_toppower.boleto.exception.BoletoNotFoundException;
-import br.com.toppower.erp_toppower.boleto.exception.DuplicateBoletoDocumentException;
+import br.com.toppower.erp_toppower.boleto.exception.DuplicateBoletoDescriptionException;
 import br.com.toppower.erp_toppower.boleto.mapper.BoletoMapper;
 import br.com.toppower.erp_toppower.boleto.repository.BoletoRepository;
 import br.com.toppower.erp_toppower.common.dto.PagedResponse;
@@ -28,8 +28,8 @@ public class BoletoService {
 
     @Transactional
     public BoletoResponse create(BoletoCreateRequest request) {
-        if (boletoRepository.existsByDocumentNumber(request.documentNumber())) {
-            throw new DuplicateBoletoDocumentException(request.documentNumber());
+        if (boletoRepository.existsByDescription(request.description())) {
+            throw new DuplicateBoletoDescriptionException(request.description());
         }
         Boleto boleto = BoletoMapper.toEntity(request);
         Boleto saved = boletoRepository.save(boleto);
@@ -84,11 +84,11 @@ public class BoletoService {
         Boleto boleto = boletoRepository.findById(id)
                 .orElseThrow(() -> new BoletoNotFoundException(id));
 
-        // Se está alterando o número do documento, valida duplicidade.
-        if (request.documentNumber() != null
-                && !request.documentNumber().equalsIgnoreCase(boleto.getDocumentNumber())
-                && boletoRepository.existsByDocumentNumber(request.documentNumber())) {
-            throw new DuplicateBoletoDocumentException(request.documentNumber());
+        // Se está alterando a descrição, valida duplicidade.
+        if (request.description() != null
+                && !request.description().equalsIgnoreCase(boleto.getDescription())
+                && boletoRepository.existsByDescription(request.description())) {
+            throw new DuplicateBoletoDescriptionException(request.description());
         }
 
         BoletoMapper.applyUpdate(boleto, request);

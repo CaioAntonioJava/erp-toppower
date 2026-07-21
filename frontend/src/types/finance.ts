@@ -53,7 +53,7 @@ export interface FinanceSummary {
  */
 export interface BoletoDue {
   id: number
-  numeroDocumento: string
+  descricao: string
   pagador: string
   valor: number
   /** Data de vencimento no formato ISO (yyyy-MM-dd). */
