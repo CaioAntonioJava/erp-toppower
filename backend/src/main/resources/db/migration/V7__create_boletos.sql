@@ -26,8 +26,15 @@ SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_S
 SET @sql = IF(@has_idx = 0, 'CREATE INDEX idx_boletos_status ON boletos (status)', 'DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- Índice auxiliar para a busca por número do documento.
+-- Guardado contra a ausência da coluna document_number: em bases onde o
+-- Hibernate (ddl-auto=update) já criou a tabela com a coluna `description`
+-- (após o rename do V23), o CREATE TABLE IF NOT EXISTS acima vira no-op e a
+-- coluna document_number não existe — criar o índice falharia. Só criamos
+-- o índice se a coluna existir. O V23 recria o índice com o novo nome
+-- (idx_boletos_description) quando faz o rename.
+SET @has_col = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'boletos' AND COLUMN_NAME = 'document_number');
 SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'boletos' AND INDEX_NAME = 'idx_boletos_document_number');
-SET @sql = IF(@has_idx = 0, 'CREATE INDEX idx_boletos_document_number ON boletos (document_number)', 'DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @sql = IF(@has_col > 0 AND @has_idx = 0, 'CREATE INDEX idx_boletos_document_number ON boletos (document_number)', 'DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- Índice auxiliar para ordenação por vencimento.
 SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'boletos' AND INDEX_NAME = 'idx_boletos_due_date');
@@ -39,5 +46,7 @@ SET @sql = IF(@has_idx = 0, 'CREATE INDEX idx_boletos_organization_id ON boletos
 
 -- Unicidade do número do documento por organização (boletos ativos/inativos
 -- compartilham o mesmo namespace dentro da organização).
+-- Mesmo guardão de ausência de coluna que idx_boletos_document_number acima.
+SET @has_col = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'boletos' AND COLUMN_NAME = 'document_number');
 SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'boletos' AND INDEX_NAME = 'uk_boletos_org_document_number');
-SET @sql = IF(@has_idx = 0, 'CREATE UNIQUE INDEX uk_boletos_org_document_number ON boletos (organization_id, document_number)', 'DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @sql = IF(@has_col > 0 AND @has_idx = 0, 'CREATE UNIQUE INDEX uk_boletos_org_document_number ON boletos (organization_id, document_number)', 'DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
