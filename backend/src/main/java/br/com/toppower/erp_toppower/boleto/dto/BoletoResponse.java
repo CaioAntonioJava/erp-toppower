@@ -35,6 +35,12 @@ public record BoletoResponse(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         RegistrationStatus status,
 
+        @Schema(description = "ID do fornecedor vinculado, se aplicável.")
+        Long supplierId,
+
+        @Schema(description = "Nome de exibição do fornecedor vinculado, se aplicável.")
+        String supplierName,
+
         @Schema(description = "Data de criação.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         Instant createdAt,

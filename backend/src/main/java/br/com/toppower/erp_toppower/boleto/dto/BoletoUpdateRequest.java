@@ -34,6 +34,12 @@ public record BoletoUpdateRequest(
 
         @Schema(description = "Novo status.",
                 allowableValues = {"ATIVO", "INATIVO"})
-        RegistrationStatus status
+        RegistrationStatus status,
+
+        @Schema(description = "ID do fornecedor (supplier) vinculado. Quando informado e "
+                + "ainda não houver conta a pagar vinculada ao boleto, dispara a geração "
+                + "automática de uma conta a pagar.",
+                example = "12", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        Long supplierId
 ) {
 }

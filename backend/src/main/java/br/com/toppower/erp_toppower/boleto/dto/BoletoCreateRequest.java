@@ -41,6 +41,11 @@ public record BoletoCreateRequest(
         @Schema(description = "Status inicial. Se omitido, assume ATIVO.",
                 example = "ATIVO", allowableValues = {"ATIVO", "INATIVO"},
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        RegistrationStatus status
+        RegistrationStatus status,
+
+        @Schema(description = "ID do fornecedor (supplier) vinculado. Quando informado, "
+                + "o cadastro do boleto dispara a geração automática de uma conta a pagar.",
+                example = "12", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        Long supplierId
 ) {
 }

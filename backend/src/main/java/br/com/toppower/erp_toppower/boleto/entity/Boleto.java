@@ -69,6 +69,15 @@ public class Boleto extends OrganizationScopedEntity {
     private RegistrationStatus status;
 
     /**
+     * Referência opcional ao {@code Supplier} (fornecedor) vinculado
+     * ao boleto. Quando presente, o cadastro/edição do boleto dispara
+     * a geração automática de uma conta a pagar no módulo payable.
+     * Nulo quando o boleto é standalone (sem vínculo com fornecedor).
+     */
+    @Column(name = "supplier_id")
+    private Long supplierId;
+
+    /**
      * Inicialização antes de persistir: garante que o status seja
      * {@link RegistrationStatus#ATIVO} quando não for informado.
      * Não sobrescreve valores já definidos pelo chamador.

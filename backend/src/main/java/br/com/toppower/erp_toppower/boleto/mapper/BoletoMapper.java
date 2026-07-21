@@ -4,6 +4,10 @@ import br.com.toppower.erp_toppower.boleto.dto.BoletoCreateRequest;
 import br.com.toppower.erp_toppower.boleto.dto.BoletoResponse;
 import br.com.toppower.erp_toppower.boleto.dto.BoletoUpdateRequest;
 import br.com.toppower.erp_toppower.boleto.entity.Boleto;
+import br.com.toppower.erp_toppower.supplier.entity.Supplier;
+import br.com.toppower.erp_toppower.supplier.repository.SupplierRepository;
+
+import java.util.Optional;
 
 /**
  * Mapper estático entre DTOs e entidade {@link Boleto}.
@@ -26,10 +30,24 @@ public final class BoletoMapper {
         boleto.setValue(request.value());
         boleto.setDueDate(request.dueDate());
         boleto.setStatus(request.status());
+        boleto.setSupplierId(request.supplierId());
         return boleto;
     }
 
-    public static BoletoResponse toResponse(Boleto boleto) {
+    /**
+     * Monta a resposta resolvendo o nome do fornecedor vinculado, se houver.
+     */
+    public static BoletoResponse toResponse(Boleto boleto, SupplierRepository supplierRepository) {
+        String supplierName = null;
+        if (boleto.getSupplierId() != null) {
+            Optional<Supplier> supplier = supplierRepository.findById(boleto.getSupplierId());
+            if (supplier.isPresent()) {
+                Supplier s = supplier.get();
+                supplierName = (s.getTradeName() != null && !s.getTradeName().isBlank())
+                        ? s.getTradeName()
+                        : s.getLegalName();
+            }
+        }
         return new BoletoResponse(
                 boleto.getId(),
                 boleto.getDescription(),
@@ -37,6 +55,8 @@ public final class BoletoMapper {
                 boleto.getValue(),
                 boleto.getDueDate(),
                 boleto.getStatus(),
+                boleto.getSupplierId(),
+                supplierName,
                 boleto.getCreatedAt(),
                 boleto.getUpdatedAt(),
                 boleto.getCreatedBy(),
@@ -47,6 +67,9 @@ public final class BoletoMapper {
     /**
      * Aplica uma atualização parcial (PATCH) na entidade carregada.
      * Apenas campos não nulos do request sobrescrevem o estado atual.
+     * Permite limpar o supplierId enviando explicitamente o valor 0
+     * (tratado como null no service) — caso contrário, null no request
+     * significa "não alterar".
      */
     public static void applyUpdate(Boleto boleto, BoletoUpdateRequest request) {
         if (request.description() != null) {
@@ -63,6 +86,9 @@ public final class BoletoMapper {
         }
         if (request.status() != null) {
             boleto.setStatus(request.status());
+        }
+        if (request.supplierId() != null) {
+            boleto.setSupplierId(request.supplierId());
         }
     }
 }

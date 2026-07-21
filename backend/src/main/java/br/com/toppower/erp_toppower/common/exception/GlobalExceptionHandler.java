@@ -15,6 +15,11 @@ import br.com.toppower.erp_toppower.organization.exception.OrganizationAccessDen
 import br.com.toppower.erp_toppower.organization.exception.OrganizationContextRequiredException;
 import br.com.toppower.erp_toppower.organization.exception.OrganizationInactiveException;
 import br.com.toppower.erp_toppower.organization.exception.OrganizationNotFoundException;
+import br.com.toppower.erp_toppower.payable.exception.InvalidPayableSupplierException;
+import br.com.toppower.erp_toppower.payable.exception.PayableBusinessException;
+import br.com.toppower.erp_toppower.payable.exception.PayableInstallmentNotFoundException;
+import br.com.toppower.erp_toppower.payable.exception.PayableNotFoundException;
+import br.com.toppower.erp_toppower.payable.exception.PayablePaymentNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
@@ -396,6 +401,42 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(ReceivableBusinessException.class)
     public ResponseEntity<ApiError> handleReceivableBusiness(ReceivableBusinessException ex) {
+        return build(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    // =====================================================================
+    // Contas a pagar (Payable)
+    // =====================================================================
+
+    @ExceptionHandler(PayableNotFoundException.class)
+    public ResponseEntity<ApiError> handlePayableNotFound(PayableNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(PayableInstallmentNotFoundException.class)
+    public ResponseEntity<ApiError> handlePayableInstallmentNotFound(
+            PayableInstallmentNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(PayablePaymentNotFoundException.class)
+    public ResponseEntity<ApiError> handlePayablePaymentNotFound(PayablePaymentNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidPayableSupplierException.class)
+    public ResponseEntity<ApiError> handleInvalidPayableSupplier(InvalidPayableSupplierException ex) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    /**
+     * Violação de regra de negócio de conta a pagar (pagamento excede
+     * saldo da parcela, parcela não ABERTO para pagamento, tentativa de
+     * editar/cancelar conta PAGO, boleto sem fornecedor ao gerar conta).
+     * Usa 409 CONFLICT para indicar conflito com o estado atual do recurso.
+     */
+    @ExceptionHandler(PayableBusinessException.class)
+    public ResponseEntity<ApiError> handlePayableBusiness(PayableBusinessException ex) {
         return build(HttpStatus.CONFLICT, ex.getMessage());
     }
 

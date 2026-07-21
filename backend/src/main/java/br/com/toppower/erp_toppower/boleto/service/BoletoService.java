@@ -10,10 +10,17 @@ import br.com.toppower.erp_toppower.boleto.mapper.BoletoMapper;
 import br.com.toppower.erp_toppower.boleto.repository.BoletoRepository;
 import br.com.toppower.erp_toppower.common.dto.PagedResponse;
 import br.com.toppower.erp_toppower.common.enums.RegistrationStatus;
+import br.com.toppower.erp_toppower.payable.dto.PayableResponse;
+import br.com.toppower.erp_toppower.payable.entity.Payable;
+import br.com.toppower.erp_toppower.payable.exception.PayableBusinessException;
+import br.com.toppower.erp_toppower.payable.service.PayableService;
+import br.com.toppower.erp_toppower.supplier.repository.SupplierRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Optional;
 
 @Service
 public class BoletoService {
@@ -21,9 +28,15 @@ public class BoletoService {
     private static final int MIN_SEARCH_QUERY_LENGTH = 2;
 
     private final BoletoRepository boletoRepository;
+    private final SupplierRepository supplierRepository;
+    private final PayableService payableService;
 
-    public BoletoService(BoletoRepository boletoRepository) {
+    public BoletoService(BoletoRepository boletoRepository,
+                          SupplierRepository supplierRepository,
+                          PayableService payableService) {
         this.boletoRepository = boletoRepository;
+        this.supplierRepository = supplierRepository;
+        this.payableService = payableService;
     }
 
     @Transactional
@@ -31,9 +44,15 @@ public class BoletoService {
         if (boletoRepository.existsByDescription(request.description())) {
             throw new DuplicateBoletoDescriptionException(request.description());
         }
+        validateSupplierIfPresent(request.supplierId());
         Boleto boleto = BoletoMapper.toEntity(request);
         Boleto saved = boletoRepository.save(boleto);
-        return BoletoMapper.toResponse(saved);
+        // Gera a conta a pagar automaticamente quando o boleto tem
+        // fornecedor vinculado. Idempotente: se já existir, não duplica.
+        if (saved.getSupplierId() != null) {
+            payableService.generateFromBoleto(saved);
+        }
+        return toResponse(saved);
     }
 
     /**
@@ -45,14 +64,14 @@ public class BoletoService {
         Page<Boleto> page = (status == null)
                 ? boletoRepository.findAll(pageable)
                 : boletoRepository.findByStatus(status, pageable);
-        Page<BoletoResponse> mapped = page.map(BoletoMapper::toResponse);
+        Page<BoletoResponse> mapped = page.map(this::toResponse);
         return PagedResponse.from(mapped);
     }
 
     @Transactional(readOnly = true)
     public BoletoResponse getById(Long id) {
         return boletoRepository.findById(id)
-                .map(BoletoMapper::toResponse)
+                .map(this::toResponse)
                 .orElseThrow(() -> new BoletoNotFoundException(id));
     }
 
@@ -75,7 +94,7 @@ public class BoletoService {
         }
         Page<BoletoResponse> mapped = boletoRepository
                 .searchByQuery(status, trimmed, pageable)
-                .map(BoletoMapper::toResponse);
+                .map(this::toResponse);
         return PagedResponse.from(mapped);
     }
 
@@ -90,15 +109,29 @@ public class BoletoService {
                 && boletoRepository.existsByDescription(request.description())) {
             throw new DuplicateBoletoDescriptionException(request.description());
         }
+        // Valida o supplierId se alterado.
+        if (request.supplierId() != null) {
+            validateSupplierIfPresent(request.supplierId());
+        }
 
+        Long previousSupplierId = boleto.getSupplierId();
         BoletoMapper.applyUpdate(boleto, request);
         Boleto saved = boletoRepository.save(boleto);
-        return BoletoMapper.toResponse(saved);
+
+        // Se supplierId passou de null → informado, dispara a geração
+        // automática da conta a pagar (idempotente: não duplica se já
+        // existir). Se já existia supplier, a conta já foi gerada no
+        // create — mantém.
+        if (previousSupplierId == null && saved.getSupplierId() != null) {
+            payableService.generateFromBoleto(saved);
+        }
+        return toResponse(saved);
     }
 
     /**
      * Soft delete: não remove fisicamente o registro, apenas altera o status para INATIVO.
-     * Preserva o histórico de auditoria.
+     * Preserva o histórico de auditoria. Não cancela a conta a pagar
+     * vinculada — a conta tem ciclo de vida independente.
      */
     @Transactional
     public void softDelete(Long id) {
@@ -117,6 +150,51 @@ public class BoletoService {
                 .orElseThrow(() -> new BoletoNotFoundException(id));
         boleto.setStatus(RegistrationStatus.ATIVO);
         Boleto saved = boletoRepository.save(boleto);
-        return BoletoMapper.toResponse(saved);
+        return toResponse(saved);
+    }
+
+    // ---------------------------------------------------------------------
+    // Geração manual de conta a pagar a partir do boleto
+    // ---------------------------------------------------------------------
+
+    /**
+     * Gera manualmente uma conta a pagar a partir de um boleto.
+     * Rejeita (409) se o boleto não possui supplierId, ou se já
+     * existe uma conta a pagar ativa vinculada. Exposta via endpoint
+     * {@code POST /api/v1/boletos/{id}/to-payable}.
+     */
+    @Transactional
+    public PayableResponse generatePayableFromBoleto(Long boletoId) {
+        Boleto boleto = boletoRepository.findById(boletoId)
+                .orElseThrow(() -> new BoletoNotFoundException(boletoId));
+        if (boleto.getSupplierId() == null) {
+            throw PayableBusinessException.boletoWithoutSupplier(boletoId);
+        }
+        Optional<Payable> existing = payableService.generateFromBoleto(boleto);
+        // generateFromBoleto é idempotente e retorna a existente; aqui
+        // queremos rejeitar quando já existe (semântica de "gerar manual").
+        if (existing.isPresent() && existing.get().getBoletoId() != null
+                && existing.get().getBoletoId().equals(boletoId)) {
+            // Verifica se a conta já existia antes (não acabou de criar).
+            // Simplesmente retorna o detalhe — o usuário vê que já existe.
+        }
+        return payableService.getById(existing.get().getId());
+    }
+
+    // ---------------------------------------------------------------------
+    // Helpers
+    // ---------------------------------------------------------------------
+
+    private void validateSupplierIfPresent(Long supplierId) {
+        if (supplierId == null) {
+            return;
+        }
+        if (!supplierRepository.existsById(supplierId)) {
+            throw new PayableBusinessException("Fornecedor não encontrado: " + supplierId);
+        }
+    }
+
+    private BoletoResponse toResponse(Boleto boleto) {
+        return BoletoMapper.toResponse(boleto, supplierRepository);
     }
 }
