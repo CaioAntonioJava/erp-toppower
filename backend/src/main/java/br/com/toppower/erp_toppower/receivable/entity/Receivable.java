@@ -47,12 +47,17 @@ import java.time.LocalDate;
  * valida essa invariante antes de persistir (contas geradas
  * automaticamente herdam o cliente do documento de origem).</p>
  *
- * <p><b>Pagamentos parciais</b>: o valor total ({@link #value}) é fixo;
- * pagamentos avulsos são cadastrados em {@link ReceivablePayment} e
- * somados em {@link #paidAmount} pelo service. O status transita para
- * {@link ReceivableStatus#PAGO} automaticamente quando
- * {@code paidAmount >= value}. O saldo devedor é derivado em memória
- * ({@code value - paidAmount}).</p>
+ * <p><b>Parcelas programadas</b>: uma conta a receber pode ter uma ou
+ * mais {@link ReceivableInstallment}, cada uma com vencimento próprio.
+ * Os pagamentos realizados são registrados em {@link ReceivablePayment}
+ * e vinculados a uma parcela específica. O {@link #paidAmount} é a
+ * soma de todos os pagamentos; o status transita para
+ * {@link ReceivableStatus#PAGO} quando <b>todas</b> as parcelas estão
+ * quitadas. O saldo devedor total é derivado em memória
+ * ({@code value - paidAmount}). O vencimento-base ({@link #dueDate})
+ * espelha o vencimento da 1ª parcela para listagens/relatórios; o
+ * vencimento real por parcela está em
+ * {@link ReceivableInstallment#getDueDate()}.</p>
  *
  * <p><b>Organization-scoped</b>: herda de {@link OrganizationScopedEntity}
  * para garantir isolamento multi-tenant via {@code organizationFilter}.</p>
@@ -99,7 +104,9 @@ public class Receivable extends OrganizationScopedEntity {
     private BigDecimal paidAmount;
 
     /**
-     * Data de vencimento da conta.
+     * Vencimento-base da conta (snapshot do vencimento da 1ª parcela).
+     * Mantido para listagens/relatórios; o vencimento real por parcela
+     * está em {@link ReceivableInstallment#getDueDate()}.
      */
     @Column(name = "due_date", nullable = false)
     private LocalDate dueDate;
@@ -142,6 +149,13 @@ public class Receivable extends OrganizationScopedEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_condition", length = 50)
     private PaymentCondition paymentCondition;
+
+    /**
+     * Quantidade de parcelas programadas. Default 1 (à vista) na
+     * criação manual sem parcelas explícitas.
+     */
+    @Column(name = "installments_count", nullable = false)
+    private int installmentsCount;
 
     /**
      * ID do pedido de venda que originou a conta. Nulo quando
@@ -203,8 +217,9 @@ public class Receivable extends OrganizationScopedEntity {
     private LocalDate paymentDate;
 
     /**
-     * Inicialização padrão antes de persistir: status ABERTO e
-     * paidAmount ZERO quando não definidos pelo chamador.
+     * Inicialização padrão antes de persistir: status ABERTO,
+     * paidAmount ZERO e installmentsCount 1 quando não definidos pelo
+     * chamador.
      */
     @PrePersist
     private void onPrePersist() {
@@ -213,6 +228,9 @@ public class Receivable extends OrganizationScopedEntity {
         }
         if (paidAmount == null) {
             paidAmount = BigDecimal.ZERO;
+        }
+        if (installmentsCount <= 0) {
+            installmentsCount = 1;
         }
     }
 }

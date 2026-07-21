@@ -12,11 +12,11 @@ import java.util.List;
 
 /**
  * Representação pública completa de uma conta a receber, retornada pelos
- * endpoints de detalhe/criação/atualização. Inclui o histórico de
- * pagamentos e o saldo devedor calculado.
+ * endpoints de detalhe/criação/atualização. Inclui as parcelas
+ * programadas, o histórico de pagamentos e o saldo devedor calculado.
  */
 @Schema(name = "ReceivableResponse",
-        description = "Conta a receber com histórico de pagamentos e saldo devedor.")
+        description = "Conta a receber com parcelas, histórico de pagamentos e saldo devedor.")
 public record ReceivableResponse(
 
         @Schema(description = "Identificador único (ID) da conta.",
@@ -68,6 +68,10 @@ public record ReceivableResponse(
         @Schema(description = "Condição de pagamento (mesmo domínio das propostas comerciais).")
         PaymentCondition paymentCondition,
 
+        @Schema(description = "Quantidade de parcelas programadas.",
+                requiredMode = Schema.RequiredMode.REQUIRED)
+        int installmentsCount,
+
         @Schema(description = "ID do pedido de venda de origem, se aplicável.")
         Long salesOrderId,
 
@@ -93,7 +97,12 @@ public record ReceivableResponse(
         @Schema(description = "Data do último pagamento registrado.")
         LocalDate paymentDate,
 
-        @Schema(description = "Histórico de pagamentos ordenado por data.")
+        @Schema(description = "Parcelas programadas ordenadas por número.",
+                requiredMode = Schema.RequiredMode.REQUIRED)
+        List<ReceivableInstallmentResponse> installments,
+
+        @Schema(description = "Histórico de pagamentos ordenado por data.",
+                requiredMode = Schema.RequiredMode.REQUIRED)
         List<ReceivablePaymentResponse> payments,
 
         @Schema(description = "Data de criação.",

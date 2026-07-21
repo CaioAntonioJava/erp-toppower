@@ -41,6 +41,7 @@ import br.com.toppower.erp_toppower.profile.exception.ProfileNotFoundException;
 import br.com.toppower.erp_toppower.profile.exception.UserAlreadyHasProfileException;
 import br.com.toppower.erp_toppower.receivable.exception.InvalidReceivableClientException;
 import br.com.toppower.erp_toppower.receivable.exception.ReceivableBusinessException;
+import br.com.toppower.erp_toppower.receivable.exception.ReceivableInstallmentNotFoundException;
 import br.com.toppower.erp_toppower.receivable.exception.ReceivableNotFoundException;
 import br.com.toppower.erp_toppower.receivable.exception.ReceivablePaymentNotFoundException;
 import br.com.toppower.erp_toppower.sales.quotation.exception.InvalidQuotationClientException;
@@ -380,6 +381,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ReceivableNotFoundException.class)
     public ResponseEntity<ApiError> handleReceivableNotFound(ReceivableNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(ReceivableInstallmentNotFoundException.class)
+    public ResponseEntity<ApiError> handleReceivableInstallmentNotFound(
+            ReceivableInstallmentNotFoundException ex) {
         return build(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 

@@ -8,7 +8,9 @@ import java.time.LocalDate;
 
 /**
  * Representação pública de um pagamento de conta a receber, retornada
- * dentro do {@link ReceivableResponse} na lista de histórico.
+ * dentro do {@link ReceivableResponse} na lista de histórico. Inclui o
+ * número da parcela a que o pagamento está vinculado (zero quando o
+ * pagamento é de uma conta antiga sem parcela).
  */
 @Schema(name = "ReceivablePaymentResponse",
         description = "Pagamento avulso de uma conta a receber.")
@@ -17,6 +19,14 @@ public record ReceivablePaymentResponse(
         @Schema(description = "Identificador único do pagamento.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         Long id,
+
+        @Schema(description = "ID da parcela vinculada, se aplicável (contas com parcelas).")
+        Long installmentId,
+
+        @Schema(description = "Número da parcela vinculada (0 para pagamentos de contas "
+                + "antigas sem parcela).",
+                requiredMode = Schema.RequiredMode.REQUIRED)
+        int installmentNumber,
 
         @Schema(description = "Valor do pagamento.",
                 requiredMode = Schema.RequiredMode.REQUIRED)

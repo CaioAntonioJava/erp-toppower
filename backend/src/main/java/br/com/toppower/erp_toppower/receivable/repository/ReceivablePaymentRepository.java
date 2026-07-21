@@ -39,9 +39,26 @@ public interface ReceivablePaymentRepository extends JpaRepository<ReceivablePay
     BigDecimal sumAmountByReceivableId(@Param("receivableId") Long receivableId);
 
     /**
+     * Soma o valor de todos os pagamentos vinculados a uma parcela.
+     * Retorna zero quando a parcela não possui pagamentos.
+     */
+    @Query("""
+            SELECT COALESCE(SUM(p.amount), 0)
+            FROM ReceivablePayment p
+            WHERE p.installmentId = :installmentId
+            """)
+    BigDecimal sumAmountByInstallmentId(@Param("installmentId") Long installmentId);
+
+    /**
      * Busca um pagamento específico vinculado a uma conta — usado para
      * garantir que um {@code paymentId} pertence ao {@code receivableId}
      * informado na rota.
      */
     Optional<ReceivablePayment> findByIdAndReceivableId(Long id, Long receivableId);
+
+    /**
+     * Lista os pagamentos de uma parcela ordenados pela data de
+     * pagamento (asc).
+     */
+    List<ReceivablePayment> findByInstallmentIdOrderByPaymentDateAsc(Long installmentId);
 }

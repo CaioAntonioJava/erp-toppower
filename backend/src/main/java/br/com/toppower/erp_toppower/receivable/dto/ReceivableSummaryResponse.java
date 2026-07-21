@@ -9,7 +9,7 @@ import java.time.LocalDate;
 
 /**
  * Versão enxuta de {@link ReceivableResponse} para listas paginadas.
- * Não inclui o histórico de pagamentos.
+ * Não inclui parcelas nem histórico de pagamentos.
  */
 @Schema(name = "ReceivableSummaryResponse",
         description = "Resumo de uma conta a receber para listas paginadas.")
@@ -58,6 +58,10 @@ public record ReceivableSummaryResponse(
 
         @Schema(description = "Código resolvido do cliente/empresa.")
         String clientCode,
+
+        @Schema(description = "Quantidade de parcelas programadas.",
+                requiredMode = Schema.RequiredMode.REQUIRED)
+        int installmentsCount,
 
         @Schema(description = "Data do último pagamento registrado.")
         LocalDate paymentDate
