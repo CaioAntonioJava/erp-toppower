@@ -37,7 +37,7 @@ const GRANULARITY_OPTIONS = [
 ]
 
 const TAB_OPTIONS: ReadonlyArray<{ value: ReportTab; label: string }> = [
-  { value: 'aging', label: 'A receber (aging)' },
+  { value: 'aging', label: 'A receber' },
   { value: 'flow', label: 'Recebido (fluxo)' },
   { value: 'client', label: 'Por cliente' },
 ]
@@ -399,7 +399,7 @@ function AgingView({ data }: { data: ReceivableAgingReportResponse }) {
       {/* Tabela por cliente */}
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-800">
-          <h2 className="text-base font-semibold">Aging por cliente</h2>
+          <h2 className="text-base font-semibold">Contas em aberto por cliente</h2>
           <p className="text-xs text-slate-500 dark:text-slate-400">
             Referência: {formatDate(data.referenceDate)}
           </p>

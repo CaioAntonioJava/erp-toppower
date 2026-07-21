@@ -8,7 +8,9 @@ import type {
   ContractResponse,
   ContractStatus,
   ContractUpdateRequest,
+  PaymentCondition,
 } from '../../types/contract'
+import { PAYMENT_CONDITION_OPTIONS } from '../../types/quotation'
 import { Input } from '../ui/Input'
 import { Select } from '../ui/Select'
 import { Alert } from '../ui/Alert'
@@ -188,6 +190,11 @@ export function ContractForm({
     contract?.price != null ? formatBRLValue(contract.price) : '',
   )
 
+  // --- Condição de pagamento (opcional, domínio compartilhado com sales) ---
+  const [paymentCondition, setPaymentCondition] = useState<PaymentCondition | ''>(
+    contract?.paymentCondition ?? '',
+  )
+
   // --- Cláusulas ---
   const [clauses, setClauses] = useState<ClauseDraft[]>(
     contract?.clauses ? clausesFromResponse(contract.clauses) : buildDefaultClauses(),
@@ -359,6 +366,7 @@ export function ContractForm({
           status,
           validityDate: validityDate || undefined,
           price: priceValue ?? 0,
+          paymentCondition: paymentCondition === '' ? null : paymentCondition,
           clauses: clausesPayload,
         }
         // Cliente: envia o ID correto conforme o tipo
@@ -379,6 +387,9 @@ export function ContractForm({
           validityDate: validityDate || undefined,
           price: priceValue ?? 0,
           clauses: clausesPayload,
+        }
+        if (paymentCondition !== '') {
+          payload.paymentCondition = paymentCondition
         }
         if (clientType === 'CUSTOMER') {
           payload.customerId = clientId ? Number(clientId) : null
@@ -544,7 +555,7 @@ export function ContractForm({
         ) : null}
       </section>
 
-      {/* Preço (valor informativo, não exibido no PDF) */}
+      {/* Preço e condição de pagamento (valor informativo, não exibido no PDF) */}
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <h3 className="mb-4 text-base font-semibold">Preço do contrato</h3>
         <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
@@ -552,7 +563,7 @@ export function ContractForm({
           para controle interno — <strong>não</strong> é exibido no PDF do
           contrato (o valor comercial deve constar nas cláusulas).
         </p>
-        <div className="max-w-xs">
+        <div className="grid gap-4 sm:grid-cols-[minmax(0,16rem)_minmax(0,1fr)]">
           <Input
             label="Preço do contrato"
             value={price}
@@ -579,6 +590,19 @@ export function ContractForm({
             placeholder="Ex.: 1.500,00"
             required
             hint="Obrigatório — não aparece no PDF"
+          />
+          <Select
+            label="Condição de pagamento"
+            value={paymentCondition}
+            onChange={(e) =>
+              setPaymentCondition(e.target.value as PaymentCondition | '')
+            }
+            options={[
+              { value: '', label: 'Selecione…' },
+              ...PAYMENT_CONDITION_OPTIONS,
+            ]}
+            aria-label="Condição de pagamento"
+            hint="Opcional — não aparece no PDF"
           />
         </div>
       </section>

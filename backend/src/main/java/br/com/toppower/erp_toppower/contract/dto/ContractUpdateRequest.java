@@ -1,6 +1,7 @@
 package br.com.toppower.erp_toppower.contract.dto;
 
 import br.com.toppower.erp_toppower.contract.enums.ContractStatus;
+import br.com.toppower.erp_toppower.sales.quotation.enums.PaymentCondition;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
@@ -52,6 +53,10 @@ public record ContractUpdateRequest(
                 example = "230800.00", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         @DecimalMin(value = "0.00", inclusive = true, message = "O preço do contrato não pode ser negativo")
         BigDecimal price,
+
+        @Schema(description = "Nova condição de pagamento do contrato. Omita (null) para manter a atual.",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        PaymentCondition paymentCondition,
 
         @Schema(description = "Novas cláusulas do contrato. Quando enviado (inclusive lista vazia), "
                 + "substitui completamente as cláusulas existentes (full replacement). "

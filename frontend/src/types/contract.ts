@@ -1,8 +1,11 @@
 /** Tipos do módulo de contratos. Espelham os DTOs do backend. */
+import type { PaymentCondition } from './quotation'
 import type { RegistrationStatus } from './registration'
 
 // Re-exporta para permitir que callers importem tudo de um lugar.
 export type { RegistrationStatus }
+// Re-exporta o tipo de condição de pagamento (domínio compartilhado com sales).
+export type { PaymentCondition }
 
 /**
  * Status do contrato. Diferente de outros cadastros (que usam apenas
@@ -45,6 +48,8 @@ export interface ContractResponse {
   validityDate: string
   /** Preço do contrato (em reais). Valor informativo, não exibido no PDF. */
   price: number
+  /** Condição de pagamento (domínio compartilhado com proposals). Pode ser null. */
+  paymentCondition: PaymentCondition | null
   /** Data de entrega (conclusão, yyyy-MM-dd). Nula enquanto não concluído. */
   deliveryDate: string | null
   createdAt: string
@@ -88,6 +93,8 @@ export interface ContractCreateRequest {
   validityDate?: string
   /** Preço do contrato (em reais). Obrigatório na criação. Não exibido no PDF. */
   price?: number
+  /** Condição de pagamento (opcional). Omitir para não enviar. */
+  paymentCondition?: PaymentCondition | null
   /** Cláusulas do contrato. Omitir para o backend pré-preencher as 11 padrão. */
   clauses?: ContractClauseRequest[]
 }
@@ -104,6 +111,8 @@ export interface ContractUpdateRequest {
   validityDate?: string
   /** Preço do contrato (em reais). Não exibido no PDF. */
   price?: number
+  /** Condição de pagamento. null/omitir = manter a atual. */
+  paymentCondition?: PaymentCondition | null
   /** Cláusulas. null = manter; lista (inclusive vazia) = substituição completa. */
   clauses?: ContractClauseRequest[] | null
 }

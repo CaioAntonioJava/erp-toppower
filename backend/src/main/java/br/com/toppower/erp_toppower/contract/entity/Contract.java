@@ -2,6 +2,7 @@ package br.com.toppower.erp_toppower.contract.entity;
 
 import br.com.toppower.erp_toppower.common.entity.OrganizationScopedEntity;
 import br.com.toppower.erp_toppower.contract.enums.ContractStatus;
+import br.com.toppower.erp_toppower.sales.quotation.enums.PaymentCondition;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -151,6 +152,16 @@ public class Contract extends OrganizationScopedEntity {
      */
     @Column(name = "price", nullable = false, precision = 12, scale = 2)
     private BigDecimal price;
+
+    /**
+     * Condição de pagamento do contrato. Opcional — reutiliza o mesmo
+     * enum usado pelas propostas comerciais ({@link PaymentCondition}).
+     * Persistida como {@code VARCHAR(50)} (nome do enum) para espelhar
+     * o padrão adotado por quotation/sales-order/technical-proposal.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_condition", length = 50)
+    private PaymentCondition paymentCondition;
 
     /**
      * Data de entrega (conclusão) do contrato. Preenchida automaticamente

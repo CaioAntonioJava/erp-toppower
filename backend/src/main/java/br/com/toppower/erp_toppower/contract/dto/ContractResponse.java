@@ -1,6 +1,7 @@
 package br.com.toppower.erp_toppower.contract.dto;
 
 import br.com.toppower.erp_toppower.contract.enums.ContractStatus;
+import br.com.toppower.erp_toppower.sales.quotation.enums.PaymentCondition;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
@@ -74,6 +75,9 @@ public record ContractResponse(
                 + "Não é exibido no PDF do contrato.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         BigDecimal price,
+
+        @Schema(description = "Condição de pagamento do contrato, quando definida.")
+        PaymentCondition paymentCondition,
 
         @Schema(description = "Data de entrega (conclusão). Preenchida quando o "
                 + "contrato transita para CONCLUIDO.")

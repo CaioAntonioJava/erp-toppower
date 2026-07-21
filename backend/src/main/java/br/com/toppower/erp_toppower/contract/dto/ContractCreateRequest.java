@@ -1,5 +1,6 @@
 package br.com.toppower.erp_toppower.contract.dto;
 
+import br.com.toppower.erp_toppower.sales.quotation.enums.PaymentCondition;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
@@ -66,6 +67,11 @@ public record ContractCreateRequest(
         @NotNull(message = "O preço do contrato é obrigatório")
         @DecimalMin(value = "0.00", inclusive = true, message = "O preço do contrato não pode ser negativo")
         BigDecimal price,
+
+        @Schema(description = "Condição de pagamento do contrato (opcional). "
+                + "Reutiliza o mesmo domínio das propostas comerciais.",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        PaymentCondition paymentCondition,
 
         @Schema(description = "Cláusulas do contrato. Quando omitido, o backend pré-preenche "
                 + "as 11 cláusulas padrão (cláusula 1 vazia, 2–11 com textos do template padrão).",
