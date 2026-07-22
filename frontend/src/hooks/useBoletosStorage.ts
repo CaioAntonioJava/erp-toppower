@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useOrganization } from '../context/OrganizationContext'
-import { listBoletos, createBoleto, inactivateBoleto, uploadBoletoAttachment } from '../api/boleto.api'
+import { listBoletos, createBoleto, inactivateBoleto, uploadBoletoAttachment, updateBoleto } from '../api/boleto.api'
 import { toApiError } from '../lib/errors'
-import type { BoletoResponse } from '../types/boleto'
+import type { BoletoResponse, BoletoUpdateRequest } from '../types/boleto'
 import type { BoletoDue } from '../types/finance'
 
 /**
@@ -118,5 +118,16 @@ export function useBoletosStorage() {
     setItems((prev) => prev.filter((b) => b.id !== id))
   }, [])
 
-  return { items, loading, error, add, remove, reload }
+  /**
+   * Atualiza um boleto existente. Chama o PATCH do backend e atualiza
+   * o item na lista local com os dados retornados.
+   */
+  const update = useCallback(async (id: number, input: BoletoUpdateRequest): Promise<BoletoDue> => {
+    const updated = await updateBoleto(id, input)
+    const due = toDue(updated)
+    setItems((prev) => prev.map((b) => (b.id === id ? due : b)))
+    return due
+  }, [])
+
+  return { items, loading, error, add, update, remove, reload }
 }

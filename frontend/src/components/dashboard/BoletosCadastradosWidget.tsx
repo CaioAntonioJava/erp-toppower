@@ -10,7 +10,8 @@ import { formatCurrency, formatDate } from '../../lib/format'
 import { useBoletosStorage } from '../../hooks/useBoletosStorage'
 import type { NovoBoletoInput } from '../../hooks/useBoletosStorage'
 import { toApiError } from '../../lib/errors'
-import { listBoletoAttachments, downloadBoletoAttachment } from '../../api/boleto.api'
+import { getBoleto, listBoletoAttachments, downloadBoletoAttachment } from '../../api/boleto.api'
+import type { BoletoResponse, BoletoUpdateRequest } from '../../types/boleto'
 import { BoletoFormModal } from './BoletoFormModal'
 import { BoletoAttachmentsModal } from './BoletoAttachmentsModal'
 
@@ -27,8 +28,9 @@ import { BoletoAttachmentsModal } from './BoletoAttachmentsModal'
  * (que mostra boletos vencendo / vencidos).
  */
 export function BoletosCadastradosWidget() {
-  const { items, loading, error, add, remove } = useBoletosStorage()
+  const { items, loading, error, add, update, remove } = useBoletosStorage()
   const [modalOpen, setModalOpen] = useState(false)
+  const [editandoBoleto, setEditandoBoleto] = useState<BoletoResponse | null>(null)
   const [removerId, setRemoverId] = useState<number | null>(null)
   const [removing, setRemoving] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -70,6 +72,27 @@ export function BoletosCadastradosWidget() {
       setModalOpen(false)
     } catch (err) {
       // Repassa a mensagem do backend (ex.: documento duplicado) ao modal.
+      throw new Error(toApiError(err).message)
+    }
+  }
+
+  async function handleEdit(boletoId: number): Promise<void> {
+    setActionError(null)
+    try {
+      const boleto = await getBoleto(boletoId)
+      setEditandoBoleto(boleto)
+    } catch (err) {
+      setActionError(toApiError(err).message)
+    }
+  }
+
+  async function handleUpdate(id: number, input: BoletoUpdateRequest): Promise<void> {
+    setActionError(null)
+    try {
+      await update(id, input)
+      setEditandoBoleto(null)
+    } catch (err) {
+      // Repassa a mensagem do backend ao modal.
       throw new Error(toApiError(err).message)
     }
   }
@@ -121,82 +144,191 @@ export function BoletosCadastradosWidget() {
             </p>
           </div>
         ) : (
-          <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-            {items.map((boleto) => {
-              const vencido = boleto.diasAteVencimento < 0
-              return (
-                <li key={boleto.id} className="flex items-center justify-between py-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">
-                      {boleto.descricao}
-                    </p>
-                    <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-                      {boleto.pagador} · Venc. {formatDate(boleto.dataVencimento)}
-                    </p>
-                  </div>
-                  <div className="ml-3 flex shrink-0 items-center gap-3">
-                    <span className="text-sm font-semibold">
-                      {formatCurrency(boleto.valor)}
-                    </span>
-                    {vencido ? (
-                      <Badge tone="danger">
-                        <AlertTriangle className="mr-1 h-3 w-3" />
-                        Vencido
-                      </Badge>
-                    ) : (
-                      <Badge tone="warning">
-                        <Clock className="mr-1 h-3 w-3" />
-                        {boleto.diasAteVencimento}d
-                      </Badge>
-                    )}
+          <div className="space-y-1">
+            {/* Cabeçalho das colunas */}
+            <div className="hidden grid-cols-12 gap-3 px-3 py-2 text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500 sm:grid">
+              <span className="col-span-4">Descrição</span>
+              <span className="col-span-3">Fornecedor</span>
+              <span className="col-span-2 text-right">Valor</span>
+              <span className="col-span-2">Vencimento</span>
+              <span className="col-span-1" />
+            </div>
+
+            <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+              {items.map((boleto) => {
+                const vencido = boleto.diasAteVencimento < 0
+                return (
+                  <li key={boleto.id}>
                     <button
                       type="button"
-                      onClick={() => {
-                        setActionError(null)
-                        setAnexosBoleto({
-                          id: boleto.id,
-                          label: `${boleto.descricao} · ${boleto.pagador}`,
-                        })
-                      }}
-                      className="rounded p-1 text-slate-400 hover:bg-primary-50 hover:text-primary dark:hover:bg-primary-900/30"
-                      aria-label="Anexos do boleto"
-                      title="Anexos"
+                      onClick={() => handleEdit(boleto.id)}
+                      className="group grid w-full cursor-pointer grid-cols-12 gap-3 rounded-lg px-3 py-3 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
                     >
-                      <Paperclip className="h-4 w-4" />
+                      {/* Descrição */}
+                      <span className="col-span-4 truncate text-sm font-medium text-slate-900 dark:text-slate-100">
+                        {boleto.descricao}
+                      </span>
+
+                      {/* Fornecedor / Pagador */}
+                      <span className="col-span-3 truncate text-sm text-slate-600 dark:text-slate-400">
+                        {boleto.pagador}
+                      </span>
+
+                      {/* Valor */}
+                      <span className="col-span-2 truncate text-right text-sm font-semibold text-slate-900 dark:text-slate-100">
+                        {formatCurrency(boleto.valor)}
+                      </span>
+
+                      {/* Vencimento */}
+                      <span className="col-span-2 truncate text-sm text-slate-600 dark:text-slate-400">
+                        {formatDate(boleto.dataVencimento)}
+                      </span>
+
+                      {/* Status + ações */}
+                      <span className="col-span-1 flex items-center justify-end gap-1">
+                        {vencido ? (
+                          <Badge tone="danger" className="shrink-0">
+                            <AlertTriangle className="mr-0.5 h-3 w-3" />
+                            Vencido
+                          </Badge>
+                        ) : (
+                          <Badge tone="warning" className="shrink-0">
+                            <Clock className="mr-0.5 h-3 w-3" />
+                            {boleto.diasAteVencimento}d
+                          </Badge>
+                        )}
+                        <span className="hidden items-center gap-0.5 sm:flex">
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setActionError(null)
+                              setAnexosBoleto({
+                                id: boleto.id,
+                                label: `${boleto.descricao} · ${boleto.pagador}`,
+                              })
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.stopPropagation()
+                                setActionError(null)
+                                setAnexosBoleto({
+                                  id: boleto.id,
+                                  label: `${boleto.descricao} · ${boleto.pagador}`,
+                                })
+                              }
+                            }}
+                            className="rounded p-1 text-slate-400 opacity-0 transition-opacity hover:bg-primary-50 hover:text-primary group-hover:opacity-100 dark:hover:bg-primary-900/30"
+                            aria-label="Anexos do boleto"
+                            title="Anexos"
+                          >
+                            <Paperclip className="h-3.5 w-3.5" />
+                          </span>
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handlePrint(boleto.id)
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.stopPropagation()
+                                handlePrint(boleto.id)
+                              }
+                            }}
+                            className="rounded p-1 text-slate-400 opacity-0 transition-opacity hover:bg-primary-50 hover:text-primary group-hover:opacity-100 disabled:opacity-50 dark:hover:bg-primary-900/30"
+                            aria-label="Imprimir boleto"
+                            title="Imprimir"
+                          >
+                            <Printer className="h-3.5 w-3.5" />
+                          </span>
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setActionError(null)
+                              setRemoverId(boleto.id)
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.stopPropagation()
+                                setActionError(null)
+                                setRemoverId(boleto.id)
+                              }
+                            }}
+                            className="rounded p-1 text-slate-400 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 dark:hover:bg-red-900/30 dark:hover:text-red-400"
+                            aria-label="Remover boleto"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </span>
+                        </span>
+                      </span>
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => handlePrint(boleto.id)}
-                      disabled={printing === boleto.id}
-                      className="rounded p-1 text-slate-400 hover:bg-primary-50 hover:text-primary disabled:opacity-50 dark:hover:bg-primary-900/30"
-                      aria-label="Imprimir boleto"
-                      title="Imprimir"
-                    >
-                      <Printer className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActionError(null)
-                        setRemoverId(boleto.id)
-                      }}
-                      className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400"
-                      aria-label="Remover boleto"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
+
+                    {/* Barra de ações (aparece abaixo em mobile, ao lado no desktop) */}
+                    <div className="flex items-center justify-end gap-1 px-3 pb-2 sm:hidden">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setActionError(null)
+                          setAnexosBoleto({
+                            id: boleto.id,
+                            label: `${boleto.descricao} · ${boleto.pagador}`,
+                          })
+                        }}
+                        className="rounded p-1.5 text-slate-400 hover:bg-primary-50 hover:text-primary dark:hover:bg-primary-900/30"
+                        aria-label="Anexos do boleto"
+                        title="Anexos"
+                      >
+                        <Paperclip className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handlePrint(boleto.id)
+                        }}
+                        disabled={printing === boleto.id}
+                        className="rounded p-1.5 text-slate-400 hover:bg-primary-50 hover:text-primary disabled:opacity-50 dark:hover:bg-primary-900/30"
+                        aria-label="Imprimir boleto"
+                        title="Imprimir"
+                      >
+                        <Printer className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setActionError(null)
+                          setRemoverId(boleto.id)
+                        }}
+                        className="rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400"
+                        aria-label="Remover boleto"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
         )}
       </div>
 
       <BoletoFormModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        open={modalOpen || editandoBoleto != null}
+        onClose={() => {
+          setModalOpen(false)
+          setEditandoBoleto(null)
+        }}
         onSubmit={handleSubmit}
+        editBoleto={editandoBoleto}
+        onUpdate={handleUpdate}
       />
 
       <ConfirmDialog

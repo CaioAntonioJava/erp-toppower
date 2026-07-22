@@ -7,12 +7,17 @@ import { Alert } from '../ui/Alert'
 import { parseNumber } from '../../lib/money'
 import { searchSuppliers } from '../../api/supplier.api'
 import type { SupplierResponse } from '../../types/supplier'
+import type { BoletoResponse, BoletoUpdateRequest } from '../../types/boleto'
 import type { NovoBoletoInput } from '../../hooks/useBoletosStorage'
 
 interface BoletoFormModalProps {
   open: boolean
   onClose: () => void
   onSubmit: (input: NovoBoletoInput) => void | Promise<void>
+  /** Quando informado, o modal opera em modo de edição. */
+  editBoleto?: BoletoResponse | null
+  /** Callback chamado ao salvar a edição. */
+  onUpdate?: (id: number, input: BoletoUpdateRequest) => void | Promise<void>
 }
 
 /** Estado do formulário de cadastro de boleto. */
@@ -44,7 +49,8 @@ const MAX_SIZE_BYTES = 10 * 1024 * 1024 // 10MB
  * (chamadas à API `/api/v1/boletos`). O anexo (opcional) é enviado após
  * o cadastro do boleto, reusing o endpoint de anexos.
  */
-export function BoletoFormModal({ open, onClose, onSubmit }: BoletoFormModalProps) {
+export function BoletoFormModal({ open, onClose, onSubmit, editBoleto, onUpdate }: BoletoFormModalProps) {
+  const isEditing = editBoleto != null
   const [form, setForm] = useState<FormState>(EMPTY)
   const [attachment, setAttachment] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -81,16 +87,27 @@ export function BoletoFormModal({ open, onClose, onSubmit }: BoletoFormModalProp
   // Reseta o formulário a cada abertura.
   useEffect(() => {
     if (open) {
-      setForm(EMPTY)
+      if (editBoleto) {
+        setForm({
+          description: editBoleto.description,
+          payee: editBoleto.payee,
+          valor: String(editBoleto.value),
+          dueDate: editBoleto.dueDate,
+        })
+        setSupplierQuery(editBoleto.supplierName ?? '')
+        setSupplierId(editBoleto.supplierId)
+      } else {
+        setForm(EMPTY)
+        setSupplierQuery('')
+        setSupplierId(null)
+      }
       setAttachment(null)
       setError(null)
       setSubmitting(false)
-      setSupplierQuery('')
-      setSupplierId(null)
       setSupplierOptions([])
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
-  }, [open])
+  }, [open, editBoleto])
 
   // Busca de fornecedor (debounce) — opcional. Quando um fornecedor é
   // selecionado, o backend gera uma conta a pagar ao cadastrar o boleto.
@@ -147,19 +164,29 @@ export function BoletoFormModal({ open, onClose, onSubmit }: BoletoFormModalProp
     setError(null)
     setSubmitting(true)
     try {
-      await onSubmit({
-        description,
-        payee,
-        value: valor,
-        dueDate,
-        supplierId: supplierId ?? null,
-        attachment: attachment ?? undefined,
-      })
+      if (isEditing && editBoleto && onUpdate) {
+        await onUpdate(editBoleto.id, {
+          description,
+          payee,
+          value: valor,
+          dueDate,
+          supplierId: supplierId ?? null,
+        })
+      } else {
+        await onSubmit({
+          description,
+          payee,
+          value: valor,
+          dueDate,
+          supplierId: supplierId ?? null,
+          attachment: attachment ?? undefined,
+        })
+      }
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : 'Falha ao cadastrar o boleto. Tente novamente.',
+          : 'Falha ao salvar o boleto. Tente novamente.',
       )
       setSubmitting(false)
       return
@@ -203,7 +230,7 @@ export function BoletoFormModal({ open, onClose, onSubmit }: BoletoFormModalProp
         className="w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900"
       >
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-800">
-          <h2 className="text-base font-semibold">Cadastrar boleto</h2>
+          <h2 className="text-base font-semibold">{isEditing ? 'Editar boleto' : 'Cadastrar boleto'}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -294,36 +321,38 @@ export function BoletoFormModal({ open, onClose, onSubmit }: BoletoFormModalProp
             />
           </div>
 
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
-              Anexo (opcional)
-            </label>
-            <div className="flex items-center gap-3">
-              <label
-                className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-              >
-                <Paperclip className="h-4 w-4" />
-                Escolher arquivo
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept={ACCEPT}
-                  onChange={handleFileChange}
-                  disabled={submitting}
-                  className="hidden"
-                />
+          {!isEditing ? (
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
+                Anexo (opcional)
               </label>
-              {attachment ? (
-                <span className="truncate text-sm text-slate-600 dark:text-slate-300">
-                  {attachment.name}
-                </span>
-              ) : (
-                <span className="text-xs text-slate-400 dark:text-slate-500">
-                  PDF, PNG ou JPEG — até 10MB
+              <div className="flex items-center gap-3">
+                <label
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                >
+                  <Paperclip className="h-4 w-4" />
+                  Escolher arquivo
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept={ACCEPT}
+                    onChange={handleFileChange}
+                    disabled={submitting}
+                    className="hidden"
+                  />
+                </label>
+                {attachment ? (
+                  <span className="truncate text-sm text-slate-600 dark:text-slate-300">
+                    {attachment.name}
+                  </span>
+                ) : (
+                  <span className="text-xs text-slate-400 dark:text-slate-500">
+                    PDF, PNG ou JPEG — até 10MB
                 </span>
               )}
             </div>
           </div>
+          ) : null}
 
           {error ? (
             <Alert variant="error">{error}</Alert>
@@ -335,7 +364,7 @@ export function BoletoFormModal({ open, onClose, onSubmit }: BoletoFormModalProp
             Cancelar
           </Button>
           <Button type="submit" isLoading={submitting}>
-            Cadastrar
+            {isEditing ? 'Salvar' : 'Cadastrar'}
           </Button>
         </div>
       </form>
