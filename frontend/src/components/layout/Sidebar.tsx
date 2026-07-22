@@ -74,7 +74,6 @@ const navSections: NavSection[] = [
     items: [
       { to: '/receivables', label: 'Contas a Receber', icon: Wallet },
       { to: '/payables', label: 'Contas a Pagar', icon: Receipt },
-      { to: '/purchases/import', label: 'Importar NF-e', icon: FileUp },
     ],
   },
   {
