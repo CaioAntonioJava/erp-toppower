@@ -21,8 +21,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
  */
 @Schema(name = "MovementSource",
         description = "Módulo de origem da movimentação de estoque.",
-        allowableValues = {"SALES_ORDER", "MANUAL"})
+        allowableValues = {"SALES_ORDER", "MANUAL", "NFE_IMPORT"})
 public enum MovementSource {
     SALES_ORDER,
-    MANUAL
+    MANUAL,
+    /** Importação de NF-e (nota de compra/entrada). */
+    NFE_IMPORT
 }

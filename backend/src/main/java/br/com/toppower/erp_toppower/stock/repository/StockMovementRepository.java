@@ -33,4 +33,13 @@ public interface StockMovementRepository extends JpaRepository<StockMovement, Lo
     boolean existsBySourceIdAndSourceAndTypeAndReversedFalse(Long sourceId,
                                                                MovementSource source,
                                                                MovementType type);
+
+    /**
+     * Verifica se já existe movimentação não estornada para um dado
+     * número de documento de origem (ex.: número da NF-e). Usado para
+     * idempotência na importação de XML.
+     */
+    boolean existsBySourceNumberAndSourceAndTypeAndReversedFalse(String sourceNumber,
+                                                                  MovementSource source,
+                                                                  MovementType type);
 }

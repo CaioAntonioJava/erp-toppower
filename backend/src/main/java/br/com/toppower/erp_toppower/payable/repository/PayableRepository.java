@@ -25,4 +25,15 @@ public interface PayableRepository extends JpaRepository<Payable, Long>,
               AND p.status <> br.com.toppower.erp_toppower.payable.enums.PayableStatus.CANCELADO
             """)
     Optional<Payable> findActiveByBoletoId(@Param("boletoId") Long boletoId);
+
+    /**
+     * Busca conta a pagar ativa (não cancelada) pelo número da nota de
+     * compra (NF-e). Usado para idempotência na importação de XML.
+     */
+    @Query("""
+            SELECT p FROM Payable p
+            WHERE p.purchaseInvoiceNumber = :purchaseInvoiceNumber
+              AND p.status <> br.com.toppower.erp_toppower.payable.enums.PayableStatus.CANCELADO
+            """)
+    Optional<Payable> findActiveByPurchaseInvoiceNumber(@Param("purchaseInvoiceNumber") String purchaseInvoiceNumber);
 }
