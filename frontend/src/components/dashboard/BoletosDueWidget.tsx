@@ -5,16 +5,42 @@ import { Card } from '../ui/Card'
 import { Badge } from '../ui/Badge'
 import { Spinner } from '../ui/Spinner'
 import { formatCurrency, formatDate } from '../../lib/format'
-import { listBoletosDue } from '../../api/finance.api'
+import { listBoletos } from '../../api/boleto.api'
+import type { BoletoResponse } from '../../types/boleto'
 import type { BoletoDue } from '../../types/finance'
 
 /**
  * Widget de Boletos próximos do vencimento.
  *
  * Destaca boletos vencendo nos próximos 7 dias e boletos já vencidos.
- * Preparado para ligar ao endpoint `/api/v1/boletos/due` quando o backend
- * financeiro existir. Hoje exibe estado vazio.
+ * Busca os boletos ativos não pagos do endpoint `/api/v1/boletos` e
+ * deriva os campos de apresentação (diasAteVencimento, status) no frontend.
  */
+
+/** Calcula dias até o vencimento a partir de uma data ISO (negativo = vencido). */
+function diasAteVencimento(dataVencimento: string): number {
+  const hoje = new Date()
+  hoje.setHours(0, 0, 0, 0)
+  const venc = new Date(`${dataVencimento}T00:00:00`)
+  return Math.round((venc.getTime() - hoje.getTime()) / (24 * 60 * 60 * 1000))
+}
+
+/** Converte um BoletoResponse em BoletoDue (com campos derivados). */
+function toDue(boleto: BoletoResponse): BoletoDue {
+  const dias = diasAteVencimento(boleto.dueDate)
+  return {
+    id: boleto.id,
+    descricao: boleto.description,
+    pagador: boleto.payee,
+    valor: boleto.value,
+    dataVencimento: boleto.dueDate,
+    diasAteVencimento: dias,
+    status: dias < 0 ? 'ATRASADO' : 'ABERTO',
+    paid: boleto.paid,
+    paymentDate: boleto.paymentDate,
+  }
+}
+
 export function BoletosDueWidget() {
   const [items, setItems] = useState<BoletoDue[]>([])
   const [loading, setLoading] = useState(true)
@@ -22,9 +48,19 @@ export function BoletosDueWidget() {
   useEffect(() => {
     let cancelled = false
     setLoading(true)
-    listBoletosDue()
-      .then((data) => {
-        if (!cancelled) setItems(data)
+    // Busca boletos ativos e filtra os não pagos que vencem em até 7 dias
+    // ou já estão vencidos.
+    listBoletos({ status: 'ATIVO', size: 100 })
+      .then((page) => {
+        if (cancelled) return
+        const due = page.content
+          .map(toDue)
+          .filter((b) => !b.paid && b.diasAteVencimento <= 7)
+          .sort((a, b) => a.diasAteVencimento - b.diasAteVencimento)
+        setItems(due)
+      })
+      .catch(() => {
+        if (!cancelled) setItems([])
       })
       .finally(() => {
         if (!cancelled) setLoading(false)

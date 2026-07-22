@@ -1,47 +1,13 @@
 /**
  * Tipos do módulo financeiro (dashboard).
  *
- * Partes ainda sem backend dedicado (contas a pagar/receber, resumo
- * agregado) permanecem como estruturas de apresentação usadas pelos
- * widgets. O tipo {@link BoletoDue} agora é derivado do boleto
- * cadastrado (módulo `/api/v1/boletos`), reaproveitado pelos widgets
- * `BoletosCadastradosWidget` e `BoletosDueWidget`.
+ * O tipo {@link BoletoDue} é derivado do boleto cadastrado (módulo
+ * `/api/v1/boletos`), reaproveitado pelos widgets `BoletosCadastradosWidget`
+ * e `BoletosDueWidget`. Os demais tipos de apresentação (AccountPayable,
+ * AccountReceivable, FinanceSummary) foram removidos — os widgets agora
+ * consomem diretamente os tipos reais dos módulos (PayableSummaryResponse,
+ * ReceivableSummaryResponse) e calculam os totais no frontend.
  */
-
-/** Status de uma conta a pagar/receber (apresentação no dashboard). */
-export type AccountStatus = 'ABERTO' | 'PAGO' | 'ATRASADO' | 'CANCELADO'
-
-/** Conta a pagar (despesa em aberto). Endpoint ainda não existe no backend. */
-export interface AccountPayable {
-  id: number
-  descricao: string
-  fornecedor: string
-  valor: number
-  /** Data de vencimento no formato ISO (yyyy-MM-dd). */
-  dataVencimento: string
-  status: AccountStatus
-}
-
-/** Conta a receber (recebimento em aberto). Endpoint ainda não existe no backend. */
-export interface AccountReceivable {
-  id: number
-  descricao: string
-  cliente: string
-  valor: number
-  /** Data de vencimento no formato ISO (yyyy-MM-dd). */
-  dataVencimento: string
-  status: AccountStatus
-}
-
-/** Resumo agregado do módulo financeiro (indicadores do dashboard). */
-export interface FinanceSummary {
-  totalPagarAberto: number
-  totalPagarVencido: number
-  totalReceberAberto: number
-  totalReceberVencido: number
-  boletosProximosVencimento: number
-  boletosVencidos: number
-}
 
 /**
  * Boleto cadastrado com campos derivados para apresentação no dashboard.

@@ -3,17 +3,18 @@ import { TrendingUp } from 'lucide-react'
 import { Card } from '../ui/Card'
 import { Spinner } from '../ui/Spinner'
 import { formatCurrency } from '../../lib/format'
-import { getFinanceSummary } from '../../api/finance.api'
+import { listPayables } from '../../api/payable.api'
 import { listReceivables } from '../../api/receivable.api'
-import type { FinanceSummary } from '../../types/finance'
+import { listBoletos } from '../../api/boleto.api'
+import type { BoletoResponse } from '../../types/boleto'
 
 /**
- * Linha de indicadores financeiros no topo do dashboard.
+ * Linha de indicadores financeiros no dashboard.
  *
- * Os totais "a pagar" e os contadores de boletos ainda dependem de
- * `getFinanceSummary` (stub enquanto o backend de contas a pagar não
- * existe). Os totais "a receber" (aberto e vencido) são calculados no
- * frontend a partir do endpoint `/api/v1/accounts-receivable?status=ABERTO`.
+ * Todos os totais são calculados no frontend a partir dos endpoints reais
+ * de contas a pagar, contas a receber e boletos — não há endpoint de
+ * resumo agregado no backend. Percorre as contas/boletos em aberto
+ * paginando até esgotar (size 100 por página).
  */
 interface Indicator {
   label: string
@@ -22,20 +23,24 @@ interface Indicator {
   tone: 'default' | 'warning' | 'danger'
 }
 
-/** Calcula os totais a receber (aberto e vencido) a partir das contas ABERTO. */
-async function fetchReceivableTotals(): Promise<{ aberto: number; vencido: number }> {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+/** Calcula dias até o vencimento a partir de uma data ISO (negativo = vencido). */
+function diasAteVencimento(dataVencimento: string): number {
+  const hoje = new Date()
+  hoje.setHours(0, 0, 0, 0)
+  const venc = new Date(`${dataVencimento}T00:00:00`)
+  return Math.round((venc.getTime() - hoje.getTime()) / (24 * 60 * 60 * 1000))
+}
+
+/** Calcula os totais a pagar (aberto e vencido) a partir das contas ABERTO. */
+async function fetchPayableTotals(): Promise<{ aberto: number; vencido: number }> {
   let aberto = 0
   let vencido = 0
   let page = 0
-  // Percorre até esgotar as contas em aberto (tamanho 100 por página).
   for (;;) {
-    const result = await listReceivables({ status: 'ABERTO', size: 100, page })
+    const result = await listPayables({ status: 'ABERTO', size: 100, page })
     for (const item of result.content) {
       aberto += item.balance
-      const due = new Date(`${item.dueDate}T00:00:00`)
-      if (due < today) vencido += item.balance
+      if (diasAteVencimento(item.dueDate) < 0) vencido += item.balance
     }
     if (result.last || result.content.length === 0) break
     page += 1
@@ -43,21 +48,70 @@ async function fetchReceivableTotals(): Promise<{ aberto: number; vencido: numbe
   return { aberto, vencido }
 }
 
+/** Calcula os totais a receber (aberto e vencido) a partir das contas ABERTO. */
+async function fetchReceivableTotals(): Promise<{ aberto: number; vencido: number }> {
+  let aberto = 0
+  let vencido = 0
+  let page = 0
+  for (;;) {
+    const result = await listReceivables({ status: 'ABERTO', size: 100, page })
+    for (const item of result.content) {
+      aberto += item.balance
+      if (diasAteVencimento(item.dueDate) < 0) vencido += item.balance
+    }
+    if (result.last || result.content.length === 0) break
+    page += 1
+  }
+  return { aberto, vencido }
+}
+
+/** Conta boletos não pagos vencendo (7 dias) e vencidos. */
+async function fetchBoletoCounts(): Promise<{ proximos: number; vencidos: number }> {
+  let proximos = 0
+  let vencidos = 0
+  let page = 0
+  for (;;) {
+    const result = await listBoletos({ status: 'ATIVO', size: 100, page })
+    for (const boleto of result.content as BoletoResponse[]) {
+      if (boleto.paid) continue
+      const dias = diasAteVencimento(boleto.dueDate)
+      if (dias < 0) {
+        vencidos += 1
+      } else if (dias <= 7) {
+        proximos += 1
+      }
+    }
+    if (result.last || result.content.length === 0) break
+    page += 1
+  }
+  return { proximos, vencidos }
+}
+
 export function FinanceSummaryWidget() {
-  const [summary, setSummary] = useState<FinanceSummary | null>(null)
-  const [receivableAberto, setReceivableAberto] = useState(0)
-  const [receivableVencido, setReceivableVencido] = useState(0)
+  const [pagarAberto, setPagarAberto] = useState(0)
+  const [pagarVencido, setPagarVencido] = useState(0)
+  const [receberAberto, setReceberAberto] = useState(0)
+  const [receberVencido, setReceberVencido] = useState(0)
+  const [boletosProximos, setBoletosProximos] = useState(0)
+  const [boletosVencidos, setBoletosVencidos] = useState(0)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
-    Promise.all([getFinanceSummary(), fetchReceivableTotals()])
-      .then(([s, r]) => {
+    Promise.all([
+      fetchPayableTotals(),
+      fetchReceivableTotals(),
+      fetchBoletoCounts(),
+    ])
+      .then(([p, r, b]) => {
         if (cancelled) return
-        setSummary(s)
-        setReceivableAberto(r.aberto)
-        setReceivableVencido(r.vencido)
+        setPagarAberto(p.aberto)
+        setPagarVencido(p.vencido)
+        setReceberAberto(r.aberto)
+        setReceberVencido(r.vencido)
+        setBoletosProximos(b.proximos)
+        setBoletosVencidos(b.vencidos)
       })
       .catch(() => {
         // Mantém zeros em caso de erro — o dashboard segue utilizável.
@@ -81,27 +135,27 @@ export function FinanceSummaryWidget() {
   const indicators: Indicator[] = [
     {
       label: 'A pagar (aberto)',
-      value: summary?.totalPagarAberto ?? 0,
+      value: pagarAberto,
       hint: 'Total de despesas em aberto',
       tone: 'default',
     },
     {
       label: 'A pagar vencido',
-      value: summary?.totalPagarVencido ?? 0,
+      value: pagarVencido,
       hint: 'Despesas em atraso',
-      tone: summary?.totalPagarVencido ? 'danger' : 'default',
+      tone: pagarVencido ? 'danger' : 'default',
     },
     {
       label: 'A receber (aberto)',
-      value: receivableAberto,
+      value: receberAberto,
       hint: 'Total a receber em aberto',
       tone: 'default',
     },
     {
       label: 'A receber vencido',
-      value: receivableVencido,
+      value: receberVencido,
       hint: 'Recebimentos em atraso',
-      tone: receivableVencido ? 'warning' : 'default',
+      tone: receberVencido ? 'warning' : 'default',
     },
   ]
 
@@ -139,13 +193,13 @@ export function FinanceSummaryWidget() {
         <span className="text-slate-500 dark:text-slate-400">
           Boletos vencendo (7 dias):{' '}
           <strong className="text-slate-900 dark:text-slate-100">
-            {summary?.boletosProximosVencimento ?? 0}
+            {boletosProximos}
           </strong>
         </span>
         <span className="text-slate-500 dark:text-slate-400">
           Boletos vencidos:{' '}
           <strong className="text-red-600 dark:text-red-400">
-            {summary?.boletosVencidos ?? 0}
+            {boletosVencidos}
           </strong>
         </span>
       </div>

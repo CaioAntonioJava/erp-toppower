@@ -11,7 +11,7 @@ import {
  *
  * Layout em seções com os módulos financeiros (Contas a Pagar, Contas a
  * Receber e indicadores agregados). Os widgets buscam dados via
- * `api/finance.api.ts` e `api/receivable.api.ts`.
+ * `api/payable.api.ts`, `api/receivable.api.ts` e `api/boleto.api.ts`.
  */
 export function DashboardPage() {
   const { user } = useAuth()
