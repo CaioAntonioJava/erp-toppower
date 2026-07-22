@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   Check,
   DollarSign,
+  ExternalLink,
   Plus,
   Trash2,
 } from 'lucide-react'
@@ -21,6 +22,7 @@ import {
   activatePayable,
   cancelPayable,
   createPayable,
+  downloadPaymentReceipt,
   getPayable,
   removePayment,
   settleInstallment,
@@ -112,6 +114,23 @@ export function PayableFormPage() {
   const [removePayTarget, setRemovePayTarget] =
     useState<{ paymentId: number; amount: number } | null>(null)
   const [removingPay, setRemovingPay] = useState(false)
+
+  // --- Download de comprovante ---
+  const [downloadingReceipt, setDownloadingReceipt] = useState<number | null>(null)
+
+  async function handleOpenReceipt(paymentId: number): Promise<void> {
+    setDownloadingReceipt(paymentId)
+    try {
+      const { blob } = await downloadPaymentReceipt(paymentId)
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank')
+      setTimeout(() => URL.revokeObjectURL(url), 60000)
+    } catch {
+      setSubmitError('Erro ao abrir comprovante.')
+    } finally {
+      setDownloadingReceipt(null)
+    }
+  }
 
   // --- Modal de cancelar/reativar conta ---
   const [confirmCancel, setConfirmCancel] = useState(false)
@@ -667,6 +686,7 @@ export function PayableFormPage() {
                       <th className="px-3 py-2 font-medium">Parcela</th>
                       <th className="px-3 py-2 text-right font-medium">Valor</th>
                       <th className="px-3 py-2 font-medium">Observações</th>
+                      <th className="px-3 py-2 font-medium">Comprovante</th>
                       <th className="px-3 py-2 text-right font-medium">Ações</th>
                     </tr>
                   </thead>
@@ -684,6 +704,22 @@ export function PayableFormPage() {
                         </td>
                         <td className="px-3 py-2 text-slate-600 dark:text-slate-300">
                           {p.notes ?? '—'}
+                        </td>
+                        <td className="px-3 py-2">
+                          {p.receiptUrl ? (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenReceipt(p.id)}
+                              disabled={downloadingReceipt === p.id}
+                              className="inline-flex items-center gap-1 text-sm text-primary hover:underline disabled:opacity-50"
+                              title="Abrir comprovante"
+                            >
+                              <ExternalLink className="h-3.5 w-3.5" />
+                              {downloadingReceipt === p.id ? 'Abrindo…' : 'Visualizar'}
+                            </button>
+                          ) : (
+                            <span className="text-xs text-slate-400 dark:text-slate-500">—</span>
+                          )}
                         </td>
                         <td className="px-3 py-2 text-right">
                           {payable.status !== 'CANCELADO' ? (

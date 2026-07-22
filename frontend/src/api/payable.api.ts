@@ -140,3 +140,22 @@ export async function listPayments(
   )
   return data
 }
+
+/**
+ * GET /accounts-payable/payments/{paymentId}/receipt — baixa o comprovante
+ * de pagamento como Blob para exibição inline no navegador.
+ */
+export async function downloadPaymentReceipt(
+  paymentId: number,
+): Promise<{ blob: Blob; fileName: string; contentType: string }> {
+  const resp = await api.get(`${BASE}/payments/${paymentId}/receipt`, {
+    responseType: 'blob',
+  })
+  const cdHeader = (resp.headers['content-disposition'] as string | undefined) ?? ''
+  const fileNameMatch = /filename="?([^";]+)"?/.exec(cdHeader)
+  return {
+    blob: resp.data as Blob,
+    fileName: fileNameMatch ? fileNameMatch[1] : `comprovante-${paymentId}`,
+    contentType: (resp.headers['content-type'] as string | undefined) ?? 'application/octet-stream',
+  }
+}
