@@ -106,11 +106,15 @@ export function useBoletosStorage() {
       supplierId: input.supplierId ?? null,
     })
     const due = toDue(created)
-    setItems((prev) => [...prev, due])
+    // Insere mantendo a ordem por vencimento (mais próximo primeiro).
+    setItems((prev) => [...prev, due].sort((a, b) => a.dataVencimento.localeCompare(b.dataVencimento)))
     if (input.attachment != null) {
       // Upload best-effort após o cadastro: o boleto já existe.
       await uploadBoletoAttachment(created.id, input.attachment)
     }
+    // Dispara o refresh do dashboard para que os widgets de contas a pagar
+    // (e indicadores financeiros) recarreguem e reflitam o novo boleto.
+    window.dispatchEvent(new CustomEvent('dashboard:refresh'))
     return due
   }, [])
 
@@ -127,7 +131,8 @@ export function useBoletosStorage() {
   const update = useCallback(async (id: number, input: BoletoUpdateRequest): Promise<BoletoDue> => {
     const updated = await updateBoleto(id, input)
     const due = toDue(updated)
-    setItems((prev) => prev.map((b) => (b.id === id ? due : b)))
+    // Reordena por vencimento, pois a data pode ter sido alterada.
+    setItems((prev) => prev.map((b) => (b.id === id ? due : b)).sort((a, b) => a.dataVencimento.localeCompare(b.dataVencimento)))
     return due
   }, [])
 
