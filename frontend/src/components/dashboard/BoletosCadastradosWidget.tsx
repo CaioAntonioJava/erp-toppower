@@ -219,7 +219,7 @@ export function BoletosCadastradosWidget() {
                                 })
                               }
                             }}
-                            className="rounded p-1 text-slate-400 opacity-0 transition-opacity hover:bg-primary-50 hover:text-primary group-hover:opacity-100 dark:hover:bg-primary-900/30"
+                            className="rounded p-1 text-slate-400 transition-opacity hover:bg-primary-50 hover:text-primary dark:hover:bg-primary-900/30"
                             aria-label="Anexos do boleto"
                             title="Anexos"
                           >
@@ -238,7 +238,7 @@ export function BoletosCadastradosWidget() {
                                 handlePrint(boleto.id)
                               }
                             }}
-                            className="rounded p-1 text-slate-400 opacity-0 transition-opacity hover:bg-primary-50 hover:text-primary group-hover:opacity-100 disabled:opacity-50 dark:hover:bg-primary-900/30"
+                            className="rounded p-1 text-slate-400 transition-opacity hover:bg-primary-50 hover:text-primary disabled:opacity-50 dark:hover:bg-primary-900/30"
                             aria-label="Imprimir boleto"
                             title="Imprimir"
                           >
@@ -259,7 +259,7 @@ export function BoletosCadastradosWidget() {
                                 setRemoverId(boleto.id)
                               }
                             }}
-                            className="rounded p-1 text-slate-400 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 dark:hover:bg-red-900/30 dark:hover:text-red-400"
+                            className="rounded p-1 text-slate-400 transition-opacity hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400"
                             aria-label="Remover boleto"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
