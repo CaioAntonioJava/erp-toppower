@@ -6,7 +6,6 @@ import br.com.toppower.erp_toppower.boleto.dto.BoletoUpdateRequest;
 import br.com.toppower.erp_toppower.boleto.entity.Boleto;
 import br.com.toppower.erp_toppower.boleto.exception.BoletoAlreadyPaidException;
 import br.com.toppower.erp_toppower.boleto.exception.BoletoNotFoundException;
-import br.com.toppower.erp_toppower.boleto.exception.DuplicateBoletoDescriptionException;
 import br.com.toppower.erp_toppower.boleto.mapper.BoletoMapper;
 import br.com.toppower.erp_toppower.boleto.repository.BoletoRepository;
 import br.com.toppower.erp_toppower.common.dto.PagedResponse;
@@ -49,17 +48,22 @@ public class BoletoService {
 
     @Transactional
     public BoletoResponse create(BoletoCreateRequest request) {
-        if (boletoRepository.existsByDescription(request.description())) {
-            throw new DuplicateBoletoDescriptionException(request.description());
+        // Quando o boleto não traz fornecedor informado, vincula
+        // automaticamente o fornecedor padrão ("Boleto Avulso") para que
+        // toda conta a pagar tenha um devedor. Assim o cadastro já dispara
+        // a geração da conta a pagar correspondente.
+        Long supplierId = request.supplierId();
+        if (supplierId == null) {
+            Supplier generic = supplierService.findOrCreateGeneric();
+            supplierId = generic.getId();
+        } else {
+            validateSupplierIfPresent(supplierId);
         }
-        validateSupplierIfPresent(request.supplierId());
         Boleto boleto = BoletoMapper.toEntity(request);
+        boleto.setSupplierId(supplierId);
         Boleto saved = boletoRepository.save(boleto);
-        // Gera a conta a pagar automaticamente quando o boleto tem
-        // fornecedor vinculado. Idempotente: se já existir, não duplica.
-        if (saved.getSupplierId() != null) {
-            payableService.generateFromBoleto(saved);
-        }
+        // Gera a conta a pagar (idempotente: se já existir, não duplica).
+        payableService.generateFromBoleto(saved);
         return toResponse(saved);
     }
 
@@ -111,12 +115,6 @@ public class BoletoService {
         Boleto boleto = boletoRepository.findById(id)
                 .orElseThrow(() -> new BoletoNotFoundException(id));
 
-        // Se está alterando a descrição, valida duplicidade.
-        if (request.description() != null
-                && !request.description().equalsIgnoreCase(boleto.getDescription())
-                && boletoRepository.existsByDescription(request.description())) {
-            throw new DuplicateBoletoDescriptionException(request.description());
-        }
         // Valida o supplierId se alterado.
         if (request.supplierId() != null) {
             validateSupplierIfPresent(request.supplierId());

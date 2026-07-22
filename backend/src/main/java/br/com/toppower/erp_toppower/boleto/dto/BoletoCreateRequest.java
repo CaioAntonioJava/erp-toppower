@@ -43,8 +43,10 @@ public record BoletoCreateRequest(
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         RegistrationStatus status,
 
-        @Schema(description = "ID do fornecedor (supplier) vinculado. Quando informado, "
-                + "o cadastro do boleto dispara a geração automática de uma conta a pagar.",
+        @Schema(description = "ID do fornecedor (supplier) vinculado. Se omitido, o sistema "
+                + "vincula automaticamente o fornecedor padrão (\"Boleto Avulso\") para que a "
+                + "conta a pagar tenha um devedor. O cadastro do boleto sempre dispara a geração "
+                + "automática de uma conta a pagar.",
                 example = "12", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         Long supplierId
 ) {
