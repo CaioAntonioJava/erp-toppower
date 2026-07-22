@@ -17,7 +17,7 @@ export interface SupplierResponse {
   taxId: string
   stateRegistration: string | null
   municipalRegistration: string | null
-  email: string
+  email: string | null
   phone: string | null
   contactName: string | null
   address: Address
@@ -35,7 +35,7 @@ export interface SupplierCreateRequest {
   taxId: string
   stateRegistration?: string
   municipalRegistration?: string
-  email: string
+  email?: string
   phone?: string
   contactName?: string
   address: Address

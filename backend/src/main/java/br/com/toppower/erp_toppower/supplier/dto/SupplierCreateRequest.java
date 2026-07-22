@@ -36,8 +36,7 @@ public record SupplierCreateRequest(
         String municipalRegistration,
 
         @Schema(description = "E-mail de contato.", example = "contato@fornecedorxpto.com.br",
-                requiredMode = Schema.RequiredMode.REQUIRED, maxLength = 150)
-        @NotBlank(message = "E-mail é obrigatório")
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED, maxLength = 150)
         @Email(message = "E-mail inválido")
         @Size(max = 150, message = "E-mail deve ter no máximo {max} caracteres")
         String email,

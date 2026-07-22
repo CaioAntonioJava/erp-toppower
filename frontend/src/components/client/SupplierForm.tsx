@@ -97,10 +97,10 @@ export function SupplierForm({
 
     if (!legalName.trim()) errs.legalName = 'Razão social é obrigatória.'
 
-    if (!email.trim()) {
-      errs.email = 'E-mail é obrigatório.'
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      errs.email = 'E-mail inválido.'
+    if (email.trim()) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+        errs.email = 'E-mail inválido.'
+      }
     }
 
     if (phone.trim()) {
@@ -147,7 +147,7 @@ export function SupplierForm({
           stateRegistration: stateRegistration.trim() || undefined,
           municipalRegistration:
             municipalRegistration.trim() || undefined,
-          email: email.trim(),
+          email: email.trim() || undefined,
           phone: phone.trim() || undefined,
           contactName: contactName.trim() || undefined,
           address: trimmedAddress,
@@ -164,7 +164,7 @@ export function SupplierForm({
           stateRegistration: stateRegistration.trim() || undefined,
           municipalRegistration:
             municipalRegistration.trim() || undefined,
-          email: email.trim(),
+          email: email.trim() || undefined,
           phone: phone.trim() || undefined,
           contactName: contactName.trim() || undefined,
           address: trimmedAddress,
@@ -265,7 +265,6 @@ export function SupplierForm({
             onChange={(e) => setEmail(e.target.value)}
             onBlur={getBlurHandler('email')}
             error={shouldShowError('email', fieldErrors.email)}
-            required
           />
           <Input
             label="Telefone"

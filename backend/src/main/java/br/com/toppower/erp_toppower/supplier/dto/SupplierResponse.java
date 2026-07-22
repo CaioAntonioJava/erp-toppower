@@ -27,7 +27,7 @@ public record SupplierResponse(
         @Schema(description = "Inscrição Municipal.")
         String municipalRegistration,
 
-        @Schema(description = "E-mail de contato.", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "E-mail de contato.")
         String email,
 
         @Schema(description = "Telefone de contato.")

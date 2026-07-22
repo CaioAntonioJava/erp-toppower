@@ -78,9 +78,9 @@ public class Supplier extends OrganizationScopedEntity {
 
     /**
      * E-mail de contato principal.
-     * Obrigatório.
+     * Opcional.
      */
-    @Column(name = "email", nullable = false, length = 150)
+    @Column(name = "email", length = 150)
     private String email;
 
     /**
