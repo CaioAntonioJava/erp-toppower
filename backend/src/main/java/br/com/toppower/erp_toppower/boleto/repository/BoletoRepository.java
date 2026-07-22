@@ -14,8 +14,6 @@ import org.springframework.stereotype.Repository;
 public interface BoletoRepository extends JpaRepository<Boleto, Long>,
         JpaSpecificationExecutor<Boleto> {
 
-    boolean existsByDescription(String description);
-
     Page<Boleto> findByStatus(RegistrationStatus status, Pageable pageable);
 
     /**
