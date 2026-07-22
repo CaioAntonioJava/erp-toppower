@@ -3,32 +3,32 @@
 --
 -- Migration única e consolidada para o ERP TopPower.
 --
--- O Hibernate (ddl-auto=update) já cria todas as tabelas e colunas a partir
--- das entidades JPA. Este script corrige/adiciona o que o Hibernate não
--- gera automaticamente:
+-- O sistema nunca foi para produção, então este script assume banco sempre
+-- limpo: sem lógica de backfill, rename ou normalização de dados legados.
+-- O Hibernate (ddl-auto=update) cria todas as tabelas e colunas a partir das
+-- entidades JPA, incluindo os índices declarados via @Index e as unique
+-- constraints declaradas via @UniqueConstraint. Este script complementa
+-- apenas o que o Hibernate NÃO gera automaticamente:
 --
---   1) Índices idx_organization nas tabelas organization-scoped
---      (o Hibernate não cria índices em colunas FK-like sem @Index explícito).
---   2) Unique constraints compostas (organization_id + coluna) que as
---      entidades declaram com nome de coluna legado "organization_uuid"
---      (resíduo da era UUID) — o Hibernate criaria constraints quebradas.
---   3) Seed das duas Organizations Top Power (idempotente).
+--   1) Índices idx_organization em organization_id das tabelas org-scoped
+--      (o Hibernate não cria índices em colunas de tenant sem @Index explícito).
+--   2) Unique constraints de domínio (CNPJ/CPF/tax_id por organização, prefixos
+--      únicos em organizations, descrição única de boleto por organização).
+--   3) Índices auxiliares de domínio em tabelas que não declaram @Index
+--      (boletos, boleto_attachments, products.ncm).
+--   4) Seed das duas Organizations Top Power (idempotente).
 --
 -- Idempotente: todos os blocos usam INFORMATION_SCHEMA para verificar
--- existência antes de criar/dropar.
+-- existência antes de criar, pois spring.sql.init.mode=always roda a cada boot.
 -- =============================================================================
 
 -- =============================================================================
 -- 1. Índices idx_organization nas tabelas organization-scoped
 -- =============================================================================
--- Lista de tabelas que herdam de OrganizationScopedEntity e precisam
--- de índice em organization_id para performance do filtro Hibernate.
-
-SET @tables_org_scoped = 'companies,customers,sellers,products,suppliers,quotations,quotation_items,sales_orders,sales_order_items,stock_movements,technical_proposals,technical_proposal_product_items,technical_proposal_service_items';
-
--- Como MySQL não tem FOREACH, geramos dinamicamente os comandos.
--- Para cada tabela na lista, verificamos se o índice idx_organization existe
--- e criamos se necessário.
+-- O Hibernate cria a coluna organization_id (mapeada em OrganizationScopedEntity)
+-- mas não cria índice sobre ela. O OrganizationFilterAspect escopa todas as
+-- queries JPQL/Criteria por organization_id, então o índice é essencial para
+-- performance do filtro multi-tenant.
 
 -- companies
 SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'companies' AND INDEX_NAME = 'idx_organization');
@@ -83,107 +83,11 @@ SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_S
 SET @sql = IF(@has_idx = 0, 'CREATE INDEX idx_organization ON technical_proposal_service_items (organization_id)', 'DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- =============================================================================
--- 2. Unique constraints compostas (organization_id + coluna de negócio)
+-- 2. Unique constraints de domínio (não declaradas nas entidades)
 -- =============================================================================
---
--- As entidades Quotation, SalesOrder, TechnicalProposal e Contract declaram
--- @UniqueConstraint com columnNames = {"organization_uuid", ...} — resíduo
--- da era em que a coluna de tenant se chamava organization_uuid (BINARY(16)).
--- Hoje a coluna é organization_id (BIGINT), então o Hibernate criaria
--- constraints quebradas. Corrigimos aqui:
---
---   uk_quotation_org_number          (organization_id, number)
---   uk_sales_order_org_number        (organization_id, number)
---   uk_technical_proposal_org_code   (organization_id, prefix, sequence, year)
---
--- Também recriamos as UKs escopadas por org para CPF/CNPJ (V22):
---   uk_companies_org_cnpj            (organization_id, cnpj)
---   uk_customers_org_cpf             (organization_id, cpf)
---   uk_sellers_org_cpf               (organization_id, cpf)
---   uk_suppliers_org_tax_id          (organization_id, tax_id)
---
--- E as UKs de prefixo de proposal/contract em organizations:
---   uk_organizations_proposal_prefix
---   uk_organizations_contract_prefix
-
--- ---------------------------------------------------------------------------
--- 2a. Drop das constraints com nome de coluna errado (organization_uuid)
---     que o Hibernate pode ter criado. Localizamos dinamicamente pelo nome
---     da constraint (começa com "uk_") e pela presença de "organization_uuid"
---     nas colunas.
--- ---------------------------------------------------------------------------
-
--- Helper: encontra UKs que contenham 'organization_uuid' como coluna
--- e as dropa. Isso cobre Quotation, SalesOrder, TechnicalProposal.
-
--- quotations: uk_quotation_org_number (ou nome gerado pelo Hibernate)
-SET @uk_name = (
-    SELECT s.INDEX_NAME
-    FROM INFORMATION_SCHEMA.STATISTICS s
-    WHERE s.TABLE_SCHEMA = DATABASE()
-      AND s.TABLE_NAME = 'quotations'
-      AND s.COLUMN_NAME = 'organization_uuid'
-      AND s.NON_UNIQUE = 0
-      AND s.INDEX_NAME <> 'PRIMARY'
-    LIMIT 1
-);
-SET @sql = IF(@uk_name IS NOT NULL,
-    CONCAT('ALTER TABLE quotations DROP INDEX `', @uk_name, '`'),
-    'DO 0');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
--- sales_orders: uk_sales_order_org_number (ou nome gerado)
-SET @uk_name = (
-    SELECT s.INDEX_NAME
-    FROM INFORMATION_SCHEMA.STATISTICS s
-    WHERE s.TABLE_SCHEMA = DATABASE()
-      AND s.TABLE_NAME = 'sales_orders'
-      AND s.COLUMN_NAME = 'organization_uuid'
-      AND s.NON_UNIQUE = 0
-      AND s.INDEX_NAME <> 'PRIMARY'
-    LIMIT 1
-);
-SET @sql = IF(@uk_name IS NOT NULL,
-    CONCAT('ALTER TABLE sales_orders DROP INDEX `', @uk_name, '`'),
-    'DO 0');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
--- technical_proposals: uk_technical_proposal_org_code (ou nome gerado)
-SET @uk_name = (
-    SELECT s.INDEX_NAME
-    FROM INFORMATION_SCHEMA.STATISTICS s
-    WHERE s.TABLE_SCHEMA = DATABASE()
-      AND s.TABLE_NAME = 'technical_proposals'
-      AND s.COLUMN_NAME = 'organization_uuid'
-      AND s.NON_UNIQUE = 0
-      AND s.INDEX_NAME <> 'PRIMARY'
-    LIMIT 1
-);
-SET @sql = IF(@uk_name IS NOT NULL,
-    CONCAT('ALTER TABLE technical_proposals DROP INDEX `', @uk_name, '`'),
-    'DO 0');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
--- ---------------------------------------------------------------------------
--- 2b. Cria as constraints corretas (com organization_id)
--- ---------------------------------------------------------------------------
-
--- uk_quotation_org_number (organization_id, number)
-SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'quotations' AND INDEX_NAME = 'uk_quotation_org_number');
-SET @sql = IF(@has_idx = 0, 'CREATE UNIQUE INDEX uk_quotation_org_number ON quotations (organization_id, number)', 'DO 0');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
--- uk_sales_order_org_number (organization_id, number) — apenas se a coluna number existir
-SET @has_number_col = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
-    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'sales_orders' AND COLUMN_NAME = 'number');
-SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'sales_orders' AND INDEX_NAME = 'uk_sales_order_org_number');
-SET @sql = IF(@has_number_col > 0 AND @has_idx = 0, 'CREATE UNIQUE INDEX uk_sales_order_org_number ON sales_orders (organization_id, number)', 'DO 0');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
--- uk_technical_proposal_org_code (organization_id, prefix, sequence, year)
-SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'technical_proposals' AND INDEX_NAME = 'uk_technical_proposal_org_code');
-SET @sql = IF(@has_idx = 0, 'CREATE UNIQUE INDEX uk_technical_proposal_org_code ON technical_proposals (organization_id, prefix, sequence, year)', 'DO 0');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+-- Estas constraints não estão em @UniqueConstraint das entidades, então o
+-- Hibernate não as cria. São regras de unicidade por organização (multi-tenant)
+-- ou globais (prefixos de Organization).
 
 -- uk_companies_org_cnpj (organization_id, cnpj)
 SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'companies' AND INDEX_NAME = 'uk_companies_org_cnpj');
@@ -215,24 +119,50 @@ SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_S
 SET @sql = IF(@has_idx = 0, 'CREATE UNIQUE INDEX uk_organizations_contract_prefix ON organizations (contract_prefix)', 'DO 0');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- =============================================================================
--- 2c. Tabela service_templates (catálogo global de serviços)
--- =============================================================================
--- Entidade global (não organization-scoped), criada pelo Hibernate via
--- ddl-auto=update, mas garantimos a existência aqui para idempotência.
-CREATE TABLE IF NOT EXISTS service_templates (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(200) NOT NULL,
-    description TEXT,
-    category VARCHAR(50) NOT NULL,
-    created_at DATETIME(6) NOT NULL,
-    updated_at DATETIME(6) NOT NULL,
-    created_by VARCHAR(100),
-    updated_by VARCHAR(100)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- uk_boletos_org_description (organization_id, description)
+SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'boletos' AND INDEX_NAME = 'uk_boletos_org_description');
+SET @sql = IF(@has_idx = 0, 'CREATE UNIQUE INDEX uk_boletos_org_description ON boletos (organization_id, description)', 'DO 0');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- =============================================================================
--- 3. Seed das Organizations Top Power
+-- 3. Índices auxiliares de domínio (não declarados via @Index nas entidades)
+-- =============================================================================
+-- Boletos, boleto_attachments e products.ncm não declaram @Index na entidade,
+-- então o Hibernate não cria os índices auxiliares. Demais tabelas de domínio
+-- (contracts, receivables, payables, technical_proposal_conditions,
+-- contract_clauses, etc.) já declaram seus índices via @Index e são criados
+-- pelo Hibernate.
+
+-- boletos: status, description, due_date, organization_id, supplier_id
+SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'boletos' AND INDEX_NAME = 'idx_boletos_status');
+SET @sql = IF(@has_idx = 0, 'CREATE INDEX idx_boletos_status ON boletos (status)', 'DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'boletos' AND INDEX_NAME = 'idx_boletos_description');
+SET @sql = IF(@has_idx = 0, 'CREATE INDEX idx_boletos_description ON boletos (description)', 'DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'boletos' AND INDEX_NAME = 'idx_boletos_due_date');
+SET @sql = IF(@has_idx = 0, 'CREATE INDEX idx_boletos_due_date ON boletos (due_date)', 'DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'boletos' AND INDEX_NAME = 'idx_boletos_organization_id');
+SET @sql = IF(@has_idx = 0, 'CREATE INDEX idx_boletos_organization_id ON boletos (organization_id)', 'DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'boletos' AND INDEX_NAME = 'idx_boletos_supplier_id');
+SET @sql = IF(@has_idx = 0, 'CREATE INDEX idx_boletos_supplier_id ON boletos (supplier_id)', 'DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- boleto_attachments: boleto_id, organization_id
+SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'boleto_attachments' AND INDEX_NAME = 'idx_boleto_attachments_boleto_id');
+SET @sql = IF(@has_idx = 0, 'CREATE INDEX idx_boleto_attachments_boleto_id ON boleto_attachments (boleto_id)', 'DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'boleto_attachments' AND INDEX_NAME = 'idx_boleto_attachments_organization_id');
+SET @sql = IF(@has_idx = 0, 'CREATE INDEX idx_boleto_attachments_organization_id ON boleto_attachments (organization_id)', 'DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- products: índice para busca/filtro por NCM
+SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'products' AND INDEX_NAME = 'idx_products_ncm');
+SET @sql = IF(@has_idx = 0, 'CREATE INDEX idx_products_ncm ON products (ncm)', 'DO 0');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- =============================================================================
+-- 4. Seed das Organizations Top Power
 -- =============================================================================
 -- Idempotente: INSERT ... WHERE NOT EXISTS por CNPJ.
 
