@@ -368,7 +368,16 @@ public class PurchaseImportService {
             throw new NfeImportException("Arquivo XML vazio ou não enviado.");
         }
         try {
-            return new String(file.getBytes(), StandardCharsets.UTF_8);
+            String xml = new String(file.getBytes(), StandardCharsets.UTF_8);
+            // Remove BOM UTF-8 (EF BB BF) que alguns emissores inserem e
+            // caracteres de controle ilegais (0x00-0x08, 0x0B, 0x0C,
+            // 0x0E-0x1F) que o Jackson/Woodstox rejeita por padrão.
+            // Preserva tab (\t), LF (\n) e CR (\r), válidos em XML.
+            if (xml != null && !xml.isEmpty() && xml.charAt(0) == '\uFEFF') {
+                xml = xml.substring(1);
+            }
+            xml = xml.replaceAll("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]", "");
+            return xml;
         } catch (IOException e) {
             throw new NfeImportException("Falha ao ler o arquivo XML: " + e.getMessage(), e);
         }

@@ -6,6 +6,7 @@ import br.com.toppower.erp_toppower.purchase.dto.NfePayableData;
 import br.com.toppower.erp_toppower.purchase.dto.NfeSupplierData;
 import br.com.toppower.erp_toppower.purchase.exception.NfeImportException;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
@@ -32,8 +33,14 @@ public class NfeXmlParser {
     private final XmlMapper xmlMapper;
 
     public NfeXmlParser() {
+        // Permite caracteres de controle ilegais (ex.: BEL 0x07) que alguns
+        // emissores de NF-e inserem no XML. O Woodstox/Jackson os rejeita
+        // por padrão, então habilitamos a leitura leniente. A sanização em
+        // PurchaseImportService.readXml remove esses caracteres antes do
+        // parse, mas mantemos a feature como rede de segurança.
         this.xmlMapper = XmlMapper.builder()
                 .defaultUseWrapper(false)
+                .configure(JsonParser.Feature.ALLOW_UNQUOTED_CONTROL_CHARS, true)
                 .build();
     }
 
