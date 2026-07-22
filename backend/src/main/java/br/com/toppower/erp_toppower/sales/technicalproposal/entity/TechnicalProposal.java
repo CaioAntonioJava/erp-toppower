@@ -39,7 +39,7 @@ import java.util.List;
  * {@code <prefix>-<3 dígitos>-<year>} (ex.: {@code PT-001-2026}) através
  * de {@link #formattedCode()}. A sequência reseta a cada novo ano
  * (volta para {@code 1} quando o ano muda) <b>e é independente por
- * Organization</b>. A trinca {@code (organization_uuid, prefix, sequence, year)}
+ * Organization</b>. A trinca {@code (organization_id, prefix, sequence, year)}
  * é única no sistema (constraint {@code uk_technical_proposal_org_code}
  * criada pela migration V25).</p>
  *
@@ -80,7 +80,7 @@ import java.util.List;
         uniqueConstraints = {
                 @UniqueConstraint(
                         name = "uk_technical_proposal_org_code",
-                        columnNames = {"organization_uuid", "prefix", "sequence", "year"})
+                        columnNames = {"organization_id", "prefix", "sequence", "year"})
         }
 )
 @Getter

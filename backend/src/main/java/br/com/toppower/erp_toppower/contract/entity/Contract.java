@@ -31,7 +31,7 @@ import java.time.LocalDate;
  * {@code <prefix>-<3 dígitos>-<year>} (ex.: {@code CL-001-2026}) através
  * de {@link #formattedCode()}. A sequência reseta a cada novo ano
  * (volta para {@code 1} quando o ano muda) <b>e é independente por
- * Organization</b>. A trinca {@code (organization_uuid, prefix, sequence,
+ * Organization</b>. A trinca {@code (organization_id, prefix, sequence,
  * year)} é única no sistema (constraint {@code uk_contract_org_code}).</p>
  *
  * <p>O cliente é referenciado por exatamente <b>um</b> dos campos
@@ -61,7 +61,7 @@ import java.time.LocalDate;
         uniqueConstraints = {
                 @UniqueConstraint(
                         name = "uk_contract_org_code",
-                        columnNames = {"organization_uuid", "prefix", "sequence", "year"})
+                        columnNames = {"organization_id", "prefix", "sequence", "year"})
         }
 )
 @Getter
