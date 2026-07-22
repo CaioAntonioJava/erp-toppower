@@ -6,7 +6,6 @@ import {
   ClipboardList,
   Factory,
   FileText,
-  FileUp,
   LayoutDashboard,
   Package,
   Settings,
@@ -20,7 +19,6 @@ import {
   Wallet,
   Receipt,
 } from 'lucide-react'
-import { Button } from '../ui/Button'
 import { useAuth } from '../../context/AuthContext'
 
 interface NavItem {
@@ -155,18 +153,6 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
                     {!collapsed ? item.label : null}
                   </NavLink>
 
-                  {/* Ação rápida logo abaixo do menu Produtos: importação de XML. */}
-                  {item.to === '/products' && !collapsed ? (
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      fullWidth
-                      className="mt-1"
-                    >
-                      <FileUp className="h-4 w-4" />
-                      IMPORTAR XML
-                    </Button>
-                  ) : null}
                 </Fragment>
               )
             })}
