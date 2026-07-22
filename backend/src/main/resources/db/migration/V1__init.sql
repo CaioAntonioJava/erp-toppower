@@ -162,6 +162,26 @@ SET @sql = IF(@has_idx = 0, 'CREATE INDEX idx_products_ncm ON products (ncm)', '
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- =============================================================================
+-- 3b. Limpeza de resíduos legados (constraints/colunas órfãs)
+-- =============================================================================
+-- O Hibernate (ddl-auto=update) nunca dropa constraints nem colunas, então
+-- resíduos de versões anteriores da entidade Payable permanecem no banco
+-- mesmo após a coluna document_number ter sido removida da entidade. A
+-- constraint uk_ap_org_document_number impede INSERTs porque a coluna órfã
+-- document_number não recebe valor (a entidade não a mapeia mais).
+
+-- Dropa a unique constraint órfã uk_ap_org_document_number de accounts_payable.
+SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'accounts_payable' AND INDEX_NAME = 'uk_ap_org_document_number');
+SET @sql = IF(@has_idx > 0, 'ALTER TABLE accounts_payable DROP INDEX uk_ap_org_document_number', 'DO 0');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- Dropa a coluna órfã document_number de accounts_payable (não mapeada na
+-- entidade Payable; era NOT NULL sem default, o que faria falhar INSERTs).
+SET @has_col = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'accounts_payable' AND COLUMN_NAME = 'document_number');
+SET @sql = IF(@has_col > 0, 'ALTER TABLE accounts_payable DROP COLUMN document_number', 'DO 0');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- =============================================================================
 -- 4. Seed das Organizations Top Power
 -- =============================================================================
 -- Idempotente: INSERT ... WHERE NOT EXISTS por CNPJ.
