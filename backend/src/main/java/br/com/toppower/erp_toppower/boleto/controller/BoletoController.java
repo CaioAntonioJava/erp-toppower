@@ -175,6 +175,33 @@ public class BoletoController {
         return ResponseEntity.ok(boletoService.activate(id));
     }
 
+    @PostMapping(value = "/{id}/settle",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Liquidar boleto",
+            description = "Marca o boleto como pago. Cria uma conta a pagar (se não existir) " +
+                    "e a liquida, registrando o pagamento. Para boletos sem fornecedor, " +
+                    "cria automaticamente o fornecedor genérico 'Boleto Avulso'. " +
+                    "Aceita um comprovante de pagamento opcional (PDF/imagem).")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Boleto liquidado com sucesso.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = BoletoResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "404", description = "Boleto não encontrado.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "409", description = "Boleto já liquidado.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+    })
+    public ResponseEntity<BoletoResponse> settle(
+            @PathVariable Long id,
+            @RequestPart(value = "receipt", required = false) MultipartFile receipt) {
+        return ResponseEntity.ok(boletoService.settle(id, receipt));
+    }
+
     @PostMapping(value = "/{id}/to-payable", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Gerar conta a pagar a partir do boleto",
             description = "Gera uma conta a pagar no módulo de Contas a Pagar a partir deste " +

@@ -31,6 +31,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -68,15 +69,18 @@ public class PayableService {
     private final PayableInstallmentRepository installmentRepository;
     private final PayablePaymentRepository paymentRepository;
     private final SupplierRepository supplierRepository;
+    private final PayablePaymentAttachmentService paymentAttachmentService;
 
     public PayableService(PayableRepository repository,
                           PayableInstallmentRepository installmentRepository,
                           PayablePaymentRepository paymentRepository,
-                          SupplierRepository supplierRepository) {
+                          SupplierRepository supplierRepository,
+                          PayablePaymentAttachmentService paymentAttachmentService) {
         this.repository = repository;
         this.installmentRepository = installmentRepository;
         this.paymentRepository = paymentRepository;
         this.supplierRepository = supplierRepository;
+        this.paymentAttachmentService = paymentAttachmentService;
     }
 
     // ---------------------------------------------------------------------
@@ -361,6 +365,16 @@ public class PayableService {
      */
     @Transactional
     public PayableResponse settle(Long payableId) {
+        return settle(payableId, null);
+    }
+
+    /**
+     * Baixa todas as parcelas ABERTO de uma conta em um único passo,
+     * transitando a conta para PAGO. Aceita um comprovante de pagamento
+     * opcional que é vinculado ao primeiro pagamento gerado.
+     */
+    @Transactional
+    public PayableResponse settle(Long payableId, MultipartFile receipt) {
         Payable p = repository.findById(payableId)
                 .orElseThrow(() -> new PayableNotFoundException(payableId));
         if (p.getStatus() != PayableStatus.ABERTO) {
@@ -369,6 +383,7 @@ public class PayableService {
         List<PayableInstallment> installments =
                 installmentRepository.findByPayableIdOrderByInstallmentNumberAsc(payableId);
         LocalDate today = LocalDate.now();
+        boolean firstPayment = true;
         for (PayableInstallment inst : installments) {
             if (inst.getStatus() != PayableStatus.ABERTO) {
                 continue;
@@ -385,6 +400,13 @@ public class PayableService {
             payment.setPaymentDate(today);
             payment.setNotes("Liquidação automática do saldo da parcela.");
             paymentRepository.save(payment);
+
+            // Vincula o comprovante ao primeiro pagamento gerado.
+            if (firstPayment && receipt != null && !receipt.isEmpty()) {
+                paymentAttachmentService.save(payment.getId(), receipt);
+                firstPayment = false;
+            }
+
             recomputeInstallmentState(inst);
             installmentRepository.save(inst);
         }

@@ -1,6 +1,8 @@
 package br.com.toppower.erp_toppower.supplier.service;
 
+import br.com.toppower.erp_toppower.common.context.OrganizationContext;
 import br.com.toppower.erp_toppower.common.dto.PagedResponse;
+import br.com.toppower.erp_toppower.common.embeddable.Address;
 import br.com.toppower.erp_toppower.supplier.dto.SupplierCreateRequest;
 import br.com.toppower.erp_toppower.supplier.dto.SupplierResponse;
 import br.com.toppower.erp_toppower.supplier.dto.SupplierUpdateRequest;
@@ -15,8 +17,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 @Service
 public class SupplierService {
+
+    private static final String GENERIC_TAX_ID = "11.222.333/0001-81";
 
     private final SupplierRepository supplierRepository;
 
@@ -96,5 +102,36 @@ public class SupplierService {
                 .searchByQuery(status, trimmed, pageable)
                 .map(SupplierMapper::toResponse);
         return PagedResponse.from(mapped);
+    }
+
+    /**
+     * Retorna o fornecedor genérico "Boleto Avulso" para a organização
+     * corrente, criando-o se não existir. Usado para liquidar boletos
+     * que não possuem fornecedor vinculado.
+     */
+    @Transactional
+    public Supplier findOrCreateGeneric() {
+        Optional<Supplier> existing = supplierRepository.findByTaxId(GENERIC_TAX_ID);
+        if (existing.isPresent()) {
+            return existing.get();
+        }
+        Supplier supplier = new Supplier();
+        supplier.setLegalName("BOLETO AVULSO");
+        supplier.setTradeName("Boleto Avulso");
+        supplier.setTaxId(GENERIC_TAX_ID);
+        supplier.setEmail("boleto@avulso.com");
+        supplier.setPhone("(00) 0000-0000");
+        supplier.setContactName("Boleto Avulso");
+        Address address = new Address();
+        address.setStreet("Av. Genérica");
+        address.setNumber("S/N");
+        address.setComplement("");
+        address.setNeighborhood("Centro");
+        address.setCity("São Paulo");
+        address.setState("SP");
+        address.setZipCode("00000-000");
+        supplier.setAddress(address);
+        supplier.setStatus(SupplierStatus.ATIVO);
+        return supplierRepository.save(supplier);
     }
 }

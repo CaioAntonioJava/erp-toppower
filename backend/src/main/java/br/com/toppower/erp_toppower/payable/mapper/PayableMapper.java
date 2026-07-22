@@ -252,6 +252,7 @@ public final class PayableMapper {
                 p.getAmount(),
                 p.getPaymentDate(),
                 p.getNotes(),
+                p.getReceiptUrl(),
                 p.getCreatedAt()
         );
     }

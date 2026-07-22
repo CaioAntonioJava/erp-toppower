@@ -34,6 +34,8 @@ export interface PayablePaymentResponse {
   /** Data do pagamento (yyyy-MM-dd). */
   paymentDate: string
   notes: string | null
+  /** URL autenticada do comprovante de pagamento. */
+  receiptUrl: string | null
   createdAt: string
 }
 

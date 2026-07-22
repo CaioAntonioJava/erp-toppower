@@ -97,6 +97,23 @@ export async function activateBoleto(id: number): Promise<BoletoResponse> {
   return data
 }
 
+/** POST /boletos/{id}/settle — liquidação (marcar como pago). Aceita comprovante opcional. */
+export async function settleBoleto(
+  id: number,
+  receipt?: File,
+): Promise<BoletoResponse> {
+  if (receipt) {
+    const form = new FormData()
+    form.append('receipt', receipt)
+    const { data } = await api.post<BoletoResponse>(`${BASE}/${id}/settle`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return data
+  }
+  const { data } = await api.post<BoletoResponse>(`${BASE}/${id}/settle`)
+  return data
+}
+
 // =====================================================================
 // Anexos de boleto (PDF/imagens) — vários por boleto.
 // =====================================================================

@@ -13,6 +13,7 @@ import br.com.toppower.erp_toppower.payable.entity.PayablePayment;
 import br.com.toppower.erp_toppower.payable.enums.PayableSource;
 import br.com.toppower.erp_toppower.payable.enums.PayableStatus;
 import br.com.toppower.erp_toppower.payable.mapper.PayableMapper;
+import br.com.toppower.erp_toppower.payable.service.PayablePaymentAttachmentService;
 import br.com.toppower.erp_toppower.payable.service.PayableService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -39,6 +40,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
@@ -56,6 +61,7 @@ import java.util.stream.Collectors;
 public class PayableController {
 
     private final PayableService payableService;
+    private final PayablePaymentAttachmentService paymentAttachmentService;
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Cadastrar conta a pagar (manual)",
@@ -337,5 +343,31 @@ public class PayableController {
         return ResponseEntity.ok(payments.stream()
                 .map(p -> PayableMapper.toPaymentResponse(p, installmentById))
                 .toList());
+    }
+
+    // =====================================================================
+    // Comprovante de pagamento (receipt)
+    // =====================================================================
+
+    @GetMapping(value = "/payments/{paymentId}/receipt")
+    @Operation(summary = "Baixar comprovante de pagamento",
+            description = "Retorna o arquivo de comprovante anexado ao pagamento.")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Arquivo retornado com sucesso."),
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "404", description = "Pagamento ou comprovante não encontrado.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+    })
+    public ResponseEntity<byte[]> downloadReceipt(@PathVariable Long paymentId) {
+        PayablePaymentAttachmentService.LoadedFile loaded = paymentAttachmentService.loadFile(paymentId);
+        ContentDisposition cd = ContentDisposition.inline().filename(loaded.fileName()).build();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentDisposition(cd);
+        headers.setContentType(MediaType.parseMediaType(loaded.contentType()));
+        headers.setContentLength(loaded.bytes().length);
+        return ResponseEntity.ok().headers(headers).body(loaded.bytes());
     }
 }

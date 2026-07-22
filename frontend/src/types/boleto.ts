@@ -17,6 +17,10 @@ export interface BoletoResponse {
   supplierId: number | null
   /** Nome de exibição do fornecedor vinculado, se houver. */
   supplierName: string | null
+  /** Indica se o boleto foi liquidado (pago). */
+  paid: boolean
+  /** Data de liquidação do boleto, se pago. */
+  paymentDate: string | null
   createdAt: string
   updatedAt: string
   createdBy: string | null

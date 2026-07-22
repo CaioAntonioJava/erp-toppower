@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AlertTriangle, Clock, Plus, Printer, Paperclip, Trash2, FileText } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Clock, Plus, Printer, Paperclip, Trash2, FileText } from 'lucide-react'
 import { Card } from '../ui/Card'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
@@ -12,8 +12,10 @@ import type { NovoBoletoInput } from '../../hooks/useBoletosStorage'
 import { toApiError } from '../../lib/errors'
 import { getBoleto, listBoletoAttachments, downloadBoletoAttachment } from '../../api/boleto.api'
 import type { BoletoResponse, BoletoUpdateRequest } from '../../types/boleto'
+import type { BoletoDue } from '../../types/finance'
 import { BoletoFormModal } from './BoletoFormModal'
 import { BoletoAttachmentsModal } from './BoletoAttachmentsModal'
+import { SettleBoletoModal } from './SettleBoletoModal'
 
 /**
  * Bloco de boletos cadastrados pela usuária.
@@ -28,11 +30,12 @@ import { BoletoAttachmentsModal } from './BoletoAttachmentsModal'
  * (que mostra boletos vencendo / vencidos).
  */
 export function BoletosCadastradosWidget() {
-  const { items, loading, error, add, update, remove } = useBoletosStorage()
+  const { items, loading, error, add, update, settle, remove } = useBoletosStorage()
   const [modalOpen, setModalOpen] = useState(false)
   const [editandoBoleto, setEditandoBoleto] = useState<BoletoResponse | null>(null)
   const [removerId, setRemoverId] = useState<number | null>(null)
   const [removing, setRemoving] = useState(false)
+  const [settlingBoleto, setSettlingBoleto] = useState<BoletoDue | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [anexosBoleto, setAnexosBoleto] = useState<{ id: number; label: string } | null>(null)
   const [printing, setPrinting] = useState<number | null>(null)
@@ -91,6 +94,17 @@ export function BoletosCadastradosWidget() {
     try {
       await update(id, input)
       setEditandoBoleto(null)
+    } catch (err) {
+      // Repassa a mensagem do backend ao modal.
+      throw new Error(toApiError(err).message)
+    }
+  }
+
+  async function handleSettleConfirm(id: number, receipt?: File): Promise<void> {
+    setActionError(null)
+    try {
+      await settle(id, receipt)
+      setSettlingBoleto(null)
     } catch (err) {
       // Repassa a mensagem do backend ao modal.
       throw new Error(toApiError(err).message)
@@ -186,7 +200,12 @@ export function BoletosCadastradosWidget() {
 
                       {/* Status + ações */}
                       <span className="col-span-1 flex items-center justify-end gap-1">
-                        {vencido ? (
+                        {boleto.paid ? (
+                          <Badge tone="success" className="shrink-0">
+                            <CheckCircle2 className="mr-0.5 h-3 w-3" />
+                            Pago
+                          </Badge>
+                        ) : vencido ? (
                           <Badge tone="danger" className="shrink-0">
                             <AlertTriangle className="mr-0.5 h-3 w-3" />
                             Vencido
@@ -198,6 +217,27 @@ export function BoletosCadastradosWidget() {
                           </Badge>
                         )}
                         <span className="hidden items-center gap-0.5 sm:flex">
+                          {!boleto.paid ? (
+                            <span
+                              role="button"
+                              tabIndex={0}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setSettlingBoleto(boleto)
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.stopPropagation()
+                                  setSettlingBoleto(boleto)
+                                }
+                              }}
+                              className="rounded p-1 text-slate-400 transition-opacity hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-900/30 dark:hover:text-green-400"
+                              aria-label="Liquidar boleto"
+                              title="Liquidar"
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                            </span>
+                          ) : null}
                           <span
                             role="button"
                             tabIndex={0}
@@ -270,6 +310,20 @@ export function BoletosCadastradosWidget() {
 
                     {/* Barra de ações (aparece abaixo em mobile, ao lado no desktop) */}
                     <div className="flex items-center justify-end gap-1 px-3 pb-2 sm:hidden">
+                      {!boleto.paid ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setSettlingBoleto(boleto)
+                          }}
+                          className="rounded p-1.5 text-slate-400 hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-900/30 dark:hover:text-green-400"
+                          aria-label="Liquidar boleto"
+                          title="Liquidar"
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                        </button>
+                      ) : null}
                       <button
                         type="button"
                         onClick={(e) => {
@@ -329,6 +383,13 @@ export function BoletosCadastradosWidget() {
         onSubmit={handleSubmit}
         editBoleto={editandoBoleto}
         onUpdate={handleUpdate}
+      />
+
+      <SettleBoletoModal
+        open={settlingBoleto != null}
+        boleto={settlingBoleto}
+        onClose={() => setSettlingBoleto(null)}
+        onConfirm={handleSettleConfirm}
       />
 
       <ConfirmDialog

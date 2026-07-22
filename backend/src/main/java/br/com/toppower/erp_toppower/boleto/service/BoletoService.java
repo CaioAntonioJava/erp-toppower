@@ -4,6 +4,7 @@ import br.com.toppower.erp_toppower.boleto.dto.BoletoCreateRequest;
 import br.com.toppower.erp_toppower.boleto.dto.BoletoResponse;
 import br.com.toppower.erp_toppower.boleto.dto.BoletoUpdateRequest;
 import br.com.toppower.erp_toppower.boleto.entity.Boleto;
+import br.com.toppower.erp_toppower.boleto.exception.BoletoAlreadyPaidException;
 import br.com.toppower.erp_toppower.boleto.exception.BoletoNotFoundException;
 import br.com.toppower.erp_toppower.boleto.exception.DuplicateBoletoDescriptionException;
 import br.com.toppower.erp_toppower.boleto.mapper.BoletoMapper;
@@ -14,12 +15,16 @@ import br.com.toppower.erp_toppower.payable.dto.PayableResponse;
 import br.com.toppower.erp_toppower.payable.entity.Payable;
 import br.com.toppower.erp_toppower.payable.exception.PayableBusinessException;
 import br.com.toppower.erp_toppower.payable.service.PayableService;
+import br.com.toppower.erp_toppower.supplier.entity.Supplier;
 import br.com.toppower.erp_toppower.supplier.repository.SupplierRepository;
+import br.com.toppower.erp_toppower.supplier.service.SupplierService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.util.Optional;
 
 @Service
@@ -30,13 +35,16 @@ public class BoletoService {
     private final BoletoRepository boletoRepository;
     private final SupplierRepository supplierRepository;
     private final PayableService payableService;
+    private final SupplierService supplierService;
 
     public BoletoService(BoletoRepository boletoRepository,
                           SupplierRepository supplierRepository,
-                          PayableService payableService) {
+                          PayableService payableService,
+                          SupplierService supplierService) {
         this.boletoRepository = boletoRepository;
         this.supplierRepository = supplierRepository;
         this.payableService = payableService;
+        this.supplierService = supplierService;
     }
 
     @Transactional
@@ -179,6 +187,60 @@ public class BoletoService {
             // Simplesmente retorna o detalhe — o usuário vê que já existe.
         }
         return payableService.getById(existing.get().getId());
+    }
+
+    // ---------------------------------------------------------------------
+    // Liquidação (marcar como pago)
+    // ---------------------------------------------------------------------
+
+    /**
+     * Liquida um boleto: cria uma conta a pagar (se não existir) e a
+     * liquida, registrando o pagamento. Para boletos sem fornecedor
+     * vinculado, cria automaticamente o fornecedor genérico
+     * "Boleto Avulso".
+     *
+     * @param id     ID do boleto a liquidar
+     * @param receipt comprovante de pagamento opcional (PDF/imagem)
+     * @return BoletoResponse atualizado com paid=true e paymentDate
+     * @throws BoletoNotFoundException se o boleto não existir
+     * @throws BoletoAlreadyPaidException se o boleto já estiver liquidado
+     */
+    @Transactional
+    public BoletoResponse settle(Long id, MultipartFile receipt) {
+        Boleto boleto = boletoRepository.findById(id)
+                .orElseThrow(() -> new BoletoNotFoundException(id));
+
+        if (boleto.isPaid()) {
+            throw new BoletoAlreadyPaidException(id);
+        }
+
+        // Garante fornecedor vinculado (cria genérico se necessário).
+        if (boleto.getSupplierId() == null) {
+            Supplier generic = supplierService.findOrCreateGeneric();
+            boleto.setSupplierId(generic.getId());
+            boletoRepository.save(boleto);
+        }
+
+        // Gera a conta a pagar (idempotente) e obtém o ID.
+        Optional<Payable> payableOpt = payableService.generateFromBoleto(boleto);
+        if (payableOpt.isPresent()) {
+            // Liquida todas as parcelas abertas da conta, com comprovante.
+            payableService.settle(payableOpt.get().getId(), receipt);
+        }
+
+        // Marca o boleto como pago.
+        boleto.setPaid(true);
+        boleto.setPaymentDate(LocalDate.now());
+        Boleto saved = boletoRepository.save(boleto);
+        return toResponse(saved);
+    }
+
+    /**
+     * Liquida um boleto sem comprovante (sobrecarga para compatibilidade).
+     */
+    @Transactional
+    public BoletoResponse settle(Long id) {
+        return settle(id, null);
     }
 
     // ---------------------------------------------------------------------

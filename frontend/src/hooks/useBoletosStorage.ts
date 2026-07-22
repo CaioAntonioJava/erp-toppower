@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useOrganization } from '../context/OrganizationContext'
-import { listBoletos, createBoleto, inactivateBoleto, uploadBoletoAttachment, updateBoleto } from '../api/boleto.api'
+import { listBoletos, createBoleto, inactivateBoleto, uploadBoletoAttachment, updateBoleto, settleBoleto } from '../api/boleto.api'
 import { toApiError } from '../lib/errors'
 import type { BoletoResponse, BoletoUpdateRequest } from '../types/boleto'
 import type { BoletoDue } from '../types/finance'
@@ -56,6 +56,8 @@ function toDue(boleto: BoletoResponse): BoletoDue {
     dataVencimento: boleto.dueDate,
     diasAteVencimento: dias,
     status: derivarStatus(dias),
+    paid: boleto.paid,
+    paymentDate: boleto.paymentDate,
   }
 }
 
@@ -129,5 +131,19 @@ export function useBoletosStorage() {
     return due
   }, [])
 
-  return { items, loading, error, add, update, remove, reload }
+  /**
+   * Liquida um boleto (marca como pago). Chama o POST /{id}/settle
+   * do backend e atualiza o item na lista local.
+   *
+   * @param id      ID do boleto
+   * @param receipt Comprovante de pagamento opcional (PDF/imagem)
+   */
+  const settle = useCallback(async (id: number, receipt?: File): Promise<BoletoDue> => {
+    const updated = await settleBoleto(id, receipt)
+    const due = toDue(updated)
+    setItems((prev) => prev.map((b) => (b.id === id ? due : b)))
+    return due
+  }, [])
+
+  return { items, loading, error, add, update, settle, remove, reload }
 }

@@ -37,6 +37,9 @@ public record PayablePaymentResponse(
         @Schema(description = "Observações do pagamento.")
         String notes,
 
+        @Schema(description = "URL autenticada do comprovante de pagamento.")
+        String receiptUrl,
+
         @Schema(description = "Data de criação.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         Instant createdAt

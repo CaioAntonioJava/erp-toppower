@@ -60,4 +60,8 @@ export interface BoletoDue {
   dataVencimento: string
   diasAteVencimento: number
   status: 'ABERTO' | 'ATRASADO'
+  /** Indica se o boleto foi liquidado (pago). */
+  paid: boolean
+  /** Data de liquidação, se pago. */
+  paymentDate: string | null
 }

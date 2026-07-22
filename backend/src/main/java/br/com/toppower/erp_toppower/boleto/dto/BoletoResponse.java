@@ -41,6 +41,13 @@ public record BoletoResponse(
         @Schema(description = "Nome de exibição do fornecedor vinculado, se aplicável.")
         String supplierName,
 
+        @Schema(description = "Indica se o boleto foi liquidado (pago).",
+                requiredMode = Schema.RequiredMode.REQUIRED)
+        boolean paid,
+
+        @Schema(description = "Data de liquidação do boleto, se pago.")
+        LocalDate paymentDate,
+
         @Schema(description = "Data de criação.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         Instant createdAt,

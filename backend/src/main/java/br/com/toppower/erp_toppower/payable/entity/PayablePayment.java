@@ -70,4 +70,11 @@ public class PayablePayment extends BaseEntity {
      */
     @Column(name = "notes", length = 500)
     private String notes;
+
+    /**
+     * URL autenticada do comprovante de pagamento (PDF ou imagem).
+     * Nula quando nenhum comprovante foi anexado.
+     */
+    @Column(name = "receipt_url", length = 500)
+    private String receiptUrl;
 }

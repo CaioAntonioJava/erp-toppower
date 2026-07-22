@@ -78,6 +78,18 @@ public class Boleto extends OrganizationScopedEntity {
     private Long supplierId;
 
     /**
+     * Indica se o boleto foi liquidado (pago). Default {@code false}.
+     */
+    @Column(name = "paid", nullable = false)
+    private boolean paid;
+
+    /**
+     * Data em que o boleto foi liquidado. Nula enquanto não pago.
+     */
+    @Column(name = "payment_date")
+    private LocalDate paymentDate;
+
+    /**
      * Inicialização antes de persistir: garante que o status seja
      * {@link RegistrationStatus#ATIVO} quando não for informado.
      * Não sobrescreve valores já definidos pelo chamador.

@@ -57,6 +57,8 @@ public final class BoletoMapper {
                 boleto.getStatus(),
                 boleto.getSupplierId(),
                 supplierName,
+                boleto.isPaid(),
+                boleto.getPaymentDate(),
                 boleto.getCreatedAt(),
                 boleto.getUpdatedAt(),
                 boleto.getCreatedBy(),
