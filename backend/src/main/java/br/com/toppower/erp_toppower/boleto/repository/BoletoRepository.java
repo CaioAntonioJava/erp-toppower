@@ -10,6 +10,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
+
 @Repository
 public interface BoletoRepository extends JpaRepository<Boleto, Long>,
         JpaSpecificationExecutor<Boleto> {
@@ -36,4 +38,34 @@ public interface BoletoRepository extends JpaRepository<Boleto, Long>,
     Page<Boleto> searchByQuery(@Param("status") RegistrationStatus status,
                                @Param("query") String query,
                                Pageable pageable);
+
+    /**
+     * Specification combinável para o relatório de boletos: filtra por
+     * status de registro, status de pagamento (paid) e intervalo de
+     * vencimento (dueDate). Todos os parâmetros são opcionais (null =
+     * ignorar o filtro). O escopo de organização é aplicado
+     * automaticamente pelo OrganizationFilter em entidades escopadas.
+     */
+    static org.springframework.data.jpa.domain.Specification<Boleto> byFilters(
+            RegistrationStatus status,
+            Boolean paid,
+            LocalDate dueFrom,
+            LocalDate dueTo) {
+        return (root, query, cb) -> {
+            var predicates = new java.util.ArrayList<jakarta.persistence.criteria.Predicate>();
+            if (status != null) {
+                predicates.add(cb.equal(root.get("status"), status));
+            }
+            if (paid != null) {
+                predicates.add(cb.equal(root.get("paid"), paid));
+            }
+            if (dueFrom != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("dueDate"), dueFrom));
+            }
+            if (dueTo != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("dueDate"), dueTo));
+            }
+            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+    }
 }

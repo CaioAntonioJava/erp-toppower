@@ -22,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -39,6 +40,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -109,6 +111,64 @@ public class BoletoController {
             @RequestParam(value = "status", required = false) RegistrationStatus status,
             @Parameter(hidden = true) @PageableDefault(size = 20, sort = "dueDate", direction = Sort.Direction.ASC) Pageable pageable) {
         return ResponseEntity.ok(boletoService.search(query, status, pageable));
+    }
+
+    @GetMapping(value = "/report", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Relatório de boletos (paginado e filtrado)",
+            description = "Lista boletos paginados com filtros opcionais: status de registro " +
+                    "(ATIVO/INATIVO), status de pagamento (paid=true/false) e intervalo de " +
+                    "vencimento (dueFrom/dueTo). Ordenado por data de vencimento (asc).")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Página de boletos retornada com sucesso.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = PagedResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+    })
+    public ResponseEntity<PagedResponse<BoletoResponse>> report(
+            @Parameter(description = "Filtro OPCIONAL: ATIVO ou INATIVO. Omitido = ambos.",
+                    example = "ATIVO", schema = @Schema(allowableValues = {"ATIVO", "INATIVO"}))
+            @RequestParam(value = "status", required = false) RegistrationStatus status,
+            @Parameter(description = "Filtro OPCIONAL: true (pagos) ou false (em aberto). Omitido = ambos.",
+                    example = "false")
+            @RequestParam(value = "paid", required = false) Boolean paid,
+            @Parameter(description = "Vencimento a partir de (yyyy-MM-dd). Opcional.",
+                    example = "2026-01-01")
+            @RequestParam(value = "dueFrom", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dueFrom,
+            @Parameter(description = "Vencimento até (yyyy-MM-dd). Opcional.",
+                    example = "2026-12-31")
+            @RequestParam(value = "dueTo", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dueTo,
+            @Parameter(hidden = true) @PageableDefault(size = 20, sort = "dueDate", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.ok(boletoService.getAllFiltered(status, paid, dueFrom, dueTo, pageable));
+    }
+
+    @GetMapping(value = "/{id}/payment-receipt")
+    @Operation(summary = "Baixar comprovante de pagamento do boleto",
+            description = "Retorna o comprovante de pagamento (receipt) anexado à liquidação " +
+                    "do boleto. Rastreia boleto → conta a pagar → pagamento → comprovante. " +
+                    "Retorna 404 se o boleto não possuir comprovante vinculado.")
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Comprovante retornado com sucesso.",
+                    content = @Content(mediaType = MediaType.APPLICATION_OCTET_STREAM_VALUE)),
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "404", description = "Boleto ou comprovante não encontrado.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+    })
+    public ResponseEntity<byte[]> downloadPaymentReceipt(@PathVariable Long id) {
+        br.com.toppower.erp_toppower.payable.service.PayablePaymentAttachmentService.LoadedFile loaded =
+                boletoService.loadPaymentReceipt(id);
+        if (loaded == null) {
+            return ResponseEntity.notFound().build();
+        }
+        ContentDisposition cd = ContentDisposition.inline().filename(loaded.fileName()).build();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentDisposition(cd);
+        headers.setContentType(MediaType.parseMediaType(loaded.contentType()));
+        headers.setContentLength(loaded.bytes().length);
+        return ResponseEntity.ok().headers(headers).body(loaded.bytes());
     }
 
     @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)

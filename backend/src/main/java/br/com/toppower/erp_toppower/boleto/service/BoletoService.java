@@ -12,7 +12,11 @@ import br.com.toppower.erp_toppower.common.dto.PagedResponse;
 import br.com.toppower.erp_toppower.common.enums.RegistrationStatus;
 import br.com.toppower.erp_toppower.payable.dto.PayableResponse;
 import br.com.toppower.erp_toppower.payable.entity.Payable;
+import br.com.toppower.erp_toppower.payable.entity.PayablePayment;
 import br.com.toppower.erp_toppower.payable.exception.PayableBusinessException;
+import br.com.toppower.erp_toppower.payable.repository.PayablePaymentRepository;
+import br.com.toppower.erp_toppower.payable.repository.PayableRepository;
+import br.com.toppower.erp_toppower.payable.service.PayablePaymentAttachmentService;
 import br.com.toppower.erp_toppower.payable.service.PayableService;
 import br.com.toppower.erp_toppower.supplier.entity.Supplier;
 import br.com.toppower.erp_toppower.supplier.repository.SupplierRepository;
@@ -24,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -35,15 +40,24 @@ public class BoletoService {
     private final SupplierRepository supplierRepository;
     private final PayableService payableService;
     private final SupplierService supplierService;
+    private final PayableRepository payableRepository;
+    private final PayablePaymentRepository payablePaymentRepository;
+    private final PayablePaymentAttachmentService payablePaymentAttachmentService;
 
     public BoletoService(BoletoRepository boletoRepository,
                           SupplierRepository supplierRepository,
                           PayableService payableService,
-                          SupplierService supplierService) {
+                          SupplierService supplierService,
+                          PayableRepository payableRepository,
+                          PayablePaymentRepository payablePaymentRepository,
+                          PayablePaymentAttachmentService payablePaymentAttachmentService) {
         this.boletoRepository = boletoRepository;
         this.supplierRepository = supplierRepository;
         this.payableService = payableService;
         this.supplierService = supplierService;
+        this.payableRepository = payableRepository;
+        this.payablePaymentRepository = payablePaymentRepository;
+        this.payablePaymentAttachmentService = payablePaymentAttachmentService;
     }
 
     @Transactional
@@ -78,6 +92,49 @@ public class BoletoService {
                 : boletoRepository.findByStatus(status, pageable);
         Page<BoletoResponse> mapped = page.map(this::toResponse);
         return PagedResponse.from(mapped);
+    }
+
+    /**
+     * Listagem filtrada para o relatório de boletos. Combina filtros
+     * opcionais de status de registro, status de pagamento (paid) e
+     * intervalo de vencimento (dueDate) via Specification. O escopo de
+     * organização é aplicado automaticamente pelo OrganizationFilter.
+     */
+    @Transactional(readOnly = true)
+    public PagedResponse<BoletoResponse> getAllFiltered(RegistrationStatus status,
+                                                         Boolean paid,
+                                                         LocalDate dueFrom,
+                                                         LocalDate dueTo,
+                                                         Pageable pageable) {
+        var spec = BoletoRepository.byFilters(status, paid, dueFrom, dueTo);
+        Page<BoletoResponse> mapped = boletoRepository.findAll(spec, pageable)
+                .map(this::toResponse);
+        return PagedResponse.from(mapped);
+    }
+
+    /**
+     * Carrega o comprovante de pagamento (receipt) associado à
+     * liquidação do boleto. Rastreia boletoId → conta a pagar →
+     * pagamento com receiptUrl → bytes do arquivo em disco. Retorna
+     * null se não houver comprovante vinculado.
+     */
+    @Transactional(readOnly = true)
+    public PayablePaymentAttachmentService.LoadedFile loadPaymentReceipt(Long boletoId) {
+        Boleto boleto = boletoRepository.findById(boletoId)
+                .orElseThrow(() -> new BoletoNotFoundException(boletoId));
+        Optional<Payable> payableOpt = payableRepository.findActiveByBoletoId(boleto.getId());
+        if (payableOpt.isEmpty()) {
+            return null;
+        }
+        Long payableId = payableOpt.get().getId();
+        List<PayablePayment> payments = payablePaymentRepository
+                .findByPayableIdOrderByPaymentDateAsc(payableId);
+        for (PayablePayment payment : payments) {
+            if (payment.getReceiptUrl() != null) {
+                return payablePaymentAttachmentService.loadFile(payment.getId());
+            }
+        }
+        return null;
     }
 
     @Transactional(readOnly = true)
