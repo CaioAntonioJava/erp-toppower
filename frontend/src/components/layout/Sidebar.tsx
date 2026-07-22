@@ -6,6 +6,7 @@ import {
   ClipboardList,
   Factory,
   FileText,
+  FileUp,
   LayoutDashboard,
   Package,
   Settings,

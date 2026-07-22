@@ -72,6 +72,7 @@ export function SettleBoletoModal({ open, boleto, onClose, onConfirm }: SettleBo
   }
 
   async function handleConfirm(): Promise<void> {
+    if (!boleto) return
     setError(null)
     setSubmitting(true)
     try {
