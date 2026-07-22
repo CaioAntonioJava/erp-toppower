@@ -80,9 +80,7 @@ const navSections: NavSection[] = [
     title: 'Administrativo',
     adminOnly: true,
     items: [
-      { to: '/carriers', label: 'Transportadoras', icon: Truck },
-      { to: '/service-templates', label: 'Serviços', icon: Cog },
-      { to: '/organizations', label: 'Empresas (Org.)', icon: Settings },
+      { to: '/organizations', label: 'Empresas', icon: Settings },
       { to: '/users', label: 'Usuários', icon: UserCog },
     ],
   },
@@ -94,7 +92,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
   const isAdmin = user?.role === 'ROLE_ADMIN'
 
   const sections = isAdmin
-    ? navSections
+    ? navSections.filter((s) => s.adminOnly)
     : navSections.filter((s) => !s.adminOnly)
 
   return (
