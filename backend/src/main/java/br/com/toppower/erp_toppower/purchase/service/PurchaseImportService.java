@@ -1,5 +1,6 @@
 package br.com.toppower.erp_toppower.purchase.service;
 
+import br.com.toppower.erp_toppower.common.context.OrganizationContext;
 import br.com.toppower.erp_toppower.common.embeddable.Address;
 import br.com.toppower.erp_toppower.payable.entity.Payable;
 import br.com.toppower.erp_toppower.payable.entity.PayableInstallment;
@@ -90,6 +91,7 @@ public class PurchaseImportService {
      * Parseia o XML da NF-e e retorna um preview sem persistir nada.
      */
     public NfePreviewResponse preview(MultipartFile file) {
+        requireOrganizationContext();
         String xml = readXml(file);
         NfeXmlParser.ParsedNfe nfe = parser.parse(xml);
 
@@ -117,6 +119,7 @@ public class PurchaseImportService {
      */
     @Transactional
     public NfeConfirmResponse confirm(String xmlBase64) {
+        requireOrganizationContext();
         String xml = new String(Base64.getDecoder().decode(xmlBase64), StandardCharsets.UTF_8);
         NfeXmlParser.ParsedNfe nfe = parser.parse(xml);
         String invoiceNumber = nfe.invoiceNumber();
@@ -362,6 +365,20 @@ public class PurchaseImportService {
     // ==================================================================
     // Helpers — utilitários
     // ==================================================================
+
+    /**
+     * Garante que há uma Organization ativa na requisição antes de prosseguir
+     * com a importação. Sem isso, o {@code OrganizationEntityListener} deixa
+     * {@code organization_id = NULL} no Payable criado, e o Hibernate filter
+     * exclui o registro de todas as listagens scoped (ele nunca aparece no
+     * dashboard da organização).
+     */
+    private void requireOrganizationContext() {
+        if (OrganizationContext.get() == null) {
+            throw new NfeImportException(
+                    "Selecione uma organização antes de importar a NF-e.");
+        }
+    }
 
     private String readXml(MultipartFile file) {
         if (file == null || file.isEmpty()) {
