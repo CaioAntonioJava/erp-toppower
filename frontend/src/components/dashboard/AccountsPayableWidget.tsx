@@ -6,6 +6,7 @@ import { Badge } from '../ui/Badge'
 import { Spinner } from '../ui/Spinner'
 import { formatCurrency, formatDate } from '../../lib/format'
 import { listPayables } from '../../api/payable.api'
+import { useDashboardRefresh } from '../../hooks/useDashboardRefresh'
 import type { PayableSummaryResponse } from '../../types/payable'
 
 /**
@@ -43,6 +44,7 @@ const STATUS_TONE: Record<DisplayStatus, 'neutral' | 'success' | 'warning' | 'da
 export function AccountsPayableWidget() {
   const [items, setItems] = useState<PayableSummaryResponse[]>([])
   const [loading, setLoading] = useState(true)
+  const refreshKey = useDashboardRefresh()
 
   useEffect(() => {
     let cancelled = false
@@ -60,7 +62,7 @@ export function AccountsPayableWidget() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [refreshKey])
 
   return (
     <Card padded={false} className="flex flex-col">

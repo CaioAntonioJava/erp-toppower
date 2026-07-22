@@ -6,6 +6,7 @@ import { formatCurrency } from '../../lib/format'
 import { listPayables } from '../../api/payable.api'
 import { listReceivables } from '../../api/receivable.api'
 import { listBoletos } from '../../api/boleto.api'
+import { useDashboardRefresh } from '../../hooks/useDashboardRefresh'
 import type { BoletoResponse } from '../../types/boleto'
 
 /**
@@ -95,6 +96,7 @@ export function FinanceSummaryWidget() {
   const [boletosProximos, setBoletosProximos] = useState(0)
   const [boletosVencidos, setBoletosVencidos] = useState(0)
   const [loading, setLoading] = useState(true)
+  const refreshKey = useDashboardRefresh()
 
   useEffect(() => {
     let cancelled = false
@@ -122,7 +124,7 @@ export function FinanceSummaryWidget() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [refreshKey])
 
   if (loading) {
     return (

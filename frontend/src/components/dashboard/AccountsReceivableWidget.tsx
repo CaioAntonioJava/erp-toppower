@@ -6,6 +6,7 @@ import { Badge } from '../ui/Badge'
 import { Spinner } from '../ui/Spinner'
 import { formatCurrency, formatDate } from '../../lib/format'
 import { listReceivables } from '../../api/receivable.api'
+import { useDashboardRefresh } from '../../hooks/useDashboardRefresh'
 import type { ReceivableSummaryResponse } from '../../types/receivable'
 
 /**
@@ -41,6 +42,7 @@ const STATUS_TONE: Record<'ABERTO' | 'ATRASADO' | 'PAGO' | 'CANCELADO', 'neutral
 export function AccountsReceivableWidget() {
   const [items, setItems] = useState<ReceivableSummaryResponse[]>([])
   const [loading, setLoading] = useState(true)
+  const refreshKey = useDashboardRefresh()
 
   useEffect(() => {
     let cancelled = false
@@ -58,7 +60,7 @@ export function AccountsReceivableWidget() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [refreshKey])
 
   return (
     <Card padded={false} className="flex flex-col">

@@ -135,6 +135,9 @@ export function useBoletosStorage() {
    * Liquida um boleto (marca como pago). Chama o POST /{id}/settle
    * do backend e atualiza o item na lista local.
    *
+   * Dispara o evento `dashboard:refresh` para que os widgets do
+   * dashboard (contas a pagar, indicadores) recarreguem os dados.
+   *
    * @param id      ID do boleto
    * @param receipt Comprovante de pagamento opcional (PDF/imagem)
    */
@@ -142,6 +145,7 @@ export function useBoletosStorage() {
     const updated = await settleBoleto(id, receipt)
     const due = toDue(updated)
     setItems((prev) => prev.map((b) => (b.id === id ? due : b)))
+    window.dispatchEvent(new CustomEvent('dashboard:refresh'))
     return due
   }, [])
 
