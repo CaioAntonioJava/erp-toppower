@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { AlertTriangle, CheckCircle2, Clock, Plus, Printer, Paperclip, Trash2, FileText } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { AlertTriangle, CheckCircle2, Clock, Plus, Printer, Paperclip, Trash2, FileText, BarChart3 } from 'lucide-react'
 import { Card } from '../ui/Card'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
@@ -31,6 +32,9 @@ import { SettleBoletoModal } from './SettleBoletoModal'
  */
 export function BoletosCadastradosWidget() {
   const { items, loading, error, add, update, settle, remove } = useBoletosStorage()
+  // O widget de cadastro mostra apenas boletos em aberto (não pagos).
+  // Boletos liquidados ficam visíveis no relatório (/boletos).
+  const openItems = items.filter((b) => !b.paid)
   const [modalOpen, setModalOpen] = useState(false)
   const [editandoBoleto, setEditandoBoleto] = useState<BoletoResponse | null>(null)
   const [removerId, setRemoverId] = useState<number | null>(null)
@@ -132,10 +136,18 @@ export function BoletosCadastradosWidget() {
           <FileText className="h-4 w-4 text-primary" />
           <h2 className="text-sm font-semibold">Meus boletos cadastrados</h2>
         </div>
-        <Button size="sm" onClick={() => setModalOpen(true)}>
-          <Plus className="h-4 w-4" />
-          Novo boleto
-        </Button>
+        <div className="flex items-center gap-2">
+          <Link to="/boletos">
+            <Button size="sm" variant="secondary">
+              <BarChart3 className="h-4 w-4" />
+              Relatório
+            </Button>
+          </Link>
+          <Button size="sm" onClick={() => setModalOpen(true)}>
+            <Plus className="h-4 w-4" />
+            Novo boleto
+          </Button>
+        </div>
       </div>
 
       <div className="flex-1 px-5 py-4">
@@ -147,11 +159,11 @@ export function BoletosCadastradosWidget() {
           <div className="flex justify-center py-8">
             <Spinner />
           </div>
-        ) : items.length === 0 ? (
+        ) : openItems.length === 0 ? (
           <div className="py-10 text-center">
             <FileText className="mx-auto h-8 w-8 text-slate-300 dark:text-slate-600" />
             <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
-              Nenhum boleto cadastrado.
+              Nenhum boleto em aberto.
             </p>
             <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
               Clique em <strong>Novo boleto</strong> para adicionar uma conta.
@@ -169,7 +181,7 @@ export function BoletosCadastradosWidget() {
             </div>
 
             <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-              {items.map((boleto) => {
+              {openItems.map((boleto) => {
                 const vencido = boleto.diasAteVencimento < 0
                 return (
                   <li key={boleto.id}>

@@ -40,7 +40,7 @@ export async function listBoletos(
 
 /**
  * GET /boletos/search — busca flexível.
- * Aceita query e/ou status. Sem nenhum filtro, retorna todos paginados.
+ * Aceita query e/ou status. Sem nenhum filtro, retorna todos paginado.
  */
 export async function searchBoletos(params: {
   query?: string
@@ -57,6 +57,37 @@ export async function searchBoletos(params: {
         sort: 'dueDate,asc',
         query: params.query,
         status: params.status,
+      },
+    },
+  )
+  return data
+}
+
+/**
+ * GET /boletos/report — relatório paginado e filtrado.
+ * Combina filtros opcionais de status de registro, status de pagamento
+ * (paid) e intervalo de vencimento (dueFrom/dueTo). Ordenado por
+ * vencimento (asc).
+ */
+export async function listBoletosReport(params: {
+  status?: RegistrationStatus
+  paid?: boolean
+  dueFrom?: string
+  dueTo?: string
+  page?: number
+  size?: number
+}): Promise<PagedResponse<BoletoResponse>> {
+  const { data } = await api.get<PagedResponse<BoletoResponse>>(
+    `${BASE}/report`,
+    {
+      params: {
+        page: params.page ?? 0,
+        size: params.size ?? 20,
+        sort: 'dueDate,asc',
+        status: params.status,
+        paid: params.paid,
+        dueFrom: params.dueFrom,
+        dueTo: params.dueTo,
       },
     },
   )
@@ -167,6 +198,27 @@ export async function downloadBoletoAttachment(
   return {
     blob: resp.data as Blob,
     fileName: fileNameMatch ? fileNameMatch[1] : `boleto-${boletoId}-anexo-${attachmentId}`,
+    contentType: (resp.headers['content-type'] as string | undefined) ?? 'application/octet-stream',
+  }
+}
+
+/**
+ * GET /boletos/{id}/payment-receipt — baixa o comprovante de pagamento
+ * vinculado à liquidação do boleto. Retorna 404 se não houver
+ * comprovante. Use para exibir inline (preview/impressão) ou forçar
+ * download via URL.createObjectURL.
+ */
+export async function downloadBoletoPaymentReceipt(
+  boletoId: number,
+): Promise<{ blob: Blob; fileName: string; contentType: string }> {
+  const resp = await api.get(`${BASE}/${boletoId}/payment-receipt`, {
+    responseType: 'blob',
+  })
+  const cdHeader = (resp.headers['content-disposition'] as string | undefined) ?? ''
+  const fileNameMatch = /filename="?([^";]+)"?/.exec(cdHeader)
+  return {
+    blob: resp.data as Blob,
+    fileName: fileNameMatch ? fileNameMatch[1] : `comprovante-boleto-${boletoId}`,
     contentType: (resp.headers['content-type'] as string | undefined) ?? 'application/octet-stream',
   }
 }

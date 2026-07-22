@@ -138,7 +138,9 @@ export function useBoletosStorage() {
 
   /**
    * Liquida um boleto (marca como pago). Chama o POST /{id}/settle
-   * do backend e atualiza o item na lista local.
+   * do backend e remove o boleto da lista local — boletos liquidados
+   * deixam de aparecer no widget de cadastro e ficam visíveis apenas
+   * no relatório (/boletos).
    *
    * Dispara o evento `dashboard:refresh` para que os widgets do
    * dashboard (contas a pagar, indicadores) recarreguem os dados.
@@ -149,7 +151,7 @@ export function useBoletosStorage() {
   const settle = useCallback(async (id: number, receipt?: File): Promise<BoletoDue> => {
     const updated = await settleBoleto(id, receipt)
     const due = toDue(updated)
-    setItems((prev) => prev.map((b) => (b.id === id ? due : b)))
+    setItems((prev) => prev.filter((b) => b.id !== id))
     window.dispatchEvent(new CustomEvent('dashboard:refresh'))
     return due
   }, [])
