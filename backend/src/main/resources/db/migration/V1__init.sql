@@ -120,9 +120,12 @@ SET @sql = IF(@has_idx = 0, 'CREATE UNIQUE INDEX uk_organizations_contract_prefi
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- uk_boletos_org_description (organization_id, description)
-SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'boletos' AND INDEX_NAME = 'uk_boletos_org_description');
-SET @sql = IF(@has_idx = 0, 'CREATE UNIQUE INDEX uk_boletos_org_description ON boletos (organization_id, description)', 'DO 0');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+-- NOTA: este unique index foi removido na migration V3, pois boletos
+-- podem ter a mesma descrição. Mantemos o bloco comentado para não
+-- quebrar o boot em bancos com dados duplicados.
+-- SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'boletos' AND INDEX_NAME = 'uk_boletos_org_description');
+-- SET @sql = IF(@has_idx = 0, 'CREATE UNIQUE INDEX uk_boletos_org_description ON boletos (organization_id, description)', 'DO 0');
+-- PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- =============================================================================
 -- 3. Índices auxiliares de domínio (não declarados via @Index nas entidades)
