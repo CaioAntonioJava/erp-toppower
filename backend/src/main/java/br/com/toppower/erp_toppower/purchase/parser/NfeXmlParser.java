@@ -72,6 +72,7 @@ public class NfeXmlParser {
         @JacksonXmlProperty(localName = "emit")
         public Emit emit;
 
+        @JacksonXmlProperty(localName = "det")
         @JacksonXmlElementWrapper(localName = "det", useWrapping = false)
         public List<Det> dets = new ArrayList<>();
 
@@ -193,7 +194,12 @@ public class NfeXmlParser {
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Icms {
         // ICMS00, ICMS10, ICMS20, ICMS40, ICMS51, ICMS60, ICMS70, ICMS90, etc.
-        // Todos contêm o campo orig. Jackson mapeia o primeiro filho que encontrar.
+        // Cada CST tem seu próprio sub-elemento, mas todos contêm o campo orig.
+        // Como só precisamos do orig, usamos um único campo que o Jackson
+        // tentará casar — mas como orig está dentro do sub-tipo (ex.: ICMS00),
+        // precisamos de uma classe intermediária. Jackson com defaultUseWrapper(false)
+        // e @JsonIgnoreProperties(ignoreUnknown=true) ignora o CST e lê o primeiro
+        // filho que encontrar.
         @JacksonXmlProperty(localName = "orig")
         public String orig;
     }
@@ -212,6 +218,7 @@ public class NfeXmlParser {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Cobr {
+        @JacksonXmlProperty(localName = "dup")
         @JacksonXmlElementWrapper(localName = "dup", useWrapping = false)
         public List<Dup> dups;
     }
