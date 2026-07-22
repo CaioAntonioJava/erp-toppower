@@ -102,15 +102,13 @@ export async function settleBoleto(
   id: number,
   receipt?: File,
 ): Promise<BoletoResponse> {
+  const form = new FormData()
   if (receipt) {
-    const form = new FormData()
     form.append('receipt', receipt)
-    const { data } = await api.post<BoletoResponse>(`${BASE}/${id}/settle`, form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
-    return data
   }
-  const { data } = await api.post<BoletoResponse>(`${BASE}/${id}/settle`)
+  const { data } = await api.post<BoletoResponse>(`${BASE}/${id}/settle`, form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
   return data
 }
 
