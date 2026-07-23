@@ -102,11 +102,12 @@ export function PurchaseImportPage() {
     try {
       const items: NfeConfirmItem[] = preview.items.map((item) => {
         const action = actions[item.itemIndex] ?? defaultAction(item.status)
-        // existingProductId só é enviado para ESTOQUE em DIVERGENTE
-        // (o usuário decide vincular ao candidato).
+        // existingProductId é enviado sempre que a ação for ESTOQUE:
+        // - EXISTENTE: ID determinístico do matcher (productId).
+        // - DIVERGENTE: candidato sugerido (candidateProductId), editável.
         const existingProductId =
-          action === 'ESTOQUE' && item.status === 'DIVERGENTE'
-            ? item.candidateProductId
+          action === 'ESTOQUE'
+            ? item.productId ?? item.candidateProductId ?? null
             : null
         return { itemIndex: item.itemIndex, action, existingProductId }
       })

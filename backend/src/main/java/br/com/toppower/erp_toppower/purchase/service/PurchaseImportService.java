@@ -308,10 +308,10 @@ public class PurchaseImportService {
                     supplierId, item.code(), item.codigoBarras(), item.name(), item.ncm());
             result.add(new NfeItemData(
                     m.status(),
-                    m.status() == ItemStatus.DIVERGENTE ? m.productId() : null,
+                    m.status() != ItemStatus.NOVO ? m.productId() : null,
                     item.itemIndex(),
                     m.matchReason(),
-                    m.status() == ItemStatus.DIVERGENTE ? m.productId() : null,
+                    m.status() != ItemStatus.NOVO ? m.productId() : null,
                     m.existingProductName(),
                     item.code(), item.codigoBarras(), item.name(),
                     item.ncm(), item.cest(), item.unit(),
