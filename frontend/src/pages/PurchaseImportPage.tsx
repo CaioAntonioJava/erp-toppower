@@ -1,13 +1,16 @@
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
+  AlertTriangle,
   CheckCircle2,
   FileUp,
   Package,
   Building2,
   Receipt,
-  AlertTriangle,
   Loader2,
+  Link2,
+  Plus,
+  Ban,
 } from 'lucide-react'
 import { BackButton } from '../components/ui/BackButton'
 import { Button } from '../components/ui/Button'
@@ -17,6 +20,8 @@ import { formatCurrency, formatDate } from '../lib/format'
 import { previewNfeImport, confirmNfeImport } from '../api/purchase.api'
 import { toApiError } from '../lib/errors'
 import type {
+  ItemAction,
+  NfeConfirmItem,
   NfeConfirmResponse,
   NfeItemData,
   NfePreviewResponse,
@@ -30,6 +35,25 @@ const STATUS_CONFIG = {
   DIVERGENTE: { tone: 'warning' as const, label: 'Divergente' },
 }
 
+const MATCH_REASON_LABEL: Record<string, string> = {
+  FORNECEDOR: 'Código do fornecedor',
+  EAN: 'Código EAN/GTIN',
+  CODIGO: 'Código interno (SKU)',
+  NOME: 'Similaridade de nome',
+}
+
+/** Ação padrão por status, pré-definida e ajustável pelo usuário. */
+function defaultAction(status: NfeItemData['status']): ItemAction {
+  switch (status) {
+    case 'NOVO':
+      return 'CADASTRAR'
+    case 'EXISTENTE':
+      return 'ESTOQUE'
+    case 'DIVERGENTE':
+      return 'CADASTRAR'
+  }
+}
+
 export function PurchaseImportPage() {
   const [step, setStep] = useState<Step>('upload')
   const [preview, setPreview] = useState<NfePreviewResponse | null>(null)
@@ -38,6 +62,9 @@ export function PurchaseImportPage() {
   const [loading, setLoading] = useState(false)
   const [fileName, setFileName] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  // Decisões por item: itemIndex -> ação.
+  const [actions, setActions] = useState<Record<number, ItemAction>>({})
 
   async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>): Promise<void> {
     const file = e.target.files?.[0]
@@ -53,6 +80,12 @@ export function PurchaseImportPage() {
     try {
       const res = await previewNfeImport(file)
       setPreview(res)
+      // Inicializa ações padrão por item.
+      const defaults: Record<number, ItemAction> = {}
+      for (const item of res.items) {
+        defaults[item.itemIndex] = defaultAction(item.status)
+      }
+      setActions(defaults)
       setStep('preview')
     } catch (err) {
       setError(toApiError(err).message)
@@ -67,7 +100,17 @@ export function PurchaseImportPage() {
     setError(null)
     setLoading(true)
     try {
-      const res = await confirmNfeImport({ xmlBase64: preview.xmlBase64 })
+      const items: NfeConfirmItem[] = preview.items.map((item) => {
+        const action = actions[item.itemIndex] ?? defaultAction(item.status)
+        // existingProductId só é enviado para ESTOQUE em DIVERGENTE
+        // (o usuário decide vincular ao candidato).
+        const existingProductId =
+          action === 'ESTOQUE' && item.status === 'DIVERGENTE'
+            ? item.candidateProductId
+            : null
+        return { itemIndex: item.itemIndex, action, existingProductId }
+      })
+      const res = await confirmNfeImport({ xmlBase64: preview.xmlBase64, items })
       setResult(res)
       setStep('success')
     } catch (err) {
@@ -84,6 +127,7 @@ export function PurchaseImportPage() {
     setResult(null)
     setError(null)
     setFileName(null)
+    setActions({})
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
@@ -94,6 +138,26 @@ export function PurchaseImportPage() {
       void handleUpload(file)
     }
   }
+
+  function setItemAction(itemIndex: number, action: ItemAction): void {
+    setActions((prev) => ({ ...prev, [itemIndex]: action }))
+  }
+
+  const blockedByDuplicate = preview?.alreadyImported ?? false
+
+  const summary = useMemo(() => {
+    if (!preview) return { cadastrar: 0, estoque: 0, ignorar: 0 }
+    let cadastrar = 0
+    let estoque = 0
+    let ignorar = 0
+    for (const item of preview.items) {
+      const a = actions[item.itemIndex] ?? defaultAction(item.status)
+      if (a === 'CADASTRAR') cadastrar++
+      else if (a === 'ESTOQUE') estoque++
+      else ignorar++
+    }
+    return { cadastrar, estoque, ignorar }
+  }, [preview, actions])
 
   return (
     <div className="space-y-6">
@@ -153,6 +217,17 @@ export function PurchaseImportPage() {
       {/* Passo 2: Preview */}
       {step === 'preview' && preview ? (
         <div className="space-y-6">
+          {/* Aviso de duplicidade */}
+          {blockedByDuplicate ? (
+            <Alert variant="info">
+              <strong>Esta NF-e já foi importada.</strong> A Chave de acesso{' '}
+              <code className="rounded bg-slate-200 px-1 dark:bg-slate-700">
+                {preview.accessKey}
+              </code>{' '}
+              já consta no sistema. A confirmação da importação está bloqueada.
+            </Alert>
+          ) : null}
+
           {/* Fornecedor */}
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <div className="mb-4 flex items-center gap-2">
@@ -176,6 +251,10 @@ export function PurchaseImportPage() {
                 <p className="text-sm font-medium">{preview.supplier.tradeName ?? '—'}</p>
               </div>
             </div>
+            <p className="mt-3 text-xs text-slate-400 dark:text-slate-500">
+              O fornecedor é determinado automaticamente pelo CNPJ do emitente no XML e não
+              pode ser alterado.
+            </p>
           </div>
 
           {/* Produtos */}
@@ -185,23 +264,34 @@ export function PurchaseImportPage() {
               <h2 className="text-base font-semibold">
                 Produtos ({preview.items.length})
               </h2>
+              <div className="ml-auto flex gap-2 text-xs">
+                <Badge tone="success">{summary.cadastrar} cadastrar</Badge>
+                <Badge tone="info">{summary.estoque} estoque</Badge>
+                <Badge tone="neutral">{summary.ignorar} ignorar</Badge>
+              </div>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-800">
                 <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-950/40 dark:text-slate-400">
                   <tr>
                     <th className="px-3 py-2 font-medium">Status</th>
-                    <th className="px-3 py-2 font-medium">Código</th>
                     <th className="px-3 py-2 font-medium">Descrição</th>
+                    <th className="px-3 py-2 font-medium">Código</th>
                     <th className="px-3 py-2 font-medium">NCM</th>
                     <th className="px-3 py-2 text-right font-medium">Qtd</th>
                     <th className="px-3 py-2 text-right font-medium">V. Unit.</th>
                     <th className="px-3 py-2 text-right font-medium">Total</th>
+                    <th className="px-3 py-2 font-medium">Ação</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                   {preview.items.map((item, idx) => (
-                    <ItemRow key={idx} item={item} />
+                    <ItemRow
+                      key={idx}
+                      item={item}
+                      action={actions[item.itemIndex] ?? defaultAction(item.status)}
+                      onActionChange={(a) => setItemAction(item.itemIndex, a)}
+                    />
                   ))}
                 </tbody>
               </table>
@@ -228,9 +318,19 @@ export function PurchaseImportPage() {
                 <p className="text-sm font-medium">{preview.payable.invoiceNumber}</p>
               </div>
             </div>
+            {preview.payable.accessKey ? (
+              <p className="mt-2 text-xs text-slate-500">
+                Chave de acesso:{' '}
+                <code className="rounded bg-slate-100 px-1 dark:bg-slate-800">
+                  {preview.payable.accessKey}
+                </code>
+              </p>
+            ) : null}
             {preview.payable.installments.length > 0 ? (
               <div className="mt-4">
-                <span className="text-xs text-slate-500">Parcelas ({preview.payable.installments.length})</span>
+                <span className="text-xs text-slate-500">
+                  Parcelas ({preview.payable.installments.length})
+                </span>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {preview.payable.installments.map((inst, i) => (
                     <div
@@ -253,7 +353,11 @@ export function PurchaseImportPage() {
             <Button variant="secondary" onClick={handleReset} disabled={loading}>
               Cancelar
             </Button>
-            <Button onClick={handleConfirm} isLoading={loading}>
+            <Button
+              onClick={handleConfirm}
+              isLoading={loading}
+              disabled={blockedByDuplicate}
+            >
               <CheckCircle2 className="h-4 w-4" />
               Confirmar importação
             </Button>
@@ -272,6 +376,11 @@ export function PurchaseImportPage() {
             <p className="mt-1 text-sm text-emerald-700 dark:text-emerald-400">
               Nota {result.invoiceNumber} — todos os dados foram cadastrados.
             </p>
+            {result.accessKey ? (
+              <p className="mt-1 text-xs text-emerald-600 dark:text-emerald-500">
+                Chave de acesso: {result.accessKey}
+              </p>
+            ) : null}
           </div>
 
           <div className="grid gap-4 sm:grid-cols-3">
@@ -285,7 +394,7 @@ export function PurchaseImportPage() {
               icon={<Package className="h-5 w-5 text-primary" />}
               label="Produtos"
               value={`${result.createdProductIds.length} novos`}
-              sub={`${result.existingProductIds.length} existentes`}
+              sub={`${result.existingProductIds.length} com entrada · ${result.ignoredItemCount} ignorados`}
             />
             <SummaryCard
               icon={<Receipt className="h-5 w-5 text-primary" />}
@@ -300,9 +409,7 @@ export function PurchaseImportPage() {
               Importar outra nota
             </Button>
             <Link to={`/payables/${result.payableId}`}>
-              <Button>
-                Ver conta a pagar
-              </Button>
+              <Button>Ver conta a pagar</Button>
             </Link>
           </div>
         </div>
@@ -320,33 +427,143 @@ export function PurchaseImportPage() {
   )
 }
 
-function ItemRow({ item }: { item: NfeItemData }) {
+function ItemRow({
+  item,
+  action,
+  onActionChange,
+}: {
+  item: NfeItemData
+  action: ItemAction
+  onActionChange: (a: ItemAction) => void
+}) {
   const config = STATUS_CONFIG[item.status]
   return (
     <tr>
-      <td className="px-3 py-2">
+      <td className="px-3 py-2 align-top">
         <Badge tone={config.tone}>{config.label}</Badge>
-      </td>
-      <td className="px-3 py-2 text-slate-600 dark:text-slate-300">
-        {item.code ?? '—'}
-      </td>
-      <td className="px-3 py-2 text-slate-900 dark:text-slate-100">
-        {item.name}
-        {item.status === 'DIVERGENTE' ? (
-          <AlertTriangle className="ml-1 inline h-3 w-3 text-amber-500" />
+        {item.matchReason ? (
+          <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">
+            {MATCH_REASON_LABEL[item.matchReason] ?? item.matchReason}
+          </p>
         ) : null}
       </td>
-      <td className="px-3 py-2 text-slate-600 dark:text-slate-300">{item.ncm}</td>
-      <td className="px-3 py-2 text-right text-slate-600 dark:text-slate-300">
+      <td className="px-3 py-2 align-top text-slate-900 dark:text-slate-100">
+        <div>{item.name}</div>
+        {item.status === 'DIVERGENTE' && item.existingProductName ? (
+          <div className="mt-1 flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
+            <AlertTriangle className="h-3 w-3" />
+            <span>
+              Similar a: <strong>{item.existingProductName}</strong>
+            </span>
+          </div>
+        ) : null}
+      </td>
+      <td className="px-3 py-2 align-top text-slate-600 dark:text-slate-300">
+        {item.code ?? '—'}
+        {item.codigoBarras ? (
+          <div className="text-[10px] text-slate-400">EAN: {item.codigoBarras}</div>
+        ) : null}
+      </td>
+      <td className="px-3 py-2 align-top text-slate-600 dark:text-slate-300">{item.ncm}</td>
+      <td className="px-3 py-2 align-top text-right text-slate-600 dark:text-slate-300">
         {item.quantity} {item.unit}
       </td>
-      <td className="px-3 py-2 text-right text-slate-600 dark:text-slate-300">
+      <td className="px-3 py-2 align-top text-right text-slate-600 dark:text-slate-300">
         {formatCurrency(item.unitValue)}
       </td>
-      <td className="px-3 py-2 text-right font-medium text-slate-900 dark:text-slate-100">
+      <td className="px-3 py-2 align-top text-right font-medium text-slate-900 dark:text-slate-100">
         {formatCurrency(item.totalValue)}
       </td>
+      <td className="px-3 py-2 align-top">
+        <ItemActionControl item={item} action={action} onActionChange={onActionChange} />
+      </td>
     </tr>
+  )
+}
+
+function ItemActionControl({
+  item,
+  action,
+  onActionChange,
+}: {
+  item: NfeItemData
+  action: ItemAction
+  onActionChange: (a: ItemAction) => void
+}) {
+  // NOVO: checkbox "Cadastrar" (marcado) / desmarcar = IGNORAR.
+  if (item.status === 'NOVO') {
+    return (
+      <label className="flex items-center gap-2 text-xs">
+        <input
+          type="checkbox"
+          checked={action === 'CADASTRAR'}
+          onChange={(e) => onActionChange(e.target.checked ? 'CADASTRAR' : 'IGNORAR')}
+          className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary dark:border-slate-600"
+        />
+        <span className="flex items-center gap-1">
+          <Plus className="h-3 w-3" /> Cadastrar
+        </span>
+      </label>
+    )
+  }
+
+  // EXISTENTE: checkbox "Atualizar estoque" (marcado) / desmarcar = IGNORAR.
+  if (item.status === 'EXISTENTE') {
+    return (
+      <label className="flex items-center gap-2 text-xs">
+        <input
+          type="checkbox"
+          checked={action === 'ESTOQUE'}
+          onChange={(e) => onActionChange(e.target.checked ? 'ESTOQUE' : 'IGNORAR')}
+          className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary dark:border-slate-600"
+        />
+        <span className="flex items-center gap-1">
+          <Package className="h-3 w-3" /> Entrada de estoque
+        </span>
+      </label>
+    )
+  }
+
+  // DIVERGENTE: 3 opções (Cadastrar novo | Vincular ao existente | Ignorar).
+  return (
+    <div className="flex flex-col gap-1 text-xs">
+      <label className="flex items-center gap-1.5">
+        <input
+          type="radio"
+          name={`item-${item.itemIndex}`}
+          checked={action === 'CADASTRAR'}
+          onChange={() => onActionChange('CADASTRAR')}
+          className="h-3.5 w-3.5 border-slate-300 text-primary focus:ring-primary dark:border-slate-600"
+        />
+        <span className="flex items-center gap-1">
+          <Plus className="h-3 w-3" /> Cadastrar novo
+        </span>
+      </label>
+      <label className="flex items-center gap-1.5">
+        <input
+          type="radio"
+          name={`item-${item.itemIndex}`}
+          checked={action === 'ESTOQUE'}
+          onChange={() => onActionChange('ESTOQUE')}
+          className="h-3.5 w-3.5 border-slate-300 text-primary focus:ring-primary dark:border-slate-600"
+        />
+        <span className="flex items-center gap-1">
+          <Link2 className="h-3 w-3" /> Vincular ao existente
+        </span>
+      </label>
+      <label className="flex items-center gap-1.5">
+        <input
+          type="radio"
+          name={`item-${item.itemIndex}`}
+          checked={action === 'IGNORAR'}
+          onChange={() => onActionChange('IGNORAR')}
+          className="h-3.5 w-3.5 border-slate-300 text-primary focus:ring-primary dark:border-slate-600"
+        />
+        <span className="flex items-center gap-1">
+          <Ban className="h-3 w-3" /> Ignorar
+        </span>
+      </label>
+    </div>
   )
 }
 

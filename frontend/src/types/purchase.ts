@@ -2,6 +2,12 @@
 
 export type ItemStatus = 'NOVO' | 'EXISTENTE' | 'DIVERGENTE'
 
+/** Ação do usuário por item na confirmação da importação. */
+export type ItemAction = 'CADASTRAR' | 'ESTOQUE' | 'IGNORAR'
+
+/** Motivo do match de um item (transparência da similaridade). */
+export type MatchReason = 'FORNECEDOR' | 'EAN' | 'CODIGO' | 'NOME' | null
+
 export interface NfeInstallmentData {
   number: string
   dueDate: string
@@ -28,6 +34,10 @@ export interface NfeSupplierData {
 export interface NfeItemData {
   status: ItemStatus
   productId: number | null
+  itemIndex: number
+  matchReason: MatchReason
+  candidateProductId: number | null
+  existingProductName: string | null
   code: string | null
   codigoBarras: string | null
   name: string
@@ -53,13 +63,22 @@ export interface NfePayableData {
 
 export interface NfePreviewResponse {
   xmlBase64: string
+  alreadyImported: boolean
+  accessKey: string | null
   supplier: NfeSupplierData
   items: NfeItemData[]
   payable: NfePayableData
 }
 
+export interface NfeConfirmItem {
+  itemIndex: number
+  action: ItemAction
+  existingProductId: number | null
+}
+
 export interface NfeConfirmRequest {
   xmlBase64: string
+  items: NfeConfirmItem[]
 }
 
 export interface NfeConfirmResponse {
@@ -69,4 +88,6 @@ export interface NfeConfirmResponse {
   existingProductIds: number[]
   payableId: number
   invoiceNumber: string
+  accessKey: string | null
+  ignoredItemCount: number
 }
