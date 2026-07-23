@@ -146,6 +146,16 @@ export function UserFormPage() {
     })
   }
 
+  /** Marca/desmarca todos os módulos de uma vez. */
+  function toggleAllModules() {
+    setSelectedModules((prev) => {
+      if (prev.size === MODULES.length) return new Set()
+      return new Set(MODULES.map((m) => m.key))
+    })
+  }
+
+  const allModulesSelected = selectedModules.size === MODULES.length
+
   function validate(): boolean {
     const next: Partial<Record<keyof FormState, string>> = {}
     if (!form.email.trim()) {
@@ -401,6 +411,24 @@ export function UserFormPage() {
                   </p>
                 </div>
               </div>
+
+              {/* Selecionar todos os módulos (empresas não incluídas) */}
+              <label
+                className={[
+                  'flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 text-sm font-medium transition-colors',
+                  allModulesSelected
+                    ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/20 dark:text-primary-200'
+                    : 'text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800/40',
+                ].join(' ')}
+              >
+                <input
+                  type="checkbox"
+                  checked={allModulesSelected}
+                  onChange={toggleAllModules}
+                  className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-focus dark:border-slate-600"
+                />
+                Selecionar todos os painéis
+              </label>
 
               <div className="space-y-4">
                 {MODULE_SECTIONS.map((sectionTitle) => {
