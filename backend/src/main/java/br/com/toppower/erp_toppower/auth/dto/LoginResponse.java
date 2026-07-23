@@ -1,11 +1,13 @@
 package br.com.toppower.erp_toppower.auth.dto;
 
 import br.com.toppower.erp_toppower.organization.dto.OrganizationSummary;
+import br.com.toppower.erp_toppower.user.enums.Module;
 import br.com.toppower.erp_toppower.user.enums.Role;
 import br.com.toppower.erp_toppower.user.dto.UserResponse;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.List;
+import java.util.Set;
 
 @Schema(name = "LoginResponse", description = "Resposta do login com o token JWT, dados do usuário e Organizations acessíveis.")
 public record LoginResponse(
@@ -45,12 +47,18 @@ public record LoginResponse(
 
             @Schema(description = "Papel do usuário.",
                     example = "ROLE_ADMIN",
-                    allowableValues = {"ROLE_ADMIN", "ROLE_MANAGER"},
+                    allowableValues = {"ROLE_ADMIN", "ROLE_MANAGER", "ROLE_EMPLOYEE"},
                     requiredMode = Schema.RequiredMode.REQUIRED)
-            Role role
+            Role role,
+
+            @Schema(description = "Módulos (paineis) efetivamente acessíveis ao usuário. " +
+                    "Para ROLE_ADMIN e ROLE_MANAGER retorna todos os módulos; para ROLE_EMPLOYEE " +
+                    "apenas os concedidos.",
+                    requiredMode = Schema.RequiredMode.REQUIRED)
+            Set<Module> modules
     ) {
         public static AuthenticatedUser from(UserResponse user) {
-            return new AuthenticatedUser(user.id(), user.email(), user.role());
+            return new AuthenticatedUser(user.id(), user.email(), user.role(), user.modules());
         }
     }
 

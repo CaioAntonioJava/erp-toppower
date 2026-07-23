@@ -4,7 +4,9 @@ import br.com.toppower.erp_toppower.user.dto.ChangePasswordRequest;
 import br.com.toppower.erp_toppower.user.dto.ResetPasswordRequest;
 import br.com.toppower.erp_toppower.user.dto.UserCreateRequest;
 import br.com.toppower.erp_toppower.user.dto.UserResponse;
+import br.com.toppower.erp_toppower.user.dto.UserUpdateRequest;
 import br.com.toppower.erp_toppower.user.entity.User;
+import br.com.toppower.erp_toppower.user.enums.Role;
 import br.com.toppower.erp_toppower.user.exception.EmailAlreadyExistsException;
 import br.com.toppower.erp_toppower.user.exception.IncorrectPasswordException;
 import br.com.toppower.erp_toppower.user.exception.UserNotFoundException;
@@ -16,7 +18,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class UserService {
@@ -46,6 +50,36 @@ public class UserService {
         User user = UserMapper.toEntity(request, encodedPassword);
         User saved = userRepository.save(user);
 
+        return UserMapper.toResponse(saved);
+    }
+
+    /**
+     * Atiza parcialmente um usuário (role e/ou módulos).
+     *
+     * <p>Guarda de segurança: impede que um administrador remova o próprio
+     * papel {@code ROLE_ADMIN}, evitando lockout acidental do sistema.</p>
+     */
+    @Transactional
+    public UserResponse update(Long id, UserUpdateRequest request, Long requesterId) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException(id));
+
+        if (request.role() != null) {
+            // Impede auto-rebaixamento de ADMIN: evita ficar sem nenhum admin.
+            if (id.equals(requesterId)
+                    && user.getRole() == Role.ROLE_ADMIN
+                    && request.role() != Role.ROLE_ADMIN) {
+                throw new AccessDeniedException(
+                        "Você não pode remover seu próprio papel de administrador");
+            }
+            user.setRole(request.role());
+        }
+
+        if (request.modules() != null) {
+            user.setModules(EnumSet.copyOf(request.modules()));
+        }
+
+        User saved = userRepository.save(user);
         return UserMapper.toResponse(saved);
     }
 
@@ -89,7 +123,7 @@ public class UserService {
 
     /**
      * Exclui um usuário (hard delete). Remove o profile referenciado (FK física
-     * profiles.user_id → users.uuid) antes de excluí-lo.
+     * profiles.user_id → users.id) e os vínculos de permissões antes de excluí-lo.
      *
      * <p>Bloqueia a auto-exclusão: o admin não pode excluir a própria conta,
      * evitando lockout acidental.</p>
@@ -106,9 +140,7 @@ public class UserService {
         // Profile: FK física profiles.user_id → users.id. O profile é
         // opcional (admin pode não ter perfil); o SQL nativo é no-op quando
         // não há linha.
-        String userHex = user.getId().toString();
-        jdbcTemplate.update(
-                "delete from profiles where user_id = " + userHex);
+        jdbcTemplate.update("delete from profiles where user_id = ?", user.getId());
 
         userRepository.delete(user);
     }

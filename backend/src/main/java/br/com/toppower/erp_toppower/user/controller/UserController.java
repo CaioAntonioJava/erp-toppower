@@ -5,6 +5,7 @@ import br.com.toppower.erp_toppower.user.dto.ChangePasswordRequest;
 import br.com.toppower.erp_toppower.user.dto.ResetPasswordRequest;
 import br.com.toppower.erp_toppower.user.dto.UserCreateRequest;
 import br.com.toppower.erp_toppower.user.dto.UserResponse;
+import br.com.toppower.erp_toppower.user.dto.UserUpdateRequest;
 import br.com.toppower.erp_toppower.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -56,6 +57,32 @@ public class UserController {
     public ResponseEntity<UserResponse> create(@Valid @RequestBody UserCreateRequest request) {
         UserResponse response = userService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PatchMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(
+            summary = "Atualizar usuário (role e/ou módulos)",
+            description = "Atualiza parcialmente um usuário. Permite alterar o papel (role) " +
+                    "e/ou os módulos (paineis) acessíveis. Acesso restrito a administradores (ROLE_ADMIN)."
+    )
+    @SecurityRequirement(name = "bearerAuth")
+    @PreAuthorize("hasRole('ADMIN')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Usuário atualizado com sucesso.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = UserResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Token ausente, inválido ou expirado.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "403", description = "Usuário não possui ROLE_ADMIN.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+    })
+    public ResponseEntity<UserResponse> update(@AuthenticationPrincipal UserDetailsImpl principal,
+                                               @PathVariable Long id,
+                                               @Valid @RequestBody UserUpdateRequest request) {
+        UserResponse response = userService.update(id, request, principal.id());
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)

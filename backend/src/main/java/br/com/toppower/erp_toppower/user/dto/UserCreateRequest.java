@@ -1,13 +1,17 @@
 package br.com.toppower.erp_toppower.user.dto;
 
+import br.com.toppower.erp_toppower.user.enums.Module;
+import br.com.toppower.erp_toppower.user.enums.Role;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-@Schema(name = "UserCreateRequest", description = "Dados para cadastro de novo usuário. " +
-        "A role é definida automaticamente como ROLE_MANAGER no cadastro.")
+import java.util.Set;
+
+@Schema(name = "UserCreateRequest", description = "Dados para cadastro de novo usuário.")
 public record UserCreateRequest(
 
         @Schema(description = "E-mail único do usuário. Será usado como credencial de login.",
@@ -29,7 +33,19 @@ public record UserCreateRequest(
                 example = "S3nh@Forte!", requiredMode = Schema.RequiredMode.REQUIRED,
                 minLength = 8, maxLength = 200, format = "password")
         @NotBlank(message = "Confirmação de senha é obrigatória")
-        String passwordConfirmation
+        String passwordConfirmation,
+
+        @Schema(description = "Papel do usuário no sistema.",
+                example = "ROLE_EMPLOYEE",
+                allowableValues = {"ROLE_ADMIN", "ROLE_MANAGER", "ROLE_EMPLOYEE"},
+                requiredMode = Schema.RequiredMode.REQUIRED)
+        @NotNull(message = "Papel é obrigatório")
+        Role role,
+
+        @Schema(description = "Módulos (paineis) acessíveis ao usuário. Relevantes apenas para " +
+                "ROLE_EMPLOYEE; ROLE_ADMIN e ROLE_MANAGER recebem todos os módulos automaticamente.",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        Set<Module> modules
 ) {
 
     /**
