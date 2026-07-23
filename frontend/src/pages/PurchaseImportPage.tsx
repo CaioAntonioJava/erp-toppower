@@ -220,9 +220,9 @@ export function PurchaseImportPage() {
         <div className="space-y-6">
           {/* Aviso de duplicidade */}
           {blockedByDuplicate ? (
-            <Alert variant="info">
+            <Alert variant="error">
               <strong>Esta NF-e já foi importada.</strong> A Chave de acesso{' '}
-              <code className="rounded bg-slate-200 px-1 dark:bg-slate-700">
+              <code className="rounded bg-red-100 px-1 dark:bg-red-900/50">
                 {preview.accessKey}
               </code>{' '}
               já consta no sistema. A confirmação da importação está bloqueada.
