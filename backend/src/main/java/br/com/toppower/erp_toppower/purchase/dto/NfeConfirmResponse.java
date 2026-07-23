@@ -35,6 +35,13 @@ public record NfeConfirmResponse(
 
         @Schema(description = "Número da NF-e importada.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        String invoiceNumber
+        String invoiceNumber,
+
+        @Schema(description = "Chave de acesso da NF-e importada.")
+        String accessKey,
+
+        @Schema(description = "Quantidade de itens ignorados pelo usuário.",
+                requiredMode = Schema.RequiredMode.REQUIRED)
+        int ignoredItemCount
 ) {
 }

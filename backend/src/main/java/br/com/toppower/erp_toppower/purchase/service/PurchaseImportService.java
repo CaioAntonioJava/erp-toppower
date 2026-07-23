@@ -13,14 +13,18 @@ import br.com.toppower.erp_toppower.product.enums.OrigemProduto;
 import br.com.toppower.erp_toppower.product.enums.ProductStatus;
 import br.com.toppower.erp_toppower.product.enums.UnitType;
 import br.com.toppower.erp_toppower.product.repository.ProductRepository;
+import br.com.toppower.erp_toppower.purchase.dto.ItemAction;
 import br.com.toppower.erp_toppower.purchase.dto.ItemStatus;
+import br.com.toppower.erp_toppower.purchase.dto.NfeConfirmItem;
 import br.com.toppower.erp_toppower.purchase.dto.NfeConfirmResponse;
 import br.com.toppower.erp_toppower.purchase.dto.NfeItemData;
 import br.com.toppower.erp_toppower.purchase.dto.NfePayableData;
 import br.com.toppower.erp_toppower.purchase.dto.NfePreviewResponse;
 import br.com.toppower.erp_toppower.purchase.dto.NfeSupplierData;
+import br.com.toppower.erp_toppower.purchase.entity.ProductSupplierCode;
 import br.com.toppower.erp_toppower.purchase.exception.NfeImportException;
 import br.com.toppower.erp_toppower.purchase.parser.NfeXmlParser;
+import br.com.toppower.erp_toppower.purchase.repository.ProductSupplierCodeRepository;
 import br.com.toppower.erp_toppower.stock.enums.MovementSource;
 import br.com.toppower.erp_toppower.stock.enums.MovementType;
 import br.com.toppower.erp_toppower.stock.repository.StockMovementRepository;
@@ -40,7 +44,9 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -49,10 +55,24 @@ import java.util.Optional;
  * <p>Fluxo em 2 passos:</p>
  * <ol>
  *   <li>{@link #preview(MultipartFile)} — parseia o XML e retorna um
- *       resumo sem persistir nada;</li>
- *   <li>{@link #confirm(String)} — re-parseia e efetiva: cria fornecedor
- *       (se novo), produtos (se novos), entrada de estoque e conta a pagar.</li>
+ *       resumo sem persistir nada, com classificação de itens por
+ *       similaridade (fornecedor/EAN/código/nome) e detecção de
+ *       duplicidade pela Chave de Acesso;</li>
+ *   <li>{@link #confirm(String, List)} — re-parseia e efetiva: cria
+ *       fornecedor (se novo), produtos (se novos), entrada de estoque
+ *       e conta a pagar, respeitando as decisões do usuário por item.</li>
  * </ol>
+ *
+ * <p><b>Regras de negócio</b>:</p>
+ * <ul>
+ *   <li>A Chave de Acesso da NF-e é única nacionalmente — a mesma nota
+ *       nunca pode ser importada duas vezes (idempotência primária).</li>
+ *   <li>O fornecedor é sempre determinado pelo CNPJ do emitente no XML;
+ *       o usuário não pode atribuir a outro fornecedor.</li>
+ *   <li>Produtos existentes apenas recebem entrada de estoque; produtos
+ *       novos são cadastrados. A relação produto↔fornecedor↔cProd é
+ *       persistida para acelerar matchings futuros.</li>
+ * </ul>
  */
 @Service
 public class PurchaseImportService {
@@ -60,23 +80,29 @@ public class PurchaseImportService {
     private static final Logger log = LoggerFactory.getLogger(PurchaseImportService.class);
 
     private final NfeXmlParser parser;
+    private final NfeProductMatcher matcher;
     private final SupplierRepository supplierRepository;
     private final ProductRepository productRepository;
+    private final ProductSupplierCodeRepository productSupplierCodeRepository;
     private final PayableRepository payableRepository;
     private final PayableInstallmentRepository installmentRepository;
     private final StockMovementRepository stockMovementRepository;
     private final StockService stockService;
 
     public PurchaseImportService(NfeXmlParser parser,
+                                 NfeProductMatcher matcher,
                                  SupplierRepository supplierRepository,
                                  ProductRepository productRepository,
+                                 ProductSupplierCodeRepository productSupplierCodeRepository,
                                  PayableRepository payableRepository,
                                  PayableInstallmentRepository installmentRepository,
                                  StockMovementRepository stockMovementRepository,
                                  StockService stockService) {
         this.parser = parser;
+        this.matcher = matcher;
         this.supplierRepository = supplierRepository;
         this.productRepository = productRepository;
+        this.productSupplierCodeRepository = productSupplierCodeRepository;
         this.payableRepository = payableRepository;
         this.installmentRepository = installmentRepository;
         this.stockMovementRepository = stockMovementRepository;
@@ -89,24 +115,38 @@ public class PurchaseImportService {
 
     /**
      * Parseia o XML da NF-e e retorna um preview sem persistir nada.
+     * Classifica cada item por similaridade e detecta duplicidade pela
+     * Chave de Acesso.
      */
     public NfePreviewResponse preview(MultipartFile file) {
         requireOrganizationContext();
         String xml = readXml(file);
         NfeXmlParser.ParsedNfe nfe = parser.parse(xml);
 
-        // Identifica fornecedor (sem criar).
-        NfeSupplierData supplierData = resolveSupplierPreview(nfe.supplier());
+        // Valida a Chave de Acesso — sem ela não há idempotência confiável.
+        String accessKey = nfe.accessKey();
+        if (accessKey == null || accessKey.isBlank()) {
+            throw new NfeImportException("Chave de acesso da NF-e não encontrada no XML.");
+        }
 
-        // Classifica itens (sem criar).
-        List<NfeItemData> items = resolveItemsPreview(nfe.items());
+        // Detecta duplicidade pela Chave de Acesso.
+        boolean alreadyImported =
+                payableRepository.findActiveByPurchaseInvoiceAccessKey(accessKey).isPresent();
+
+        // Identifica fornecedor (sem criar) e resolve o ID se existir.
+        NfeSupplierData supplierData = resolveSupplierPreview(nfe.supplier());
+        Long supplierId = supplierData.existing() ? supplierData.id() : null;
+
+        // Classifica itens (sem criar) usando o matcher.
+        List<NfeItemData> items = resolveItemsPreview(nfe.items(), supplierId);
 
         // Monta dados da conta a pagar.
         NfePayableData payableData = buildPayableData(nfe);
 
         String xmlBase64 = Base64.getEncoder().encodeToString(xml.getBytes(StandardCharsets.UTF_8));
 
-        return new NfePreviewResponse(xmlBase64, supplierData, items, payableData);
+        return new NfePreviewResponse(xmlBase64, alreadyImported, accessKey,
+                supplierData, items, payableData);
     }
 
     // ==================================================================
@@ -114,17 +154,29 @@ public class PurchaseImportService {
     // ==================================================================
 
     /**
-     * Re-parseia o XML e efetiva a importação: cria fornecedor, produtos,
-     * entrada de estoque e conta a pagar.
+     * Re-parseia o XML e efetiva a importação: cria fornecedor, produtos
+     * (conforme decisão do usuário), entrada de estoque e conta a pagar.
+     * Idempotente pela Chave de Acesso.
      */
     @Transactional
-    public NfeConfirmResponse confirm(String xmlBase64) {
+    public NfeConfirmResponse confirm(String xmlBase64, List<NfeConfirmItem> itemDecisions) {
         requireOrganizationContext();
         String xml = new String(Base64.getDecoder().decode(xmlBase64), StandardCharsets.UTF_8);
         NfeXmlParser.ParsedNfe nfe = parser.parse(xml);
         String invoiceNumber = nfe.invoiceNumber();
+        String accessKey = nfe.accessKey();
 
-        // Idempotência: verifica se a nota já foi importada.
+        // Valida a Chave de Acesso.
+        if (accessKey == null || accessKey.isBlank()) {
+            throw new NfeImportException("Chave de acesso da NF-e não encontrada no XML.");
+        }
+
+        // Idempotência primária pela Chave de Acesso (única nacionalmente).
+        if (payableRepository.findActiveByPurchaseInvoiceAccessKey(accessKey).isPresent()) {
+            throw new NfeImportException(
+                    "NF-e com chave de acesso " + accessKey + " já foi importada.");
+        }
+        // Fallback por número da nota (proteção adicional).
         if (payableRepository.findActiveByPurchaseInvoiceNumber(invoiceNumber).isPresent()) {
             throw new NfeImportException("NF-e " + invoiceNumber + " já foi importada.");
         }
@@ -133,7 +185,7 @@ public class PurchaseImportService {
             throw new NfeImportException("NF-e " + invoiceNumber + " já teve entrada de estoque registrada.");
         }
 
-        // 1. Cria ou reutiliza fornecedor.
+        // 1. Cria ou reutiliza fornecedor (sempre pelo CNPJ do emitente).
         Supplier supplier = resolveOrCreateSupplier(nfe.supplier());
         boolean supplierCreated = supplier.getId() == null
                 || supplierRepository.findById(supplier.getId()).isEmpty();
@@ -141,36 +193,49 @@ public class PurchaseImportService {
             supplier = supplierRepository.save(supplier);
         }
 
-        // 2. Cria produtos novos e registra entrada de estoque para todos.
-        List<Long> createdProductIds = new ArrayList<>();
-        List<Long> existingProductIds = new ArrayList<>();
-        for (NfeItemData item : nfe.items()) {
-            Product product = resolveOrCreateProduct(item);
-            boolean isNew = product.getId() == null;
-            if (isNew) {
-                product = productRepository.save(product);
-                createdProductIds.add(product.getId());
-            } else {
-                existingProductIds.add(product.getId());
-            }
-
-            // Registra entrada de estoque.
-            stockService.registrarEntrada(
-                    product.getId(),
-                    item.quantity(),
-                    MovementSource.NFE_IMPORT,
-                    0L, // sourceId — usamos sourceNumber para idempotência
-                    invoiceNumber,
-                    "Entrada por NF-e " + invoiceNumber + " - item " + item.code()
-            );
+        // 2. Monta mapa de decisões por itemIndex.
+        Map<Integer, NfeConfirmItem> decisions = new HashMap<>();
+        for (NfeConfirmItem d : itemDecisions) {
+            decisions.put(d.itemIndex(), d);
         }
 
-        // 3. Cria conta a pagar com parcelas.
-        Payable payable = createPayable(nfe, supplier.getId(), invoiceNumber);
+        // 3. Processa cada item conforme a decisão do usuário.
+        List<Long> createdProductIds = new ArrayList<>();
+        List<Long> existingProductIds = new ArrayList<>();
+        int ignoredItemCount = 0;
+        int index = 0;
+        for (NfeItemData item : nfe.items()) {
+            int itemIndex = index++;
+            NfeConfirmItem decision = decisions.get(itemIndex);
+            if (decision == null) {
+                throw new NfeImportException(
+                        "Decisão ausente para o item " + itemIndex + " da nota.");
+            }
 
-        log.info("NF-e {} importada: fornecedor={}, produtos criados={}, existentes={}, conta a pagar={}",
-                invoiceNumber, supplier.getId(), createdProductIds.size(),
-                existingProductIds.size(), payable.getId());
+            switch (decision.action()) {
+                case IGNORAR -> ignoredItemCount++;
+                case CADASTRAR -> {
+                    Product product = createProduct(item);
+                    registrarEntrada(product.getId(), item, invoiceNumber, itemIndex);
+                    upsertSupplierCode(product.getId(), supplier.getId(), item.code());
+                    createdProductIds.add(product.getId());
+                }
+                case ESTOQUE -> {
+                    Long productId = resolveExistingProductId(decision, itemIndex);
+                    registrarEntrada(productId, item, invoiceNumber, itemIndex);
+                    upsertSupplierCode(productId, supplier.getId(), item.code());
+                    existingProductIds.add(productId);
+                }
+            }
+        }
+
+        // 4. Cria conta a pagar com parcelas.
+        Payable payable = createPayable(nfe, supplier.getId(), invoiceNumber, accessKey);
+
+        log.info("NF-e {} (chave {}) importada: fornecedor={}, produtos criados={}, "
+                        + "existentes={}, ignorados={}, conta a pagar={}",
+                invoiceNumber, accessKey, supplier.getId(), createdProductIds.size(),
+                existingProductIds.size(), ignoredItemCount, payable.getId());
 
         return new NfeConfirmResponse(
                 supplier.getId(),
@@ -178,7 +243,9 @@ public class PurchaseImportService {
                 createdProductIds,
                 existingProductIds,
                 payable.getId(),
-                invoiceNumber
+                invoiceNumber,
+                accessKey,
+                ignoredItemCount
         );
     }
 
@@ -231,19 +298,21 @@ public class PurchaseImportService {
     }
 
     // ==================================================================
-    // Helpers — Produtos
+    // Helpers — Produtos (preview)
     // ==================================================================
 
-    private List<NfeItemData> resolveItemsPreview(List<NfeItemData> rawItems) {
+    private List<NfeItemData> resolveItemsPreview(List<NfeItemData> rawItems, Long supplierId) {
         List<NfeItemData> result = new ArrayList<>(rawItems.size());
         for (NfeItemData item : rawItems) {
-            ItemStatus status = classifyItem(item);
-            Long productId = null;
-            if (status != ItemStatus.NOVO) {
-                productId = findExistingProduct(item).map(Product::getId).orElse(null);
-            }
+            NfeProductMatcher.MatchResult m = matcher.match(
+                    supplierId, item.code(), item.codigoBarras(), item.name(), item.ncm());
             result.add(new NfeItemData(
-                    status, productId,
+                    m.status(),
+                    m.status() == ItemStatus.DIVERGENTE ? m.productId() : null,
+                    item.itemIndex(),
+                    m.matchReason(),
+                    m.status() == ItemStatus.DIVERGENTE ? m.productId() : null,
+                    m.existingProductName(),
                     item.code(), item.codigoBarras(), item.name(),
                     item.ncm(), item.cest(), item.unit(),
                     item.quantity(), item.unitValue(), item.totalValue(),
@@ -253,37 +322,14 @@ public class PurchaseImportService {
         return result;
     }
 
-    private ItemStatus classifyItem(NfeItemData item) {
-        Optional<Product> existing = findExistingProduct(item);
-        if (existing.isEmpty()) {
-            return ItemStatus.NOVO;
-        }
-        // Compara nome: se divergente, marca como DIVERGENTE.
-        Product p = existing.get();
-        if (p.getName() != null && !p.getName().equalsIgnoreCase(item.name())) {
-            return ItemStatus.DIVERGENTE;
-        }
-        return ItemStatus.EXISTENTE;
-    }
+    // ==================================================================
+    // Helpers — Produtos (confirm)
+    // ==================================================================
 
-    private Optional<Product> findExistingProduct(NfeItemData item) {
-        // Primeiro por código (cProd), depois por código de barras (cEAN).
-        if (item.code() != null && !item.code().isBlank()) {
-            Optional<Product> byCode = productRepository.findByCode(item.code());
-            if (byCode.isPresent()) return byCode;
-        }
-        if (item.codigoBarras() != null && !item.codigoBarras().isBlank()) {
-            return productRepository.findByCodigoBarras(item.codigoBarras());
-        }
-        return Optional.empty();
-    }
-
-    private Product resolveOrCreateProduct(NfeItemData item) {
-        Optional<Product> existing = findExistingProduct(item);
-        if (existing.isPresent()) {
-            return existing.get();
-        }
-        // Cria novo produto com dados fiscais do XML.
+    /**
+     * Cria um novo produto a partir dos dados fiscais do item da NF-e.
+     */
+    private Product createProduct(NfeItemData item) {
         Product product = new Product();
         product.setName(item.name());
         product.setCode(item.code());
@@ -295,7 +341,64 @@ public class PurchaseImportService {
         product.setPrice(item.unitValue() != null ? item.unitValue() : BigDecimal.ZERO);
         product.setStockQuantity(BigDecimal.ZERO); // será atualizado pelo StockService
         product.setStatus(ProductStatus.ATIVO);
-        return product;
+        return productRepository.save(product);
+    }
+
+    /**
+     * Resolve o ID do produto existente para a ação ESTOQUE. Para itens
+     * EXISTENTE, o produto é determinístico (não precisa de
+     * existingProductId). Para DIVERGENTE, o usuário deve informar o
+     * existingProductId (o candidato sugerido).
+     */
+    private Long resolveExistingProductId(NfeConfirmItem decision, int itemIndex) {
+        Long productId = decision.existingProductId();
+        if (productId == null) {
+            throw new NfeImportException(
+                    "ID do produto existente é obrigatório para ação ESTOQUE do item " + itemIndex + ".");
+        }
+        // Valida existência e pertencimento à org (o filtro org é automático).
+        if (productRepository.findById(productId).isEmpty()) {
+            throw new NfeImportException(
+                    "Produto " + productId + " informado no item " + itemIndex
+                            + " não encontrado na organização.");
+        }
+        return productId;
+    }
+
+    /**
+     * Registra a entrada de estoque para um item da NF-e.
+     */
+    private void registrarEntrada(Long productId, NfeItemData item,
+                                  String invoiceNumber, int itemIndex) {
+        stockService.registrarEntrada(
+                productId,
+                item.quantity(),
+                MovementSource.NFE_IMPORT,
+                0L, // sourceId — usamos sourceNumber para idempotência
+                invoiceNumber,
+                "Entrada por NF-e " + invoiceNumber + " - item " + itemIndex
+                        + (item.code() != null ? " (" + item.code() + ")" : "")
+        );
+    }
+
+    /**
+     * Upsert da relação produto↔fornecedor↔cProd. Se já existe, não
+     * duplica. Garante que importações futuras do mesmo fornecedor
+     * casem instantaneamente pelo código do produto no fornecedor.
+     */
+    private void upsertSupplierCode(Long productId, Long supplierId, String supplierCode) {
+        if (supplierId == null || supplierCode == null || supplierCode.isBlank()) {
+            return;
+        }
+        String code = supplierCode.trim();
+        if (productSupplierCodeRepository.existsBySupplierIdAndSupplierCode(supplierId, code)) {
+            return;
+        }
+        ProductSupplierCode rel = new ProductSupplierCode();
+        rel.setProductId(productId);
+        rel.setSupplierId(supplierId);
+        rel.setSupplierCode(code);
+        productSupplierCodeRepository.save(rel);
     }
 
     // ==================================================================
@@ -313,7 +416,8 @@ public class PurchaseImportService {
         );
     }
 
-    private Payable createPayable(NfeXmlParser.ParsedNfe nfe, Long supplierId, String invoiceNumber) {
+    private Payable createPayable(NfeXmlParser.ParsedNfe nfe, Long supplierId,
+                                  String invoiceNumber, String accessKey) {
         Payable payable = new Payable();
         payable.setDescription(nfe.payableDescription());
         payable.setValue(nfe.totalValue());
@@ -322,6 +426,7 @@ public class PurchaseImportService {
         payable.setSupplierId(supplierId);
         payable.setSourceType(PayableSource.PURCHASE_INVOICE);
         payable.setPurchaseInvoiceNumber(invoiceNumber);
+        payable.setPurchaseInvoiceAccessKey(accessKey);
         payable.setStatus(PayableStatus.ABERTO);
 
         // Define vencimento-base: primeira duplicata ou data de emissão.

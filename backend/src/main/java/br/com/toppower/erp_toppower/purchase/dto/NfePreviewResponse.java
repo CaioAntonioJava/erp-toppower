@@ -19,6 +19,14 @@ public record NfePreviewResponse(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         String xmlBase64,
 
+        @Schema(description = "Indica se a NF-e já foi importada (Chave de Acesso "
+                + "encontrada). Quando true, a confirmação deve ser bloqueada.",
+                requiredMode = Schema.RequiredMode.REQUIRED)
+        boolean alreadyImported,
+
+        @Schema(description = "Chave de acesso da NF-e (44 dígitos).")
+        String accessKey,
+
         @Schema(description = "Dados do fornecedor (emitente).",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         NfeSupplierData supplier,

@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -21,6 +22,19 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Optional<Product> findByCode(String code);
 
     Optional<Product> findByCodigoBarras(String codigoBarras);
+
+    /**
+     * Todos os produtos ativos com o NCM informado. Usado como candidatos
+     * no matching por similaridade de nome na importação de NF-e — o
+     * pré-filtro por NCM reduz o universo de comparação e falsos positivos.
+     */
+    List<Product> findByStatusAndNcm(ProductStatus status, String ncm);
+
+    /**
+     * Todos os produtos ativos. Usado como fallback no matching por
+     * similaridade de nome quando o NCM não está disponível.
+     */
+    List<Product> findByStatus(ProductStatus status);
 
     Page<Product> findByStatus(ProductStatus status, Pageable pageable);
 

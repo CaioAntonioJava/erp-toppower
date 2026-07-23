@@ -36,4 +36,16 @@ public interface PayableRepository extends JpaRepository<Payable, Long>,
               AND p.status <> br.com.toppower.erp_toppower.payable.enums.PayableStatus.CANCELADO
             """)
     Optional<Payable> findActiveByPurchaseInvoiceNumber(@Param("purchaseInvoiceNumber") String purchaseInvoiceNumber);
+
+    /**
+     * Busca conta a pagar ativa (não cancelada) pela Chave de Acesso da
+     * NF-e (44 dígitos). Critério primário de idempotência na importação
+     * de XML — a chave de acesso é única nacionalmente.
+     */
+    @Query("""
+            SELECT p FROM Payable p
+            WHERE p.purchaseInvoiceAccessKey = :accessKey
+              AND p.status <> br.com.toppower.erp_toppower.payable.enums.PayableStatus.CANCELADO
+            """)
+    Optional<Payable> findActiveByPurchaseInvoiceAccessKey(@Param("accessKey") String accessKey);
 }

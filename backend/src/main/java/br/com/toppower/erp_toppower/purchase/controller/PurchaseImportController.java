@@ -57,16 +57,18 @@ public class PurchaseImportController {
     @PostMapping(value = "/confirm", consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Confirmar importação de NF-e",
-            description = "Recebe o XML em Base64 (retornado no preview) e efetiva a importação: " +
-                    "cria fornecedor (se novo), produtos (se novos), entrada de estoque e " +
-                    "conta a pagar com parcelas. Idempotente: rejeita notas já importadas.")
+            description = "Recebe o XML em Base64 (retornado no preview) e as decisões do usuário "
+                    + "por item (cadastrar/estoque/ignorar), e efetiva a importação: cria fornecedor "
+                    + "(sempre pelo CNPJ do emitente no XML — o usuário não pode atribuir a outro), "
+                    + "produtos novos, entrada de estoque e conta a pagar com parcelas. Idempotente: "
+                    + "rejeita notas já importadas pela Chave de Acesso.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Importação confirmada com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = NfeConfirmResponse.class))),
-            @ApiResponse(responseCode = "400", description = "XML inválido ou nota já importada.",
+            @ApiResponse(responseCode = "400", description = "XML inválido, nota já importada ou decisão inconsistente.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
@@ -74,6 +76,6 @@ public class PurchaseImportController {
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<NfeConfirmResponse> confirm(@Valid @RequestBody NfeConfirmRequest request) {
-        return ResponseEntity.ok(importService.confirm(request.xmlBase64()));
+        return ResponseEntity.ok(importService.confirm(request.xmlBase64(), request.items()));
     }
 }

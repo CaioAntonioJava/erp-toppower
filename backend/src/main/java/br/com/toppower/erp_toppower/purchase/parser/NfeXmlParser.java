@@ -330,6 +330,7 @@ public class NfeXmlParser {
             throw new NfeImportException("XML inválido: nenhum item (det) encontrado na NF-e.");
         }
         List<NfeItemData> items = new ArrayList<>(dets.size());
+        int index = 0;
         for (Det det : dets) {
             Prod prod = det.prod;
             if (prod == null) continue;
@@ -340,6 +341,10 @@ public class NfeXmlParser {
             items.add(new NfeItemData(
                     null, // status — resolvido pelo service
                     null, // productId — resolvido pelo service
+                    index++, // itemIndex — posição estável na nota
+                    null, // matchReason — resolvido pelo service
+                    null, // candidateProductId — resolvido pelo service
+                    null, // existingProductName — resolvido pelo service
                     prod.cProd,
                     isNotEmpty(prod.cEAN) && !prod.cEAN.equals("SEM GTIN") ? prod.cEAN : null,
                     prod.xProd != null ? prod.xProd.trim() : "",

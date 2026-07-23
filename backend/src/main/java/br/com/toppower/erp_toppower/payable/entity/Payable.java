@@ -157,6 +157,17 @@ public class Payable extends OrganizationScopedEntity {
     private String purchaseInvoiceNumber;
 
     /**
+     * Chave de acesso da NF-e (44 dígitos) que originou a conta.
+     * Imutável após a criação. Usada como critério primário de
+     * idempotência na importação de XML — a chave de acesso é única
+     * nacionalmente, garantindo que a mesma nota nunca seja importada
+     * duas vezes. Nulo quando {@link #sourceType} !=
+     * {@link PayableSource#PURCHASE_INVOICE}.
+     */
+    @Column(name = "purchase_invoice_access_key", updatable = false, length = 44)
+    private String purchaseInvoiceAccessKey;
+
+    /**
      * Condição de pagamento acordada com o fornecedor. Reutiliza o enum
      * do módulo de propostas comerciais. Opcional.
      */
