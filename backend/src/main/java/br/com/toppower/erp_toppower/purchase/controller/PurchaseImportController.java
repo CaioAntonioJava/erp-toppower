@@ -40,7 +40,7 @@ public class PurchaseImportController {
                     "produtos com status e conta a pagar) sem persistir nada. O usuário revisa " +
                     "e confirma via endpoint /confirm.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_PURCHASES_IMPORT')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Preview gerado com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -63,7 +63,7 @@ public class PurchaseImportController {
                     + "produtos novos, entrada de estoque e conta a pagar com parcelas. Idempotente: "
                     + "rejeita notas já importadas pela Chave de Acesso.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_PURCHASES_IMPORT')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Importação confirmada com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,

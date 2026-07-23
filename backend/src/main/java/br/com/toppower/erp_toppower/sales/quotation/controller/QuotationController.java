@@ -67,7 +67,7 @@ public class QuotationController {
                     + "data atual. Deve referenciar exatamente um cliente (PF) ou uma empresa (PJ). "
                     + "Deve ter ao menos um item.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_QUOTATIONS')")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Proposta criada com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -89,7 +89,7 @@ public class QuotationController {
                     + "total de unidades) sem persistir nada. Permite que o frontend exiba um preview em "
                     + "tempo real delegando toda a lógica de cálculo ao backend.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_QUOTATIONS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Totais calculados com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -108,7 +108,7 @@ public class QuotationController {
             description = "Retorna o próximo número sequencial (ex.: 1500, 1501, 1502, ...) "
                     + "que seria atribuído à próxima proposta. Não persiste nada.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_QUOTATIONS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Próximo número retornado com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -126,7 +126,7 @@ public class QuotationController {
                     + "sem filtros, retorna todas as propostas paginadas. Ordenação padrão: "
                     + "data de emissão decrescente, depois número decrescente.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_QUOTATIONS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Página de propostas retornada com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -171,7 +171,7 @@ public class QuotationController {
     @Operation(summary = "Buscar proposta por número",
             description = "Retorna a proposta cujo número bate exatamente com o informado.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_QUOTATIONS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Proposta encontrada.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -191,7 +191,7 @@ public class QuotationController {
     @Operation(summary = "Buscar proposta por ID",
             description = "Retorna a proposta com todos os itens e totais calculados.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_QUOTATIONS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Proposta encontrada.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -213,7 +213,7 @@ public class QuotationController {
                     + "os anteriores são removidos e os novos criados. Propostas CONVERTIDAS "
                     + "não podem ser alteradas.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_QUOTATIONS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Proposta atualizada.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -237,7 +237,7 @@ public class QuotationController {
             description = "Define o status da proposta como CANCELADA. Não remove fisicamente o registro. "
                     + "Propostas CONVERTIDAS não podem ser canceladas por este endpoint.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_QUOTATIONS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Proposta cancelada.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -273,7 +273,7 @@ public class QuotationController {
             description = "Retorna o PDF (A4) com cabeçalho do emissor (Organization ativa), "
                     + "cliente, condições, itens, totais e observações.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_QUOTATIONS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "PDF gerado.",
                     content = @Content(mediaType = MediaType.APPLICATION_PDF_VALUE,
@@ -313,7 +313,7 @@ public class QuotationController {
                     + "OU por match no código. Apenas clientes e empresas com status ATIVO são "
                     + "retornados. Mínimo 2 caracteres no termo de busca.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_QUOTATIONS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Lista de clientes retornada com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),

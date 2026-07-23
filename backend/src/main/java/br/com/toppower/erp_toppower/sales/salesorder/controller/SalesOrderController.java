@@ -64,7 +64,7 @@ public class SalesOrderController {
                     + "ou uma empresa (PJ). Deve ter ao menos um item. Não há margem de lucro — o "
                     + "pedido é o documento externo enviado ao cliente.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_SALES_ORDERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Pedido criado com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -90,7 +90,7 @@ public class SalesOrderController {
                     + "documento externo enviado ao cliente. A proposta é marcada como CONVERTIDA "
                     + "após a conversão e não pode ser reconvertida.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_SALES_ORDERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Pedido criado a partir da proposta.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -121,7 +121,7 @@ public class SalesOrderController {
                     + "inicia em 2800 no ano corrente de bootstrap e reseta para 1 ao virar "
                     + "o ano. Não persiste nada.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_SALES_ORDERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Próximo código retornado com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -143,7 +143,7 @@ public class SalesOrderController {
                     + "sem filtros, retorna todos os pedidos paginados. Ordenação padrão: "
                     + "data de emissão decrescente, depois número decrescente.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_SALES_ORDERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Página de pedidos retornada com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -193,7 +193,7 @@ public class SalesOrderController {
             description = "Retorna o pedido cujo código formatado (ex.: PV-2800-2026) bate "
                     + "exatamente com o informado.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_SALES_ORDERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Pedido encontrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -213,7 +213,7 @@ public class SalesOrderController {
     @Operation(summary = "Buscar pedido por ID",
             description = "Retorna o pedido com todos os itens e totais calculados.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_SALES_ORDERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Pedido encontrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -241,7 +241,7 @@ public class SalesOrderController {
                     + "emissão, o status e a origem (quotationId/quotationNumber) não "
                     + "podem ser alterados por este endpoint.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_SALES_ORDERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Pedido atualizado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -274,7 +274,7 @@ public class SalesOrderController {
                     + "alterado. Avançar a partir de estado terminal "
                     + "(FINALIZADO/CANCELADO) retorna 409.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_SALES_ORDERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Status avançado com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -298,7 +298,7 @@ public class SalesOrderController {
                     + "itens ao estoque. Pedidos ABERTO são apenas cancelados (sem efeito "
                     + "sobre o estoque). Pedidos já CANCELADO retornam 409.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_SALES_ORDERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Pedido cancelado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -329,7 +329,7 @@ public class SalesOrderController {
             description = "Retorna o PDF (A4) com cabeçalho do emissor (Organization ativa), "
                     + "cliente, vendedor, condições, itens, totais e observações.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_SALES_ORDERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "PDF gerado.",
                     content = @Content(mediaType = MediaType.APPLICATION_PDF_VALUE,

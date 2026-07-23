@@ -57,7 +57,7 @@ public class BoletoController {
             description = "Cria um novo boleto. A descrição deve ser única. " +
                     "Status default = ATIVO se omitido.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_BOLETOS')")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Boleto criado com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = BoletoResponse.class))),
@@ -74,7 +74,7 @@ public class BoletoController {
             description = "Lista boletos paginados, ordenados por data de vencimento. " +
                     "Filtro opcional por status.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_BOLETOS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Página de boletos retornada com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = PagedResponse.class))),
@@ -95,7 +95,7 @@ public class BoletoController {
                     "Combinar: ?status=ATIVO&query=xpto. " +
                     "Sem parâmetros: retorna todos (paginado). Match em descrição ou beneficiário.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_BOLETOS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Página de boletos retornada com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = PagedResponse.class))),
@@ -119,7 +119,7 @@ public class BoletoController {
                     "(ATIVO/INATIVO), status de pagamento (paid=true/false) e intervalo de " +
                     "vencimento (dueFrom/dueTo). Ordenado por data de vencimento (asc).")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_BOLETOS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Página de boletos retornada com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = PagedResponse.class))),
@@ -148,7 +148,7 @@ public class BoletoController {
                     "do boleto. Rastreia boleto → conta a pagar → pagamento → comprovante. " +
                     "Retorna 404 se o boleto não possuir comprovante vinculado.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_BOLETOS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Comprovante retornado com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_OCTET_STREAM_VALUE)),
@@ -175,7 +175,7 @@ public class BoletoController {
     @Operation(summary = "Buscar boleto por ID",
             description = "Retorna um boleto pelo ID.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_BOLETOS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Boleto encontrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = BoletoResponse.class))),
@@ -191,7 +191,7 @@ public class BoletoController {
             description = "Atualiza apenas os campos enviados. A descrição, " +
                     "se alterada, deve permanecer única.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_BOLETOS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Boleto atualizado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = BoletoResponse.class))),
@@ -209,7 +209,7 @@ public class BoletoController {
     @Operation(summary = "Inativar boleto (soft delete)",
             description = "Define status como INATIVO. Não remove fisicamente o registro.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_BOLETOS')")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Boleto inativado."),
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
@@ -224,7 +224,7 @@ public class BoletoController {
     @Operation(summary = "Reativar boleto",
             description = "Define status como ATIVO, reativando um boleto inativo.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_BOLETOS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Boleto reativado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = BoletoResponse.class))),
@@ -244,7 +244,7 @@ public class BoletoController {
                     "cria automaticamente o fornecedor genérico 'Boleto Avulso'. " +
                     "Aceita um comprovante de pagamento opcional (PDF/imagem).")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_BOLETOS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Boleto liquidado com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -269,7 +269,7 @@ public class BoletoController {
                     "Idempotente: se já existe conta a pagar ativa vinculada, retorna o " +
                     "detalhe da conta existente.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_BOLETOS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Conta a pagar gerada (ou já existente).",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -296,7 +296,7 @@ public class BoletoController {
             description = "Faz upload de um anexo (PDF, PNG ou JPEG; até 10MB) ao boleto. " +
                     "O boleto deve estar ATIVO. O arquivo é gravado em disco e os metadados no banco.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_BOLETOS')")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Anexo criado com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -319,7 +319,7 @@ public class BoletoController {
     @Operation(summary = "Listar anexos do boleto",
             description = "Retorna os metadados de todos os anexos de um boleto.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_BOLETOS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Lista de anexos retornada com sucesso."),
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.",
@@ -336,7 +336,7 @@ public class BoletoController {
                     "(preview/impressão no navegador) ou ?disposition=attachment para forçar download. " +
                     "Default: inline.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_BOLETOS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Arquivo retornado com sucesso."),
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.",
@@ -363,7 +363,7 @@ public class BoletoController {
     @Operation(summary = "Remover anexo do boleto",
             description = "Remove o arquivo do disco e o registro de metadados do banco.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_BOLETOS')")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Anexo removido."),
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.",

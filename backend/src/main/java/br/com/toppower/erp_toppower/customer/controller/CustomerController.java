@@ -48,7 +48,7 @@ public class CustomerController {
                     "O código interno (CLI000001, CLI000002, ...) é gerado automaticamente pelo servidor. " +
                     "Status default = ATIVO se omitido.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_CUSTOMERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Cliente criado com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = CustomerResponse.class))),
@@ -65,7 +65,7 @@ public class CustomerController {
             description = "Lista clientes paginados, ordenados por nome. Filtro opcional por status. " +
                     "Todas as roles.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_CUSTOMERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Página de clientes retornada com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = PagedResponse.class))),
@@ -84,7 +84,7 @@ public class CustomerController {
                     "que seria atribuído ao próximo cliente cadastrado. " +
                     "Não persiste nada — apenas consulta o maior código existente com o prefixo CLI.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_CUSTOMERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Próximo código retornado com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = NextCodeResponse.class))),
@@ -102,7 +102,7 @@ public class CustomerController {
                     "Combinar: ?status=ATIVO&query=xpto. " +
                     "Sem parâmetros: retorna todos (paginado). Todas as roles.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_CUSTOMERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Página de clientes retornada com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = PagedResponse.class))),
@@ -124,7 +124,7 @@ public class CustomerController {
     @Operation(summary = "Buscar cliente PF por ID",
             description = "Retorna um cliente pelo ID. Disponível para ADMIN e MANAGER — quem pode criar/editar também pode visualizar.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_CUSTOMERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Cliente encontrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = CustomerResponse.class))),
@@ -140,7 +140,7 @@ public class CustomerController {
             description = "Atualiza apenas os campos enviados. O CPF NÃO pode ser alterado. " +
                     "Para enviar um novo endereço, inclua o sub-objeto 'address' completo (substitui o anterior).")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_CUSTOMERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Cliente atualizado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = CustomerResponse.class))),
@@ -157,7 +157,7 @@ public class CustomerController {
     @Operation(summary = "Inativar cliente PF (soft delete)",
             description = "Define status como INATIVO. Não remove fisicamente o registro. Todas as roles.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_CUSTOMERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Cliente inativado."),
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
@@ -172,7 +172,7 @@ public class CustomerController {
     @Operation(summary = "Reativar cliente PF",
             description = "Define status como ATIVO, reativando um cliente inativo. Todas as roles.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_CUSTOMERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Cliente reativado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = CustomerResponse.class))),

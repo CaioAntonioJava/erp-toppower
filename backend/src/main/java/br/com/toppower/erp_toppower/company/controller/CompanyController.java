@@ -48,7 +48,7 @@ public class CompanyController {
                     "O código interno (EMP000001, EMP000002, ...) é gerado automaticamente pelo servidor. " +
                     "Status default = ATIVO se omitido.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_COMPANIES')")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Empresa criada com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = CompanyResponse.class))),
@@ -65,7 +65,7 @@ public class CompanyController {
             description = "Lista empresas paginadas, ordenadas por razão social. Filtro opcional por status. " +
                     "Todas as roles.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_COMPANIES')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Página de empresas retornada com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = PagedResponse.class))),
@@ -84,7 +84,7 @@ public class CompanyController {
                     "que seria atribuído à próxima empresa cadastrada. " +
                     "Não persiste nada — apenas consulta o maior código existente com o prefixo EMP.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_COMPANIES')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Próximo código retornado com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = NextCodeResponse.class))),
@@ -102,7 +102,7 @@ public class CompanyController {
                     "Combinar: ?status=ATIVO&query=xpto. " +
                     "Sem parâmetros: retorna todos (paginado). Todas as roles.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_COMPANIES')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Página de empresas retornada com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = PagedResponse.class))),
@@ -124,7 +124,7 @@ public class CompanyController {
     @Operation(summary = "Buscar empresa por ID",
             description = "Retorna uma empresa pelo ID. Disponível para ADMIN e MANAGER — quem pode criar/editar também pode visualizar.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_COMPANIES')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Empresa encontrada.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = CompanyResponse.class))),
@@ -140,7 +140,7 @@ public class CompanyController {
             description = "Atualiza apenas os campos enviados. O CNPJ NÃO pode ser alterado. " +
                     "Para enviar um novo endereço, inclua o sub-objeto 'address' completo (substitui o anterior).")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_COMPANIES')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Empresa atualizada.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = CompanyResponse.class))),
@@ -157,7 +157,7 @@ public class CompanyController {
     @Operation(summary = "Inativar empresa (soft delete)",
             description = "Define status como INATIVO. Não remove fisicamente o registro. Todas as roles.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_COMPANIES')")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Empresa inativada."),
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
@@ -172,7 +172,7 @@ public class CompanyController {
     @Operation(summary = "Reativar empresa",
             description = "Define status como ATIVO, reativando uma empresa inativa. Todas as roles.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_COMPANIES')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Empresa reativada.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = CompanyResponse.class))),

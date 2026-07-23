@@ -45,7 +45,7 @@ public class SellerController {
     @Operation(summary = "Cadastrar vendedor",
             description = "Cria um novo vendedor. Todas as roles autenticadas.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_SELLERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Vendedor criado com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = SellerResponse.class))),
@@ -61,7 +61,7 @@ public class SellerController {
     @Operation(summary = "Listar vendedores (paginado)",
             description = "Lista vendedores paginados, ordenados por nome. Todas as roles autenticadas.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_SELLERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Página de vendedores retornada com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = PagedResponse.class))),
@@ -78,7 +78,7 @@ public class SellerController {
     @Operation(summary = "Buscar vendedor por ID",
             description = "Retorna um vendedor pelo ID. Disponível para ADMIN e MANAGER — quem pode criar/editar também pode visualizar.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_SELLERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Vendedor encontrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = SellerResponse.class))),
@@ -93,7 +93,7 @@ public class SellerController {
     @Operation(summary = "Atualizar vendedor (parcial)",
             description = "Atualiza apenas os campos enviados. Todas as roles autenticadas. CPF/e-mail duplicado -> 409.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_SELLERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Vendedor atualizado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = SellerResponse.class))),
@@ -112,7 +112,7 @@ public class SellerController {
             description = "Define status como INATIVO. Não remove fisicamente o registro. " +
                     "Disponível para ADMIN e MANAGER. Resposta 204 No Content.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_SELLERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Vendedor inativado."),
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
@@ -128,7 +128,7 @@ public class SellerController {
             description = "Define status como ATIVO, reativando um vendedor inativo. " +
                     "Disponível para ADMIN e MANAGER.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_SELLERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Vendedor reativado com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = SellerResponse.class))),

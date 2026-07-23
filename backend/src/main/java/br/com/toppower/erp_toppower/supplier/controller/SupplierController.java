@@ -46,7 +46,7 @@ public class SupplierController {
             description = "Cria um novo fornecedor (sempre PJ). Validação do CNPJ com dígitos verificadores. " +
                     "Status default = ATIVO se omitido.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_SUPPLIERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Fornecedor criado com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = SupplierResponse.class))),
@@ -62,7 +62,7 @@ public class SupplierController {
     @Operation(summary = "Listar fornecedores (paginado)",
             description = "Lista fornecedores paginados, ordenados por razão social. Filtro opcional por status.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_SUPPLIERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "OK.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = PagedResponse.class))),
@@ -83,7 +83,7 @@ public class SupplierController {
                     "Combinar: ?status=ATIVO&query=xpto. " +
                     "Sem parâmetros: retorna todos (paginado).")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_SUPPLIERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Página de fornecedores retornada com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = PagedResponse.class))),
@@ -105,7 +105,7 @@ public class SupplierController {
     @Operation(summary = "Buscar fornecedor por ID",
             description = "Retorna um fornecedor pelo ID. Disponível para ADMIN e MANAGER — quem pode criar/editar também pode visualizar.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_SUPPLIERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Fornecedor encontrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = SupplierResponse.class))),
@@ -121,7 +121,7 @@ public class SupplierController {
             description = "Atualiza apenas os campos enviados. O CNPJ (taxId) NÃO pode ser alterado. " +
                     "Para enviar um novo endereço, inclua o sub-objeto 'address' completo (substitui o anterior).")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_SUPPLIERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Fornecedor atualizado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = SupplierResponse.class))),
@@ -138,7 +138,7 @@ public class SupplierController {
     @Operation(summary = "Inativar fornecedor (soft delete)",
             description = "Define status como INATIVO. Não remove fisicamente o registro.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_SUPPLIERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Fornecedor inativado."),
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
@@ -153,7 +153,7 @@ public class SupplierController {
     @Operation(summary = "Reativar fornecedor",
             description = "Define status como ATIVO, reativando um fornecedor inativo.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_SUPPLIERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Fornecedor reativado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = SupplierResponse.class))),

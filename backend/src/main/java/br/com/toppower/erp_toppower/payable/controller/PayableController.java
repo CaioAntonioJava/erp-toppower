@@ -70,7 +70,7 @@ public class PayableController {
                     + "explicitamente ou geradas automaticamente a partir da condição de "
                     + "pagamento; quando nenhuma das duas, cria-se uma única parcela à vista.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_PAYABLES')")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Conta criada com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -90,7 +90,7 @@ public class PayableController {
                     + "origem, fornecedor, intervalo de vencimento e texto (descrição/número de "
                     + "nota de compra).")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_PAYABLES')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Página retornada com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -127,7 +127,7 @@ public class PayableController {
             description = "Retorna uma conta a pagar pelo ID, incluindo as parcelas programadas "
                     + "e o histórico de pagamentos.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_PAYABLES')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Conta encontrada.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -148,7 +148,7 @@ public class PayableController {
                     + "pagamento). Valor, origem, fornecedor, parcelas e vínculos não são "
                     + "alteráveis. Bloqueada para contas PAGO.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_PAYABLES')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Conta atualizada.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -170,7 +170,7 @@ public class PayableController {
             description = "Define status como CANCELADO. Não remove fisicamente o registro. "
                     + "Cancela também as parcelas ABERTO sem pagamentos. Bloqueada para contas PAGO.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_PAYABLES')")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Conta cancelada."),
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.",
@@ -190,7 +190,7 @@ public class PayableController {
             description = "Volta uma conta CANCELADA para ABERTO (ou PAGO, se já quitada). "
                     + "Reativa também as parcelas CANCELADAS sem pagamentos.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_PAYABLES')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Conta reativada.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -214,7 +214,7 @@ public class PayableController {
     @Operation(summary = "Listar parcelas programadas da conta",
             description = "Retorna as parcelas programadas da conta, ordenadas por número.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_PAYABLES')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Lista de parcelas.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -242,7 +242,7 @@ public class PayableController {
                     + "zerar, e a conta transita para PAGO quando todas as parcelas estão "
                     + "quitadas. Bloqueia pagamentos que excedam o saldo da parcela.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_PAYABLES')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Pagamento registrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -267,7 +267,7 @@ public class PayableController {
                     + "parcela, transitando-a para PAGO. Rejeita parcelas que não estejam ABERTO "
                     + "ou que já estejam totalmente quitadas.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_PAYABLES')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Parcela liquidada.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -287,7 +287,7 @@ public class PayableController {
             description = "Cria pagamentos cobrindo o saldo devedor de todas as parcelas ABERTO "
                     + "da conta, transitando-a para PAGO. Rejeita contas que não estejam ABERTO.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_PAYABLES')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Conta liquidada.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -308,7 +308,7 @@ public class PayableController {
                     + "parcela e da conta. Se a parcela volta a ter saldo devedor, status vira "
                     + "ABERTO novamente.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_PAYABLES')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Pagamento removido.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -327,7 +327,7 @@ public class PayableController {
     @Operation(summary = "Listar pagamentos da conta",
             description = "Retorna o histórico de pagamentos da conta, ordenado por data.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_PAYABLES')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Lista de pagamentos.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -353,7 +353,7 @@ public class PayableController {
     @Operation(summary = "Baixar comprovante de pagamento",
             description = "Retorna o arquivo de comprovante anexado ao pagamento.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_PAYABLES')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Arquivo retornado com sucesso."),
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.",

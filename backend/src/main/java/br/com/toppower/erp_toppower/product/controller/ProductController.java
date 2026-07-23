@@ -37,7 +37,7 @@ public class ProductController {
     @Operation(summary = "Cadastrar produto",
             description = "Cria novo produto. Todas as roles autenticadas. Status default = ATIVO se omitido.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_PRODUCTS')")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Produto criado com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ProductResponse.class))),
@@ -53,7 +53,7 @@ public class ProductController {
     @Operation(summary = "Listar produtos (paginado)",
             description = "Lista produtos paginados. Filtro opcional por status. Todas as roles.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_PRODUCTS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "OK.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = PagedResponse.class))),
@@ -69,7 +69,7 @@ public class ProductController {
     @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Buscar produto por ID", description = "Retorna um produto pelo ID.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_PRODUCTS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Produto encontrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ProductResponse.class))),
@@ -84,7 +84,7 @@ public class ProductController {
     @Operation(summary = "Atualizar produto (parcial)",
             description = "Atualiza apenas os campos enviados. Todas as roles autenticadas. Código duplicado -> 409.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_PRODUCTS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Produto atualizado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ProductResponse.class))),
@@ -101,7 +101,7 @@ public class ProductController {
     @Operation(summary = "Inativar produto (soft delete)",
             description = "Define status como INATIVO. Todas as roles autenticadas. Resposta 204 No Content.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_PRODUCTS')")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Produto inativado."),
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
@@ -121,7 +121,7 @@ public class ProductController {
                     "Combinar: ?status=ATIVO&query=cabo. " +
                     "Sem parâmetros: retorna todos (paginado). Todas as roles.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_PRODUCTS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Página de produtos.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = PagedResponse.class))),

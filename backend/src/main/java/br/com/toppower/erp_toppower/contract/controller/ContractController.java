@@ -63,7 +63,7 @@ public class ContractController {
                     + "quando não enviado. A descrição pode ser pré-preenchida com o template padrão "
                     + "da Organization. Status default = ATIVO.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_CONTRACTS')")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Contrato criado com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -86,7 +86,7 @@ public class ContractController {
             description = "Lista contratos paginados, ordenados pela data de vigência (mais recentes primeiro). "
                     + "Filtro opcional por status.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_CONTRACTS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Página de contratos retornada com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -109,7 +109,7 @@ public class ContractController {
                     + "que seria atribuído, a partir do prefixo da Organization ativa e da sequência "
                     + "independente por Organization/ano. Não persiste nada.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_CONTRACTS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Próximo código retornado com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -131,7 +131,7 @@ public class ContractController {
                     + "Combinar: ?status=ATIVO&query=prestação. "
                     + "Sem parâmetros: retorna todos (paginado). Match em código, título ou descrição.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_CONTRACTS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Página de contratos retornada com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -157,7 +157,7 @@ public class ContractController {
     @Operation(summary = "Buscar contrato por ID",
             description = "Retorna um contrato pelo ID.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_CONTRACTS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Contrato encontrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -178,7 +178,7 @@ public class ContractController {
                     + "O cliente pode ser alterado enviando customerId ou companyId (nunca ambos). "
                     + "O título e a descrição são livremente editáveis.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_CONTRACTS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Contrato atualizado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -199,7 +199,7 @@ public class ContractController {
     @Operation(summary = "Inativar contrato (soft delete)",
             description = "Define status como INATIVO. Não remove fisicamente o registro.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_CONTRACTS')")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Contrato inativado."),
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.",
@@ -216,7 +216,7 @@ public class ContractController {
     @Operation(summary = "Reativar contrato",
             description = "Define status como ATIVO, reativando um contrato inativo.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_CONTRACTS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Contrato reativado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -235,7 +235,7 @@ public class ContractController {
             description = "Transiciona o contrato do status ATIVO para CONCLUIDO e preenche "
                     + "automaticamente a data de entrega com a data atual.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_CONTRACTS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Contrato concluído.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -257,7 +257,7 @@ public class ContractController {
             description = "Reabre um contrato CONCLUIDO, voltando-o para ATIVO e limpando a "
                     + "data de entrega. Útil para corrigir conclusões indevidas.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_CONTRACTS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Contrato reaberto.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -284,7 +284,7 @@ public class ContractController {
                     + "contratante, descrição e cláusulas. Use disposition=inline para preview "
                     + "no navegador ou disposition=attachment para download.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_CONTRACTS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "PDF gerado com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_PDF_VALUE)),
@@ -321,7 +321,7 @@ public class ContractController {
                     + "Apenas clientes e empresas com status ATIVO são retornados. "
                     + "Resultados ordenados por nome, limitados a 20 (padrão) ou até 100.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAuthority('MODULE_CONTRACTS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Lista de clientes retornada com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,

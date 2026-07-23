@@ -70,7 +70,7 @@ public class TechnicalProposalController {
                     + "data atual. Deve referenciar exatamente um cliente (PF) ou uma empresa (PJ). "
                     + "Deve ter ao menos um item (serviço ou produto).")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_TECHNICAL_PROPOSALS')")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Proposta criada com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -96,7 +96,7 @@ public class TechnicalProposalController {
                     + "Permite que o frontend exiba um preview em tempo real delegando toda a "
                     + "lógica de cálculo ao backend.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_TECHNICAL_PROPOSALS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Totais calculados com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -118,7 +118,7 @@ public class TechnicalProposalController {
                     + "o `proposalPrefix` da Organization ativa) que seria atribuído à próxima "
                     + "proposta. A sequência é independente por Organization/ano. Não persiste nada.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_TECHNICAL_PROPOSALS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Próximo código retornado com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -136,7 +136,7 @@ public class TechnicalProposalController {
                     + "opcionais; sem filtros, retorna todas as propostas paginadas. Ordenação "
                     + "padrão: data de início decrescente.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_TECHNICAL_PROPOSALS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200",
                     description = "Página de propostas técnicas retornada com sucesso.",
@@ -183,7 +183,7 @@ public class TechnicalProposalController {
                     + "informado (ex.: PT-001-2026 ou PL-001-2026). A busca é restrita à "
                     + "Organization ativa.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_TECHNICAL_PROPOSALS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Proposta encontrada.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -204,7 +204,7 @@ public class TechnicalProposalController {
     @Operation(summary = "Buscar proposta técnica por ID",
             description = "Retorna a proposta técnica com todos os itens e totais calculados.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_TECHNICAL_PROPOSALS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Proposta encontrada.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -227,7 +227,7 @@ public class TechnicalProposalController {
                     + "completa por lista). Propostas CONCLUIDAS não podem ser alteradas — use "
                     + "o endpoint /reopen para reabrir antes de editar.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_TECHNICAL_PROPOSALS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Proposta atualizada.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -258,7 +258,7 @@ public class TechnicalProposalController {
     @Operation(summary = "Iniciar execução (ABERTA → EM_ANDAMENTO)",
             description = "Transiciona a proposta do status ABERTA para EM_ANDAMENTO.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_TECHNICAL_PROPOSALS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Proposta iniciada.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -281,7 +281,7 @@ public class TechnicalProposalController {
             description = "Transiciona a proposta do status EM_ANDAMENTO para CONCLUIDA e "
                     + "preenche automaticamente a data de entrega com a data atual.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_TECHNICAL_PROPOSALS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Proposta concluída.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -304,7 +304,7 @@ public class TechnicalProposalController {
             description = "Reabre uma proposta CONCLUIDA, voltando-a para EM_ANDAMENTO e "
                     + "limpando a data de entrega. Útil para corrigir conclusões indevidas.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_TECHNICAL_PROPOSALS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Proposta reaberta.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -332,7 +332,7 @@ public class TechnicalProposalController {
                     + "status ATIVO são retornados. Mínimo 2 caracteres no termo de busca. "
                     + "Delegado ao serviço compartilhado com o módulo de propostas comerciais.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_TECHNICAL_PROPOSALS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200",
                     description = "Lista de clientes retornada com sucesso.",
@@ -408,7 +408,7 @@ public class TechnicalProposalController {
                     + "cliente, responsável técnico, condições, objetivos, serviços, produtos, "
                     + "totais e observações.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_TECHNICAL_PROPOSALS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "PDF gerado.",
                     content = @Content(mediaType = MediaType.APPLICATION_PDF_VALUE,
