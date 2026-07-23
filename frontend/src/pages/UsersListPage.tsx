@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import {
   Building2,
   KeyRound,
+  Pencil,
   Plus,
   Search,
   Trash2,
@@ -469,12 +470,25 @@ export function UsersListPage() {
                       <td className="px-4 py-3">
                         {u.role === 'ROLE_ADMIN' ? (
                           <Badge tone="info">Administrador</Badge>
-                        ) : (
+                        ) : u.role === 'ROLE_MANAGER' ? (
                           <Badge tone="neutral">Gestor</Badge>
+                        ) : (
+                          <Badge tone="neutral">Funcionário</Badge>
                         )}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
+                          <Link to={`/users/${u.id}`}>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              title="Editar usuário"
+                              aria-label="Editar usuário"
+                            >
+                              <Pencil className="h-4 w-4" />
+                              Editar
+                            </Button>
+                          </Link>
                           <Button
                             size="sm"
                             variant="secondary"

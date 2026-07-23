@@ -4,13 +4,14 @@ import type {
   RegisterRequest,
   ResetPasswordRequest,
   UserResponse,
+  UserUpdateRequest,
 } from '../types/api'
 
 const BASE = '/api/v1/users'
 
 /**
  * POST /users — cadastra um novo usuário (acesso restrito a ROLE_ADMIN).
- * O backend define o papel como ROLE_MANAGER automaticamente.
+ * A role e os módulos são informados no payload.
  */
 export async function createUser(payload: RegisterRequest): Promise<UserResponse> {
   const { data } = await api.post<UserResponse>(BASE, payload)
@@ -20,6 +21,21 @@ export async function createUser(payload: RegisterRequest): Promise<UserResponse
 /** GET /users — lista todos os usuários (acesso restrito a ROLE_ADMIN). */
 export async function listUsers(): Promise<UserResponse[]> {
   const { data } = await api.get<UserResponse[]>(BASE)
+  return data
+}
+
+/** GET /users/{id} — busca um usuário por ID (acesso restrito a ROLE_ADMIN). */
+export async function getUser(userId: number): Promise<UserResponse> {
+  const { data } = await api.get<UserResponse>(`${BASE}/${userId}`)
+  return data
+}
+
+/** PATCH /users/{id} — atualiza role e/ou módulos de um usuário (ROLE_ADMIN). */
+export async function updateUser(
+  userId: number,
+  payload: UserUpdateRequest,
+): Promise<UserResponse> {
+  const { data } = await api.patch<UserResponse>(`${BASE}/${userId}`, payload)
   return data
 }
 

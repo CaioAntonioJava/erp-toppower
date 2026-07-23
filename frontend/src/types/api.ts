@@ -1,6 +1,25 @@
 /** Tipos que espelham os DTOs do backend Spring Boot (ERP TopPower). */
 
-export type Role = 'ROLE_ADMIN' | 'ROLE_MANAGER'
+export type Role = 'ROLE_ADMIN' | 'ROLE_MANAGER' | 'ROLE_EMPLOYEE'
+
+/**
+ * Módulos (paineis) do sistema aos quais um usuário pode ter acesso.
+ * Espelha o enum br.com.toppower...user.enums.Module do backend.
+ */
+export type Module =
+  | 'MODULE_COMPANIES'
+  | 'MODULE_CUSTOMERS'
+  | 'MODULE_SUPPLIERS'
+  | 'MODULE_SELLERS'
+  | 'MODULE_PRODUCTS'
+  | 'MODULE_QUOTATIONS'
+  | 'MODULE_TECHNICAL_PROPOSALS'
+  | 'MODULE_SALES_ORDERS'
+  | 'MODULE_CONTRACTS'
+  | 'MODULE_RECEIVABLES'
+  | 'MODULE_PAYABLES'
+  | 'MODULE_PURCHASES_IMPORT'
+  | 'MODULE_BOLETOS'
 
 export type ProfileStatus = 'ATIVO' | 'INATIVO'
 
@@ -101,6 +120,8 @@ export interface AuthenticatedUser {
   id: number
   email: string
   role: Role
+  /** Módulos (paineis) efetivamente acessíveis. ADMIN/MANAGER recebem todos. */
+  modules: Module[]
 }
 
 /** Resposta de POST /api/v1/auth/login. */
@@ -126,6 +147,9 @@ export interface RegisterRequest {
   email: string
   password: string
   passwordConfirmation: string
+  role: Role
+  /** Módulos acessíveis. Relevante apenas para ROLE_EMPLOYEE. */
+  modules: Module[]
 }
 
 /** Corpo de PATCH /api/v1/users/{id}/password. */
@@ -144,6 +168,14 @@ export interface UserResponse {
   id: number
   email: string
   role: Role
+  /** Módulos efetivamente acessíveis. ADMIN/MANAGER recebem todos. */
+  modules: Module[]
+}
+
+/** Corpo de PATCH /api/v1/users/{id} (atualização de role e/ou módulos). Campos opcionais. */
+export interface UserUpdateRequest {
+  role?: Role
+  modules?: Module[]
 }
 
 /** Corpo de POST /api/v1/user-organizations (vincular usuário a Organization). */

@@ -46,6 +46,7 @@ import { NotFoundPage } from './pages/NotFoundPage'
 import { AppLayout } from './components/layout/AppLayout'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { AdminRoute } from './components/AdminRoute'
+import { ModuleRoute } from './components/ModuleRoute'
 
 /** Definição central das rotas da aplicação. */
 export default function App() {
@@ -65,48 +66,49 @@ export default function App() {
       >
         <Route path="/" element={<DashboardPage />} />
         <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/companies" element={<CompaniesListPage />} />
-        <Route path="/companies/new" element={<CompanyFormPage />} />
-        <Route path="/companies/:id" element={<CompanyFormPage />} />
-        <Route path="/customers" element={<CustomersListPage />} />
-        <Route path="/customers/new" element={<CustomerFormPage />} />
-        <Route path="/customers/:id" element={<CustomerFormPage />} />
-        <Route path="/suppliers" element={<SuppliersListPage />} />
-        <Route path="/suppliers/new" element={<SupplierFormPage />} />
-        <Route path="/suppliers/:id" element={<SupplierFormPage />} />
-        <Route path="/sellers" element={<SellersListPage />} />
-        <Route path="/sellers/new" element={<SellerFormPage />} />
-        <Route path="/sellers/:id" element={<SellerFormPage />} />
-        <Route path="/products" element={<ProductsListPage />} />
-        <Route path="/products/new" element={<ProductFormPage />} />
-        <Route path="/products/:id" element={<ProductFormPage />} />
-        <Route path="/quotations" element={<QuotationsListPage />} />
-        <Route path="/quotations/new" element={<QuotationFormPage />} />
-        <Route path="/quotations/:id/edit" element={<QuotationFormPage />} />
-        <Route path="/quotations/:id" element={<QuotationDetailPage />} />
-        <Route path="/sales-orders" element={<SalesOrdersListPage />} />
-        <Route path="/sales-orders/new" element={<SalesOrderFormPage />} />
-        <Route path="/sales-orders/:id/edit" element={<SalesOrderFormPage />} />
-        <Route path="/sales-orders/:id" element={<SalesOrderDetailPage />} />
-        <Route path="/technical-proposals" element={<TechnicalProposalsListPage />} />
-        <Route path="/technical-proposals/new" element={<TechnicalProposalFormPage />} />
-        <Route path="/technical-proposals/:id/edit" element={<TechnicalProposalFormPage />} />
-        <Route path="/technical-proposals/:id" element={<TechnicalProposalDetailPage />} />
-        <Route path="/contracts" element={<ContractsListPage />} />
-        <Route path="/contracts/new" element={<ContractFormPage />} />
-        <Route path="/contracts/:id" element={<ContractFormPage />} />
-    <Route path="/receivables" element={<ReceivablesListPage />} />
-    <Route path="/receivables/new" element={<ReceivableFormPage />} />
-    <Route path="/receivables/:id" element={<ReceivableFormPage />} />
-    <Route path="/payables" element={<PayablesListPage />} />
-    <Route path="/payables/new" element={<PayableFormPage />} />
-    <Route path="/payables/:id" element={<PayableFormPage />} />
-    <Route path="/boletos" element={<BoletosListPage />} />
-    <Route path="/purchases/import" element={<PurchaseImportPage />} />
+        <Route path="/companies" element={<ModuleRoute module="MODULE_COMPANIES"><CompaniesListPage /></ModuleRoute>} />
+        <Route path="/companies/new" element={<ModuleRoute module="MODULE_COMPANIES"><CompanyFormPage /></ModuleRoute>} />
+        <Route path="/companies/:id" element={<ModuleRoute module="MODULE_COMPANIES"><CompanyFormPage /></ModuleRoute>} />
+        <Route path="/customers" element={<ModuleRoute module="MODULE_CUSTOMERS"><CustomersListPage /></ModuleRoute>} />
+        <Route path="/customers/new" element={<ModuleRoute module="MODULE_CUSTOMERS"><CustomerFormPage /></ModuleRoute>} />
+        <Route path="/customers/:id" element={<ModuleRoute module="MODULE_CUSTOMERS"><CustomerFormPage /></ModuleRoute>} />
+        <Route path="/suppliers" element={<ModuleRoute module="MODULE_SUPPLIERS"><SuppliersListPage /></ModuleRoute>} />
+        <Route path="/suppliers/new" element={<ModuleRoute module="MODULE_SUPPLIERS"><SupplierFormPage /></ModuleRoute>} />
+        <Route path="/suppliers/:id" element={<ModuleRoute module="MODULE_SUPPLIERS"><SupplierFormPage /></ModuleRoute>} />
+        <Route path="/sellers" element={<ModuleRoute module="MODULE_SELLERS"><SellersListPage /></ModuleRoute>} />
+        <Route path="/sellers/new" element={<ModuleRoute module="MODULE_SELLERS"><SellerFormPage /></ModuleRoute>} />
+        <Route path="/sellers/:id" element={<ModuleRoute module="MODULE_SELLERS"><SellerFormPage /></ModuleRoute>} />
+        <Route path="/products" element={<ModuleRoute module="MODULE_PRODUCTS"><ProductsListPage /></ModuleRoute>} />
+        <Route path="/products/new" element={<ModuleRoute module="MODULE_PRODUCTS"><ProductFormPage /></ModuleRoute>} />
+        <Route path="/products/:id" element={<ModuleRoute module="MODULE_PRODUCTS"><ProductFormPage /></ModuleRoute>} />
+        <Route path="/quotations" element={<ModuleRoute module="MODULE_QUOTATIONS"><QuotationsListPage /></ModuleRoute>} />
+        <Route path="/quotations/new" element={<ModuleRoute module="MODULE_QUOTATIONS"><QuotationFormPage /></ModuleRoute>} />
+        <Route path="/quotations/:id/edit" element={<ModuleRoute module="MODULE_QUOTATIONS"><QuotationFormPage /></ModuleRoute>} />
+        <Route path="/quotations/:id" element={<ModuleRoute module="MODULE_QUOTATIONS"><QuotationDetailPage /></ModuleRoute>} />
+        <Route path="/sales-orders" element={<ModuleRoute module="MODULE_SALES_ORDERS"><SalesOrdersListPage /></ModuleRoute>} />
+        <Route path="/sales-orders/new" element={<ModuleRoute module="MODULE_SALES_ORDERS"><SalesOrderFormPage /></ModuleRoute>} />
+        <Route path="/sales-orders/:id/edit" element={<ModuleRoute module="MODULE_SALES_ORDERS"><SalesOrderFormPage /></ModuleRoute>} />
+        <Route path="/sales-orders/:id" element={<ModuleRoute module="MODULE_SALES_ORDERS"><SalesOrderDetailPage /></ModuleRoute>} />
+        <Route path="/technical-proposals" element={<ModuleRoute module="MODULE_TECHNICAL_PROPOSALS"><TechnicalProposalsListPage /></ModuleRoute>} />
+        <Route path="/technical-proposals/new" element={<ModuleRoute module="MODULE_TECHNICAL_PROPOSALS"><TechnicalProposalFormPage /></ModuleRoute>} />
+        <Route path="/technical-proposals/:id/edit" element={<ModuleRoute module="MODULE_TECHNICAL_PROPOSALS"><TechnicalProposalFormPage /></ModuleRoute>} />
+        <Route path="/technical-proposals/:id" element={<ModuleRoute module="MODULE_TECHNICAL_PROPOSALS"><TechnicalProposalDetailPage /></ModuleRoute>} />
+        <Route path="/contracts" element={<ModuleRoute module="MODULE_CONTRACTS"><ContractsListPage /></ModuleRoute>} />
+        <Route path="/contracts/new" element={<ModuleRoute module="MODULE_CONTRACTS"><ContractFormPage /></ModuleRoute>} />
+        <Route path="/contracts/:id" element={<ModuleRoute module="MODULE_CONTRACTS"><ContractFormPage /></ModuleRoute>} />
+    <Route path="/receivables" element={<ModuleRoute module="MODULE_RECEIVABLES"><ReceivablesListPage /></ModuleRoute>} />
+    <Route path="/receivables/new" element={<ModuleRoute module="MODULE_RECEIVABLES"><ReceivableFormPage /></ModuleRoute>} />
+    <Route path="/receivables/:id" element={<ModuleRoute module="MODULE_RECEIVABLES"><ReceivableFormPage /></ModuleRoute>} />
+    <Route path="/payables" element={<ModuleRoute module="MODULE_PAYABLES"><PayablesListPage /></ModuleRoute>} />
+    <Route path="/payables/new" element={<ModuleRoute module="MODULE_PAYABLES"><PayableFormPage /></ModuleRoute>} />
+    <Route path="/payables/:id" element={<ModuleRoute module="MODULE_PAYABLES"><PayableFormPage /></ModuleRoute>} />
+    <Route path="/boletos" element={<ModuleRoute module="MODULE_BOLETOS"><BoletosListPage /></ModuleRoute>} />
+    <Route path="/purchases/import" element={<ModuleRoute module="MODULE_PURCHASES_IMPORT"><PurchaseImportPage /></ModuleRoute>} />
 
         {/* Rotas administrativas — gestão de usuários (ROLE_ADMIN). */}
         <Route path="/users" element={<AdminRoute><UsersListPage /></AdminRoute>} />
         <Route path="/users/new" element={<AdminRoute><UserFormPage /></AdminRoute>} />
+        <Route path="/users/:id" element={<AdminRoute><UserFormPage /></AdminRoute>} />
 
         {/* Rotas administrativas — gestão de transportadoras (ROLE_ADMIN). */}
         <Route path="/carriers" element={<AdminRoute><CarriersListPage /></AdminRoute>} />

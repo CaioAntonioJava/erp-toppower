@@ -19,11 +19,18 @@ import {
   Receipt,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
+import type { Module } from '../../types/api'
 
 interface NavItem {
   to: string
   label: string
   icon: typeof LayoutDashboard
+  /**
+   * Módulo (authority) exigido para visualizar este item. Ausente para
+   * itens sempre visíveis (Dashboard) ou restritos por adminOnly.
+   * Usado para filtrar a sidebar de ROLE_EMPLOYEE.
+   */
+  module?: Module
 }
 
 interface NavSection {
@@ -50,28 +57,28 @@ const navSections: NavSection[] = [
   {
     title: 'Cadastros',
     items: [
-      { to: '/companies', label: 'Empresas (PJ)', icon: Building2 },
-      { to: '/customers', label: 'Clientes (PF)', icon: User },
-      { to: '/suppliers', label: 'Fornecedores', icon: Factory },
-      { to: '/sellers', label: 'Vendedores', icon: Briefcase },
-      { to: '/products', label: 'Produtos', icon: Package },
+      { to: '/companies', label: 'Empresas (PJ)', icon: Building2, module: 'MODULE_COMPANIES' },
+      { to: '/customers', label: 'Clientes (PF)', icon: User, module: 'MODULE_CUSTOMERS' },
+      { to: '/suppliers', label: 'Fornecedores', icon: Factory, module: 'MODULE_SUPPLIERS' },
+      { to: '/sellers', label: 'Vendedores', icon: Briefcase, module: 'MODULE_SELLERS' },
+      { to: '/products', label: 'Produtos', icon: Package, module: 'MODULE_PRODUCTS' },
     ],
   },
   {
     title: 'Comercial',
     items: [
-      { to: '/quotations', label: 'Propostas Comerciais', icon: FileText },
-      { to: '/technical-proposals', label: 'Propostas Técnicas', icon: Wrench },
-      { to: '/sales-orders', label: 'Pedidos de Venda', icon: ClipboardList },
-      { to: '/contracts', label: 'Contratos', icon: FilePenLine },
+      { to: '/quotations', label: 'Propostas Comerciais', icon: FileText, module: 'MODULE_QUOTATIONS' },
+      { to: '/technical-proposals', label: 'Propostas Técnicas', icon: Wrench, module: 'MODULE_TECHNICAL_PROPOSALS' },
+      { to: '/sales-orders', label: 'Pedidos de Venda', icon: ClipboardList, module: 'MODULE_SALES_ORDERS' },
+      { to: '/contracts', label: 'Contratos', icon: FilePenLine, module: 'MODULE_CONTRACTS' },
     ],
   },
   {
     title: 'Financeiro',
     items: [
-      { to: '/receivables', label: 'Contas a Receber', icon: Wallet },
-      { to: '/payables', label: 'Contas a Pagar', icon: Receipt },
-      { to: '/purchases/import', label: 'Importar NF-e', icon: FileUp },
+      { to: '/receivables', label: 'Contas a Receber', icon: Wallet, module: 'MODULE_RECEIVABLES' },
+      { to: '/payables', label: 'Contas a Pagar', icon: Receipt, module: 'MODULE_PAYABLES' },
+      { to: '/purchases/import', label: 'Importar NF-e', icon: FileUp, module: 'MODULE_PURCHASES_IMPORT' },
     ],
   },
   {
@@ -88,10 +95,22 @@ const navSections: NavSection[] = [
 export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
   const { user } = useAuth()
   const isAdmin = user?.role === 'ROLE_ADMIN'
+  const isEmployee = user?.role === 'ROLE_EMPLOYEE'
 
+  // ADMIN vê apenas a seção Administrativo; demais (MANAGER/EMPLOYEE) veem
+  // as seções não-admin. EMPLOYEE tem ainda os itens filtrados por módulo.
   const sections = isAdmin
     ? navSections.filter((s) => s.adminOnly)
     : navSections.filter((s) => !s.adminOnly)
+
+  function itemVisible(item: NavItem): boolean {
+    // EMPLOYEE: só vê itens cujo módulo foi concedido (ou itens sem módulo,
+    // como Dashboard).
+    if (isEmployee && item.module && !user?.modules.includes(item.module)) {
+      return false
+    }
+    return true
+  }
 
   return (
     <aside
@@ -111,7 +130,10 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
       </div>
 
       <nav className="flex flex-col gap-1 px-2">
-        {sections.map((section, sectionIndex) => (
+        {sections
+          .map((section) => ({ section, items: section.items.filter(itemVisible) }))
+          .filter((s) => s.items.length > 0)
+          .map(({ section, items }, sectionIndex) => (
           <Fragment key={section.title}>
             {/* Separador horizontal acima de cada seção (exceto a primeira). */}
             {sectionIndex > 0 ? (
@@ -128,7 +150,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
               </p>
             ) : null}
 
-            {section.items.map((item) => {
+            {items.map((item) => {
               const Icon = item.icon
               return (
                 <Fragment key={item.to}>
