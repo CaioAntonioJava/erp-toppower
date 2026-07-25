@@ -22,7 +22,7 @@ import java.util.Optional;
 @Service
 public class SupplierService {
 
-    private static final String GENERIC_TAX_ID = "11.222.333/0001-81";
+    private static final String GENERIC_TAX_ID = "59.530.698/0001-08";
 
     private final SupplierRepository supplierRepository;
 
