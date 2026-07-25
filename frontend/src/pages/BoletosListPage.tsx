@@ -82,9 +82,11 @@ function diasAteVencimento(dataVencimento: string): number {
 
 /**
  * Página de relatório de boletos — lista paginada e filtrada por status
- * de pagamento, status de registro e intervalo de vencimento. Cada
- * linha permite acessar os anexos do boleto e o comprovante de
- * pagamento (quando liquidado). Espelha a estrutura do `PayablesListPage`.
+ * de pagamento e status de registro. O filtro de período (Hoje, Últimos
+ * 7 dias, etc.) aplica-se apenas a boletos <b>pagos</b> e filtra pela
+ * <b>data de pagamento</b>. Cada linha permite acessar os anexos do
+ * boleto e o comprovante de pagamento (quando liquidado). Espelha a
+ * estrutura do `PayablesListPage`.
  */
 export function BoletosListPage() {
   const [paidFilter, setPaidFilter] = useState<'ALL' | 'OPEN' | 'PAID'>('ALL')
@@ -106,11 +108,15 @@ export function BoletosListPage() {
     setLoading(true)
     setError(null)
     try {
+      // O intervalo de datas (dueFrom/dueTo) só é enviado quando o filtro
+      // é "Pagos" — ele filtra pela data de pagamento. Para "Todos" e
+      // "Em aberto" o período não se aplica e é ignorado pelo backend.
+      const isPaid = paidFilter === 'PAID'
       const result = await listBoletosReport({
         status: statusFilter === 'ALL' ? undefined : statusFilter,
-        paid: paidFilter === 'ALL' ? undefined : paidFilter === 'PAID',
-        dueFrom: dueFrom || undefined,
-        dueTo: dueTo || undefined,
+        paid: paidFilter === 'ALL' ? undefined : isPaid,
+        dueFrom: isPaid ? (dueFrom || undefined) : undefined,
+        dueTo: isPaid ? (dueTo || undefined) : undefined,
         page,
         size,
       })
@@ -155,13 +161,18 @@ export function BoletosListPage() {
   const totalElements = data?.totalElements ?? 0
   const totalPages = data?.totalPages ?? 0
 
+  // O intervalo de datas só é enviado quando o filtro é "Pagos" (filtra pela
+  // data de pagamento). Para "Todos" e "Em aberto" o período não se aplica.
+  const periodoHabilitado = paidFilter === 'PAID'
+  const periodoLabel = 'Pagamento'
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Relatório de Boletos</h1>
         <p className="text-sm text-slate-500 dark:text-slate-400">
           Todos os boletos cadastrados — pagos, em aberto e vencidos. Filtre por
-          período de vencimento e status, e acesse anexos e comprovantes.
+          status, e por período de pagamento quando quiser ver os pagos.
         </p>
       </div>
 
@@ -171,7 +182,14 @@ export function BoletosListPage() {
           <Select
             options={PAID_OPTIONS}
             value={paidFilter}
-            onChange={(e) => setPaidFilter(e.target.value as 'ALL' | 'OPEN' | 'PAID')}
+            onChange={(e) => {
+              // O período só se aplica a "Pagos" (filtra pela data de
+              // pagamento). Ao sair de "Pagos", limpa o período para não
+              // confundir o usuário com valores que serão ignorados.
+              setDueFrom('')
+              setDueTo('')
+              setPaidFilter(e.target.value as 'ALL' | 'OPEN' | 'PAID')
+            }}
             aria-label="Filtrar por status de pagamento"
           />
           <Select
@@ -188,10 +206,11 @@ export function BoletosListPage() {
               value={dueFrom}
               onChange={(e) => setDueFrom(e.target.value)}
               max={dueTo || undefined}
-              aria-label="Filtrar por vencimento a partir de"
+              disabled={!periodoHabilitado}
+              aria-label="Filtrar por período a partir de"
             />
             <p className="mt-1.5 text-sm text-slate-700 dark:text-slate-200">
-              Vencimento de
+              {periodoLabel} de
             </p>
           </div>
           <div className="w-full">
@@ -200,35 +219,42 @@ export function BoletosListPage() {
               value={dueTo}
               onChange={(e) => setDueTo(e.target.value)}
               min={dueFrom || undefined}
-              aria-label="Filtrar por vencimento até"
+              disabled={!periodoHabilitado}
+              aria-label="Filtrar por período até"
             />
             <p className="mt-1.5 text-sm text-slate-700 dark:text-slate-200">
-              Vencimento até
+              {periodoLabel} até
             </p>
           </div>
         </div>
 
-        {/* Atalhos de período */}
+        {/* Atalhos de período — só aplicam a boletos pagos (filtram pela
+            data de pagamento). Para "Todos" e "Em aberto" ficam desabilitados. */}
         <div className="mt-3 flex flex-wrap gap-2">
-          <Button size="sm" variant="ghost" onClick={() => { setDueFrom(todayIso()); setDueTo(todayIso()) }}>
+          <Button size="sm" variant="ghost" disabled={!periodoHabilitado} onClick={() => { setDueFrom(todayIso()); setDueTo(todayIso()) }}>
             Hoje
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => { setDueFrom(addDaysIso(-7)); setDueTo(todayIso()) }}>
+          <Button size="sm" variant="ghost" disabled={!periodoHabilitado} onClick={() => { setDueFrom(addDaysIso(-7)); setDueTo(todayIso()) }}>
             Últimos 7 dias
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => { setDueFrom(addDaysIso(-30)); setDueTo(todayIso()) }}>
+          <Button size="sm" variant="ghost" disabled={!periodoHabilitado} onClick={() => { setDueFrom(addDaysIso(-30)); setDueTo(todayIso()) }}>
             Últimos 30 dias
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => { setDueFrom(firstOfMonthIso()); setDueTo(todayIso()) }}>
+          <Button size="sm" variant="ghost" disabled={!periodoHabilitado} onClick={() => { setDueFrom(firstOfMonthIso()); setDueTo(todayIso()) }}>
             Mês atual
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => { setDueFrom(firstOfPrevMonthIso()); setDueTo(lastOfPrevMonthIso()) }}>
+          <Button size="sm" variant="ghost" disabled={!periodoHabilitado} onClick={() => { setDueFrom(firstOfPrevMonthIso()); setDueTo(lastOfPrevMonthIso()) }}>
             Mês passado
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => { setDueFrom(''); setDueTo('') }}>
+          <Button size="sm" variant="ghost" disabled={!periodoHabilitado} onClick={() => { setDueFrom(''); setDueTo('') }}>
             Limpar período
           </Button>
         </div>
+        {!periodoHabilitado ? (
+          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+            O período de pagamento aplica-se apenas ao filtro “Pagos”.
+          </p>
+        ) : null}
       </div>
 
       {error ? <Alert variant="error">{error}</Alert> : null}
