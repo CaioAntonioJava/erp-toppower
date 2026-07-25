@@ -41,10 +41,19 @@ public interface BoletoRepository extends JpaRepository<Boleto, Long>,
 
     /**
      * Specification combinável para o relatório de boletos: filtra por
-     * status de registro, status de pagamento (paid) e intervalo de
-     * vencimento (dueDate). Todos os parâmetros são opcionais (null =
-     * ignorar o filtro). O escopo de organização é aplicado
-     * automaticamente pelo OrganizationFilter em entidades escopadas.
+     * status de registro e status de pagamento (paid). Todos os parâmetros
+     * são opcionais (null = ignorar o filtro). O escopo de organização é
+     * aplicado automaticamente pelo OrganizationFilter em entidades
+     * escopadas.
+     *
+     * <p><b>Intervalo de datas (dueFrom/dueTo):</b> aplicado
+     * <b>exclusivamente</b> sobre a <b>data de pagamento</b>
+     * ({@code paymentDate}) e somente quando o relatório é de boletos
+     * <i>pagos</i> ({@code paid=true}). Para "em aberto" ou "todos" o
+     * intervalo é ignorado — boletos em aberto costumam ter vencimento no
+     * futuro, então filtrar "em aberto + hoje/últimos 7 dias" retornaria
+     * sempre vazio de forma confusa. Quem quer ver boletos pagos em um
+     * período (Hoje, Últimos 7 dias...) usa o filtro "Pagos" + o período.</p>
      */
     static org.springframework.data.jpa.domain.Specification<Boleto> byFilters(
             RegistrationStatus status,
@@ -59,11 +68,15 @@ public interface BoletoRepository extends JpaRepository<Boleto, Long>,
             if (paid != null) {
                 predicates.add(cb.equal(root.get("paid"), paid));
             }
-            if (dueFrom != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("dueDate"), dueFrom));
-            }
-            if (dueTo != null) {
-                predicates.add(cb.lessThanOrEqualTo(root.get("dueDate"), dueTo));
+            // O intervalo de datas só faz sentido para boletos pagos
+            // (filtra pela data de pagamento). Nos demais casos é ignorado.
+            if (Boolean.TRUE.equals(paid)) {
+                if (dueFrom != null) {
+                    predicates.add(cb.greaterThanOrEqualTo(root.get("paymentDate"), dueFrom));
+                }
+                if (dueTo != null) {
+                    predicates.add(cb.lessThanOrEqualTo(root.get("paymentDate"), dueTo));
+                }
             }
             return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
         };

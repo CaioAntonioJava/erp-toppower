@@ -116,8 +116,10 @@ public class BoletoController {
     @GetMapping(value = "/report", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Relatório de boletos (paginado e filtrado)",
             description = "Lista boletos paginados com filtros opcionais: status de registro " +
-                    "(ATIVO/INATIVO), status de pagamento (paid=true/false) e intervalo de " +
-                    "vencimento (dueFrom/dueTo). Ordenado por data de vencimento (asc).")
+                    "(ATIVO/INATIVO) e status de pagamento (paid=true/false). O intervalo de " +
+                    "datas (dueFrom/dueTo) é aplicado sobre a data de pagamento (paymentDate) " +
+                    "apenas quando paid=true (boletos pagos); nos demais casos é ignorado. " +
+                    "Ordenado por data de vencimento (asc).")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAuthority('MODULE_BOLETOS')")
     @ApiResponses({
@@ -132,10 +134,10 @@ public class BoletoController {
             @Parameter(description = "Filtro OPCIONAL: true (pagos) ou false (em aberto). Omitido = ambos.",
                     example = "false")
             @RequestParam(value = "paid", required = false) Boolean paid,
-            @Parameter(description = "Vencimento a partir de (yyyy-MM-dd). Opcional.",
+            @Parameter(description = "Data a partir de (yyyy-MM-dd). Filtra por data de pagamento apenas quando paid=true; ignorado nos demais casos. Opcional.",
                     example = "2026-01-01")
             @RequestParam(value = "dueFrom", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dueFrom,
-            @Parameter(description = "Vencimento até (yyyy-MM-dd). Opcional.",
+            @Parameter(description = "Data até (yyyy-MM-dd). Filtra por data de pagamento apenas quando paid=true; ignorado nos demais casos. Opcional.",
                     example = "2026-12-31")
             @RequestParam(value = "dueTo", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dueTo,
             @Parameter(hidden = true) @PageableDefault(size = 20, sort = "dueDate", direction = Sort.Direction.ASC) Pageable pageable) {

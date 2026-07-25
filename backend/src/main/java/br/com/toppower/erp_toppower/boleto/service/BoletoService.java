@@ -96,9 +96,14 @@ public class BoletoService {
 
     /**
      * Listagem filtrada para o relatório de boletos. Combina filtros
-     * opcionais de status de registro, status de pagamento (paid) e
-     * intervalo de vencimento (dueDate) via Specification. O escopo de
-     * organização é aplicado automaticamente pelo OrganizationFilter.
+     * opcionais de status de registro e status de pagamento (paid). O
+     * intervalo de datas (dueFrom/dueTo) é aplicado exclusivamente sobre
+     * a data de pagamento (paymentDate) e somente quando {@code paid=true}
+     * (boletos pagos) — assim o filtro "Pagos + Hoje" retorna os boletos
+     * liquidados no dia. Para "em aberto" ou "todos" o intervalo é
+     * ignorado, evitando listagens vazias confusas (boletos em aberto
+     * costumam ter vencimento no futuro). O escopo de organização é
+     * aplicado automaticamente pelo OrganizationFilter.
      */
     @Transactional(readOnly = true)
     public PagedResponse<BoletoResponse> getAllFiltered(RegistrationStatus status,
