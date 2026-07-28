@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { useActiveCarriers } from '../../hooks/useActiveCarriers'
 import { listCarriers } from '../../api/carrier.api'
+import type { CarrierResponse } from '../../types/carrier'
 
 vi.mock('../../api/carrier.api', () => ({
   listCarriers: vi.fn(),
@@ -20,9 +21,25 @@ describe('useActiveCarriers', () => {
   })
 
   it('carrega transportadoras ativas na montagem', async () => {
-    const mockCarriers = [
-      { id: 1, name: 'Transportadora A', status: 'ATIVO' },
-      { id: 2, name: 'Transportadora B', status: 'ATIVO' },
+    const mockCarriers: CarrierResponse[] = [
+      {
+        id: 1,
+        name: 'Transportadora A',
+        status: 'ATIVO',
+        createdAt: '2024-01-01T00:00:00',
+        updatedAt: '2024-01-01T00:00:00',
+        createdBy: null,
+        updatedBy: null,
+      },
+      {
+        id: 2,
+        name: 'Transportadora B',
+        status: 'ATIVO',
+        createdAt: '2024-01-01T00:00:00',
+        updatedAt: '2024-01-01T00:00:00',
+        createdBy: null,
+        updatedBy: null,
+      },
     ]
     vi.mocked(listCarriers).mockResolvedValue({
       content: mockCarriers,
@@ -51,7 +68,15 @@ describe('useActiveCarriers', () => {
     // quando o fetch a inclui na resposta.
     vi.mocked(listCarriers).mockResolvedValue({
       content: [
-        { id: 99, name: 'Transportadora Removida', status: 'INATIVO' },
+        {
+          id: 99,
+          name: 'Transportadora Removida',
+          status: 'INATIVO',
+          createdAt: '2024-01-01T00:00:00',
+          updatedAt: '2024-01-01T00:00:00',
+          createdBy: null,
+          updatedBy: null,
+        },
       ],
       page: 0,
       size: 100,
