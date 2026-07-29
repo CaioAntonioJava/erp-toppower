@@ -36,7 +36,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/carriers")
 @RequiredArgsConstructor
-@Tag(name = "Transportadoras", description = "Cadastro e gestão de transportadoras (carriers). Acesso restrito a administradores.")
+@Tag(name = "Transportadoras", description = "Cadastro e gestão de transportadoras (carriers). Acesso controlado pelo módulo MODULE_CARRIERS.")
 public class CarrierController {
 
     private final CarrierService carrierService;
@@ -45,13 +45,13 @@ public class CarrierController {
     @Operation(summary = "Cadastrar transportadora",
             description = "Cria uma nova transportadora. Status default = ATIVO se omitido.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('MODULE_CARRIERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Transportadora criada com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = CarrierResponse.class))),
             @ApiResponse(responseCode = "400", description = "Erro de validação.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "403", description = "Acesso negado (sem ROLE_ADMIN).", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+            @ApiResponse(responseCode = "403", description = "Acesso negado (sem o módulo MODULE_CARRIERS).", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<CarrierResponse> create(@Valid @RequestBody CarrierCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(carrierService.create(request));
@@ -61,7 +61,7 @@ public class CarrierController {
     @Operation(summary = "Listar transportadoras (paginado)",
             description = "Lista transportadoras paginadas, ordenadas por nome. Filtro opcional por status.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_CARRIERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "OK.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = PagedResponse.class))),
@@ -82,7 +82,7 @@ public class CarrierController {
                     "Combinar: ?status=ATIVO&query=xpto. " +
                     "Sem parâmetros: retorna todos (paginado).")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_CARRIERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Página de transportadoras retornada com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = PagedResponse.class))),
@@ -104,7 +104,7 @@ public class CarrierController {
     @Operation(summary = "Buscar transportadora por ID",
             description = "Retorna uma transportadora pelo ID.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_CARRIERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Transportadora encontrada.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = CarrierResponse.class))),
@@ -119,7 +119,7 @@ public class CarrierController {
     @Operation(summary = "Atualizar transportadora (parcial)",
             description = "Atualiza apenas os campos enviados.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('MODULE_CARRIERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Transportadora atualizada.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = CarrierResponse.class))),
@@ -136,7 +136,7 @@ public class CarrierController {
     @Operation(summary = "Inativar transportadora (soft delete)",
             description = "Define status como INATIVO. Não remove fisicamente o registro.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('MODULE_CARRIERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Transportadora inativada."),
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
@@ -151,7 +151,7 @@ public class CarrierController {
     @Operation(summary = "Reativar transportadora",
             description = "Define status como ATIVO, reativando uma transportadora inativa.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('MODULE_CARRIERS')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Transportadora reativada.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = CarrierResponse.class))),

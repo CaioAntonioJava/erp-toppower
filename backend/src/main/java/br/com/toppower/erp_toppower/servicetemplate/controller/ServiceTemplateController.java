@@ -45,13 +45,13 @@ public class ServiceTemplateController {
     @Operation(summary = "Cadastrar serviço",
             description = "Cria um novo serviço no catálogo.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('MODULE_SERVICE_TEMPLATES')")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Serviço criado com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ServiceTemplateResponse.class))),
             @ApiResponse(responseCode = "400", description = "Erro de validação.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "403", description = "Acesso negado (sem ROLE_ADMIN).", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+            @ApiResponse(responseCode = "403", description = "Acesso negado (sem o módulo MODULE_SERVICE_TEMPLATES).", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<ServiceTemplateResponse> create(@Valid @RequestBody ServiceTemplateCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(serviceTemplateService.create(request));
@@ -61,7 +61,7 @@ public class ServiceTemplateController {
     @Operation(summary = "Listar serviços (paginado)",
             description = "Lista serviços paginados, ordenados por nome.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_SERVICE_TEMPLATES')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "OK.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = PagedResponse.class))),
@@ -76,7 +76,7 @@ public class ServiceTemplateController {
     @Operation(summary = "Buscar serviços (paginado)",
             description = "Busca textual por nome (mínimo 2 caracteres). Sem parâmetros: retorna todos (paginado).")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_SERVICE_TEMPLATES')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Página de serviços retornada com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = PagedResponse.class))),
@@ -95,7 +95,7 @@ public class ServiceTemplateController {
     @Operation(summary = "Listar serviços por categoria (paginado)",
             description = "Retorna os serviços filtrados pela categoria informada, ordenados por nome.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_SERVICE_TEMPLATES')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "OK.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = PagedResponse.class))),
@@ -113,7 +113,7 @@ public class ServiceTemplateController {
     @Operation(summary = "Buscar serviço por ID",
             description = "Retorna um serviço pelo ID.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','SELLER')")
+    @PreAuthorize("hasAuthority('MODULE_SERVICE_TEMPLATES')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Serviço encontrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ServiceTemplateResponse.class))),
@@ -128,7 +128,7 @@ public class ServiceTemplateController {
     @Operation(summary = "Atualizar serviço (parcial)",
             description = "Atualiza apenas os campos enviados.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('MODULE_SERVICE_TEMPLATES')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Serviço atualizado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ServiceTemplateResponse.class))),
@@ -145,7 +145,7 @@ public class ServiceTemplateController {
     @Operation(summary = "Excluir serviço",
             description = "Remove fisicamente o registro do serviço.")
     @SecurityRequirement(name = "bearerAuth")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('MODULE_SERVICE_TEMPLATES')")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Serviço excluído."),
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
