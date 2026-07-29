@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { MODULES, MODULE_SECTIONS, moduleForRoute } from '../../lib/modules'
 
 describe('MODULES', () => {
-  it('contém todos os 13 módulos', () => {
-    expect(MODULES).toHaveLength(13)
+  it('contém todos os 15 módulos', () => {
+    expect(MODULES).toHaveLength(15)
   })
 
   it('cada módulo tem key, label, section e to', () => {
@@ -48,6 +48,14 @@ describe('moduleForRoute', () => {
 
   it('retorna MODULE_PURCHASES_IMPORT para /purchases/import', () => {
     expect(moduleForRoute('/purchases/import')).toBe('MODULE_PURCHASES_IMPORT')
+  })
+
+  it('retorna MODULE_CARRIERS para /carriers', () => {
+    expect(moduleForRoute('/carriers')).toBe('MODULE_CARRIERS')
+  })
+
+  it('retorna MODULE_SERVICE_TEMPLATES para /service-templates', () => {
+    expect(moduleForRoute('/service-templates')).toBe('MODULE_SERVICE_TEMPLATES')
   })
 
   it('retorna undefined para rota não coberta', () => {

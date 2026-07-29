@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   Package,
   Settings,
+  Truck,
   User,
   UserCog,
   Users,
@@ -62,6 +63,8 @@ const navSections: NavSection[] = [
       { to: '/suppliers', label: 'Fornecedores', icon: Factory, module: 'MODULE_SUPPLIERS' },
       { to: '/sellers', label: 'Vendedores', icon: Briefcase, module: 'MODULE_SELLERS' },
       { to: '/products', label: 'Produtos', icon: Package, module: 'MODULE_PRODUCTS' },
+      { to: '/carriers', label: 'Transportadoras', icon: Truck, module: 'MODULE_CARRIERS' },
+      { to: '/service-templates', label: 'Serviços', icon: Wrench, module: 'MODULE_SERVICE_TEMPLATES' },
     ],
   },
   {

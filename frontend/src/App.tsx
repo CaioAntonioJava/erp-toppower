@@ -110,15 +110,15 @@ export default function App() {
         <Route path="/users/new" element={<AdminRoute><UserFormPage /></AdminRoute>} />
         <Route path="/users/:id" element={<AdminRoute><UserFormPage /></AdminRoute>} />
 
-        {/* Rotas administrativas — gestão de transportadoras (ROLE_ADMIN). */}
-        <Route path="/carriers" element={<AdminRoute><CarriersListPage /></AdminRoute>} />
-        <Route path="/carriers/new" element={<AdminRoute><CarrierFormPage /></AdminRoute>} />
-        <Route path="/carriers/:id" element={<AdminRoute><CarrierFormPage /></AdminRoute>} />
+        {/* Cadastros — Transportadoras. Acesso controlado pelo módulo MODULE_CARRIERS. */}
+        <Route path="/carriers" element={<ModuleRoute module="MODULE_CARRIERS"><CarriersListPage /></ModuleRoute>} />
+        <Route path="/carriers/new" element={<ModuleRoute module="MODULE_CARRIERS"><CarrierFormPage /></ModuleRoute>} />
+        <Route path="/carriers/:id" element={<ModuleRoute module="MODULE_CARRIERS"><CarrierFormPage /></ModuleRoute>} />
 
-        {/* Rotas administrativas — catálogo de serviços (ROLE_ADMIN). */}
-        <Route path="/service-templates" element={<AdminRoute><ServiceTemplatesListPage /></AdminRoute>} />
-        <Route path="/service-templates/new" element={<AdminRoute><ServiceTemplateFormPage /></AdminRoute>} />
-        <Route path="/service-templates/:id" element={<AdminRoute><ServiceTemplateFormPage /></AdminRoute>} />
+        {/* Cadastros — Catálogo de serviços. Acesso controlado pelo módulo MODULE_SERVICE_TEMPLATES. */}
+        <Route path="/service-templates" element={<ModuleRoute module="MODULE_SERVICE_TEMPLATES"><ServiceTemplatesListPage /></ModuleRoute>} />
+        <Route path="/service-templates/new" element={<ModuleRoute module="MODULE_SERVICE_TEMPLATES"><ServiceTemplateFormPage /></ModuleRoute>} />
+        <Route path="/service-templates/:id" element={<ModuleRoute module="MODULE_SERVICE_TEMPLATES"><ServiceTemplateFormPage /></ModuleRoute>} />
 
         {/* Rotas administrativas — gestão de empresas emissoras (Organizations).
             Permite editar dados da empresa e fazer upload/remoção do logo

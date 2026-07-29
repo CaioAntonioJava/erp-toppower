@@ -30,6 +30,8 @@ export const MODULES: ModuleDef[] = [
   { key: 'MODULE_SUPPLIERS', label: 'Fornecedores', section: 'Cadastros', to: '/suppliers' },
   { key: 'MODULE_SELLERS', label: 'Vendedores', section: 'Cadastros', to: '/sellers' },
   { key: 'MODULE_PRODUCTS', label: 'Produtos', section: 'Cadastros', to: '/products' },
+  { key: 'MODULE_CARRIERS', label: 'Transportadoras', section: 'Cadastros', to: '/carriers' },
+  { key: 'MODULE_SERVICE_TEMPLATES', label: 'Serviços', section: 'Cadastros', to: '/service-templates' },
   // Comercial
   { key: 'MODULE_QUOTATIONS', label: 'Propostas Comerciais', section: 'Comercial', to: '/quotations' },
   { key: 'MODULE_TECHNICAL_PROPOSALS', label: 'Propostas Técnicas', section: 'Comercial', to: '/technical-proposals' },
