@@ -38,6 +38,8 @@ function toDue(boleto: BoletoResponse): BoletoDue {
     status: dias < 0 ? 'ATRASADO' : 'ABERTO',
     paid: boleto.paid,
     paymentDate: boleto.paymentDate,
+    contractWorkNumber: boleto.contractWorkNumber,
+    registrationDate: boleto.registrationDate,
   }
 }
 
@@ -106,7 +108,7 @@ export function BoletosDueWidget() {
                       {boleto.descricao}
                     </p>
                     <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-                      {boleto.pagador} · Venc. {formatDate(boleto.dataVencimento)}
+                      {boleto.pagador ? `${boleto.pagador} · ` : ''}Venc. {formatDate(boleto.dataVencimento)}
                     </p>
                   </div>
                   <div className="ml-3 flex shrink-0 items-center gap-3">

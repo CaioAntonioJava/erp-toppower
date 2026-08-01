@@ -74,6 +74,7 @@ export async function listBoletosReport(params: {
   paid?: boolean
   dueFrom?: string
   dueTo?: string
+  contractWorkNumber?: string
   page?: number
   size?: number
 }): Promise<PagedResponse<BoletoResponse>> {
@@ -88,6 +89,7 @@ export async function listBoletosReport(params: {
         paid: params.paid,
         dueFrom: params.dueFrom,
         dueTo: params.dueTo,
+        contractWorkNumber: params.contractWorkNumber,
       },
     },
   )
@@ -100,11 +102,16 @@ export async function getBoleto(id: number): Promise<BoletoResponse> {
   return data
 }
 
-/** POST /boletos — cria um novo boleto. */
+/**
+ * POST /boletos — cria um novo boleto (ou N boletos quando
+ * installmentsCount > 1). Retorna sempre uma lista (com 1 elemento para
+ * boleto avulso, ou N para parcelado). Cada boleto criado dispara a
+ * geração automática de uma conta a pagar.
+ */
 export async function createBoleto(
   payload: BoletoCreateRequest,
-): Promise<BoletoResponse> {
-  const { data } = await api.post<BoletoResponse>(BASE, payload)
+): Promise<BoletoResponse[]> {
+  const { data } = await api.post<BoletoResponse[]>(BASE, payload)
   return data
 }
 

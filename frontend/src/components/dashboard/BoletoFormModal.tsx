@@ -5,6 +5,7 @@ import { Input } from '../ui/Input'
 import { Spinner } from '../ui/Spinner'
 import { Alert } from '../ui/Alert'
 import { parseNumber } from '../../lib/money'
+import { formatCurrency, formatDate } from '../../lib/format'
 import { searchSuppliers } from '../../api/supplier.api'
 import type { SupplierResponse } from '../../types/supplier'
 import type { BoletoResponse, BoletoUpdateRequest } from '../../types/boleto'
@@ -26,6 +27,15 @@ interface FormState {
   payee: string
   valor: string
   dueDate: string
+  contractWorkNumber: string
+  registrationDate: string
+  installmentsCount: string
+  installmentTerms: string
+}
+
+/** Retorna hoje no formato ISO (yyyy-MM-dd). */
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10)
 }
 
 const EMPTY: FormState = {
@@ -33,11 +43,57 @@ const EMPTY: FormState = {
   payee: '',
   valor: '',
   dueDate: '',
+  contractWorkNumber: '',
+  registrationDate: todayIso(),
+  installmentsCount: '1',
+  installmentTerms: '',
 }
 
 /** Aceita PDF e imagens. */
 const ACCEPT = '.pdf,.png,.jpg,.jpeg'
 const MAX_SIZE_BYTES = 10 * 1024 * 1024 // 10MB
+
+/** Preview das parcelas calculadas a partir do valor total, data de
+ * cadastro e prazos informados. Replica a lógica do backend (divisão
+ * igualitária com residual na última parcela) para confirmação visual. */
+function ParcelasPreview({ form }: { form: FormState }): React.ReactNode {
+  const total = parseNumber(form.valor)
+  const baseDate = form.registrationDate || todayIso()
+  const termos = form.installmentTerms.split('/').map((t) => parseInt(t.trim(), 10))
+  const n = parseInt(form.installmentsCount, 10) || 1
+  if (total == null || total <= 0 || n < 2) return null
+  if (termos.length !== n || termos.some((t) => Number.isNaN(t) || t < 0)) return null
+
+  const baseShare = total / n
+  let acumulado = 0
+  const parcelas = termos.map((dias, i) => {
+    let valor: number
+    if (i === n - 1) {
+      valor = total - acumulado
+    } else {
+      valor = baseShare
+      acumulado += baseShare
+    }
+    const venc = new Date(baseDate)
+    venc.setDate(venc.getDate() + dias)
+    return { num: i + 1, valor, venc: venc.toISOString().slice(0, 10) }
+  })
+
+  return (
+    <ul className="mt-3 space-y-1 rounded-md bg-slate-50 p-2 text-xs dark:bg-slate-800/50">
+      {parcelas.map((p) => (
+        <li key={p.num} className="flex items-center justify-between">
+          <span className="text-slate-600 dark:text-slate-300">
+            Parcela {p.num}/{n} · {formatDate(p.venc)}
+          </span>
+          <span className="font-medium text-slate-900 dark:text-slate-100">
+            {formatCurrency(p.valor)}
+          </span>
+        </li>
+      ))}
+    </ul>
+  )
+}
 
 /**
  * Modal de cadastro de boleto.
@@ -55,6 +111,8 @@ export function BoletoFormModal({ open, onClose, onSubmit, editBoleto, onUpdate 
   const [attachment, setAttachment] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  // Modo parcelamento ativo quando parcelas > 1 (apenas na criação).
+  const parcelado = !isEditing && (parseInt(form.installmentsCount, 10) || 1) > 1
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   // Fornecedor vinculado (opcional). Quando selecionado, o backend gera
@@ -90,9 +148,14 @@ export function BoletoFormModal({ open, onClose, onSubmit, editBoleto, onUpdate 
       if (editBoleto) {
         setForm({
           description: editBoleto.description,
-          payee: editBoleto.payee,
+          payee: editBoleto.payee ?? '',
           valor: String(editBoleto.value),
           dueDate: editBoleto.dueDate,
+          contractWorkNumber: editBoleto.contractWorkNumber ?? '',
+          registrationDate: editBoleto.registrationDate ?? todayIso(),
+          // No modo edição não há parcelamento (parcelas só na criação).
+          installmentsCount: '1',
+          installmentTerms: '',
         })
         setSupplierQuery(editBoleto.supplierName ?? '')
         setSupplierId(editBoleto.supplierId)
@@ -143,22 +206,38 @@ export function BoletoFormModal({ open, onClose, onSubmit, editBoleto, onUpdate 
     const payee = form.payee.trim()
     const valor = parseNumber(form.valor)
     const dueDate = form.dueDate
+    const contractWorkNumber = form.contractWorkNumber.trim()
+    const registrationDate = form.registrationDate || todayIso()
+    const installmentsCount = parseInt(form.installmentsCount, 10) || 1
+    const installmentTerms = form.installmentTerms.trim()
 
     if (!description) {
       setError('Informe a descrição do boleto.')
-      return
-    }
-    if (!payee) {
-      setError('Informe o beneficiário (cliente ou fornecedor).')
       return
     }
     if (valor == null || valor <= 0) {
       setError('Informe um valor válido maior que zero.')
       return
     }
-    if (!dueDate) {
-      setError('Informe a data de vencimento.')
-      return
+    if (installmentsCount > 1) {
+      // Em modo parcelamento, vencimento e valor são derivados; exigimos
+      // apenas os prazos das parcelas. O dueDate informado é ignorado.
+      if (!installmentTerms) {
+        setError('Informe os prazos das parcelas (ex.: 30/60/90).')
+        return
+      }
+      const termos = installmentTerms.split('/').map((t) => parseInt(t.trim(), 10))
+      if (termos.length !== installmentsCount || termos.some((t) => Number.isNaN(t) || t < 0)) {
+        setError(
+          `Informe exatamente ${installmentsCount} prazo(s) em dias, separados por barra (ex.: 30/60/90).`,
+        )
+        return
+      }
+    } else {
+      if (!dueDate) {
+        setError('Informe a data de vencimento.')
+        return
+      }
     }
 
     setError(null)
@@ -167,19 +246,25 @@ export function BoletoFormModal({ open, onClose, onSubmit, editBoleto, onUpdate 
       if (isEditing && editBoleto && onUpdate) {
         await onUpdate(editBoleto.id, {
           description,
-          payee,
+          payee: payee || null,
           value: valor,
           dueDate,
           supplierId: supplierId ?? null,
+          contractWorkNumber: contractWorkNumber || null,
+          registrationDate,
         })
       } else {
         await onSubmit({
           description,
-          payee,
+          payee: payee || null,
           value: valor,
           dueDate,
           supplierId: supplierId ?? null,
           attachment: attachment ?? undefined,
+          contractWorkNumber: contractWorkNumber || null,
+          registrationDate,
+          installmentsCount,
+          installmentTerms: installmentsCount > 1 ? installmentTerms : undefined,
         })
       }
     } catch (err) {
@@ -250,8 +335,7 @@ export function BoletoFormModal({ open, onClose, onSubmit, editBoleto, onUpdate 
             onChange={(e) => setField('description', e.target.value)}
           />
           <Input
-            label="Beneficiário"
-            required
+            label="Beneficiário (opcional)"
             placeholder="Cliente ou fornecedor"
             value={form.payee}
             onChange={(e) => setField('payee', e.target.value)}
@@ -303,6 +387,21 @@ export function BoletoFormModal({ open, onClose, onSubmit, editBoleto, onUpdate 
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Input
+              label="Nº Contrato/Obra (opcional)"
+              placeholder="Ex.: CT-001-2026"
+              value={form.contractWorkNumber}
+              onChange={(e) => setField('contractWorkNumber', e.target.value)}
+            />
+            <Input
+              label="Data de cadastro"
+              type="date"
+              value={form.registrationDate}
+              onChange={(e) => setField('registrationDate', e.target.value)}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Input
               label="Valor (R$)"
               required
               inputMode="decimal"
@@ -311,15 +410,44 @@ export function BoletoFormModal({ open, onClose, onSubmit, editBoleto, onUpdate 
               value={form.valor}
               onChange={(e) => setField('valor', e.target.value)}
               onBlur={handleValorBlur}
+              hint={parcelado ? 'Valor total que será dividido entre as parcelas.' : undefined}
             />
             <Input
               label="Vencimento"
-              required
+              required={!parcelado}
               type="date"
               value={form.dueDate}
               onChange={(e) => setField('dueDate', e.target.value)}
+              disabled={parcelado}
+              hint={parcelado ? 'Calculado automaticamente a partir dos prazos.' : undefined}
             />
           </div>
+
+          {/* Parcelamento — só na criação (não disponível na edição). */}
+          {!isEditing ? (
+            <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Input
+                  label="Parcelas"
+                  type="number"
+                  min={1}
+                  inputMode="numeric"
+                  value={form.installmentsCount}
+                  onChange={(e) => setField('installmentsCount', e.target.value)}
+                  hint="1 = boleto avulso. >1 gera N boletos."
+                />
+                <Input
+                  label="Prazos (dias)"
+                  placeholder="Ex.: 30/60/90"
+                  value={form.installmentTerms}
+                  onChange={(e) => setField('installmentTerms', e.target.value)}
+                  disabled={!parcelado}
+                  hint={parcelado ? 'Um prazo por parcela, separados por /.' : 'Habilitado quando parcelas > 1.'}
+                />
+              </div>
+              {parcelado ? <ParcelasPreview form={form} /> : null}
+            </div>
+          ) : null}
 
           {!isEditing ? (
             <div>

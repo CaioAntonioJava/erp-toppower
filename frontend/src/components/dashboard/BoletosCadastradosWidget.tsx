@@ -18,6 +18,11 @@ import { BoletoFormModal } from './BoletoFormModal'
 import { BoletoAttachmentsModal } from './BoletoAttachmentsModal'
 import { SettleBoletoModal } from './SettleBoletoModal'
 
+/** Monta um rótulo legível para o boleto (descrição + beneficiário, se houver). */
+function labelBoleto(descricao: string, pagador: string | null): string {
+  return pagador ? `${descricao} · ${pagador}` : descricao
+}
+
 /**
  * Bloco de boletos cadastrados pela usuária.
  *
@@ -197,7 +202,7 @@ export function BoletosCadastradosWidget() {
 
                       {/* Fornecedor / Pagador */}
                       <span className="col-span-3 truncate text-sm text-slate-600 dark:text-slate-400">
-                        {boleto.pagador}
+                        {boleto.pagador ?? '—'}
                       </span>
 
                       {/* Valor */}
@@ -258,7 +263,7 @@ export function BoletosCadastradosWidget() {
                               setActionError(null)
                               setAnexosBoleto({
                                 id: boleto.id,
-                                label: `${boleto.descricao} · ${boleto.pagador}`,
+                                label: labelBoleto(boleto.descricao, boleto.pagador),
                               })
                             }}
                             onKeyDown={(e) => {
@@ -267,7 +272,7 @@ export function BoletosCadastradosWidget() {
                                 setActionError(null)
                                 setAnexosBoleto({
                                   id: boleto.id,
-                                  label: `${boleto.descricao} · ${boleto.pagador}`,
+                                  label: labelBoleto(boleto.descricao, boleto.pagador),
                                 })
                               }
                             }}

@@ -80,6 +80,11 @@ function diasAteVencimento(dataVencimento: string): number {
   return Math.round((venc.getTime() - hoje.getTime()) / msPorDia)
 }
 
+/** Monta um rótulo legível para o boleto (descrição + beneficiário, se houver). */
+function labelBoleto(description: string, payee: string | null): string {
+  return payee ? `${description} · ${payee}` : description
+}
+
 /**
  * Página de relatório de boletos — lista paginada e filtrada por status
  * de pagamento e status de registro. O filtro de período (Hoje, Últimos
@@ -91,6 +96,7 @@ function diasAteVencimento(dataVencimento: string): number {
 export function BoletosListPage() {
   const [paidFilter, setPaidFilter] = useState<'ALL' | 'OPEN' | 'PAID'>('ALL')
   const [statusFilter, setStatusFilter] = useState<RegistrationStatus | 'ALL'>('ALL')
+  const [contractWorkFilter, setContractWorkFilter] = useState('')
   const [dueFrom, setDueFrom] = useState('')
   const [dueTo, setDueTo] = useState('')
   const [page, setPage] = useState(0)
@@ -117,6 +123,7 @@ export function BoletosListPage() {
         paid: paidFilter === 'ALL' ? undefined : isPaid,
         dueFrom: isPaid ? (dueFrom || undefined) : undefined,
         dueTo: isPaid ? (dueTo || undefined) : undefined,
+        contractWorkNumber: contractWorkFilter.trim() || undefined,
         page,
         size,
       })
@@ -127,7 +134,7 @@ export function BoletosListPage() {
       setLoading(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paidFilter, statusFilter, dueFrom, dueTo, page])
+  }, [paidFilter, statusFilter, contractWorkFilter, dueFrom, dueTo, page])
 
   useEffect(() => {
     reload()
@@ -136,7 +143,7 @@ export function BoletosListPage() {
   // Reseta a páginação sempre que os filtros mudam.
   useEffect(() => {
     setPage(0)
-  }, [paidFilter, statusFilter, dueFrom, dueTo])
+  }, [paidFilter, statusFilter, contractWorkFilter, dueFrom, dueTo])
 
   /** Abre o comprovante de pagamento em nova aba (inline). */
   async function handleReceipt(boleto: BoletoResponse): Promise<void> {
@@ -199,6 +206,12 @@ export function BoletosListPage() {
               setStatusFilter(e.target.value as RegistrationStatus | 'ALL')
             }
             aria-label="Filtrar por status de registro"
+          />
+          <Input
+            placeholder="Nº Contrato/Obra"
+            value={contractWorkFilter}
+            onChange={(e) => setContractWorkFilter(e.target.value)}
+            aria-label="Filtrar por Nº Contrato/Obra"
           />
           <div className="w-full">
             <Input
@@ -268,8 +281,10 @@ export function BoletosListPage() {
               <tr>
                 <th className="px-4 py-3 font-medium">Descrição</th>
                 <th className="px-4 py-3 font-medium">Fornecedor</th>
+                <th className="px-4 py-3 font-medium">Contrato/Obra</th>
                 <th className="px-4 py-3 text-right font-medium">Valor</th>
                 <th className="px-4 py-3 font-medium">Vencimento</th>
+                <th className="px-4 py-3 font-medium">Cadastro</th>
                 <th className="px-4 py-3 font-medium">Pagamento</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 text-right font-medium">Ações</th>
@@ -278,7 +293,7 @@ export function BoletosListPage() {
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center">
+                  <td colSpan={9} className="px-4 py-12 text-center">
                     <div className="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400">
                       <Spinner size="sm" /> Carregando…
                     </div>
@@ -286,7 +301,7 @@ export function BoletosListPage() {
                 </tr>
               ) : items.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center">
+                  <td colSpan={9} className="px-4 py-12 text-center">
                     <div className="flex flex-col items-center gap-2 text-slate-500 dark:text-slate-400">
                       <Wallet className="h-8 w-8 opacity-60" />
                       <p className="text-sm">Nenhum boleto encontrado.</p>
@@ -314,11 +329,19 @@ export function BoletosListPage() {
                           <span className="text-xs text-slate-900 dark:text-slate-100">
                             {boleto.supplierName}
                           </span>
-                        ) : (
+                        ) : boleto.payee ? (
                           <span className="text-xs text-slate-500 dark:text-slate-400">
                             {boleto.payee}
                           </span>
+                        ) : (
+                          <span className="text-xs text-slate-400 dark:text-slate-500">—</span>
                         )}
+                      </td>
+                      {/* Contrato/Obra */}
+                      <td className="px-4 py-3">
+                        <span className="text-xs text-slate-600 dark:text-slate-300">
+                          {boleto.contractWorkNumber ?? '—'}
+                        </span>
                       </td>
                       {/* Valor */}
                       <td className="whitespace-nowrap px-4 py-3 text-right text-slate-900 dark:text-slate-100">
@@ -336,6 +359,10 @@ export function BoletosListPage() {
                           {formatDate(boleto.dueDate)}
                           {vencido ? ' • vencido' : ''}
                         </span>
+                      </td>
+                      {/* Cadastro */}
+                      <td className="whitespace-nowrap px-4 py-3 text-slate-600 dark:text-slate-300">
+                        {boleto.registrationDate ? formatDate(boleto.registrationDate) : '—'}
                       </td>
                       {/* Data de pagamento */}
                       <td className="whitespace-nowrap px-4 py-3 text-slate-600 dark:text-slate-300">
@@ -371,7 +398,7 @@ export function BoletosListPage() {
                               setReceiptError(null)
                               setAnexosBoleto({
                                 id: boleto.id,
-                                label: `${boleto.description} · ${boleto.payee}`,
+                                label: labelBoleto(boleto.description, boleto.payee),
                               })
                             }}
                             onKeyDown={(e) => {
@@ -379,7 +406,7 @@ export function BoletosListPage() {
                                 setReceiptError(null)
                                 setAnexosBoleto({
                                   id: boleto.id,
-                                  label: `${boleto.description} · ${boleto.payee}`,
+                                  label: labelBoleto(boleto.description, boleto.payee),
                                 })
                               }
                             }}

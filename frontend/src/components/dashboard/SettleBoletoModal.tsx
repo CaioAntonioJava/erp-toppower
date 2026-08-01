@@ -117,7 +117,7 @@ export function SettleBoletoModal({ open, boleto, onClose, onConfirm }: SettleBo
                   {boleto.descricao}
                 </p>
                 <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  {boleto.pagador}
+                  {boleto.pagador ?? '—'}
                 </p>
                 <div className="mt-2 flex items-center gap-4 text-sm">
                   <span className="font-semibold text-slate-900 dark:text-slate-100">

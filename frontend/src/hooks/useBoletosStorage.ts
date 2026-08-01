@@ -19,15 +19,25 @@ import type { BoletoDue } from '../types/finance'
 /** Campos do formulário de cadastro de boleto. */
 export interface NovoBoletoInput {
   description: string
-  payee: string
+  /** Beneficiário do boleto (opcional). */
+  payee?: string | null
   value: number
-  /** Data de vencimento no formato ISO (yyyy-MM-dd). */
+  /** Data de vencimento no formato ISO (yyyy-MM-dd). Ignorada quando
+   * installmentsCount > 1 (vencimentos derivam de installmentTerms). */
   dueDate: string
   /** ID do fornecedor vinculado. Quando informado, o cadastro do boleto
    * dispara a geração automática de uma conta a pagar no backend. */
   supplierId?: number | null
   /** Anexo opcional (PDF/PNG/JPEG) enviado junto com o cadastro. */
   attachment?: File
+  /** Nº de Contrato/Obra vinculado ao boleto (texto livre, opcional). */
+  contractWorkNumber?: string | null
+  /** Data de cadastro do boleto (ISO yyyy-MM-dd). Default: data atual. */
+  registrationDate?: string
+  /** Quantidade de parcelas a gerar. Default 1 (boleto avulso). */
+  installmentsCount?: number
+  /** Prazos das parcelas em dias, separados por barra (ex: "30/60/90"). */
+  installmentTerms?: string
 }
 
 /** Calcula dias até o vencimento a partir de uma data ISO (negativo = vencido). */
@@ -58,6 +68,8 @@ function toDue(boleto: BoletoResponse): BoletoDue {
     status: derivarStatus(dias),
     paid: boleto.paid,
     paymentDate: boleto.paymentDate,
+    contractWorkNumber: boleto.contractWorkNumber,
+    registrationDate: boleto.registrationDate,
   }
 }
 
@@ -90,32 +102,38 @@ export function useBoletosStorage() {
   }, [orgId, reload])
 
   /**
-   * Adiciona um boleto cadastrado. Repassa erros do backend ao caller.
-   * Se houver anexo, faz o upload em seguida à criação. O boleto é
-   * inserido na lista imediatamente após o cadastro; se o upload do
-   * anexo falhar, o erro é repassado ao caller (que pode exibi-lo),
-   * mas o boleto permanece cadastrado — o usuário pode anexar depois
-   * via o modal de anexos.
+   * Adiciona um boleto (ou N boletos quando installmentsCount > 1).
+   * Repassa erros do backend ao caller. O backend retorna sempre uma
+   * lista (com 1 ou N boletos); todos são inseridos na lista local
+   * ordenada por vencimento. Se houver anexo, faz o upload para o
+   * primeiro boleto criado (a parcela inicial).
    */
-  const add = useCallback(async (input: NovoBoletoInput): Promise<BoletoDue> => {
+  const add = useCallback(async (input: NovoBoletoInput): Promise<BoletoDue[]> => {
     const created = await createBoleto({
       description: input.description,
       payee: input.payee,
       value: input.value,
       dueDate: input.dueDate,
       supplierId: input.supplierId ?? null,
+      contractWorkNumber: input.contractWorkNumber ?? null,
+      registrationDate: input.registrationDate,
+      installmentsCount: input.installmentsCount,
+      installmentTerms: input.installmentTerms,
     })
-    const due = toDue(created)
+    const dues = created.map(toDue)
     // Insere mantendo a ordem por vencimento (mais próximo primeiro).
-    setItems((prev) => [...prev, due].sort((a, b) => a.dataVencimento.localeCompare(b.dataVencimento)))
-    if (input.attachment != null) {
+    setItems((prev) =>
+      [...prev, ...dues].sort((a, b) => a.dataVencimento.localeCompare(b.dataVencimento)),
+    )
+    if (input.attachment != null && created.length > 0) {
       // Upload best-effort após o cadastro: o boleto já existe.
-      await uploadBoletoAttachment(created.id, input.attachment)
+      // O anexo é vinculado à primeira parcela criada.
+      await uploadBoletoAttachment(created[0].id, input.attachment)
     }
     // Dispara o refresh do dashboard para que os widgets de contas a pagar
     // (e indicadores financeiros) recarreguem e reflitam o novo boleto.
     window.dispatchEvent(new CustomEvent('dashboard:refresh'))
-    return due
+    return dues
   }, [])
 
   /** Remove (inativa) um boleto pelo id. Repassa erros do backend ao caller. */

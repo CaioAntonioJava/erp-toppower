@@ -20,7 +20,8 @@
 export interface BoletoDue {
   id: number
   descricao: string
-  pagador: string
+  /** Beneficiário (pagador), opcional. */
+  pagador: string | null
   valor: number
   /** Data de vencimento no formato ISO (yyyy-MM-dd). */
   dataVencimento: string
@@ -30,4 +31,8 @@ export interface BoletoDue {
   paid: boolean
   /** Data de liquidação, se pago. */
   paymentDate: string | null
+  /** Nº de Contrato/Obra vinculado ao boleto (texto livre), se houver. */
+  contractWorkNumber: string | null
+  /** Data de cadastro do boleto (informável), formato ISO (yyyy-MM-dd). */
+  registrationDate: string
 }
