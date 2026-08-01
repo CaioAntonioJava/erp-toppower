@@ -31,7 +31,11 @@ class BoletoMapperTest {
             new BigDecimal("1500.00"),
             LocalDate.of(2026, 8, 15),
             RegistrationStatus.ATIVO,
-            10L);
+            10L,
+            "CT-001-2026",
+            LocalDate.of(2026, 8, 1),
+            null,
+            null);
 
     @Test
     void toEntity_mapeiaCamposCorretamente() {
@@ -43,6 +47,8 @@ class BoletoMapperTest {
         assertEquals(LocalDate.of(2026, 8, 15), result.getDueDate());
         assertEquals(RegistrationStatus.ATIVO, result.getStatus());
         assertEquals(10L, result.getSupplierId());
+        assertEquals("CT-001-2026", result.getContractWorkNumber());
+        assertEquals(LocalDate.of(2026, 8, 1), result.getRegistrationDate());
         assertFalse(result.isPaid());
         assertNull(result.getPaymentDate());
     }
@@ -50,9 +56,12 @@ class BoletoMapperTest {
     @Test
     void toEntity_statusNulo_naoAplicaDefault() {
         BoletoCreateRequest req = new BoletoCreateRequest(
-                "Teste", "Payee", BigDecimal.TEN, LocalDate.now(), null, null);
+                "Teste", "Payee", BigDecimal.TEN, LocalDate.now(), null, null,
+                null, null, null, null);
         Boleto result = BoletoMapper.toEntity(req);
         assertNull(result.getStatus()); // @PrePersist da entidade que aplica default
+        assertNull(result.getContractWorkNumber());
+        assertNull(result.getRegistrationDate());
     }
 
     @Test
@@ -86,7 +95,8 @@ class BoletoMapperTest {
 
         BoletoUpdateRequest update = new BoletoUpdateRequest(
                 "Novo", "Novo Payee", new BigDecimal("200.00"),
-                LocalDate.of(2026, 12, 31), RegistrationStatus.INATIVO, 2L);
+                LocalDate.of(2026, 12, 31), RegistrationStatus.INATIVO, 2L,
+                "CT-002-2026", LocalDate.of(2026, 8, 2));
 
         BoletoMapper.applyUpdate(boleto, update);
 
@@ -96,6 +106,8 @@ class BoletoMapperTest {
         assertEquals(LocalDate.of(2026, 12, 31), boleto.getDueDate());
         assertEquals(RegistrationStatus.INATIVO, boleto.getStatus());
         assertEquals(2L, boleto.getSupplierId());
+        assertEquals("CT-002-2026", boleto.getContractWorkNumber());
+        assertEquals(LocalDate.of(2026, 8, 2), boleto.getRegistrationDate());
     }
 
     @Test
@@ -107,9 +119,11 @@ class BoletoMapperTest {
         boleto.setDueDate(LocalDate.of(2026, 1, 1));
         boleto.setStatus(RegistrationStatus.ATIVO);
         boleto.setSupplierId(1L);
+        boleto.setContractWorkNumber("CT-ORIGINAL");
+        boleto.setRegistrationDate(LocalDate.of(2026, 1, 1));
 
         BoletoUpdateRequest update = new BoletoUpdateRequest(
-                null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null);
 
         BoletoMapper.applyUpdate(boleto, update);
 
@@ -119,6 +133,8 @@ class BoletoMapperTest {
         assertEquals(LocalDate.of(2026, 1, 1), boleto.getDueDate());
         assertEquals(RegistrationStatus.ATIVO, boleto.getStatus());
         assertEquals(1L, boleto.getSupplierId());
+        assertEquals("CT-ORIGINAL", boleto.getContractWorkNumber());
+        assertEquals(LocalDate.of(2026, 1, 1), boleto.getRegistrationDate());
     }
 
     // ========== BoletoAttachmentMapper ==========

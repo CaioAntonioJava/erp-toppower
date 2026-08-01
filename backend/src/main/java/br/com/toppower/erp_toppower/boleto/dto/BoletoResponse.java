@@ -48,6 +48,13 @@ public record BoletoResponse(
         @Schema(description = "Data de liquidação do boleto, se pago.")
         LocalDate paymentDate,
 
+        @Schema(description = "Nº de Contrato/Obra vinculado ao boleto, se houver.")
+        String contractWorkNumber,
+
+        @Schema(description = "Data de cadastro do boleto (informável, distinta do createdAt de auditoria).",
+                requiredMode = Schema.RequiredMode.REQUIRED)
+        LocalDate registrationDate,
+
         @Schema(description = "Data de criação.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         Instant createdAt,

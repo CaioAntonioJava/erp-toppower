@@ -59,7 +59,8 @@ public interface BoletoRepository extends JpaRepository<Boleto, Long>,
             RegistrationStatus status,
             Boolean paid,
             LocalDate dueFrom,
-            LocalDate dueTo) {
+            LocalDate dueTo,
+            String contractWorkNumber) {
         return (root, query, cb) -> {
             var predicates = new java.util.ArrayList<jakarta.persistence.criteria.Predicate>();
             if (status != null) {
@@ -77,6 +78,9 @@ public interface BoletoRepository extends JpaRepository<Boleto, Long>,
                 if (dueTo != null) {
                     predicates.add(cb.lessThanOrEqualTo(root.get("paymentDate"), dueTo));
                 }
+            }
+            if (contractWorkNumber != null && !contractWorkNumber.isBlank()) {
+                predicates.add(cb.equal(root.get("contractWorkNumber"), contractWorkNumber));
             }
             return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
         };

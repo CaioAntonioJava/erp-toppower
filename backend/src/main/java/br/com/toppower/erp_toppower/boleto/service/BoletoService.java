@@ -6,6 +6,7 @@ import br.com.toppower.erp_toppower.boleto.dto.BoletoUpdateRequest;
 import br.com.toppower.erp_toppower.boleto.entity.Boleto;
 import br.com.toppower.erp_toppower.boleto.exception.BoletoAlreadyPaidException;
 import br.com.toppower.erp_toppower.boleto.exception.BoletoNotFoundException;
+import br.com.toppower.erp_toppower.boleto.exception.InvalidInstallmentPlanException;
 import br.com.toppower.erp_toppower.boleto.mapper.BoletoMapper;
 import br.com.toppower.erp_toppower.boleto.repository.BoletoRepository;
 import br.com.toppower.erp_toppower.common.dto.PagedResponse;
@@ -18,6 +19,7 @@ import br.com.toppower.erp_toppower.payable.repository.PayablePaymentRepository;
 import br.com.toppower.erp_toppower.payable.repository.PayableRepository;
 import br.com.toppower.erp_toppower.payable.service.PayablePaymentAttachmentService;
 import br.com.toppower.erp_toppower.payable.service.PayableService;
+import br.com.toppower.erp_toppower.payable.service.PaymentConditionTerms;
 import br.com.toppower.erp_toppower.supplier.entity.Supplier;
 import br.com.toppower.erp_toppower.supplier.repository.SupplierRepository;
 import br.com.toppower.erp_toppower.supplier.service.SupplierService;
@@ -27,7 +29,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,6 +40,7 @@ import java.util.Optional;
 public class BoletoService {
 
     private static final int MIN_SEARCH_QUERY_LENGTH = 2;
+    private static final int SCALE = 2;
 
     private final BoletoRepository boletoRepository;
     private final SupplierRepository supplierRepository;
@@ -60,8 +66,27 @@ public class BoletoService {
         this.payablePaymentAttachmentService = payablePaymentAttachmentService;
     }
 
+    /**
+     * Cadastra um ou mais boletos a partir do request. Quando
+     * {@code installmentsCount > 1} e {@code installmentTerms} é
+     * informado, gera N boletos (um por parcela), cada um replicado no
+     * contas a pagar. Caso contrário, cria um único boleto (comportamento
+     * original). Sempre retorna uma lista (com 1 ou N elementos).
+     */
     @Transactional
-    public BoletoResponse create(BoletoCreateRequest request) {
+    public List<BoletoResponse> create(BoletoCreateRequest request) {
+        int installments = (request.installmentsCount() == null) ? 1 : request.installmentsCount();
+        if (installments > 1) {
+            return createInstallments(request, installments);
+        }
+        return List.of(createSingle(request));
+    }
+
+    /**
+     * Cria um único boleto (sem parcelamento) e dispara a geração da
+     * conta a pagar correspondente.
+     */
+    private BoletoResponse createSingle(BoletoCreateRequest request) {
         // Quando o boleto não traz fornecedor informado, vincula
         // automaticamente o fornecedor padrão ("Boleto Avulso") para que
         // toda conta a pagar tenha um devedor. Assim o cadastro já dispara
@@ -75,10 +100,79 @@ public class BoletoService {
         }
         Boleto boleto = BoletoMapper.toEntity(request);
         boleto.setSupplierId(supplierId);
+        if (boleto.getRegistrationDate() == null) {
+            boleto.setRegistrationDate(LocalDate.now());
+        }
         Boleto saved = boletoRepository.save(boleto);
         // Gera a conta a pagar (idempotente: se já existir, não duplica).
         payableService.generateFromBoleto(saved);
         return toResponse(saved);
+    }
+
+    /**
+     * Gera N boletos a partir de um plano de parcelamento. Divide o
+     * valor total igualmente (residual absorvido pela última parcela) e
+     * calcula os vencimentos a partir de {@code registrationDate} +
+     * prazos informados em {@code installmentTerms}. Cada boleto recebe
+     * o mesmo {@code contractWorkNumber} e {@code registrationDate}, e a
+     * descrição é sufixada com " (Parcela X/N)". Cada boleto dispara a
+     * geração de sua própria conta a pagar.
+     */
+    private List<BoletoResponse> createInstallments(BoletoCreateRequest request, int installments) {
+        if (request.installmentTerms() == null || request.installmentTerms().isBlank()) {
+            throw new InvalidInstallmentPlanException(
+                    "Informe os prazos das parcelas (installmentTerms) quando installmentsCount > 1.");
+        }
+        List<Integer> terms = PaymentConditionTerms.terms(request.installmentTerms());
+        if (terms.size() != installments) {
+            throw new InvalidInstallmentPlanException(
+                    "A quantidade de prazos em installmentTerms (" + terms.size()
+                            + ") deve ser igual a installmentsCount (" + installments + ").");
+        }
+        for (Integer t : terms) {
+            if (t == null || t < 0) {
+                throw new InvalidInstallmentPlanException(
+                        "Os prazos das parcelas devem ser inteiros não negativos (dias).");
+            }
+        }
+
+        // Resolve fornecedor (cria genérico quando omitido).
+        Long supplierId = request.supplierId();
+        if (supplierId == null) {
+            Supplier generic = supplierService.findOrCreateGeneric();
+            supplierId = generic.getId();
+        } else {
+            validateSupplierIfPresent(supplierId);
+        }
+
+        LocalDate baseDate = request.registrationDate() != null ? request.registrationDate() : LocalDate.now();
+        BigDecimal total = request.value();
+        BigDecimal baseShare = total.divide(BigDecimal.valueOf(installments), SCALE, RoundingMode.HALF_UP);
+        BigDecimal accumulated = BigDecimal.ZERO;
+
+        List<BoletoResponse> result = new ArrayList<>(installments);
+        for (int i = 0; i < installments; i++) {
+            Boleto boleto = new Boleto();
+            boleto.setDescription(request.description() + " (Parcela " + (i + 1) + "/" + installments + ")");
+            boleto.setPayee(request.payee());
+            // Última parcela absorve o residual de arredondamento.
+            if (i == installments - 1) {
+                boleto.setValue(total.subtract(accumulated));
+            } else {
+                boleto.setValue(baseShare);
+                accumulated = accumulated.add(baseShare);
+            }
+            boleto.setDueDate(baseDate.plusDays(terms.get(i)));
+            boleto.setStatus(request.status());
+            boleto.setSupplierId(supplierId);
+            boleto.setContractWorkNumber(request.contractWorkNumber());
+            boleto.setRegistrationDate(baseDate);
+            Boleto saved = boletoRepository.save(boleto);
+            // Cada boleto gera sua própria conta a pagar.
+            payableService.generateFromBoleto(saved);
+            result.add(toResponse(saved));
+        }
+        return result;
     }
 
     /**
@@ -110,8 +204,9 @@ public class BoletoService {
                                                          Boolean paid,
                                                          LocalDate dueFrom,
                                                          LocalDate dueTo,
+                                                         String contractWorkNumber,
                                                          Pageable pageable) {
-        var spec = BoletoRepository.byFilters(status, paid, dueFrom, dueTo);
+        var spec = BoletoRepository.byFilters(status, paid, dueFrom, dueTo, contractWorkNumber);
         Page<BoletoResponse> mapped = boletoRepository.findAll(spec, pageable)
                 .map(this::toResponse);
         return PagedResponse.from(mapped);

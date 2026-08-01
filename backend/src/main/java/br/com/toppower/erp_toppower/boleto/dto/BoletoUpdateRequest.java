@@ -40,6 +40,17 @@ public record BoletoUpdateRequest(
                 + "ainda não houver conta a pagar vinculada ao boleto, dispara a geração "
                 + "automática de uma conta a pagar.",
                 example = "12", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        Long supplierId
+        Long supplierId,
+
+        @Schema(description = "Nº de Contrato/Obra vinculado ao boleto (campo livre, opcional). "
+                + "Envie string vazia para limpar.",
+                example = "CT-001-2026", requiredMode = Schema.RequiredMode.NOT_REQUIRED,
+                maxLength = 60)
+        @Size(max = 60, message = "Nº Contrato/Obra deve ter no máximo {max} caracteres")
+        String contractWorkNumber,
+
+        @Schema(description = "Data de cadastro do boleto.",
+                example = "2026-08-01", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        LocalDate registrationDate
 ) {
 }

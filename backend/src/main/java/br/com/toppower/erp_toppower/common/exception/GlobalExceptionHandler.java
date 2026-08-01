@@ -258,6 +258,12 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
+    @ExceptionHandler(br.com.toppower.erp_toppower.boleto.exception.InvalidInstallmentPlanException.class)
+    public ResponseEntity<ApiError> handleInvalidInstallmentPlan(
+            br.com.toppower.erp_toppower.boleto.exception.InvalidInstallmentPlanException ex) {
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
     @ExceptionHandler(CustomerNotFoundException.class)
     public ResponseEntity<ApiError> handleCustomerNotFound(CustomerNotFoundException ex) {
         return build(HttpStatus.NOT_FOUND, ex.getMessage());

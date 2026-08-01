@@ -54,18 +54,20 @@ public class BoletoController {
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Cadastrar boleto",
-            description = "Cria um novo boleto. A descrição deve ser única. " +
-                    "Status default = ATIVO se omitido.")
+            description = "Cria um novo boleto (ou N boletos quando installmentsCount > 1). "
+                    + "Cada boleto criado dispara a geração automática de uma conta a pagar. "
+                    + "Retorna sempre uma lista (com 1 elemento para boleto avulso, ou N para parcelado).")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAuthority('MODULE_BOLETOS')")
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Boleto criado com sucesso.",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = BoletoResponse.class))),
+            @ApiResponse(responseCode = "201", description = "Boleto(s) criado(s) com sucesso.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(type = "array", implementation = BoletoResponse.class))),
             @ApiResponse(responseCode = "400", description = "Erro de validação.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "409", description = "Descrição do boleto já cadastrada.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
-    public ResponseEntity<BoletoResponse> create(@Valid @RequestBody BoletoCreateRequest request) {
+    public ResponseEntity<List<BoletoResponse>> create(@Valid @RequestBody BoletoCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(boletoService.create(request));
     }
 
@@ -140,8 +142,11 @@ public class BoletoController {
             @Parameter(description = "Data até (yyyy-MM-dd). Filtra por data de pagamento apenas quando paid=true; ignorado nos demais casos. Opcional.",
                     example = "2026-12-31")
             @RequestParam(value = "dueTo", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dueTo,
+            @Parameter(description = "Filtro opcional por Nº Contrato/Obra (match exato).",
+                    example = "CT-001-2026")
+            @RequestParam(value = "contractWorkNumber", required = false) String contractWorkNumber,
             @Parameter(hidden = true) @PageableDefault(size = 20, sort = "dueDate", direction = Sort.Direction.ASC) Pageable pageable) {
-        return ResponseEntity.ok(boletoService.getAllFiltered(status, paid, dueFrom, dueTo, pageable));
+        return ResponseEntity.ok(boletoService.getAllFiltered(status, paid, dueFrom, dueTo, contractWorkNumber, pageable));
     }
 
     @GetMapping(value = "/{id}/payment-receipt")

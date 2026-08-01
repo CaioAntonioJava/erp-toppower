@@ -21,7 +21,9 @@ public final class BoletoMapper {
     /**
      * Cria uma nova entidade a partir do request de criação.
      * O {@code status} pode ser {@code null}; o {@code @PrePersist} da
-     * entidade cuida de aplicar o default {@code ATIVO}.
+     * entidade cuida de aplicar o default {@code ATIVO}. A
+     * {@code registrationDate} também pode ser {@code null} (default:
+     * data atual no {@code @PrePersist}).
      */
     public static Boleto toEntity(BoletoCreateRequest request) {
         Boleto boleto = new Boleto();
@@ -31,6 +33,8 @@ public final class BoletoMapper {
         boleto.setDueDate(request.dueDate());
         boleto.setStatus(request.status());
         boleto.setSupplierId(request.supplierId());
+        boleto.setContractWorkNumber(request.contractWorkNumber());
+        boleto.setRegistrationDate(request.registrationDate());
         return boleto;
     }
 
@@ -59,6 +63,8 @@ public final class BoletoMapper {
                 supplierName,
                 boleto.isPaid(),
                 boleto.getPaymentDate(),
+                boleto.getContractWorkNumber(),
+                boleto.getRegistrationDate(),
                 boleto.getCreatedAt(),
                 boleto.getUpdatedAt(),
                 boleto.getCreatedBy(),
@@ -78,7 +84,8 @@ public final class BoletoMapper {
             boleto.setDescription(request.description());
         }
         if (request.payee() != null) {
-            boleto.setPayee(request.payee());
+            // String vazia limpa o campo (convenção de PATCH parcial).
+            boleto.setPayee(request.payee().isBlank() ? null : request.payee());
         }
         if (request.value() != null) {
             boleto.setValue(request.value());
@@ -91,6 +98,13 @@ public final class BoletoMapper {
         }
         if (request.supplierId() != null) {
             boleto.setSupplierId(request.supplierId());
+        }
+        if (request.contractWorkNumber() != null) {
+            // String vazia limpa o campo (convenção de PATCH parcial).
+            boleto.setContractWorkNumber(request.contractWorkNumber().isBlank() ? null : request.contractWorkNumber());
+        }
+        if (request.registrationDate() != null) {
+            boleto.setRegistrationDate(request.registrationDate());
         }
     }
 }
