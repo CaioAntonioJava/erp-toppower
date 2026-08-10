@@ -21,8 +21,15 @@ import { toApiError } from '../../lib/errors'
 import { parseNumber, formatBRLValue } from '../../lib/money'
 import { useFieldTouched } from '../../hooks/useFieldTouched'
 import { getNextContractCode, searchContractClients } from '../../api/contract.api'
-import { listServiceTemplates } from '../../api/servicetemplate.api'
-import type { ServiceTemplateResponse } from '../../types/servicetemplate'
+import {
+  getServiceTemplate,
+  listServiceTemplatesByCategory,
+} from '../../api/servicetemplate.api'
+import type {
+  ServiceCategory,
+  ServiceTemplateResponse,
+} from '../../types/servicetemplate'
+import { SERVICE_CATEGORIES } from '../../types/servicetemplate'
 
 const CLIENT_TYPE_OPTIONS = [
   { value: 'CUSTOMER', label: 'Cliente (PF)' },
@@ -35,6 +42,8 @@ interface ClauseDraft {
   clauseNumber: number
   title: string
   content: string
+  /** Categoria do ServiceTemplate (apenas cláusula 1). */
+  category: ServiceCategory | ''
   serviceTemplateId: number | ''
 }
 
@@ -47,65 +56,75 @@ function nextRowKey(): string {
  *  Conteúdos em HTML (<p>) para que as quebras de linha sejam visíveis no RichTextEditor. */
 function buildDefaultClauses(): ClauseDraft[] {
   const defaults: Omit<ClauseDraft, 'rowKey'>[] = [
-    { clauseNumber: 1, title: 'CLÁUSULA PRIMEIRA - DO OBJETO', content: '', serviceTemplateId: '' },
+    { clauseNumber: 1, title: 'CLÁUSULA PRIMEIRA - DO OBJETO', content: '', category: '', serviceTemplateId: '' },
     {
       clauseNumber: 2,
       title: 'CLÁUSULA SEGUNDA - RESPONSABILIDADE DA CONTRATADA',
       content: '<p>2.1. Fornecimento de mão-de-obra especializada, ferramental, roupa e equipamentos para o bom desempenho dos trabalhos;</p><p>2.2. Fornecimento de transporte e alimentação apropriado para os funcionários;</p><p>2.3. Suporte Técnico Engenheiro com registro ativo no CREA, para supervisão;</p><p>2.4. Sigilo sobre as atividades da BERNARDI HORTO EMPREENDIMENTOS IMOBILIARIOS SPE LTDA.</p>',
+      category: '',
       serviceTemplateId: '',
     },
     {
       clauseNumber: 3,
       title: 'CLÁUSULA TERCEIRA - RESPONSABILIDADE DA CONTRATANTE',
       content: '<p>3.1. Liberação da área de trabalho, em condições de desenvolver seus serviços em tempo; hábil para o cumprimento do prazo de execução previsto.</p><p>3.2. Fornecimento de documentação técnica.</p>',
+      category: '',
       serviceTemplateId: '',
     },
     {
       clauseNumber: 4,
       title: 'CLÁUSULA QUARTA - DO PRAZO DE ENTREGA',
       content: '<p>4.1. 120 (CENTO E VINTE DIAS) a partir da autorização e serviço.</p>',
+      category: '',
       serviceTemplateId: '',
     },
     {
       clauseNumber: 5,
       title: 'CLÁUSULA QUINTA - DOS PREÇOS E FORMA DE PAGAMENTO',
       content: '<p>5.1. A CONTRATANTE pagará ao CONTRATADO, pelos serviços o valor total de R$ 230.800,00 (duzentos e trinta mil, oitocentos reais).</p><p>5.2. Pagamento/Parcelas:</p><p>. 15% na assinatura contrato – R$ 34.620,00</p><p>. 20% 30 DDL - R$ 46.160,00</p><p>. 20% 60 DDL - R$ 46.160,00</p><p>. 25% 90 DDL - R$ 57.700,00</p><p>. 20% 10 DDL após a finalização da obra - R$ 46.160,00</p><p>5.3. Dados para transferência bancária</p><p>Banco do Brasil</p><p>Agencia 990-3</p><p>Conta corrente 117.254-9</p><p>5.4. No valor citado na clausula quinta estão inclusas as despesas com impostos e encargos sociais pertinentes a este contrato. Estamos considerando o recolhimento da ART (Anotação de Responsabilidade Técnica) para a execução dos itens objetos desta proposta.</p>',
+      category: '',
       serviceTemplateId: '',
     },
     {
       clauseNumber: 6,
       title: 'CLÁUSULA SEXTA - DA VIGÊNCIA',
       content: '<p>6.1. O presente Contrato vigorará durante o período necessário para a elaboração dos serviços descritos na Cláusula Primeira, limitado ao prazo estabelecido na Cláusula Segunda.</p>',
+      category: '',
       serviceTemplateId: '',
     },
     {
       clauseNumber: 7,
       title: 'CLÁUSULA SETIMA - DA RESCISÃO',
       content: '<p>7.1. Será motivo para rescisão imediata deste contrato o descumprimento de quaisquer de suas cláusulas, devendo a parte infratora arcar com as perdas e danos decorrentes do fato, honorários advocatícios e demais cominações legais.</p>',
+      category: '',
       serviceTemplateId: '',
     },
     {
       clauseNumber: 8,
       title: 'CLÁUSULA OITAVA - DA MULTA',
       content: '<p>8.1. Caso alguma das partes não cumpra o disposto nas cláusulas estabelecidas neste instrumento, responsabilizar-se-á pelo pagamento de multa equivalente a 20% (vinte por cento) do valor total do objeto do contrato, operando a rescisão automática do presente Contrato com vencimento antecipado das demais parcelas, bem como as perdas e danos, se couber.</p>',
+      category: '',
       serviceTemplateId: '',
     },
     {
       clauseNumber: 9,
       title: 'CLÁUSULA NONA - DO EXERCÍCIO DOS DIREITOS',
       content: '<p>9.1. Aplicam-se ao presente Contrato as disposições do Código Civil e do Código de Defesa do Consumidor naquilo em que lhe forem compatíveis.</p><p>9.2. Caso seja necessário qualquer outro tipo de serviço técnico em eletricidade, além do objeto descrito no item 1, o mesmo deverá ser discutido antes da execução, cabendo aditivo a este Contrato.</p>',
+      category: '',
       serviceTemplateId: '',
     },
     {
       clauseNumber: 10,
       title: 'CLÁUSULA DECIMA - DO TÍTULO EXTRA JUDICIAL',
       content: '<p>10.1. O presente contrato constitui título executivo extrajudicial, nos termos do artigo 585, II do Código de processo Civil.</p>',
+      category: '',
       serviceTemplateId: '',
     },
     {
       clauseNumber: 11,
       title: 'CLÁUSULA DECIMA PRIMEIRA - DISPOSIÇÕES GERAIS',
       content: '<p>11.1. A CONTRATADA assume a responsabilidade técnica dos serviços a serem executados, declarando, neste ato, que conhece os equipamentos e o local da prestação de serviços – previamente visitado em vistoria técnica realizada pelo Engenheiro responsável.</p><p>11.2. A CONTRATADA se compromete a proteger e preservar o meio ambiente, bem como a prevenir contra as práticas danosas ao ecossistema, executando seus serviços em observância dos atos legais normativos e administrativos relativos à área de meio ambiente e as correlatas emanadas das esferas do Governo Federal, Estadual.</p><p>11.3. As partes de comum acordo elegem o Foro da Comarca de Sumaré/SP para dirimir qualquer lide oriunda do presente Contrato, com renúncia expressa de qualquer outro por mais privilegiado que seja.</p>',
+      category: '',
       serviceTemplateId: '',
     },
   ]
@@ -118,6 +137,7 @@ function clausesFromResponse(clauses: ContractClauseResponse[]): ClauseDraft[] {
     clauseNumber: c.clauseNumber,
     title: c.title,
     content: c.content ?? '',
+    category: '',
     serviceTemplateId: c.serviceTemplateId ?? '',
   }))
 }
@@ -199,8 +219,13 @@ export function ContractForm({
   const [clauses, setClauses] = useState<ClauseDraft[]>(
     contract?.clauses ? clausesFromResponse(contract.clauses) : buildDefaultClauses(),
   )
-  const [serviceTemplates, setServiceTemplates] = useState<ServiceTemplateResponse[]>([])
-  const [templatesLoading, setTemplatesLoading] = useState(false)
+  // Cache de templates por categoria (mesmo padrão do TechnicalProposalForm).
+  const [templatesByCategory, setTemplatesByCategory] = useState<
+    Record<string, ServiceTemplateResponse[]>
+  >({})
+  const [templatesLoadingByCategory, setTemplatesLoadingByCategory] = useState<
+    Record<string, boolean>
+  >({})
 
   // Pré-busca o próximo código + título padrão + data de vigência padrão
   // ao entrar no modo de cadastro. Em edição, os valores já vieram no `contract`.
@@ -221,25 +246,58 @@ export function ContractForm({
     }
   }, [contract])
 
-  // Carrega a lista de ServiceTemplates para a cláusula 1 (DO OBJETO).
+  // Em modo edição, descobre a categoria do ServiceTemplate da cláusula 1
+  // (via getServiceTemplate) e carrega os templates daquela categoria, para
+  // que o seletor de serviço já venha preenchido corretamente.
   useEffect(() => {
+    if (!contract?.clauses) return
+    const clause1 = contract.clauses.find((c) => c.clauseNumber === 1)
+    const templateId = clause1?.serviceTemplateId
+    if (!templateId) return
+
     let cancelled = false
-    setTemplatesLoading(true)
-    listServiceTemplates({ page: 0, size: 100 })
-      .then((res) => {
+    getServiceTemplate(templateId)
+      .then((template) => {
         if (cancelled) return
-        setServiceTemplates(res.content)
+        const cat = template.category
+        // Atualiza a cláusula 1 com a categoria do template salvo.
+        setClauses((prev) =>
+          prev.map((c) =>
+            c.clauseNumber === 1 ? { ...c, category: cat } : c,
+          ),
+        )
+        // Carrega os templates da categoria (se ainda não estiver em cache).
+        if (!templatesByCategory[cat]) {
+          setTemplatesLoadingByCategory((prev) => ({ ...prev, [cat]: true }))
+          listServiceTemplatesByCategory(cat, { page: 0, size: 50 })
+            .then((res) => {
+              if (cancelled) return
+              setTemplatesByCategory((prev) => ({
+                ...prev,
+                [cat]: res.content,
+              }))
+            })
+            .catch(() => {
+              if (!cancelled) {
+                setTemplatesByCategory((prev) => ({ ...prev, [cat]: [] }))
+              }
+            })
+            .finally(() => {
+              if (!cancelled) {
+                setTemplatesLoadingByCategory((prev) => ({
+                  ...prev,
+                  [cat]: false,
+                }))
+              }
+            })
+        }
       })
-      .catch(() => {
-        if (!cancelled) setServiceTemplates([])
-      })
-      .finally(() => {
-        if (!cancelled) setTemplatesLoading(false)
-      })
+      .catch(() => {})
     return () => {
       cancelled = true
     }
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contract?.clauses])
 
   // Em modo edição, preenche o label do cliente a partir do response.
   useEffect(() => {
@@ -301,17 +359,45 @@ export function ContractForm({
           clauseNumber: nextNumber,
           title: '',
           content: '',
+          category: '',
           serviceTemplateId: '',
         },
       ]
     })
   }
 
+  /** Ao mudar a categoria da cláusula 1, limpa o template selecionado e
+   *  carrega os templates da nova categoria (com cache). */
+  function handleCategoryChange(rowKey: string, category: ServiceCategory | '') {
+    updateClause(rowKey, {
+      category,
+      serviceTemplateId: '',
+      content: '',
+    })
+    if (category && !templatesByCategory[category]) {
+      setTemplatesLoadingByCategory((prev) => ({ ...prev, [category]: true }))
+      listServiceTemplatesByCategory(category, { page: 0, size: 50 })
+        .then((res) => {
+          setTemplatesByCategory((prev) => ({
+            ...prev,
+            [category]: res.content,
+          }))
+        })
+        .catch(() => {
+          setTemplatesByCategory((prev) => ({ ...prev, [category]: [] }))
+        })
+        .finally(() => {
+          setTemplatesLoadingByCategory((prev) => ({ ...prev, [category]: false }))
+        })
+    }
+  }
+
   /** Ao selecionar um ServiceTemplate na cláusula 1, copia a descrição. */
-  function handleServiceTemplateSelect(rowKey: string, templateId: string) {
+  function handleServiceTemplateSelect(rowKey: string, category: ServiceCategory | '', templateId: string) {
     const id = templateId ? Number(templateId) : ''
+    const templates = category ? templatesByCategory[category] ?? [] : []
     const template = id
-      ? serviceTemplates.find((t) => t.id === id) ?? null
+      ? templates.find((t) => t.id === id) ?? null
       : null
     updateClause(rowKey, {
       serviceTemplateId: id,
@@ -668,32 +754,79 @@ export function ContractForm({
                 </button>
               </div>
 
-              {/* Cláusula 1: seletor de ServiceTemplate */}
+              {/* Cláusula 1: categoria + seletor de ServiceTemplate */}
               {clause.clauseNumber === 1 ? (
                 <div className="mb-3">
-                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Serviço do catálogo (ServiceTemplate)
-                  </label>
-                  {templatesLoading ? (
-                    <div className="flex items-center gap-2 text-sm text-slate-500">
-                      <Spinner size="sm" /> Carregando serviços…
+                  <div className="grid gap-3 sm:grid-cols-[200px_1fr]">
+                    {/* Categoria */}
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                        Categoria
+                      </label>
+                      <select
+                        aria-label="Categoria do serviço"
+                        value={clause.category}
+                        onChange={(e) =>
+                          handleCategoryChange(
+                            clause.rowKey,
+                            e.target.value as ServiceCategory | '',
+                          )
+                        }
+                        className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-focus focus:ring-2 focus:ring-focus/30 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                      >
+                        <option value="">Selecione…</option>
+                        {SERVICE_CATEGORIES.map((c) => (
+                          <option key={c.value} value={c.value}>
+                            {c.label}
+                          </option>
+                        ))}
+                      </select>
                     </div>
-                  ) : (
-                    <select
-                      value={clause.serviceTemplateId !== '' ? String(clause.serviceTemplateId) : ''}
-                      onChange={(e) => handleServiceTemplateSelect(clause.rowKey, e.target.value)}
-                      className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-focus focus:ring-2 focus:ring-focus/30 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-                    >
-                      <option value="">Selecione um serviço do catálogo…</option>
-                      {serviceTemplates.map((t) => (
-                        <option key={t.id} value={String(t.id)}>
-                          {t.name}
-                        </option>
-                      ))}
-                    </select>
-                  )}
+
+                    {/* Serviço do catálogo */}
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                        Serviço do catálogo
+                      </label>
+                      {clause.category && templatesLoadingByCategory[clause.category] ? (
+                        <div className="flex h-9 items-center gap-2 text-sm text-slate-500">
+                          <Spinner size="sm" /> Carregando serviços…
+                        </div>
+                      ) : (
+                        <select
+                          aria-label="Serviço do catálogo"
+                          value={
+                            clause.serviceTemplateId !== ''
+                              ? String(clause.serviceTemplateId)
+                              : ''
+                          }
+                          onChange={(e) =>
+                            handleServiceTemplateSelect(
+                              clause.rowKey,
+                              clause.category,
+                              e.target.value,
+                            )
+                          }
+                          disabled={!clause.category}
+                          className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-focus focus:ring-2 focus:ring-focus/30 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:disabled:bg-slate-800"
+                        >
+                          <option value="">Selecione um serviço do catálogo…</option>
+                          {(clause.category
+                            ? templatesByCategory[clause.category] ?? []
+                            : []
+                          ).map((t) => (
+                            <option key={t.id} value={String(t.id)}>
+                              {t.name}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                  </div>
                   <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                    Ao selecionar, a descrição do serviço é copiada para o texto da cláusula.
+                    Selecione primeiro a categoria, depois o serviço. Ao
+                    selecionar, a descrição do serviço é copiada para o texto da
+                    cláusula.
                   </p>
                 </div>
               ) : null}
