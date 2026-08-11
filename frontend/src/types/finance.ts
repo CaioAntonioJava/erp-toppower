@@ -19,9 +19,11 @@
  */
 export interface BoletoDue {
   id: number
-  descricao: string
-  /** Beneficiário (pagador), opcional. */
-  pagador: string | null
+  /** Nº da obra/contrato vinculado ao boleto (texto livre), se houver. */
+  contractWorkNumber: string | null
+  /** Nome do responsável pelo boleto, se houver. */
+  responsibleName: string | null
+  /** Valor da parcela do boleto. */
   valor: number
   /** Data de vencimento no formato ISO (yyyy-MM-dd). */
   dataVencimento: string
@@ -29,10 +31,14 @@ export interface BoletoDue {
   status: 'ABERTO' | 'ATRASADO'
   /** Indica se o boleto foi liquidado (pago). */
   paid: boolean
-  /** Data de liquidação, se pago. */
+  /** Data de liquidação (pagamento), se pago. */
   paymentDate: string | null
-  /** Nº de Contrato/Obra vinculado ao boleto (texto livre), se houver. */
-  contractWorkNumber: string | null
-  /** Data de cadastro do boleto (informável), formato ISO (yyyy-MM-dd). */
-  registrationDate: string
+  /** Número da nota fiscal vinculada ao boleto, se houver. */
+  invoiceNumber: string | null
+  /** Data da nota fiscal vinculada ao boleto, se houver. */
+  invoiceDate: string | null
+  /** Número da parcela do boleto, se houver. */
+  installmentNumber: number | null
+  /** Nome de exibição da empresa (fornecedor) vinculada, se houver. */
+  supplierName: string | null
 }

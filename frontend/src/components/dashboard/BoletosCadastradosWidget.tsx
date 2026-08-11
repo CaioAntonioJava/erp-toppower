@@ -18,9 +18,12 @@ import { BoletoFormModal } from './BoletoFormModal'
 import { BoletoAttachmentsModal } from './BoletoAttachmentsModal'
 import { SettleBoletoModal } from './SettleBoletoModal'
 
-/** Monta um rótulo legível para o boleto (descrição + beneficiário, se houver). */
-function labelBoleto(descricao: string, pagador: string | null): string {
-  return pagador ? `${descricao} · ${pagador}` : descricao
+/** Monta um rótulo legível para o boleto (nº obra + responsável, se houver). */
+function labelBoleto(contractWorkNumber: string | null, responsibleName: string | null): string {
+  const obra = contractWorkNumber ?? ''
+  const resp = responsibleName ?? ''
+  if (obra && resp) return `${obra} · ${resp}`
+  return obra || resp || 'Boleto sem identificação'
 }
 
 /**
@@ -178,8 +181,8 @@ export function BoletosCadastradosWidget() {
           <div className="space-y-1">
             {/* Cabeçalho das colunas */}
             <div className="hidden grid-cols-12 gap-3 px-3 py-2 text-xs font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500 sm:grid">
-              <span className="col-span-4">Descrição</span>
-              <span className="col-span-3">Fornecedor</span>
+              <span className="col-span-4">Nº Obra / Responsável</span>
+              <span className="col-span-3">Empresa</span>
               <span className="col-span-2 text-right">Valor</span>
               <span className="col-span-2">Vencimento</span>
               <span className="col-span-1" />
@@ -195,14 +198,14 @@ export function BoletosCadastradosWidget() {
                       onClick={() => handleEdit(boleto.id)}
                       className="group grid w-full cursor-pointer grid-cols-12 gap-3 rounded-lg px-3 py-3 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
                     >
-                      {/* Descrição */}
+                      {/* Nº Obra / Responsável */}
                       <span className="col-span-4 truncate text-sm font-medium text-slate-900 dark:text-slate-100">
-                        {boleto.descricao}
+                        {labelBoleto(boleto.contractWorkNumber, boleto.responsibleName)}
                       </span>
 
-                      {/* Fornecedor / Pagador */}
+                      {/* Empresa */}
                       <span className="col-span-3 truncate text-sm text-slate-600 dark:text-slate-400">
-                        {boleto.pagador ?? '—'}
+                        {boleto.supplierName ?? '—'}
                       </span>
 
                       {/* Valor */}
@@ -263,7 +266,7 @@ export function BoletosCadastradosWidget() {
                               setActionError(null)
                               setAnexosBoleto({
                                 id: boleto.id,
-                                label: labelBoleto(boleto.descricao, boleto.pagador),
+                                label: labelBoleto(boleto.contractWorkNumber, boleto.responsibleName),
                               })
                             }}
                             onKeyDown={(e) => {
@@ -272,7 +275,7 @@ export function BoletosCadastradosWidget() {
                                 setActionError(null)
                                 setAnexosBoleto({
                                   id: boleto.id,
-                                  label: labelBoleto(boleto.descricao, boleto.pagador),
+                                  label: labelBoleto(boleto.contractWorkNumber, boleto.responsibleName),
                                 })
                               }
                             }}
@@ -348,7 +351,7 @@ export function BoletosCadastradosWidget() {
                           setActionError(null)
                           setAnexosBoleto({
                             id: boleto.id,
-                            label: `${boleto.descricao} · ${boleto.pagador}`,
+                            label: labelBoleto(boleto.contractWorkNumber, boleto.responsibleName),
                           })
                         }}
                         className="rounded p-1.5 text-slate-400 hover:bg-primary-50 hover:text-primary dark:hover:bg-primary-900/30"

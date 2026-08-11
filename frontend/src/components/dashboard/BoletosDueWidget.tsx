@@ -30,17 +30,27 @@ function toDue(boleto: BoletoResponse): BoletoDue {
   const dias = diasAteVencimento(boleto.dueDate)
   return {
     id: boleto.id,
-    descricao: boleto.description,
-    pagador: boleto.payee,
+    contractWorkNumber: boleto.contractWorkNumber,
+    responsibleName: boleto.responsibleName,
     valor: boleto.value,
     dataVencimento: boleto.dueDate,
     diasAteVencimento: dias,
     status: dias < 0 ? 'ATRASADO' : 'ABERTO',
     paid: boleto.paid,
     paymentDate: boleto.paymentDate,
-    contractWorkNumber: boleto.contractWorkNumber,
-    registrationDate: boleto.registrationDate,
+    invoiceNumber: boleto.invoiceNumber,
+    invoiceDate: boleto.invoiceDate,
+    installmentNumber: boleto.installmentNumber,
+    supplierName: boleto.supplierName,
   }
+}
+
+/** Monta um rótulo legível para o boleto (nº obra + responsável, se houver). */
+function labelBoleto(contractWorkNumber: string | null, responsibleName: string | null): string {
+  const obra = contractWorkNumber ?? ''
+  const resp = responsibleName ?? ''
+  if (obra && resp) return `${obra} · ${resp}`
+  return obra || resp || 'Boleto sem identificação'
 }
 
 export function BoletosDueWidget() {
@@ -105,10 +115,10 @@ export function BoletosDueWidget() {
                 <li key={boleto.id} className="flex items-center justify-between py-3">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">
-                      {boleto.descricao}
+                      {labelBoleto(boleto.contractWorkNumber, boleto.responsibleName)}
                     </p>
                     <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-                      {boleto.pagador ? `${boleto.pagador} · ` : ''}Venc. {formatDate(boleto.dataVencimento)}
+                      {boleto.supplierName ? `${boleto.supplierName} · ` : ''}Venc. {formatDate(boleto.dataVencimento)}
                     </p>
                   </div>
                   <div className="ml-3 flex shrink-0 items-center gap-3">

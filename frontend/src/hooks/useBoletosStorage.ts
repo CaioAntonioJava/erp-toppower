@@ -18,22 +18,26 @@ import type { BoletoDue } from '../types/finance'
 
 /** Campos do formulário de cadastro de boleto. */
 export interface NovoBoletoInput {
-  description: string
-  /** Beneficiário do boleto (opcional). */
-  payee?: string | null
+  /** Nº da obra/contrato vinculado ao boleto (texto livre, opcional). */
+  contractWorkNumber?: string | null
+  /** Nome do responsável pelo boleto (opcional). */
+  responsibleName?: string | null
+  /** Valor da parcela (ou valor total parcelado). */
   value: number
   /** Data de vencimento no formato ISO (yyyy-MM-dd). Ignorada quando
    * installmentsCount > 1 (vencimentos derivam de installmentTerms). */
   dueDate: string
-  /** ID do fornecedor vinculado. Quando informado, o cadastro do boleto
-   * dispara a geração automática de uma conta a pagar no backend. */
+  /** ID da empresa (fornecedor) vinculado. Quando informado, o cadastro
+   * do boleto dispara a geração automática de uma conta a pagar no backend. */
   supplierId?: number | null
   /** Anexo opcional (PDF/PNG/JPEG) enviado junto com o cadastro. */
   attachment?: File
-  /** Nº de Contrato/Obra vinculado ao boleto (texto livre, opcional). */
-  contractWorkNumber?: string | null
-  /** Data de cadastro do boleto (ISO yyyy-MM-dd). Default: data atual. */
-  registrationDate?: string
+  /** Número da nota fiscal vinculada ao boleto (opcional). */
+  invoiceNumber?: string | null
+  /** Data da nota fiscal vinculada ao boleto (ISO yyyy-MM-dd, opcional). */
+  invoiceDate?: string | null
+  /** Número da parcela (manual). Ignorado quando installmentsCount > 1. */
+  installmentNumber?: number | null
   /** Quantidade de parcelas a gerar. Default 1 (boleto avulso). */
   installmentsCount?: number
   /** Prazos das parcelas em dias, separados por barra (ex: "30/60/90"). */
@@ -60,16 +64,18 @@ function toDue(boleto: BoletoResponse): BoletoDue {
   const dias = diasAteVencimento(boleto.dueDate)
   return {
     id: boleto.id,
-    descricao: boleto.description,
-    pagador: boleto.payee,
+    contractWorkNumber: boleto.contractWorkNumber,
+    responsibleName: boleto.responsibleName,
     valor: boleto.value,
     dataVencimento: boleto.dueDate,
     diasAteVencimento: dias,
     status: derivarStatus(dias),
     paid: boleto.paid,
     paymentDate: boleto.paymentDate,
-    contractWorkNumber: boleto.contractWorkNumber,
-    registrationDate: boleto.registrationDate,
+    invoiceNumber: boleto.invoiceNumber,
+    invoiceDate: boleto.invoiceDate,
+    installmentNumber: boleto.installmentNumber,
+    supplierName: boleto.supplierName,
   }
 }
 
@@ -110,13 +116,14 @@ export function useBoletosStorage() {
    */
   const add = useCallback(async (input: NovoBoletoInput): Promise<BoletoDue[]> => {
     const created = await createBoleto({
-      description: input.description,
-      payee: input.payee,
+      contractWorkNumber: input.contractWorkNumber ?? null,
+      responsibleName: input.responsibleName ?? null,
       value: input.value,
       dueDate: input.dueDate,
       supplierId: input.supplierId ?? null,
-      contractWorkNumber: input.contractWorkNumber ?? null,
-      registrationDate: input.registrationDate,
+      invoiceNumber: input.invoiceNumber ?? null,
+      invoiceDate: input.invoiceDate,
+      installmentNumber: input.installmentNumber,
       installmentsCount: input.installmentsCount,
       installmentTerms: input.installmentTerms,
     })

@@ -114,10 +114,12 @@ export function SettleBoletoModal({ open, boleto, onClose, onConfirm }: SettleBo
               <FileText className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                  {boleto.descricao}
+                  {boleto.contractWorkNumber
+                    ? `${boleto.contractWorkNumber}${boleto.responsibleName ? ' · ' + boleto.responsibleName : ''}`
+                    : boleto.responsibleName ?? 'Boleto sem identificação'}
                 </p>
                 <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  {boleto.pagador ?? '—'}
+                  {boleto.supplierName ?? '—'}
                 </p>
                 <div className="mt-2 flex items-center gap-4 text-sm">
                   <span className="font-semibold text-slate-900 dark:text-slate-100">
