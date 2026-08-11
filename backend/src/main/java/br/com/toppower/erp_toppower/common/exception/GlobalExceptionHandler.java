@@ -6,6 +6,8 @@ import br.com.toppower.erp_toppower.boleto.exception.BoletoAttachmentNotFoundExc
 import br.com.toppower.erp_toppower.boleto.exception.InvalidBoletoAttachmentException;
 import br.com.toppower.erp_toppower.carrier.exception.CarrierNotFoundException;
 import br.com.toppower.erp_toppower.cep.exception.CepNotFoundException;
+import br.com.toppower.erp_toppower.servicecategory.exception.DuplicateServiceCategoryNameException;
+import br.com.toppower.erp_toppower.servicecategory.exception.ServiceCategoryNotFoundException;
 import br.com.toppower.erp_toppower.organization.exception.DuplicateOrganizationCnpjException;
 import br.com.toppower.erp_toppower.organization.exception.DuplicateOrganizationContractPrefixException;
 import br.com.toppower.erp_toppower.organization.exception.InvalidLogoException;
@@ -481,6 +483,20 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(CarrierNotFoundException.class)
     public ResponseEntity<ApiError> handleCarrierNotFound(CarrierNotFoundException ex) {
         return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    // =====================================================================
+    // Categorias de Serviço (ServiceCategory)
+    // =====================================================================
+
+    @ExceptionHandler(ServiceCategoryNotFoundException.class)
+    public ResponseEntity<ApiError> handleServiceCategoryNotFound(ServiceCategoryNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(DuplicateServiceCategoryNameException.class)
+    public ResponseEntity<ApiError> handleDuplicateServiceCategoryName(DuplicateServiceCategoryNameException ex) {
+        return build(HttpStatus.CONFLICT, ex.getMessage());
     }
 
     // =====================================================================
