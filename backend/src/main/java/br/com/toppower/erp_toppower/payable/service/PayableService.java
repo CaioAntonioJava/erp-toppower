@@ -460,7 +460,7 @@ public class PayableService {
         }
 
         Payable p = new Payable();
-        p.setDescription("Boleto " + (boleto.getDescription() != null ? boleto.getDescription() : boleto.getId()));
+        p.setDescription(montarDescricaoBoleto(boleto));
         p.setValue(boleto.getValue());
         p.setIssueDate(LocalDate.now());
         p.setDueDate(boleto.getDueDate());
@@ -664,5 +664,25 @@ public class PayableService {
 
     private record SupplierResolved(String name, String taxId) {
         static final SupplierResolved EMPTY = new SupplierResolved(null, null);
+    }
+
+    /**
+     * Monta uma descrição legível para a conta a pagar gerada a partir de
+     * um boleto, combinando os campos de identificação disponíveis
+     * (nº obra, responsável, NF, parcela). Sempre inclui o
+     * ID do boleto como fallback de identificação.
+     */
+    private String montarDescricaoBoleto(Boleto boleto) {
+        StringBuilder sb = new StringBuilder("Boleto #").append(boleto.getId());
+        if (boleto.getContractWorkNumber() != null && !boleto.getContractWorkNumber().isBlank()) {
+            sb.append(" · Obra ").append(boleto.getContractWorkNumber());
+        }
+        if (boleto.getResponsibleName() != null && !boleto.getResponsibleName().isBlank()) {
+            sb.append(" · ").append(boleto.getResponsibleName());
+        }
+        if (boleto.getInstallmentNumber() != null) {
+            sb.append(" · Parcela ").append(boleto.getInstallmentNumber());
+        }
+        return sb.toString();
     }
 }

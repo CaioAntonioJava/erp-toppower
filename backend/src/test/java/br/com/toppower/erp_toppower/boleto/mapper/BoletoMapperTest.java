@@ -25,15 +25,20 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class BoletoMapperTest {
 
+    // Ordem dos campos do BoletoCreateRequest (record):
+    // contractWorkNumber, responsibleName, value, dueDate, status,
+    // supplierId, invoiceNumber, invoiceDate, installmentNumber,
+    // installmentsCount, installmentTerms
     private final BoletoCreateRequest createRequest = new BoletoCreateRequest(
-            "Boleto Teste",
-            "Fornecedor ABC",
+            "CT-001-2026",
+            "JOAO DA SILVA",
             new BigDecimal("1500.00"),
             LocalDate.of(2026, 8, 15),
             RegistrationStatus.ATIVO,
             10L,
-            "CT-001-2026",
-            LocalDate.of(2026, 8, 1),
+            "NF-00123",
+            LocalDate.of(2026, 7, 20),
+            1,
             null,
             null);
 
@@ -41,14 +46,15 @@ class BoletoMapperTest {
     void toEntity_mapeiaCamposCorretamente() {
         Boleto result = BoletoMapper.toEntity(createRequest);
 
-        assertEquals("Boleto Teste", result.getDescription());
-        assertEquals("Fornecedor ABC", result.getPayee());
+        assertEquals("CT-001-2026", result.getContractWorkNumber());
+        assertEquals("JOAO DA SILVA", result.getResponsibleName());
         assertEquals(new BigDecimal("1500.00"), result.getValue());
         assertEquals(LocalDate.of(2026, 8, 15), result.getDueDate());
         assertEquals(RegistrationStatus.ATIVO, result.getStatus());
         assertEquals(10L, result.getSupplierId());
-        assertEquals("CT-001-2026", result.getContractWorkNumber());
-        assertEquals(LocalDate.of(2026, 8, 1), result.getRegistrationDate());
+        assertEquals("NF-00123", result.getInvoiceNumber());
+        assertEquals(LocalDate.of(2026, 7, 20), result.getInvoiceDate());
+        assertEquals(1, result.getInstallmentNumber());
         assertFalse(result.isPaid());
         assertNull(result.getPaymentDate());
     }
@@ -56,20 +62,20 @@ class BoletoMapperTest {
     @Test
     void toEntity_statusNulo_naoAplicaDefault() {
         BoletoCreateRequest req = new BoletoCreateRequest(
-                "Teste", "Payee", BigDecimal.TEN, LocalDate.now(), null, null,
-                null, null, null, null);
+                null, null, BigDecimal.TEN, LocalDate.now(), null, null,
+                null, null, null, null, null);
         Boleto result = BoletoMapper.toEntity(req);
         assertNull(result.getStatus()); // @PrePersist da entidade que aplica default
         assertNull(result.getContractWorkNumber());
-        assertNull(result.getRegistrationDate());
+        assertNull(result.getResponsibleName());
     }
 
     @Test
     void toResponse_semSupplier_supplierNameNulo() {
         Boleto boleto = new Boleto();
         boleto.setId(1L);
-        boleto.setDescription("Teste");
-        boleto.setPayee("Payee");
+        boleto.setContractWorkNumber("CT-001");
+        boleto.setResponsibleName("Teste");
         boleto.setValue(BigDecimal.TEN);
         boleto.setDueDate(LocalDate.now());
         boleto.setStatus(RegistrationStatus.ATIVO);
@@ -79,62 +85,89 @@ class BoletoMapperTest {
         // toResponse com supplierRepository null não deve lançar exceção
         // quando supplierId é nulo
         var response = BoletoMapper.toResponse(boleto, null);
-        assertEquals("Teste", response.description());
+        assertEquals("CT-001", response.contractWorkNumber());
+        assertEquals("Teste", response.responsibleName());
         assertNull(response.supplierName());
     }
 
     @Test
     void applyUpdate_camposNaoNulos_atualiza() {
         Boleto boleto = new Boleto();
-        boleto.setDescription("Original");
-        boleto.setPayee("Original Payee");
+        boleto.setContractWorkNumber("CT-ORIGINAL");
+        boleto.setResponsibleName("Original");
         boleto.setValue(BigDecimal.ONE);
         boleto.setDueDate(LocalDate.of(2026, 1, 1));
         boleto.setStatus(RegistrationStatus.ATIVO);
         boleto.setSupplierId(1L);
 
+        // Ordem do BoletoUpdateRequest:
+        // contractWorkNumber, responsibleName, value, dueDate, status,
+        // supplierId, invoiceNumber, invoiceDate, installmentNumber
         BoletoUpdateRequest update = new BoletoUpdateRequest(
-                "Novo", "Novo Payee", new BigDecimal("200.00"),
-                LocalDate.of(2026, 12, 31), RegistrationStatus.INATIVO, 2L,
-                "CT-002-2026", LocalDate.of(2026, 8, 2));
+                "CT-002-2026", "Novo Responsável",
+                new BigDecimal("200.00"), LocalDate.of(2026, 12, 31),
+                RegistrationStatus.INATIVO, 2L, "NF-999", LocalDate.of(2026, 8, 2),
+                3);
 
         BoletoMapper.applyUpdate(boleto, update);
 
-        assertEquals("Novo", boleto.getDescription());
-        assertEquals("Novo Payee", boleto.getPayee());
+        assertEquals("CT-002-2026", boleto.getContractWorkNumber());
+        assertEquals("Novo Responsável", boleto.getResponsibleName());
         assertEquals(new BigDecimal("200.00"), boleto.getValue());
         assertEquals(LocalDate.of(2026, 12, 31), boleto.getDueDate());
         assertEquals(RegistrationStatus.INATIVO, boleto.getStatus());
         assertEquals(2L, boleto.getSupplierId());
-        assertEquals("CT-002-2026", boleto.getContractWorkNumber());
-        assertEquals(LocalDate.of(2026, 8, 2), boleto.getRegistrationDate());
+        assertEquals("NF-999", boleto.getInvoiceNumber());
+        assertEquals(LocalDate.of(2026, 8, 2), boleto.getInvoiceDate());
+        assertEquals(3, boleto.getInstallmentNumber());
     }
 
     @Test
     void applyUpdate_camposNulos_naoAltera() {
         Boleto boleto = new Boleto();
-        boleto.setDescription("Original");
-        boleto.setPayee("Payee");
+        boleto.setContractWorkNumber("CT-ORIGINAL");
+        boleto.setResponsibleName("Original");
         boleto.setValue(BigDecimal.TEN);
         boleto.setDueDate(LocalDate.of(2026, 1, 1));
         boleto.setStatus(RegistrationStatus.ATIVO);
         boleto.setSupplierId(1L);
-        boleto.setContractWorkNumber("CT-ORIGINAL");
-        boleto.setRegistrationDate(LocalDate.of(2026, 1, 1));
+        boleto.setInvoiceNumber("NF-ORIG");
+        boleto.setInvoiceDate(LocalDate.of(2026, 1, 1));
+        boleto.setInstallmentNumber(1);
 
+        // Todos os campos nulos → nenhum campo deve ser alterado.
         BoletoUpdateRequest update = new BoletoUpdateRequest(
-                null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null);
 
         BoletoMapper.applyUpdate(boleto, update);
 
-        assertEquals("Original", boleto.getDescription());
-        assertEquals("Payee", boleto.getPayee());
+        assertEquals("CT-ORIGINAL", boleto.getContractWorkNumber());
+        assertEquals("Original", boleto.getResponsibleName());
         assertEquals(BigDecimal.TEN, boleto.getValue());
         assertEquals(LocalDate.of(2026, 1, 1), boleto.getDueDate());
         assertEquals(RegistrationStatus.ATIVO, boleto.getStatus());
         assertEquals(1L, boleto.getSupplierId());
-        assertEquals("CT-ORIGINAL", boleto.getContractWorkNumber());
-        assertEquals(LocalDate.of(2026, 1, 1), boleto.getRegistrationDate());
+        assertEquals("NF-ORIG", boleto.getInvoiceNumber());
+        assertEquals(LocalDate.of(2026, 1, 1), boleto.getInvoiceDate());
+        assertEquals(1, boleto.getInstallmentNumber());
+    }
+
+    @Test
+    void applyUpdate_stringVazia_limpaCamposTexto() {
+        Boleto boleto = new Boleto();
+        boleto.setContractWorkNumber("CT-ORIGINAL");
+        boleto.setResponsibleName("Original");
+        boleto.setInvoiceNumber("NF-ORIG");
+
+        // Strings vazias devem limpar (setar null) os campos de texto.
+        BoletoUpdateRequest update = new BoletoUpdateRequest(
+                "", "", null, null, null, null, "", null, null);
+
+        BoletoMapper.applyUpdate(boleto, update);
+
+        assertNull(boleto.getContractWorkNumber());
+        assertNull(boleto.getResponsibleName());
+        assertNull(boleto.getInvoiceNumber());
     }
 
     // ========== BoletoAttachmentMapper ==========

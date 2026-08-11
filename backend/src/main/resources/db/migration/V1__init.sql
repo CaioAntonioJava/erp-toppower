@@ -136,12 +136,9 @@ PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 -- contract_clauses, etc.) já declaram seus índices via @Index e são criados
 -- pelo Hibernate.
 
--- boletos: status, description, due_date, organization_id, supplier_id
+-- boletos: status, due_date, organization_id, supplier_id
 SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'boletos' AND INDEX_NAME = 'idx_boletos_status');
 SET @sql = IF(@has_idx = 0, 'CREATE INDEX idx_boletos_status ON boletos (status)', 'DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
-SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'boletos' AND INDEX_NAME = 'idx_boletos_description');
-SET @sql = IF(@has_idx = 0, 'CREATE INDEX idx_boletos_description ON boletos (description)', 'DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @has_idx = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'boletos' AND INDEX_NAME = 'idx_boletos_due_date');
 SET @sql = IF(@has_idx = 0, 'CREATE INDEX idx_boletos_due_date ON boletos (due_date)', 'DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;

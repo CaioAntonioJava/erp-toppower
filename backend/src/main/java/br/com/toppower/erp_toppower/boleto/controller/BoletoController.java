@@ -46,7 +46,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/boletos")
 @RequiredArgsConstructor
-@Tag(name = "Boletos", description = "Cadastro e gestão de boletos (descrição, beneficiário, valor e vencimento).")
+@Tag(name = "Boletos", description = "Cadastro e gestão de boletos (obra, responsável, empresa, NF, parcelas e vencimento).")
 public class BoletoController {
 
     private final BoletoService boletoService;
@@ -65,7 +65,7 @@ public class BoletoController {
                             schema = @Schema(type = "array", implementation = BoletoResponse.class))),
             @ApiResponse(responseCode = "400", description = "Erro de validação.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "409", description = "Descrição do boleto já cadastrada.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+            @ApiResponse(responseCode = "409", description = "Boleto duplicado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<List<BoletoResponse>> create(@Valid @RequestBody BoletoCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(boletoService.create(request));
@@ -95,7 +95,7 @@ public class BoletoController {
                     "Filtrar apenas por status: ?status=ATIVO. " +
                     "Filtrar por texto: ?query=xpto. " +
                     "Combinar: ?status=ATIVO&query=xpto. " +
-                    "Sem parâmetros: retorna todos (paginado). Match em descrição ou beneficiário.")
+                    "Sem parâmetros: retorna todos (paginado). Match em beneficiário, responsável, NF ou nº obra.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAuthority('MODULE_BOLETOS')")
     @ApiResponses({
@@ -105,7 +105,7 @@ public class BoletoController {
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<PagedResponse<BoletoResponse>> search(
-            @Parameter(description = "Termo de busca OPCIONAL (mínimo 2 caracteres quando informado). Match em description ou payee.",
+            @Parameter(description = "Termo de busca OPCIONAL (mínimo 2 caracteres quando informado). Match em beneficiário, responsável, NF ou nº obra.",
                     example = "Pagamento")
             @RequestParam(value = "query", required = false) String query,
             @Parameter(description = "Filtro OPCIONAL: ATIVO ou INATIVO. Omitido = ambos.",
@@ -195,8 +195,7 @@ public class BoletoController {
 
     @PatchMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Atualizar boleto (parcial)",
-            description = "Atualiza apenas os campos enviados. A descrição, " +
-                    "se alterada, deve permanecer única.")
+            description = "Atualiza apenas os campos enviados (PATCH parcial).")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAuthority('MODULE_BOLETOS')")
     @ApiResponses({
@@ -205,7 +204,7 @@ public class BoletoController {
             @ApiResponse(responseCode = "400", description = "Erro de validação.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "404", description = "Boleto não encontrado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "409", description = "Descrição do boleto já cadastrada.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+            @ApiResponse(responseCode = "409", description = "Boleto duplicado.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<BoletoResponse> update(@PathVariable Long id,
                                                   @Valid @RequestBody BoletoUpdateRequest request) {

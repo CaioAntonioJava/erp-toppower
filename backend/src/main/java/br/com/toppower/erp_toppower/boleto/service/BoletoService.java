@@ -100,9 +100,6 @@ public class BoletoService {
         }
         Boleto boleto = BoletoMapper.toEntity(request);
         boleto.setSupplierId(supplierId);
-        if (boleto.getRegistrationDate() == null) {
-            boleto.setRegistrationDate(LocalDate.now());
-        }
         Boleto saved = boletoRepository.save(boleto);
         // Gera a conta a pagar (idempotente: se já existir, não duplica).
         payableService.generateFromBoleto(saved);
@@ -112,11 +109,12 @@ public class BoletoService {
     /**
      * Gera N boletos a partir de um plano de parcelamento. Divide o
      * valor total igualmente (residual absorvido pela última parcela) e
-     * calcula os vencimentos a partir de {@code registrationDate} +
-     * prazos informados em {@code installmentTerms}. Cada boleto recebe
-     * o mesmo {@code contractWorkNumber} e {@code registrationDate}, e a
-     * descrição é sufixada com " (Parcela X/N)". Cada boleto dispara a
-     * geração de sua própria conta a pagar.
+     * calcula os vencimentos a partir da data de vencimento (data base)
+     * + prazos informados em {@code installmentTerms}. Cada boleto recebe
+     * o mesmo {@code contractWorkNumber}, {@code responsibleName},
+     * {@code invoiceNumber} e {@code invoiceDate}, e o
+     * {@code installmentNumber} é preenchido automaticamente (1, 2, 3, ...).
+     * Cada boleto dispara a geração de sua própria conta a pagar.
      */
     private List<BoletoResponse> createInstallments(BoletoCreateRequest request, int installments) {
         if (request.installmentTerms() == null || request.installmentTerms().isBlank()) {
@@ -145,7 +143,9 @@ public class BoletoService {
             validateSupplierIfPresent(supplierId);
         }
 
-        LocalDate baseDate = request.registrationDate() != null ? request.registrationDate() : LocalDate.now();
+        // A data de vencimento informada funciona como data base para
+        // calcular os vencimentos das parcelas (dataBase + prazo em dias).
+        LocalDate baseDate = request.dueDate() != null ? request.dueDate() : LocalDate.now();
         BigDecimal total = request.value();
         BigDecimal baseShare = total.divide(BigDecimal.valueOf(installments), SCALE, RoundingMode.HALF_UP);
         BigDecimal accumulated = BigDecimal.ZERO;
@@ -153,8 +153,8 @@ public class BoletoService {
         List<BoletoResponse> result = new ArrayList<>(installments);
         for (int i = 0; i < installments; i++) {
             Boleto boleto = new Boleto();
-            boleto.setDescription(request.description() + " (Parcela " + (i + 1) + "/" + installments + ")");
-            boleto.setPayee(request.payee());
+            boleto.setContractWorkNumber(request.contractWorkNumber());
+            boleto.setResponsibleName(request.responsibleName());
             // Última parcela absorve o residual de arredondamento.
             if (i == installments - 1) {
                 boleto.setValue(total.subtract(accumulated));
@@ -165,8 +165,10 @@ public class BoletoService {
             boleto.setDueDate(baseDate.plusDays(terms.get(i)));
             boleto.setStatus(request.status());
             boleto.setSupplierId(supplierId);
-            boleto.setContractWorkNumber(request.contractWorkNumber());
-            boleto.setRegistrationDate(baseDate);
+            boleto.setInvoiceNumber(request.invoiceNumber());
+            boleto.setInvoiceDate(request.invoiceDate());
+            // Número da parcela é gerado automaticamente no parcelamento.
+            boleto.setInstallmentNumber(i + 1);
             Boleto saved = boletoRepository.save(boleto);
             // Cada boleto gera sua própria conta a pagar.
             payableService.generateFromBoleto(saved);
