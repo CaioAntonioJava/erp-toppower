@@ -3,7 +3,6 @@ package br.com.toppower.erp_toppower.servicetemplate.mapper;
 import br.com.toppower.erp_toppower.servicetemplate.dto.ServiceTemplateCreateRequest;
 import br.com.toppower.erp_toppower.servicetemplate.dto.ServiceTemplateUpdateRequest;
 import br.com.toppower.erp_toppower.servicetemplate.entity.ServiceTemplate;
-import br.com.toppower.erp_toppower.servicetemplate.enums.ServiceCategory;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -15,17 +14,20 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class ServiceTemplateMapperTest {
 
+    private static final Long CATEGORY_ID = 1L;
+    private static final String CATEGORY_NAME = "EXECUÇÃO SPDA";
+
     @Test
     void toEntity_mapeiaCamposCorretamente() {
         ServiceTemplateCreateRequest request = new ServiceTemplateCreateRequest(
                 "Instalação Elétrica", "Serviço de instalação elétrica residencial",
-                ServiceCategory.EXECUÇÃO_SPDA);
+                CATEGORY_ID);
 
         ServiceTemplate result = ServiceTemplateMapper.toEntity(request);
 
         assertEquals("Instalação Elétrica", result.getName());
         assertEquals("Serviço de instalação elétrica residencial", result.getDescription());
-        assertEquals(ServiceCategory.EXECUÇÃO_SPDA, result.getCategory());
+        assertEquals(CATEGORY_ID, result.getCategoryId());
     }
 
     @Test
@@ -34,14 +36,15 @@ class ServiceTemplateMapperTest {
         entity.setId(1L);
         entity.setName("Manutenção");
         entity.setDescription("Descrição da manutenção");
-        entity.setCategory(ServiceCategory.EXECUÇÃO_SPDA);
+        entity.setCategoryId(CATEGORY_ID);
 
-        var response = ServiceTemplateMapper.toResponse(entity);
+        var response = ServiceTemplateMapper.toResponse(entity, CATEGORY_NAME);
 
         assertEquals(1L, response.id());
         assertEquals("Manutenção", response.name());
         assertEquals("Descrição da manutenção", response.description());
-        assertEquals(ServiceCategory.EXECUÇÃO_SPDA, response.category());
+        assertEquals(CATEGORY_ID, response.categoryId());
+        assertEquals(CATEGORY_NAME, response.categoryName());
     }
 
     @Test
@@ -49,23 +52,23 @@ class ServiceTemplateMapperTest {
         ServiceTemplate entity = new ServiceTemplate();
         entity.setName("Original");
         entity.setDescription("Desc original");
-        entity.setCategory(ServiceCategory.EXECUÇÃO_SPDA);
+        entity.setCategoryId(CATEGORY_ID);
 
         ServiceTemplateUpdateRequest update = new ServiceTemplateUpdateRequest(
-                "Novo Nome", "Nova descrição", ServiceCategory.EXECUÇÃO_SPDA);
+                "Novo Nome", "Nova descrição", 2L);
 
         ServiceTemplateMapper.applyUpdate(entity, update);
 
         assertEquals("Novo Nome", entity.getName());
         assertEquals("Nova descrição", entity.getDescription());
-        assertEquals(ServiceCategory.EXECUÇÃO_SPDA, entity.getCategory());
+        assertEquals(2L, entity.getCategoryId());
     }
 
     @Test
     void applyUpdate_camposNulos_naoAltera() {
         ServiceTemplate entity = new ServiceTemplate();
         entity.setName("Original");
-        entity.setCategory(ServiceCategory.EXECUÇÃO_SPDA);
+        entity.setCategoryId(CATEGORY_ID);
 
         ServiceTemplateUpdateRequest update = new ServiceTemplateUpdateRequest(
                 null, null, null);
@@ -73,6 +76,6 @@ class ServiceTemplateMapperTest {
         ServiceTemplateMapper.applyUpdate(entity, update);
 
         assertEquals("Original", entity.getName());
-        assertEquals(ServiceCategory.EXECUÇÃO_SPDA, entity.getCategory());
+        assertEquals(CATEGORY_ID, entity.getCategoryId());
     }
 }

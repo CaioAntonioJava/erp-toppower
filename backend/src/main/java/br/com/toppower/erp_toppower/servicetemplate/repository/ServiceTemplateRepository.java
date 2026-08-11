@@ -1,7 +1,6 @@
 package br.com.toppower.erp_toppower.servicetemplate.repository;
 
 import br.com.toppower.erp_toppower.servicetemplate.entity.ServiceTemplate;
-import br.com.toppower.erp_toppower.servicetemplate.enums.ServiceCategory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -19,5 +18,5 @@ public interface ServiceTemplateRepository extends JpaRepository<ServiceTemplate
     Page<ServiceTemplate> searchByQuery(@Param("query") String query,
                                         Pageable pageable);
 
-    Page<ServiceTemplate> findByCategory(ServiceCategory category, Pageable pageable);
+    Page<ServiceTemplate> findByCategoryId(Long categoryId, Pageable pageable);
 }

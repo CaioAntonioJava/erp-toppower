@@ -1,6 +1,5 @@
 package br.com.toppower.erp_toppower.servicetemplate.dto;
 
-import br.com.toppower.erp_toppower.servicetemplate.enums.ServiceCategory;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
@@ -18,8 +17,11 @@ public record ServiceTemplateResponse(
         @Schema(description = "Descrição detalhada do serviço.")
         String description,
 
-        @Schema(description = "Categoria do serviço.", requiredMode = Schema.RequiredMode.REQUIRED)
-        ServiceCategory category,
+        @Schema(description = "ID da categoria de serviço.", requiredMode = Schema.RequiredMode.REQUIRED)
+        Long categoryId,
+
+        @Schema(description = "Nome da categoria de serviço.", requiredMode = Schema.RequiredMode.REQUIRED)
+        String categoryName,
 
         @Schema(description = "Data de criação.", requiredMode = Schema.RequiredMode.REQUIRED)
         Instant createdAt,

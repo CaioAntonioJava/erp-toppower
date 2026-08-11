@@ -2,11 +2,8 @@ package br.com.toppower.erp_toppower.servicetemplate.entity;
 
 import br.com.toppower.erp_toppower.common.annotation.UpperCase;
 import br.com.toppower.erp_toppower.common.entity.BaseEntity;
-import br.com.toppower.erp_toppower.servicetemplate.enums.ServiceCategory;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -20,6 +17,11 @@ import lombok.Setter;
  * e, portanto, não é isolada por organização. Os serviços cadastrados são
  * compartilhados entre todas as empresas, servindo como um catálogo central
  * de serviços que pode ser referenciado em qualquer contexto.</p>
+ *
+ * <p>A categoria é referenciada por {@code categoryId}, que aponta para a
+ * entidade {@link br.com.toppower.erp_toppower.servicecategory.entity.ServiceCategory}.
+ * O projeto não usa relacionamentos JPA ({@code @ManyToOne}); a resolução do
+ * nome da categoria é feita no service layer via {@code ServiceCategoryRepository}.</p>
  */
 @Entity
 @Table(name = "service_templates")
@@ -35,7 +37,6 @@ public class ServiceTemplate extends BaseEntity {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "category", nullable = false, length = 50)
-    private ServiceCategory category;
+    @Column(name = "category_id", nullable = false)
+    private Long categoryId;
 }

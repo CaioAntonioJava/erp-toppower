@@ -1,6 +1,5 @@
 package br.com.toppower.erp_toppower.servicetemplate.dto;
 
-import br.com.toppower.erp_toppower.servicetemplate.enums.ServiceCategory;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -19,9 +18,9 @@ public record ServiceTemplateCreateRequest(
         @Size(max = 20000, message = "Descrição deve ter no máximo {max} caracteres")
         String description,
 
-        @Schema(description = "Categoria do serviço.", requiredMode = Schema.RequiredMode.REQUIRED,
-                example = "EXECUÇÃO_SPDA")
+        @Schema(description = "ID da categoria de serviço.", requiredMode = Schema.RequiredMode.REQUIRED,
+                example = "1")
         @NotNull(message = "Categoria é obrigatória")
-        ServiceCategory category
+        Long categoryId
 ) {
 }

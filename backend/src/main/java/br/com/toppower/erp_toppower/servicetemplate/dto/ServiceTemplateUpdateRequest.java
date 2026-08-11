@@ -1,6 +1,5 @@
 package br.com.toppower.erp_toppower.servicetemplate.dto;
 
-import br.com.toppower.erp_toppower.servicetemplate.enums.ServiceCategory;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Size;
 
@@ -18,7 +17,7 @@ public record ServiceTemplateUpdateRequest(
         @Size(max = 20000, message = "Descrição deve ter no máximo {max} caracteres")
         String description,
 
-        @Schema(description = "Nova categoria do serviço.", example = "EXECUÇÃO_SPDA")
-        ServiceCategory category
+        @Schema(description = "Novo ID da categoria de serviço.", example = "1")
+        Long categoryId
 ) {
 }

@@ -14,16 +14,23 @@ public final class ServiceTemplateMapper {
         ServiceTemplate entity = new ServiceTemplate();
         entity.setName(request.name());
         entity.setDescription(request.description());
-        entity.setCategory(request.category());
+        entity.setCategoryId(request.categoryId());
         return entity;
     }
 
-    public static ServiceTemplateResponse toResponse(ServiceTemplate entity) {
+    /**
+     * Converte a entidade para resposta, resolvendo o nome da categoria.
+     *
+     * @param entity       entidade persistida
+     * @param categoryName nome da categoria resolvido via ServiceCategoryRepository
+     */
+    public static ServiceTemplateResponse toResponse(ServiceTemplate entity, String categoryName) {
         return new ServiceTemplateResponse(
                 entity.getId(),
                 entity.getName(),
                 entity.getDescription(),
-                entity.getCategory(),
+                entity.getCategoryId(),
+                categoryName,
                 entity.getCreatedAt(),
                 entity.getUpdatedAt(),
                 entity.getCreatedBy(),
@@ -41,8 +48,8 @@ public final class ServiceTemplateMapper {
         if (request.description() != null) {
             entity.setDescription(request.description());
         }
-        if (request.category() != null) {
-            entity.setCategory(request.category());
+        if (request.categoryId() != null) {
+            entity.setCategoryId(request.categoryId());
         }
     }
 }

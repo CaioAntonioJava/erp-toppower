@@ -4,7 +4,6 @@ import br.com.toppower.erp_toppower.common.dto.PagedResponse;
 import br.com.toppower.erp_toppower.servicetemplate.dto.ServiceTemplateCreateRequest;
 import br.com.toppower.erp_toppower.servicetemplate.dto.ServiceTemplateResponse;
 import br.com.toppower.erp_toppower.servicetemplate.dto.ServiceTemplateUpdateRequest;
-import br.com.toppower.erp_toppower.servicetemplate.enums.ServiceCategory;
 import br.com.toppower.erp_toppower.servicetemplate.service.ServiceTemplateService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -93,20 +92,21 @@ public class ServiceTemplateController {
 
     @GetMapping(value = "/by-category", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Listar serviços por categoria (paginado)",
-            description = "Retorna os serviços filtrados pela categoria informada, ordenados por nome.")
+            description = "Retorna os serviços filtrados pelo ID da categoria informada, ordenados por nome.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAuthority('MODULE_SERVICE_TEMPLATES')")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "OK.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = PagedResponse.class))),
-            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "404", description = "Categoria não encontrada.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<PagedResponse<ServiceTemplateResponse>> getByCategory(
-            @Parameter(description = "Categoria do serviço.", required = true,
-                    example = "EXECUÇÃO_SPDA")
-            @RequestParam("category") ServiceCategory category,
+            @Parameter(description = "ID da categoria de serviço.", required = true,
+                    example = "1")
+            @RequestParam("categoryId") Long categoryId,
             @Parameter(hidden = true) @PageableDefault(size = 50, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
-        return ResponseEntity.ok(serviceTemplateService.getByCategory(category, pageable));
+        return ResponseEntity.ok(serviceTemplateService.getByCategory(categoryId, pageable));
     }
 
     @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
