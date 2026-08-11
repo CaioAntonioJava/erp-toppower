@@ -1,14 +1,9 @@
-export type ServiceCategory = 'EXECUÇÃO_SPDA'
-
-export const SERVICE_CATEGORIES: { value: ServiceCategory; label: string }[] = [
-  { value: 'EXECUÇÃO_SPDA', label: 'EXECUÇÃO SPDA' },
-]
-
 export interface ServiceTemplateResponse {
   id: number
   name: string
   description: string | null
-  category: ServiceCategory
+  categoryId: number
+  categoryName: string
   createdAt: string
   updatedAt: string
   createdBy: string | null
@@ -18,13 +13,13 @@ export interface ServiceTemplateResponse {
 export interface ServiceTemplateCreateRequest {
   name: string
   description?: string | null
-  category: ServiceCategory
+  categoryId: number
 }
 
 export interface ServiceTemplateUpdateRequest {
   name?: string
   description?: string | null
-  category?: ServiceCategory
+  categoryId?: number
 }
 
 export interface ServiceTemplateFilters {

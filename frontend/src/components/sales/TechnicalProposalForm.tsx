@@ -33,8 +33,9 @@ import type {
   TechnicalProposalUpdateRequest,
 } from '../../types/technicalProposal'
 import { TECHNICAL_PROPOSAL_CLIENT_TYPE_LABELS } from '../../types/technicalProposal'
-import type { ServiceCategory, ServiceTemplateResponse } from '../../types/servicetemplate'
-import { SERVICE_CATEGORIES } from '../../types/servicetemplate'
+import type { ServiceTemplateResponse } from '../../types/servicetemplate'
+import type { ServiceCategoryResponse } from '../../types/servicecategory'
+import { listActiveServiceCategories } from '../../api/servicecategory.api'
 
 interface TechnicalProposalFormProps {
   /** Proposta existente (modo edição). Quando omitido, é cadastro novo. */
@@ -53,8 +54,10 @@ interface ServiceDraft {
   rowKey: string
   /** Modo da linha: catálogo (com categoria + seleção) ou simples. */
   mode: ServiceItemMode
-  /** Categoria do catálogo de serviços (opcional, só em modo CATALOG). */
-  category: ServiceCategory | ''
+  /** ID da categoria do catálogo de serviços (opcional, só em modo CATALOG). */
+  categoryId: number | ''
+  /** Nome da categoria (snapshot para o payload, só em modo CATALOG). */
+  categoryName: string
   /** ID do ServiceTemplate selecionado (opcional, só em modo CATALOG). */
   serviceTemplateId: number | ''
   /** Nome da categoria do ServiceTemplate (exibição, só em modo CATALOG). */
@@ -178,7 +181,10 @@ export function TechnicalProposalForm({
           : looksLikeHtml(s.description)
             ? 'CATALOG'
             : 'SIMPLE') as ServiceItemMode,
-        category: (s.category ?? '') as ServiceCategory | '',
+        // categoryId será resolvido após carregar as categorias ativas
+        // (match por nome). Inicia vazio; o useEffect de preload resolve.
+        categoryId: '',
+        categoryName: s.category ?? '',
         serviceTemplateId: s.serviceTemplateId ?? '',
         serviceTemplateName: '',
         description: s.description ?? '',
@@ -233,11 +239,14 @@ export function TechnicalProposalForm({
 
   // Cache de templates por categoria
   const [templatesByCategory, setTemplatesByCategory] = useState<
-    Record<string, ServiceTemplateResponse[]>
+    Record<number, ServiceTemplateResponse[]>
   >({})
   const [templatesLoading, setTemplatesLoading] = useState<
-    Record<string, boolean>
+    Record<number, boolean>
   >({})
+
+  // Categorias ativas carregadas da API para os selects de categoria.
+  const [categories, setCategories] = useState<ServiceCategoryResponse[]>([])
 
   const [formError, setFormError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -254,33 +263,69 @@ export function TechnicalProposalForm({
     setCode(initialCode)
   }, [initialCode, proposal])
 
-  // Carrega os templates das categorias dos itens ao entrar em modo edição.
+  // Carrega as categorias ativas ao montar. Em modo edição, resolve os
+  // categoryIds dos itens a partir do nome persistido e pré-carrega os
+  // templates de cada categoria.
   useEffect(() => {
-    if (!proposal?.serviceItems) return
-    const categorias = new Set<string>()
-    for (const s of proposal.serviceItems) {
-      if (s.category) categorias.add(s.category)
-    }
-    for (const cat of categorias) {
-      if (!templatesByCategory[cat]) {
-        setTemplatesLoading((prev) => ({ ...prev, [cat]: true }))
-        listServiceTemplatesByCategory(cat as ServiceCategory, { page: 0, size: 50 })
-          .then((res) => {
-            setTemplatesByCategory((prev) => ({
-              ...prev,
-              [cat]: res.content,
-            }))
-          })
-          .catch(() => {
-            setTemplatesByCategory((prev) => ({
-              ...prev,
-              [cat]: [],
-            }))
-          })
-          .finally(() => {
-            setTemplatesLoading((prev) => ({ ...prev, [cat]: false }))
-          })
-      }
+    let cancelled = false
+    listActiveServiceCategories()
+      .then((cats) => {
+        if (cancelled) return
+        setCategories(cats)
+
+        // Em modo edição, resolve os categoryIds dos itens existentes
+        // (o backend persiste o nome da categoria como String).
+        if (proposal?.serviceItems && proposal.serviceItems.length > 0) {
+          // Mapeia nome -> id para resolução
+          const nameToId = new Map<string, number>()
+          for (const c of cats) {
+            nameToId.set(c.name, c.id)
+          }
+
+          // Resolve os categoryIds
+          const resolvedIds = new Set<number>()
+          setServiceItems((prev) =>
+            prev.map((s) => {
+              if (s.categoryName && !s.categoryId) {
+                const id = nameToId.get(s.categoryName)
+                if (id) {
+                  resolvedIds.add(id)
+                  return { ...s, categoryId: id }
+                }
+              }
+              return s
+            }),
+          )
+
+          // Pré-carrega os templates das categorias resolvidas
+          for (const catId of resolvedIds) {
+            if (!templatesByCategory[catId]) {
+              setTemplatesLoading((prev) => ({ ...prev, [catId]: true }))
+              listServiceTemplatesByCategory(catId, { page: 0, size: 50 })
+                .then((res) => {
+                  if (cancelled) return
+                  setTemplatesByCategory((prev) => ({
+                    ...prev,
+                    [catId]: res.content,
+                  }))
+                })
+                .catch(() => {
+                  if (!cancelled) {
+                    setTemplatesByCategory((prev) => ({ ...prev, [catId]: [] }))
+                  }
+                })
+                .finally(() => {
+                  if (!cancelled) {
+                    setTemplatesLoading((prev) => ({ ...prev, [catId]: false }))
+                  }
+                })
+            }
+          }
+        }
+      })
+      .catch(() => setCategories([]))
+    return () => {
+      cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [proposal?.serviceItems])
@@ -328,7 +373,8 @@ export function TechnicalProposalForm({
       {
         rowKey: nextRowKey(),
         mode: 'CATALOG',
-        category: '',
+        categoryId: '',
+        categoryName: '',
         serviceTemplateId: '',
         serviceTemplateName: '',
         description: '',
@@ -343,7 +389,8 @@ export function TechnicalProposalForm({
       {
         rowKey: nextRowKey(),
         mode: 'SIMPLE',
-        category: '',
+        categoryId: '',
+        categoryName: '',
         serviceTemplateId: '',
         serviceTemplateName: '',
         description: '',
@@ -361,31 +408,35 @@ export function TechnicalProposalForm({
   }
 
   // Carrega templates por categoria quando o usuário seleciona uma categoria
-  function handleCategoryChange(rowKey: string, category: ServiceCategory | '') {
+  function handleCategoryChange(rowKey: string, categoryId: number | '') {
+    // Resolve o nome da categoria a partir da lista carregada
+    const cat = categoryId ? categories.find((c) => c.id === categoryId) : null
+    const categoryName = cat?.name ?? ''
     updateServiceItem(rowKey, {
-      category,
+      categoryId,
+      categoryName,
       serviceTemplateId: '',
       serviceTemplateName: '',
       description: '',
       price: '',
     })
-    if (category && !templatesByCategory[category]) {
-      setTemplatesLoading((prev) => ({ ...prev, [category]: true }))
-      listServiceTemplatesByCategory(category, { page: 0, size: 50 })
+    if (categoryId && !templatesByCategory[categoryId]) {
+      setTemplatesLoading((prev) => ({ ...prev, [categoryId]: true }))
+      listServiceTemplatesByCategory(categoryId, { page: 0, size: 50 })
         .then((res) => {
           setTemplatesByCategory((prev) => ({
             ...prev,
-            [category]: res.content,
+            [categoryId]: res.content,
           }))
         })
         .catch(() => {
           setTemplatesByCategory((prev) => ({
             ...prev,
-            [category]: [],
+            [categoryId]: [],
           }))
         })
         .finally(() => {
-          setTemplatesLoading((prev) => ({ ...prev, [category]: false }))
+          setTemplatesLoading((prev) => ({ ...prev, [categoryId]: false }))
         })
     }
   }
@@ -484,7 +535,7 @@ export function TechnicalProposalForm({
       .map((s) => ({
         description: isHtmlEmpty(s.description) ? null : s.description,
         price: parseNumber(s.price) ?? null,
-        category: s.mode === 'CATALOG' && s.category ? s.category : null,
+        category: s.mode === 'CATALOG' && s.categoryName ? s.categoryName : null,
         serviceTemplateId: s.mode === 'CATALOG' && s.serviceTemplateId ? Number(s.serviceTemplateId) : null,
       }))
 
@@ -795,16 +846,17 @@ export function TechnicalProposalForm({
                   index={idx}
                   isFirst={idx === 0}
                   draft={s}
+                  categories={categories}
                   templates={
-                    s.category
-                      ? templatesByCategory[s.category] ?? []
+                    s.categoryId
+                      ? templatesByCategory[s.categoryId] ?? []
                       : []
                   }
                   templatesLoading={
-                    s.category ? templatesLoading[s.category] ?? false : false
+                    s.categoryId ? templatesLoading[s.categoryId] ?? false : false
                   }
                   onChange={(patch) => updateServiceItem(s.rowKey, patch)}
-                  onCategoryChange={(cat) => handleCategoryChange(s.rowKey, cat)}
+                  onCategoryChange={(catId) => handleCategoryChange(s.rowKey, catId)}
                   onServiceSelect={(template) => handleServiceSelect(s.rowKey, template)}
                   onRemove={() => removeServiceItem(s.rowKey)}
                 />
@@ -990,10 +1042,11 @@ interface ServiceRowCatalogProps {
   index: number
   isFirst: boolean
   draft: ServiceDraft
+  categories: ServiceCategoryResponse[]
   templates: ServiceTemplateResponse[]
   templatesLoading: boolean
   onChange: (patch: Partial<ServiceDraft>) => void
-  onCategoryChange: (category: ServiceCategory | '') => void
+  onCategoryChange: (categoryId: number | '') => void
   onServiceSelect: (template: ServiceTemplateResponse) => void
   onRemove: () => void
 }
@@ -1002,6 +1055,7 @@ function ServiceRowCatalog({
   index,
   isFirst,
   draft,
+  categories,
   templates,
   templatesLoading,
   onChange,
@@ -1013,9 +1067,9 @@ function ServiceRowCatalog({
 
   const categoryOptions = [
     { value: '', label: 'Selecione…' },
-    ...SERVICE_CATEGORIES.map((c) => ({
-      value: c.value,
-      label: c.label,
+    ...categories.map((c) => ({
+      value: String(c.id),
+      label: c.name,
     })),
   ]
 
@@ -1043,8 +1097,8 @@ function ServiceRowCatalog({
           {isFirst ? <label className={labelCls}>Categoria</label> : null}
           <select
             aria-label="Categoria do serviço"
-            value={draft.category}
-            onChange={(e) => onCategoryChange(e.target.value as ServiceCategory | '')}
+            value={draft.categoryId ? String(draft.categoryId) : ''}
+            onChange={(e) => onCategoryChange(e.target.value ? Number(e.target.value) : '')}
             className="h-9 w-full min-w-0 rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-900 outline-none focus:border-focus focus:ring-1 focus:ring-focus/30 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
           >
             {categoryOptions.map((opt) => (
@@ -1074,7 +1128,7 @@ function ServiceRowCatalog({
                   onChange({ serviceTemplateId: '', serviceTemplateName: '' })
                 }
               }}
-              disabled={!draft.category}
+              disabled={!draft.categoryId}
               className="h-9 w-full min-w-0 rounded-md border border-slate-300 bg-white px-2 text-sm text-slate-900 outline-none focus:border-focus focus:ring-1 focus:ring-focus/30 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:disabled:bg-slate-800"
             >
               {serviceOptions.map((opt) => (

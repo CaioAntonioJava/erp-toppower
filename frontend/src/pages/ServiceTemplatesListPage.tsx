@@ -5,6 +5,7 @@ import {
   ChevronRight,
   Plus,
   Search,
+  Trash2,
   Wrench,
 } from 'lucide-react'
 import { Button } from '../components/ui/Button'
@@ -12,7 +13,9 @@ import { Input } from '../components/ui/Input'
 import { Spinner } from '../components/ui/Spinner'
 import { Alert } from '../components/ui/Alert'
 import { Badge } from '../components/ui/Badge'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import {
+  deleteServiceTemplate,
   listServiceTemplates,
   searchServiceTemplates,
 } from '../api/servicetemplate.api'
@@ -37,15 +40,6 @@ function stripHtml(html: string | null | undefined): string {
   return doc.body.textContent?.trim() ?? ''
 }
 
-/** Formata o valor do enum ServiceCategory para exibição amigável. */
-function formatCategory(cat: string | null | undefined): string {
-  if (!cat) return ''
-  const labels: Record<string, string> = {
-    EXECUÇÃO_SPDA: 'EXECUÇÃO SPDA',
-  }
-  return labels[cat] ?? cat
-}
-
 export function ServiceTemplatesListPage() {
   const navigate = useNavigate()
 
@@ -55,6 +49,8 @@ export function ServiceTemplatesListPage() {
   const [page, setPage] = useState(0)
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
+  const [toDelete, setToDelete] = useState<ServiceTemplateResponse | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const pageSize = 20
 
   // Debounce da busca
@@ -89,6 +85,20 @@ export function ServiceTemplatesListPage() {
   }, [load])
 
   const items = data?.content ?? []
+
+  async function handleDelete() {
+    if (!toDelete) return
+    setDeleting(true)
+    try {
+      await deleteServiceTemplate(toDelete.id)
+      setToDelete(null)
+      await load()
+    } catch (err) {
+      setError(toApiError(err).message)
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -142,12 +152,13 @@ export function ServiceTemplatesListPage() {
                 <th className="px-4 py-3 font-medium">Categoria</th>
                 <th className="px-4 py-3 font-medium">Descrição</th>
                 <th className="px-4 py-3 font-medium">Atualizado em</th>
+                <th className="px-4 py-3 font-medium text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {loading ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-12 text-center">
+                  <td colSpan={5} className="px-4 py-12 text-center">
                     <div className="inline-flex items-center gap-2 text-slate-500 dark:text-slate-400">
                       <Spinner size="sm" /> Carregando…
                     </div>
@@ -155,7 +166,7 @@ export function ServiceTemplatesListPage() {
                 </tr>
               ) : items.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-12 text-center">
+                  <td colSpan={5} className="px-4 py-12 text-center">
                     <div className="flex flex-col items-center gap-2 text-slate-500 dark:text-slate-400">
                       <Wrench className="h-8 w-8 opacity-60" />
                       <p className="text-sm">Nenhum serviço encontrado.</p>
@@ -181,8 +192,8 @@ export function ServiceTemplatesListPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      {s.category ? (
-                        <Badge tone="info">{formatCategory(s.category)}</Badge>
+                      {s.categoryName ? (
+                        <Badge tone="info">{s.categoryName}</Badge>
                       ) : (
                         <span className="text-slate-400">—</span>
                       )}
@@ -197,6 +208,20 @@ export function ServiceTemplatesListPage() {
                           por {s.updatedBy}
                         </div>
                       ) : null}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setToDelete(s)
+                        }}
+                        aria-label="Excluir serviço"
+                        title="Excluir serviço"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600 dark:text-slate-400 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -232,6 +257,20 @@ export function ServiceTemplatesListPage() {
           </div>
         </div>
       </div>
+
+      {/* Confirmação de exclusão */}
+      <ConfirmDialog
+        open={toDelete !== null}
+        title="Excluir serviço"
+        description={`Tem certeza que deseja excluir o serviço "${toDelete?.name ?? ''}"? Esta ação não pode ser desfeita.`}
+        confirmText="Excluir"
+        confirmVariant="danger"
+        isLoading={deleting}
+        onConfirm={handleDelete}
+        onClose={() => {
+          if (!deleting) setToDelete(null)
+        }}
+      />
     </div>
   )
 }

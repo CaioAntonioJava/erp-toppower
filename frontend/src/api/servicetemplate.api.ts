@@ -4,7 +4,6 @@ import type {
   ServiceTemplateResponse,
   ServiceTemplateUpdateRequest,
 } from '../types/servicetemplate'
-import type { ServiceCategory } from '../types/servicetemplate'
 import type { PagedResponse } from '../types/api'
 
 const BASE = '/api/v1/service-templates'
@@ -47,14 +46,14 @@ export async function searchServiceTemplates(params: {
 }
 
 export async function listServiceTemplatesByCategory(
-  category: ServiceCategory,
+  categoryId: number,
   params: PageParams,
 ): Promise<PagedResponse<ServiceTemplateResponse>> {
   const { data } = await api.get<PagedResponse<ServiceTemplateResponse>>(
     `${BASE}/by-category`,
     {
       params: {
-        category,
+        categoryId,
         page: params.page ?? 0,
         size: params.size ?? 50,
         sort: 'name,asc',
