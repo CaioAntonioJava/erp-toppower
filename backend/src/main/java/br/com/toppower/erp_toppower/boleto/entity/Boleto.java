@@ -119,6 +119,15 @@ public class Boleto extends OrganizationScopedEntity {
     private Integer installmentNumber;
 
     /**
+     * Identificador do plano de parcelamento que agrupa todas as parcelas
+     * geradas em um mesmo cadastro (UUID string). Nulo para boletos avulsos
+     * (sem parcelamento). Permite recuperar/cancelar todas as parcelas de
+     * um mesmo plano posteriormente.
+     */
+    @Column(name = "installment_plan_id", length = 36)
+    private String installmentPlanId;
+
+    /**
      * Inicialização antes de persistir: garante que o status seja
      * {@link RegistrationStatus#ATIVO} quando não informado. Não
      * sobrescreve valores já definidos pelo chamador.

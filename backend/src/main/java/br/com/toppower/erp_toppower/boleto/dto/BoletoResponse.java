@@ -52,8 +52,11 @@ public record BoletoResponse(
         @Schema(description = "Data da nota fiscal vinculada ao boleto, se houver.")
         LocalDate invoiceDate,
 
-        @Schema(description = "Nº parcelas do boleto, se houver.")
+        @Schema(description = "Nº parcela do boleto, se houver.")
         Integer installmentNumber,
+
+        @Schema(description = "ID do plano de parcelamento que agrupa as parcelas, se houver.")
+        String installmentPlanId,
 
         @Schema(description = "Data de criação.",
                 requiredMode = Schema.RequiredMode.REQUIRED)

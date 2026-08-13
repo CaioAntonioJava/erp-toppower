@@ -88,6 +88,7 @@ class BoletoMapperTest {
         assertEquals("CT-001", response.contractWorkNumber());
         assertEquals("Teste", response.responsibleName());
         assertNull(response.supplierName());
+        assertNull(response.installmentPlanId());
     }
 
     @Test

@@ -95,7 +95,7 @@ public class BoletoController {
                     "Filtrar apenas por status: ?status=ATIVO. " +
                     "Filtrar por texto: ?query=xpto. " +
                     "Combinar: ?status=ATIVO&query=xpto. " +
-                    "Sem parâmetros: retorna todos (paginado). Match em beneficiário, responsável, NF ou nº obra.")
+                    "Sem parâmetros: retorna todos (paginado). Match em responsável, NF ou nº obra.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAuthority('MODULE_BOLETOS')")
     @ApiResponses({
@@ -105,7 +105,7 @@ public class BoletoController {
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.", content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<PagedResponse<BoletoResponse>> search(
-            @Parameter(description = "Termo de busca OPCIONAL (mínimo 2 caracteres quando informado). Match em beneficiário, responsável, NF ou nº obra.",
+            @Parameter(description = "Termo de busca OPCIONAL (mínimo 2 caracteres quando informado). Match em responsável, NF ou nº obra.",
                     example = "Pagamento")
             @RequestParam(value = "query", required = false) String query,
             @Parameter(description = "Filtro OPCIONAL: ATIVO ou INATIVO. Omitido = ambos.",
@@ -272,19 +272,18 @@ public class BoletoController {
     @Operation(summary = "Gerar conta a pagar a partir do boleto",
             description = "Gera uma conta a pagar no módulo de Contas a Pagar a partir deste " +
                     "boleto. O boleto deve possuir um fornecedor (supplier) vinculado. " +
-                    "Idempotente: se já existe conta a pagar ativa vinculada, retorna o " +
-                    "detalhe da conta existente.")
+                    "Rejeita (409) se já existe uma conta a pagar ativa vinculada ao boleto.")
     @SecurityRequirement(name = "bearerAuth")
     @PreAuthorize("hasAuthority('MODULE_BOLETOS')")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Conta a pagar gerada (ou já existente).",
+            @ApiResponse(responseCode = "200", description = "Conta a pagar gerada com sucesso.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = PayableResponse.class))),
             @ApiResponse(responseCode = "401", description = "Token ausente ou inválido.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
             @ApiResponse(responseCode = "404", description = "Boleto não encontrado.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
-            @ApiResponse(responseCode = "409", description = "Boleto sem fornecedor vinculado.",
+            @ApiResponse(responseCode = "409", description = "Boleto sem fornecedor vinculado ou já possui conta a pagar ativa.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     public ResponseEntity<PayableResponse> toPayable(@PathVariable Long id) {

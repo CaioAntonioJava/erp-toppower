@@ -680,6 +680,9 @@ public class PayableService {
         if (boleto.getResponsibleName() != null && !boleto.getResponsibleName().isBlank()) {
             sb.append(" · ").append(boleto.getResponsibleName());
         }
+        if (boleto.getInvoiceNumber() != null && !boleto.getInvoiceNumber().isBlank()) {
+            sb.append(" · NF ").append(boleto.getInvoiceNumber());
+        }
         if (boleto.getInstallmentNumber() != null) {
             sb.append(" · Parcela ").append(boleto.getInstallmentNumber());
         }

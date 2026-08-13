@@ -56,9 +56,9 @@ public record BoletoUpdateRequest(
                 example = "2026-08-01", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         LocalDate invoiceDate,
 
-        @Schema(description = "Nº parcelas (manual).",
+        @Schema(description = "Nº parcela (manual).",
                 example = "1", requiredMode = Schema.RequiredMode.NOT_REQUIRED, minimum = "1")
-        @Min(value = 1, message = "Nº parcelas deve ser no mínimo 1")
+        @Min(value = 1, message = "Nº parcela deve ser no mínimo 1")
         Integer installmentNumber
 ) {
 }

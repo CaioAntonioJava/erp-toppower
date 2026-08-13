@@ -65,6 +65,7 @@ public final class BoletoMapper {
                 boleto.getInvoiceNumber(),
                 boleto.getInvoiceDate(),
                 boleto.getInstallmentNumber(),
+                boleto.getInstallmentPlanId(),
                 boleto.getCreatedAt(),
                 boleto.getUpdatedAt(),
                 boleto.getCreatedBy(),

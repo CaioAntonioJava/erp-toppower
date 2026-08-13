@@ -145,12 +145,15 @@ public class BoletoService {
 
         // A data de vencimento informada funciona como data base para
         // calcular os vencimentos das parcelas (dataBase + prazo em dias).
-        LocalDate baseDate = request.dueDate() != null ? request.dueDate() : LocalDate.now();
+        // dueDate é @NotNull no BoletoCreateRequest, então nunca é null aqui.
+        LocalDate baseDate = request.dueDate();
         BigDecimal total = request.value();
         BigDecimal baseShare = total.divide(BigDecimal.valueOf(installments), SCALE, RoundingMode.HALF_UP);
         BigDecimal accumulated = BigDecimal.ZERO;
 
         List<BoletoResponse> result = new ArrayList<>(installments);
+        // Gera um UUID único para agrupar todas as parcelas deste plano.
+        String planId = java.util.UUID.randomUUID().toString();
         for (int i = 0; i < installments; i++) {
             Boleto boleto = new Boleto();
             boleto.setContractWorkNumber(request.contractWorkNumber());
@@ -169,6 +172,8 @@ public class BoletoService {
             boleto.setInvoiceDate(request.invoiceDate());
             // Número da parcela é gerado automaticamente no parcelamento.
             boleto.setInstallmentNumber(i + 1);
+            // Agrupa todas as parcelas do mesmo plano.
+            boleto.setInstallmentPlanId(planId);
             Boleto saved = boletoRepository.save(boleto);
             // Cada boleto gera sua própria conta a pagar.
             payableService.generateFromBoleto(saved);
@@ -335,15 +340,19 @@ public class BoletoService {
         if (boleto.getSupplierId() == null) {
             throw PayableBusinessException.boletoWithoutSupplier(boletoId);
         }
-        Optional<Payable> existing = payableService.generateFromBoleto(boleto);
-        // generateFromBoleto é idempotente e retorna a existente; aqui
-        // queremos rejeitar quando já existe (semântica de "gerar manual").
-        if (existing.isPresent() && existing.get().getBoletoId() != null
-                && existing.get().getBoletoId().equals(boletoId)) {
-            // Verifica se a conta já existia antes (não acabou de criar).
-            // Simplesmente retorna o detalhe — o usuário vê que já existe.
+        // Rejeita se já existe conta a pagar ativa vinculada (semântica
+        // de "gerar manual" — não é idempotente como o create/settle).
+        Optional<Payable> existing = payableRepository.findActiveByBoletoId(boletoId);
+        if (existing.isPresent()) {
+            throw PayableBusinessException.boletoAlreadyLinked(boletoId);
         }
-        return payableService.getById(existing.get().getId());
+        Optional<Payable> created = payableService.generateFromBoleto(boleto);
+        if (created.isEmpty()) {
+            // Tese: não deveria acontecer após as validações acima, mas
+            // defende contra condições de corrida.
+            throw PayableBusinessException.boletoWithoutSupplier(boletoId);
+        }
+        return payableService.getById(created.get().getId());
     }
 
     // ---------------------------------------------------------------------

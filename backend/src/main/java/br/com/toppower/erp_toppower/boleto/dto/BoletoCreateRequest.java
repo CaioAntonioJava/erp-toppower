@@ -67,7 +67,7 @@ public record BoletoCreateRequest(
                 + "(o número da parcela é gerado automaticamente: 1, 2, 3, ...). "
                 + "Para boleto avulso (installmentsCount = 1), informe manualmente se desejado.",
                 example = "1", requiredMode = Schema.RequiredMode.NOT_REQUIRED, minimum = "1")
-        @Min(value = 1, message = "Nº parcelas deve ser no mínimo 1")
+        @Min(value = 1, message = "Nº parcela deve ser no mínimo 1")
         Integer installmentNumber,
 
         @Schema(description = "Quantidade de parcelas a gerar. Default 1 (boleto avulso). "
