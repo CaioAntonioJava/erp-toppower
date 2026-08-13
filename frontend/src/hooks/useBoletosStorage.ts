@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { useOrganization } from '../context/OrganizationContext'
 import { listBoletos, createBoleto, inactivateBoleto, uploadBoletoAttachment, updateBoleto, settleBoleto } from '../api/boleto.api'
 import { toApiError } from '../lib/errors'
-import type { BoletoResponse, BoletoUpdateRequest } from '../types/boleto'
+import { toDue } from '../lib/boleto'
+import type { BoletoUpdateRequest } from '../types/boleto'
 import type { BoletoDue } from '../types/finance'
 
 /**
@@ -42,41 +43,6 @@ export interface NovoBoletoInput {
   installmentsCount?: number
   /** Prazos das parcelas em dias, separados por barra (ex: "30/60/90"). */
   installmentTerms?: string
-}
-
-/** Calcula dias até o vencimento a partir de uma data ISO (negativo = vencido). */
-function diasAteVencimento(dataVencimento: string): number {
-  const hoje = new Date()
-  hoje.setHours(0, 0, 0, 0)
-  const venc = new Date(dataVencimento)
-  venc.setHours(0, 0, 0, 0)
-  const msPorDia = 24 * 60 * 60 * 1000
-  return Math.round((venc.getTime() - hoje.getTime()) / msPorDia)
-}
-
-function derivarStatus(dias: number): BoletoDue['status'] {
-  if (dias < 0) return 'ATRASADO'
-  return 'ABERTO'
-}
-
-/** Converte um BoletoResponse do backend em BoletoDue (com campos derivados). */
-function toDue(boleto: BoletoResponse): BoletoDue {
-  const dias = diasAteVencimento(boleto.dueDate)
-  return {
-    id: boleto.id,
-    contractWorkNumber: boleto.contractWorkNumber,
-    responsibleName: boleto.responsibleName,
-    valor: boleto.value,
-    dataVencimento: boleto.dueDate,
-    diasAteVencimento: dias,
-    status: derivarStatus(dias),
-    paid: boleto.paid,
-    paymentDate: boleto.paymentDate,
-    invoiceNumber: boleto.invoiceNumber,
-    invoiceDate: boleto.invoiceDate,
-    installmentNumber: boleto.installmentNumber,
-    supplierName: boleto.supplierName,
-  }
 }
 
 export function useBoletosStorage() {
@@ -133,9 +99,17 @@ export function useBoletosStorage() {
       [...prev, ...dues].sort((a, b) => a.dataVencimento.localeCompare(b.dataVencimento)),
     )
     if (input.attachment != null && created.length > 0) {
-      // Upload best-effort após o cadastro: o boleto já existe.
-      // O anexo é vinculado à primeira parcela criada.
-      await uploadBoletoAttachment(created[0].id, input.attachment)
+      // Upload best-effort: o boleto já foi criado com sucesso. Se o
+      // upload do anexo falhar, o boleto permanece cadastrado — apenas
+      // logamos o erro no console sem propagar a exceção.
+      try {
+        await uploadBoletoAttachment(created[0].id, input.attachment)
+      } catch (uploadErr) {
+        console.error(
+          'Falha ao enviar anexo do boleto (best-effort):',
+          uploadErr,
+        )
+      }
     }
     // Dispara o refresh do dashboard para que os widgets de contas a pagar
     // (e indicadores financeiros) recarreguem e reflitam o novo boleto.

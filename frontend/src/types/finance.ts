@@ -39,6 +39,8 @@ export interface BoletoDue {
   invoiceDate: string | null
   /** Número da parcela do boleto, se houver. */
   installmentNumber: number | null
+  /** ID do plano de parcelamento que agrupa as parcelas, se houver. */
+  installmentPlanId: string | null
   /** Nome de exibição da empresa (fornecedor) vinculada, se houver. */
   supplierName: string | null
 }

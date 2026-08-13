@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { X, Paperclip, FileText } from 'lucide-react'
 import { Button } from '../ui/Button'
 import { Alert } from '../ui/Alert'
-import { formatCurrency } from '../../lib/format'
+import { formatCurrency, formatDate } from '../../lib/format'
 import type { BoletoDue } from '../../types/finance'
 
 interface SettleBoletoModalProps {
@@ -126,7 +126,7 @@ export function SettleBoletoModal({ open, boleto, onClose, onConfirm }: SettleBo
                     {formatCurrency(boleto.valor)}
                   </span>
                   <span className="text-slate-500 dark:text-slate-400">
-                    Venc. {boleto.dataVencimento}
+                    Venc. {formatDate(boleto.dataVencimento)}
                   </span>
                 </div>
               </div>

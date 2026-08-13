@@ -5,8 +5,8 @@ import { Card } from '../ui/Card'
 import { Badge } from '../ui/Badge'
 import { Spinner } from '../ui/Spinner'
 import { formatCurrency, formatDate } from '../../lib/format'
+import { toDue, labelBoleto } from '../../lib/boleto'
 import { listBoletos } from '../../api/boleto.api'
-import type { BoletoResponse } from '../../types/boleto'
 import type { BoletoDue } from '../../types/finance'
 
 /**
@@ -16,42 +16,6 @@ import type { BoletoDue } from '../../types/finance'
  * Busca os boletos ativos não pagos do endpoint `/api/v1/boletos` e
  * deriva os campos de apresentação (diasAteVencimento, status) no frontend.
  */
-
-/** Calcula dias até o vencimento a partir de uma data ISO (negativo = vencido). */
-function diasAteVencimento(dataVencimento: string): number {
-  const hoje = new Date()
-  hoje.setHours(0, 0, 0, 0)
-  const venc = new Date(`${dataVencimento}T00:00:00`)
-  return Math.round((venc.getTime() - hoje.getTime()) / (24 * 60 * 60 * 1000))
-}
-
-/** Converte um BoletoResponse em BoletoDue (com campos derivados). */
-function toDue(boleto: BoletoResponse): BoletoDue {
-  const dias = diasAteVencimento(boleto.dueDate)
-  return {
-    id: boleto.id,
-    contractWorkNumber: boleto.contractWorkNumber,
-    responsibleName: boleto.responsibleName,
-    valor: boleto.value,
-    dataVencimento: boleto.dueDate,
-    diasAteVencimento: dias,
-    status: dias < 0 ? 'ATRASADO' : 'ABERTO',
-    paid: boleto.paid,
-    paymentDate: boleto.paymentDate,
-    invoiceNumber: boleto.invoiceNumber,
-    invoiceDate: boleto.invoiceDate,
-    installmentNumber: boleto.installmentNumber,
-    supplierName: boleto.supplierName,
-  }
-}
-
-/** Monta um rótulo legível para o boleto (nº obra + responsável, se houver). */
-function labelBoleto(contractWorkNumber: string | null, responsibleName: string | null): string {
-  const obra = contractWorkNumber ?? ''
-  const resp = responsibleName ?? ''
-  if (obra && resp) return `${obra} · ${resp}`
-  return obra || resp || 'Boleto sem identificação'
-}
 
 export function BoletosDueWidget() {
   const [items, setItems] = useState<BoletoDue[]>([])

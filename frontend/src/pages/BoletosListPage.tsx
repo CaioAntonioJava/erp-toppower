@@ -24,6 +24,14 @@ import type { BoletoResponse } from '../types/boleto'
 import type { RegistrationStatus } from '../types/registration'
 import type { PagedResponse } from '../types/api'
 import { formatCurrency, formatDate } from '../lib/format'
+import { diasAteVencimento, labelBoleto } from '../lib/boleto'
+import {
+  todayIso,
+  addDaysIso,
+  firstOfMonthIso,
+  firstOfPrevMonthIso,
+  lastOfPrevMonthIso,
+} from '../lib/date'
 import { toApiError } from '../lib/errors'
 
 /** Opções do filtro de status de pagamento. */
@@ -39,54 +47,6 @@ const STATUS_OPTIONS = [
   { value: 'ATIVO', label: 'Ativo' },
   { value: 'INATIVO', label: 'Inativo' },
 ]
-
-/** Retorna hoje no formato ISO (yyyy-MM-dd). */
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10)
-}
-
-/** Retorna (hoje + dias) no formato ISO. */
-function addDaysIso(days: number): string {
-  const d = new Date()
-  d.setDate(d.getDate() + days)
-  return d.toISOString().slice(0, 10)
-}
-
-/** Primeiro dia do mês atual. */
-function firstOfMonthIso(): string {
-  const d = new Date()
-  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10)
-}
-
-/** Primeiro dia do mês anterior. */
-function firstOfPrevMonthIso(): string {
-  const d = new Date()
-  return new Date(d.getFullYear(), d.getMonth() - 1, 1).toISOString().slice(0, 10)
-}
-
-/** Último dia do mês anterior. */
-function lastOfPrevMonthIso(): string {
-  const d = new Date()
-  return new Date(d.getFullYear(), d.getMonth(), 0).toISOString().slice(0, 10)
-}
-
-/** Calcula dias até o vencimento a partir de uma data ISO (negativo = vencido). */
-function diasAteVencimento(dataVencimento: string): number {
-  const hoje = new Date()
-  hoje.setHours(0, 0, 0, 0)
-  const venc = new Date(`${dataVencimento}T00:00:00`)
-  venc.setHours(0, 0, 0, 0)
-  const msPorDia = 24 * 60 * 60 * 1000
-  return Math.round((venc.getTime() - hoje.getTime()) / msPorDia)
-}
-
-/** Monta um rótulo legível para o boleto (nº obra + responsável, se houver). */
-function labelBoleto(contractWorkNumber: string | null, responsibleName: string | null): string {
-  const obra = contractWorkNumber ?? ''
-  const resp = responsibleName ?? ''
-  if (obra && resp) return `${obra} · ${resp}`
-  return obra || resp || 'Boleto sem identificação'
-}
 
 /**
  * Página de relatório de boletos — lista paginada e filtrada por status
@@ -220,6 +180,9 @@ export function BoletosListPage() {
             aria-label="Filtrar por Nº Obra"
           />
           <div className="w-full">
+            <p className="mb-1 text-sm text-slate-700 dark:text-slate-200">
+              {periodoLabel} de
+            </p>
             <Input
               type="date"
               value={dueFrom}
@@ -228,11 +191,11 @@ export function BoletosListPage() {
               disabled={!periodoHabilitado}
               aria-label="Filtrar por período a partir de"
             />
-            <p className="mt-1.5 text-sm text-slate-700 dark:text-slate-200">
-              {periodoLabel} de
-            </p>
           </div>
           <div className="w-full">
+            <p className="mb-1 text-sm text-slate-700 dark:text-slate-200">
+              {periodoLabel} até
+            </p>
             <Input
               type="date"
               value={dueTo}
@@ -241,9 +204,6 @@ export function BoletosListPage() {
               disabled={!periodoHabilitado}
               aria-label="Filtrar por período até"
             />
-            <p className="mt-1.5 text-sm text-slate-700 dark:text-slate-200">
-              {periodoLabel} até
-            </p>
           </div>
         </div>
 

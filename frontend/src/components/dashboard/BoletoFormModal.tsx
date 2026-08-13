@@ -34,11 +34,6 @@ interface FormState {
   installmentTerms: string
 }
 
-/** Retorna hoje no formato ISO (yyyy-MM-dd). */
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10)
-}
-
 const EMPTY: FormState = {
   contractWorkNumber: '',
   responsibleName: '',
@@ -60,7 +55,10 @@ const MAX_SIZE_BYTES = 10 * 1024 * 1024 // 10MB
  * igualitária com residual na última parcela) para confirmação visual. */
 function ParcelasPreview({ form }: { form: FormState }): React.ReactNode {
   const total = parseNumber(form.valor)
-  const baseDate = form.dueDate || todayIso()
+  // Sem data base preenchida, não exibe o preview — evita calcular
+  // vencimentos a partir de hoje sem o usuário ter informado a data base.
+  if (!form.dueDate) return null
+  const baseDate = form.dueDate
   const termos = form.installmentTerms.split('/').map((t) => parseInt(t.trim(), 10))
   const n = parseInt(form.installmentsCount, 10) || 1
   if (total == null || total <= 0 || n < 2) return null
@@ -391,7 +389,7 @@ export function BoletoFormModal({ open, onClose, onSubmit, editBoleto, onUpdate 
             ) : null}
           </div>
 
-          {/* Linha 2: Nota fiscal + Data da NF + Nº parcelas */}
+          {/* Linha 2: Nota fiscal + Data da NF + Nº parcela */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Input
               label="Nota fiscal (opcional)"
@@ -406,7 +404,7 @@ export function BoletoFormModal({ open, onClose, onSubmit, editBoleto, onUpdate 
               onChange={(e) => setField('invoiceDate', e.target.value)}
             />
             <Input
-              label="Nº parcelas (opcional)"
+              label="Nº parcela (opcional)"
               type="number"
               min={1}
               inputMode="numeric"
@@ -414,6 +412,7 @@ export function BoletoFormModal({ open, onClose, onSubmit, editBoleto, onUpdate 
               value={form.installmentNumber}
               onChange={(e) => setField('installmentNumber', e.target.value)}
               disabled={parcelado}
+              hint={parcelado ? 'Gerado automaticamente em parcelamento.' : undefined}
             />
           </div>
 
@@ -490,10 +489,10 @@ export function BoletoFormModal({ open, onClose, onSubmit, editBoleto, onUpdate 
                 ) : (
                   <span className="text-xs text-slate-400 dark:text-slate-500">
                     PDF, PNG ou JPEG — até 10MB
-                </span>
-              )}
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
           ) : null}
 
           {error ? (

@@ -8,6 +8,7 @@ import { Spinner } from '../ui/Spinner'
 import { ConfirmDialog } from '../ui/ConfirmDialog'
 import { Alert } from '../ui/Alert'
 import { formatCurrency, formatDate } from '../../lib/format'
+import { labelBoleto } from '../../lib/boleto'
 import { useBoletosStorage } from '../../hooks/useBoletosStorage'
 import type { NovoBoletoInput } from '../../hooks/useBoletosStorage'
 import { toApiError } from '../../lib/errors'
@@ -17,14 +18,6 @@ import type { BoletoDue } from '../../types/finance'
 import { BoletoFormModal } from './BoletoFormModal'
 import { BoletoAttachmentsModal } from './BoletoAttachmentsModal'
 import { SettleBoletoModal } from './SettleBoletoModal'
-
-/** Monta um rótulo legível para o boleto (nº obra + responsável, se houver). */
-function labelBoleto(contractWorkNumber: string | null, responsibleName: string | null): string {
-  const obra = contractWorkNumber ?? ''
-  const resp = responsibleName ?? ''
-  if (obra && resp) return `${obra} · ${resp}`
-  return obra || resp || 'Boleto sem identificação'
-}
 
 /**
  * Bloco de boletos cadastrados pela usuária.
