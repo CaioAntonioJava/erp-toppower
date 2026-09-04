@@ -5,7 +5,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
@@ -17,16 +16,17 @@ import java.time.LocalDate;
         + "para gerar N boletos, cada um replicado no contas a pagar.")
 public record BoletoCreateRequest(
 
-        @Schema(description = "Descrição do boleto.",
-                example = "Pagamento fornecedor XYZ", requiredMode = Schema.RequiredMode.REQUIRED, maxLength = 200)
-        @NotBlank(message = "Descrição do boleto é obrigatória")
-        @Size(max = 200, message = "Descrição do boleto deve ter no máximo {max} caracteres")
-        String description,
+        @Schema(description = "Nº da obra/contrato vinculado ao boleto (campo livre, opcional).",
+                example = "CT-001-2026", requiredMode = Schema.RequiredMode.NOT_REQUIRED,
+                maxLength = 60)
+        @Size(max = 60, message = "Nº Obra deve ter no máximo {max} caracteres")
+        String contractWorkNumber,
 
-        @Schema(description = "Beneficiário do boleto (quem recebe o pagamento). Opcional.",
-                example = "EMPRESA XPTO LTDA", requiredMode = Schema.RequiredMode.NOT_REQUIRED, maxLength = 200)
-        @Size(max = 200, message = "Beneficiário deve ter no máximo {max} caracteres")
-        String payee,
+        @Schema(description = "Nome do responsável pelo boleto (campo livre, opcional).",
+                example = "JOAO DA SILVA", requiredMode = Schema.RequiredMode.NOT_REQUIRED,
+                maxLength = 120)
+        @Size(max = 120, message = "Nome do responsável deve ter no máximo {max} caracteres")
+        String responsibleName,
 
         @Schema(description = "Valor total do boleto (ou valor total parcelado).",
                 example = "1500.00", requiredMode = Schema.RequiredMode.REQUIRED)
@@ -46,33 +46,40 @@ public record BoletoCreateRequest(
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         RegistrationStatus status,
 
-        @Schema(description = "ID do fornecedor (supplier) vinculado. Se omitido, o sistema "
+        @Schema(description = "ID da empresa (fornecedor) vinculado. Se omitido, o sistema "
                 + "vincula automaticamente o fornecedor padrão (\"Boleto Avulso\") para que a "
                 + "conta a pagar tenha um devedor. O cadastro do boleto sempre dispara a geração "
                 + "automática de uma conta a pagar.",
                 example = "12", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         Long supplierId,
 
-        @Schema(description = "Nº de Contrato/Obra vinculado ao boleto (campo livre, opcional).",
-                example = "CT-001-2026", requiredMode = Schema.RequiredMode.NOT_REQUIRED,
+        @Schema(description = "Número da nota fiscal vinculada ao boleto (campo livre, opcional).",
+                example = "NF-00123", requiredMode = Schema.RequiredMode.NOT_REQUIRED,
                 maxLength = 60)
-        @Size(max = 60, message = "Nº Contrato/Obra deve ter no máximo {max} caracteres")
-        String contractWorkNumber,
+        @Size(max = 60, message = "Nota fiscal deve ter no máximo {max} caracteres")
+        String invoiceNumber,
 
-        @Schema(description = "Data de cadastro do boleto (informável pelo usuário). Default: data atual.",
+        @Schema(description = "Data da nota fiscal vinculada ao boleto. Opcional.",
                 example = "2026-08-01", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
-        LocalDate registrationDate,
+        LocalDate invoiceDate,
+
+        @Schema(description = "Número da parcela (manual). Ignorado quando installmentsCount > 1 "
+                + "(o número da parcela é gerado automaticamente: 1, 2, 3, ...). "
+                + "Para boleto avulso (installmentsCount = 1), informe manualmente se desejado.",
+                example = "1", requiredMode = Schema.RequiredMode.NOT_REQUIRED, minimum = "1")
+        @Min(value = 1, message = "Nº parcela deve ser no mínimo 1")
+        Integer installmentNumber,
 
         @Schema(description = "Quantidade de parcelas a gerar. Default 1 (boleto avulso). "
                 + "Quando > 1, o sistema divide o valor total em N boletos e gera os vencimentos "
-                + "a partir de installmentTerms.",
+                + "a partir da data de vencimento (data base) + installmentTerms.",
                 example = "3", requiredMode = Schema.RequiredMode.NOT_REQUIRED, minimum = "1")
         @Min(value = 1, message = "Quantidade de parcelas deve ser no mínimo 1")
         Integer installmentsCount,
 
         @Schema(description = "Prazos das parcelas em dias, separados por barra, usados quando "
                 + "installmentsCount > 1. Ex.: \"30/60/90\" gera 3 parcelas vencendo em "
-                + "registrationDate+30, +60 e +90. Deve conter tantos prazos quantas parcelas.",
+                + "dataBase+30, +60 e +90. Deve conter tantos prazos quantas parcelas.",
                 example = "30/60/90", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         String installmentTerms
 ) {

@@ -148,9 +148,22 @@ export function SalesOrderForm({
   // Margem de lucro (%) aplicada sobre o preço unitário dos itens na
   // criação/edição direta. Opcional — quando vazia, nenhum acréscimo é
   // aplicado. Espelha o campo do header no backend.
-  const [profitMargin, setProfitMargin] = useState<string>(
+  const [profitMargin, setProfitMarginState] = useState<string>(
     salesOrder?.profitMargin != null ? String(salesOrder.profitMargin) : '',
   )
+  // Wrapper que limpa as margens individuais dos itens ao preencher a
+  // margem geral — são mutuamente excludentes.
+  const setProfitMargin = (v: string) => {
+    setProfitMarginState(v)
+    const m = parseNumber(v)
+    if (m != null && m !== 0) {
+      setItems((prev) =>
+        prev.map((it) =>
+          it.profitMargin != null ? { ...it, profitMargin: null } : it,
+        ),
+      )
+    }
+  }
 
   // === campos gerados pelo servidor ===
   // O código vem do backend no formato PV-NNNN-AAAA (ex.: PV-2800-2026).
@@ -474,6 +487,11 @@ export function SalesOrderForm({
   const algumItemComMargem = items.some(
     (it) => it.profitMargin != null && it.profitMargin !== 0,
   )
+
+  // Verdadeiro quando a margem do cabeçalho está preenchida (valor > 0).
+  // Nesse caso as margens individuais dos itens são desabilitadas —
+  // margem geral e margem individual são mutuamente excludentes.
+  const temMargemGeral = profitMarginNumber != null && profitMarginNumber !== 0
   const totals = calculateSalesOrderTotals(
     items.map((it) => ({
       quantity: it.quantity,
@@ -869,6 +887,7 @@ export function SalesOrderForm({
                   it.unitPrice,
                   it.profitMargin != null ? it.profitMargin : profitMarginNumber,
                 )}
+                margemGeralAtiva={temMargemGeral}
                 fieldErrors={fieldErrors}
                 productOptions={productOptions}
                 productSearching={
@@ -878,7 +897,14 @@ export function SalesOrderForm({
                 getBlurHandler={getBlurHandler}
                 onQuery={(q) => handleProductQuery(it.rowKey, q)}
                 onSelect={(p) => selectProduct(it.rowKey, p)}
-                onPatch={(patch) => updateItem(it.rowKey, patch)}
+                onPatch={(patch) => {
+                  updateItem(it.rowKey, patch)
+                  // Definir margem individual remove a margem geral —
+                  // são mutuamente excludentes.
+                  if (patch.profitMargin != null && patch.profitMargin !== 0) {
+                    setProfitMarginState('')
+                  }
+                }}
                 onRemove={() => removeItem(it.rowKey)}
               />
             ))}
@@ -1098,6 +1124,12 @@ interface ItemRowProps {
    * a margem é nula/zero, é igual ao `item.unitPrice`.
    */
   unitPriceWithMargin: number
+  /**
+   * Verdadeiro quando a margem do cabeçalho está ativa (preenchida).
+   * Nesse caso o campo de margem individual é desabilitado — margem
+   * geral e margem individual são mutuamente excludentes.
+   */
+  margemGeralAtiva: boolean
   fieldErrors: Record<string, string>
   productOptions: ProductResponse[]
   productSearching: boolean
@@ -1123,6 +1155,7 @@ function ItemRow({
   item,
   lineTotal,
   unitPriceWithMargin,
+  margemGeralAtiva,
   fieldErrors,
   productOptions,
   productSearching,
@@ -1304,13 +1337,14 @@ function ItemRow({
           step="0.01"
           min={0}
           aria-label="Margem de lucro do item (%)"
-          placeholder="%"
+          placeholder={margemGeralAtiva ? 'Geral' : '%'}
           value={item.profitMargin ?? ''}
           onChange={(e) => {
             const v = e.target.value
             onPatch({ profitMargin: v === '' ? null : parseNumber(v) ?? null })
           }}
           className={[inputBase, 'text-right'].join(' ')}
+          disabled={margemGeralAtiva}
         />
       </div>
 

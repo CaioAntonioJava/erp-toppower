@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { X, Paperclip, FileText } from 'lucide-react'
 import { Button } from '../ui/Button'
 import { Alert } from '../ui/Alert'
-import { formatCurrency } from '../../lib/format'
+import { formatCurrency, formatDate } from '../../lib/format'
 import type { BoletoDue } from '../../types/finance'
 
 interface SettleBoletoModalProps {
@@ -114,17 +114,19 @@ export function SettleBoletoModal({ open, boleto, onClose, onConfirm }: SettleBo
               <FileText className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                  {boleto.descricao}
+                  {boleto.contractWorkNumber
+                    ? `${boleto.contractWorkNumber}${boleto.responsibleName ? ' · ' + boleto.responsibleName : ''}`
+                    : boleto.responsibleName ?? 'Boleto sem identificação'}
                 </p>
                 <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  {boleto.pagador ?? '—'}
+                  {boleto.supplierName ?? '—'}
                 </p>
                 <div className="mt-2 flex items-center gap-4 text-sm">
                   <span className="font-semibold text-slate-900 dark:text-slate-100">
                     {formatCurrency(boleto.valor)}
                   </span>
                   <span className="text-slate-500 dark:text-slate-400">
-                    Venc. {boleto.dataVencimento}
+                    Venc. {formatDate(boleto.dataVencimento)}
                   </span>
                 </div>
               </div>

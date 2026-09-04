@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { useOrganization } from '../context/OrganizationContext'
 import { listBoletos, createBoleto, inactivateBoleto, uploadBoletoAttachment, updateBoleto, settleBoleto } from '../api/boleto.api'
 import { toApiError } from '../lib/errors'
-import type { BoletoResponse, BoletoUpdateRequest } from '../types/boleto'
+import { toDue } from '../lib/boleto'
+import type { BoletoUpdateRequest } from '../types/boleto'
 import type { BoletoDue } from '../types/finance'
 
 /**
@@ -18,59 +19,30 @@ import type { BoletoDue } from '../types/finance'
 
 /** Campos do formulário de cadastro de boleto. */
 export interface NovoBoletoInput {
-  description: string
-  /** Beneficiário do boleto (opcional). */
-  payee?: string | null
+  /** Nº da obra/contrato vinculado ao boleto (texto livre, opcional). */
+  contractWorkNumber?: string | null
+  /** Nome do responsável pelo boleto (opcional). */
+  responsibleName?: string | null
+  /** Valor da parcela (ou valor total parcelado). */
   value: number
   /** Data de vencimento no formato ISO (yyyy-MM-dd). Ignorada quando
    * installmentsCount > 1 (vencimentos derivam de installmentTerms). */
   dueDate: string
-  /** ID do fornecedor vinculado. Quando informado, o cadastro do boleto
-   * dispara a geração automática de uma conta a pagar no backend. */
+  /** ID da empresa (fornecedor) vinculado. Quando informado, o cadastro
+   * do boleto dispara a geração automática de uma conta a pagar no backend. */
   supplierId?: number | null
   /** Anexo opcional (PDF/PNG/JPEG) enviado junto com o cadastro. */
   attachment?: File
-  /** Nº de Contrato/Obra vinculado ao boleto (texto livre, opcional). */
-  contractWorkNumber?: string | null
-  /** Data de cadastro do boleto (ISO yyyy-MM-dd). Default: data atual. */
-  registrationDate?: string
+  /** Número da nota fiscal vinculada ao boleto (opcional). */
+  invoiceNumber?: string | null
+  /** Data da nota fiscal vinculada ao boleto (ISO yyyy-MM-dd, opcional). */
+  invoiceDate?: string | null
+  /** Número da parcela (manual). Ignorado quando installmentsCount > 1. */
+  installmentNumber?: number | null
   /** Quantidade de parcelas a gerar. Default 1 (boleto avulso). */
   installmentsCount?: number
   /** Prazos das parcelas em dias, separados por barra (ex: "30/60/90"). */
   installmentTerms?: string
-}
-
-/** Calcula dias até o vencimento a partir de uma data ISO (negativo = vencido). */
-function diasAteVencimento(dataVencimento: string): number {
-  const hoje = new Date()
-  hoje.setHours(0, 0, 0, 0)
-  const venc = new Date(dataVencimento)
-  venc.setHours(0, 0, 0, 0)
-  const msPorDia = 24 * 60 * 60 * 1000
-  return Math.round((venc.getTime() - hoje.getTime()) / msPorDia)
-}
-
-function derivarStatus(dias: number): BoletoDue['status'] {
-  if (dias < 0) return 'ATRASADO'
-  return 'ABERTO'
-}
-
-/** Converte um BoletoResponse do backend em BoletoDue (com campos derivados). */
-function toDue(boleto: BoletoResponse): BoletoDue {
-  const dias = diasAteVencimento(boleto.dueDate)
-  return {
-    id: boleto.id,
-    descricao: boleto.description,
-    pagador: boleto.payee,
-    valor: boleto.value,
-    dataVencimento: boleto.dueDate,
-    diasAteVencimento: dias,
-    status: derivarStatus(dias),
-    paid: boleto.paid,
-    paymentDate: boleto.paymentDate,
-    contractWorkNumber: boleto.contractWorkNumber,
-    registrationDate: boleto.registrationDate,
-  }
 }
 
 export function useBoletosStorage() {
@@ -110,13 +82,14 @@ export function useBoletosStorage() {
    */
   const add = useCallback(async (input: NovoBoletoInput): Promise<BoletoDue[]> => {
     const created = await createBoleto({
-      description: input.description,
-      payee: input.payee,
+      contractWorkNumber: input.contractWorkNumber ?? null,
+      responsibleName: input.responsibleName ?? null,
       value: input.value,
       dueDate: input.dueDate,
       supplierId: input.supplierId ?? null,
-      contractWorkNumber: input.contractWorkNumber ?? null,
-      registrationDate: input.registrationDate,
+      invoiceNumber: input.invoiceNumber ?? null,
+      invoiceDate: input.invoiceDate,
+      installmentNumber: input.installmentNumber,
       installmentsCount: input.installmentsCount,
       installmentTerms: input.installmentTerms,
     })
@@ -126,9 +99,17 @@ export function useBoletosStorage() {
       [...prev, ...dues].sort((a, b) => a.dataVencimento.localeCompare(b.dataVencimento)),
     )
     if (input.attachment != null && created.length > 0) {
-      // Upload best-effort após o cadastro: o boleto já existe.
-      // O anexo é vinculado à primeira parcela criada.
-      await uploadBoletoAttachment(created[0].id, input.attachment)
+      // Upload best-effort: o boleto já foi criado com sucesso. Se o
+      // upload do anexo falhar, o boleto permanece cadastrado — apenas
+      // logamos o erro no console sem propagar a exceção.
+      try {
+        await uploadBoletoAttachment(created[0].id, input.attachment)
+      } catch (uploadErr) {
+        console.error(
+          'Falha ao enviar anexo do boleto (best-effort):',
+          uploadErr,
+        )
+      }
     }
     // Dispara o refresh do dashboard para que os widgets de contas a pagar
     // (e indicadores financeiros) recarreguem e reflitam o novo boleto.
