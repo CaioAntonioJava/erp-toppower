@@ -260,11 +260,13 @@ class SalesPdfServiceTest {
         private final Object address; // TechnicalProposalAddressResponse (nullable)
         private final List<?> objectives;
         private final String description;
+        private final Integer revision; // número da revisão (exibido no título, nullable)
         private final LocalDate startDate;
         private final LocalDate endDate;
         private final LocalDate deliveryDate;
         private final List<?> serviceItems;
         private final List<?> productItems;
+        private final List<?> conditions; // TechnicalProposalConditionResponse (seção de condições)
         private final Object discountType;
         private final BigDecimal discount;
         private final BigDecimal freightValue;
@@ -285,8 +287,10 @@ class SalesPdfServiceTest {
                               String clientName, String clientCode, Object clientType,
                               String technicalResponsible, String email, String phone,
                               Object address, List<?> objectives, String description,
+                              Integer revision,
                               LocalDate startDate, LocalDate endDate, LocalDate deliveryDate,
                               List<?> serviceItems, List<?> productItems,
+                              List<?> conditions,
                               Object discountType, BigDecimal discount, BigDecimal freightValue,
                               String deliveryDeadline, PaymentCondition paymentCondition,
                               String validity, FreightType deliveryType, String carrierName,
@@ -298,9 +302,10 @@ class SalesPdfServiceTest {
             this.clientType = clientType;
             this.technicalResponsible = technicalResponsible; this.email = email; this.phone = phone;
             this.address = address; this.objectives = objectives;
-            this.description = description;
+            this.description = description; this.revision = revision;
             this.startDate = startDate; this.endDate = endDate; this.deliveryDate = deliveryDate;
             this.serviceItems = serviceItems; this.productItems = productItems;
+            this.conditions = conditions;
             this.discountType = discountType; this.discount = discount;
             this.freightValue = freightValue;
             this.deliveryDeadline = deliveryDeadline;
@@ -325,11 +330,13 @@ class SalesPdfServiceTest {
         public Object getAddress() { return address; }
         public List<?> getObjectives() { return objectives; }
         public String getDescription() { return description; }
+        public Integer getRevision() { return revision; }
         public LocalDate getStartDate() { return startDate; }
         public LocalDate getEndDate() { return endDate; }
         public LocalDate getDeliveryDate() { return deliveryDate; }
         public List<?> getServiceItems() { return serviceItems; }
         public List<?> getProductItems() { return productItems; }
+        public List<?> getConditions() { return conditions; }
         public Object getDiscountType() { return discountType; }
         public BigDecimal getDiscount() { return discount; }
         public BigDecimal getFreightValue() { return freightValue; }
@@ -400,11 +407,13 @@ class SalesPdfServiceTest {
                 null,            // address
                 List.of(),       // objectives
                 null,            // description
+                1,               // revision (renderiza " - REV. 1" no título)
                 LocalDate.of(2026, 7, 1),
                 LocalDate.of(2026, 7, 30),
                 null,            // deliveryDate
                 List.of(),       // serviceItems
                 List.of(),       // productItems
+                List.of(),       // conditions
                 null,            // discountType
                 null,            // discount
                 new BigDecimal("45.90"),
