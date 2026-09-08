@@ -34,6 +34,7 @@ import { PayablesListPage } from './pages/PayablesListPage'
 import { PayableFormPage } from './pages/PayableFormPage'
 import { BoletosListPage } from './pages/BoletosListPage'
 import { PurchaseImportPage } from './pages/PurchaseImportPage'
+import { CashFlowPage } from './pages/CashFlowPage'
 import { UsersListPage } from './pages/UsersListPage'
 import { UserFormPage } from './pages/UserFormPage'
 import { CarriersListPage } from './pages/CarriersListPage'
@@ -104,6 +105,7 @@ export default function App() {
     <Route path="/payables/:id" element={<ModuleRoute module="MODULE_PAYABLES"><PayableFormPage /></ModuleRoute>} />
     <Route path="/boletos" element={<ModuleRoute module="MODULE_BOLETOS"><BoletosListPage /></ModuleRoute>} />
     <Route path="/purchases/import" element={<ModuleRoute module="MODULE_PURCHASES_IMPORT"><PurchaseImportPage /></ModuleRoute>} />
+    <Route path="/cash-flow" element={<ModuleRoute module="MODULE_CASH_FLOW"><CashFlowPage /></ModuleRoute>} />
 
         {/* Rotas administrativas — gestão de usuários (ROLE_ADMIN). */}
         <Route path="/users" element={<AdminRoute><UsersListPage /></AdminRoute>} />

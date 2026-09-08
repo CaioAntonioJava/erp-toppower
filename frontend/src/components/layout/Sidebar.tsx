@@ -1,6 +1,7 @@
 import { Fragment } from 'react'
 import { NavLink } from 'react-router-dom'
 import {
+  ArrowLeftRight,
   Briefcase,
   Building2,
   ClipboardList,
@@ -79,6 +80,7 @@ const navSections: NavSection[] = [
   {
     title: 'Financeiro',
     items: [
+      { to: '/cash-flow', label: 'Fluxo de Caixa', icon: ArrowLeftRight, module: 'MODULE_CASH_FLOW' },
       { to: '/receivables', label: 'Contas a Receber', icon: Wallet, module: 'MODULE_RECEIVABLES' },
       { to: '/payables', label: 'Contas a Pagar', icon: Receipt, module: 'MODULE_PAYABLES' },
       { to: '/purchases/import', label: 'Importar NF-e', icon: FileUp, module: 'MODULE_PURCHASES_IMPORT' },

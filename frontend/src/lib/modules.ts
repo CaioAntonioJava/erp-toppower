@@ -42,6 +42,7 @@ export const MODULES: ModuleDef[] = [
   { key: 'MODULE_PAYABLES', label: 'Contas a Pagar', section: 'Financeiro', to: '/payables' },
   { key: 'MODULE_PURCHASES_IMPORT', label: 'Importar NF-e', section: 'Financeiro', to: '/purchases/import' },
   { key: 'MODULE_BOLETOS', label: 'Boletos', section: 'Financeiro', to: '/boletos' },
+  { key: 'MODULE_CASH_FLOW', label: 'Fluxo de Caixa', section: 'Financeiro', to: '/cash-flow' },
 ]
 
 /** Seções de módulos, na ordem exibida no formulário de permissões. */
