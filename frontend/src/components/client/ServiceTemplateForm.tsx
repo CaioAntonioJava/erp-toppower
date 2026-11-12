@@ -85,7 +85,7 @@ export function ServiceTemplateForm({
         const payload: ServiceTemplateUpdateRequest = {
           name: name.trim(),
           description: description || null,
-          categoryId,
+          categoryId: categoryId || undefined,
         }
         await onSaveUpdate(payload)
         setSuccess('Serviço atualizado com sucesso!')
@@ -94,7 +94,7 @@ export function ServiceTemplateForm({
         const payload: ServiceTemplateCreateRequest = {
           name: name.trim(),
           description: description || null,
-          categoryId,
+          categoryId: Number(categoryId),
         }
         await onSaveCreate(payload)
         setSuccess('Serviço criado com sucesso!')

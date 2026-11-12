@@ -22,6 +22,7 @@ export type Module =
   | 'MODULE_PAYABLES'
   | 'MODULE_PURCHASES_IMPORT'
   | 'MODULE_BOLETOS'
+  | 'MODULE_CASH_FLOW'
 
 export type ProfileStatus = 'ATIVO' | 'INATIVO'
 

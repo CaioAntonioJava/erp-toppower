@@ -21,20 +21,19 @@ public final class BoletoMapper {
     /**
      * Cria uma nova entidade a partir do request de criação.
      * O {@code status} pode ser {@code null}; o {@code @PrePersist} da
-     * entidade cuida de aplicar o default {@code ATIVO}. A
-     * {@code registrationDate} também pode ser {@code null} (default:
-     * data atual no {@code @PrePersist}).
+     * entidade cuida de aplicar o default {@code ATIVO}.
      */
     public static Boleto toEntity(BoletoCreateRequest request) {
         Boleto boleto = new Boleto();
-        boleto.setDescription(request.description());
-        boleto.setPayee(request.payee());
+        boleto.setContractWorkNumber(request.contractWorkNumber());
+        boleto.setResponsibleName(request.responsibleName());
         boleto.setValue(request.value());
         boleto.setDueDate(request.dueDate());
         boleto.setStatus(request.status());
         boleto.setSupplierId(request.supplierId());
-        boleto.setContractWorkNumber(request.contractWorkNumber());
-        boleto.setRegistrationDate(request.registrationDate());
+        boleto.setInvoiceNumber(request.invoiceNumber());
+        boleto.setInvoiceDate(request.invoiceDate());
+        boleto.setInstallmentNumber(request.installmentNumber());
         return boleto;
     }
 
@@ -54,8 +53,8 @@ public final class BoletoMapper {
         }
         return new BoletoResponse(
                 boleto.getId(),
-                boleto.getDescription(),
-                boleto.getPayee(),
+                boleto.getContractWorkNumber(),
+                boleto.getResponsibleName(),
                 boleto.getValue(),
                 boleto.getDueDate(),
                 boleto.getStatus(),
@@ -63,8 +62,10 @@ public final class BoletoMapper {
                 supplierName,
                 boleto.isPaid(),
                 boleto.getPaymentDate(),
-                boleto.getContractWorkNumber(),
-                boleto.getRegistrationDate(),
+                boleto.getInvoiceNumber(),
+                boleto.getInvoiceDate(),
+                boleto.getInstallmentNumber(),
+                boleto.getInstallmentPlanId(),
                 boleto.getCreatedAt(),
                 boleto.getUpdatedAt(),
                 boleto.getCreatedBy(),
@@ -80,12 +81,12 @@ public final class BoletoMapper {
      * significa "não alterar".
      */
     public static void applyUpdate(Boleto boleto, BoletoUpdateRequest request) {
-        if (request.description() != null) {
-            boleto.setDescription(request.description());
-        }
-        if (request.payee() != null) {
+        if (request.contractWorkNumber() != null) {
             // String vazia limpa o campo (convenção de PATCH parcial).
-            boleto.setPayee(request.payee().isBlank() ? null : request.payee());
+            boleto.setContractWorkNumber(request.contractWorkNumber().isBlank() ? null : request.contractWorkNumber());
+        }
+        if (request.responsibleName() != null) {
+            boleto.setResponsibleName(request.responsibleName().isBlank() ? null : request.responsibleName());
         }
         if (request.value() != null) {
             boleto.setValue(request.value());
@@ -99,12 +100,14 @@ public final class BoletoMapper {
         if (request.supplierId() != null) {
             boleto.setSupplierId(request.supplierId());
         }
-        if (request.contractWorkNumber() != null) {
-            // String vazia limpa o campo (convenção de PATCH parcial).
-            boleto.setContractWorkNumber(request.contractWorkNumber().isBlank() ? null : request.contractWorkNumber());
+        if (request.invoiceNumber() != null) {
+            boleto.setInvoiceNumber(request.invoiceNumber().isBlank() ? null : request.invoiceNumber());
         }
-        if (request.registrationDate() != null) {
-            boleto.setRegistrationDate(request.registrationDate());
+        if (request.invoiceDate() != null) {
+            boleto.setInvoiceDate(request.invoiceDate());
+        }
+        if (request.installmentNumber() != null) {
+            boleto.setInstallmentNumber(request.installmentNumber());
         }
     }
 }

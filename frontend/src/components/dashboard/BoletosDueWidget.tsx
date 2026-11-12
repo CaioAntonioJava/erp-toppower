@@ -5,8 +5,8 @@ import { Card } from '../ui/Card'
 import { Badge } from '../ui/Badge'
 import { Spinner } from '../ui/Spinner'
 import { formatCurrency, formatDate } from '../../lib/format'
+import { toDue, labelBoleto } from '../../lib/boleto'
 import { listBoletos } from '../../api/boleto.api'
-import type { BoletoResponse } from '../../types/boleto'
 import type { BoletoDue } from '../../types/finance'
 
 /**
@@ -16,32 +16,6 @@ import type { BoletoDue } from '../../types/finance'
  * Busca os boletos ativos não pagos do endpoint `/api/v1/boletos` e
  * deriva os campos de apresentação (diasAteVencimento, status) no frontend.
  */
-
-/** Calcula dias até o vencimento a partir de uma data ISO (negativo = vencido). */
-function diasAteVencimento(dataVencimento: string): number {
-  const hoje = new Date()
-  hoje.setHours(0, 0, 0, 0)
-  const venc = new Date(`${dataVencimento}T00:00:00`)
-  return Math.round((venc.getTime() - hoje.getTime()) / (24 * 60 * 60 * 1000))
-}
-
-/** Converte um BoletoResponse em BoletoDue (com campos derivados). */
-function toDue(boleto: BoletoResponse): BoletoDue {
-  const dias = diasAteVencimento(boleto.dueDate)
-  return {
-    id: boleto.id,
-    descricao: boleto.description,
-    pagador: boleto.payee,
-    valor: boleto.value,
-    dataVencimento: boleto.dueDate,
-    diasAteVencimento: dias,
-    status: dias < 0 ? 'ATRASADO' : 'ABERTO',
-    paid: boleto.paid,
-    paymentDate: boleto.paymentDate,
-    contractWorkNumber: boleto.contractWorkNumber,
-    registrationDate: boleto.registrationDate,
-  }
-}
 
 export function BoletosDueWidget() {
   const [items, setItems] = useState<BoletoDue[]>([])
@@ -105,10 +79,10 @@ export function BoletosDueWidget() {
                 <li key={boleto.id} className="flex items-center justify-between py-3">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">
-                      {boleto.descricao}
+                      {labelBoleto(boleto.contractWorkNumber, boleto.responsibleName)}
                     </p>
                     <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-                      {boleto.pagador ? `${boleto.pagador} · ` : ''}Venc. {formatDate(boleto.dataVencimento)}
+                      {boleto.supplierName ? `${boleto.supplierName} · ` : ''}Venc. {formatDate(boleto.dataVencimento)}
                     </p>
                   </div>
                   <div className="ml-3 flex shrink-0 items-center gap-3">

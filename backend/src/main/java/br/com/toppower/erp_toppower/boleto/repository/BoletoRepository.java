@@ -26,14 +26,16 @@ public interface BoletoRepository extends JpaRepository<Boleto, Long>,
      *   <li>Ambos nulos → retorna todos os boletos (paginado)</li>
      * </ul>
      * Quando {@code query} é informado, busca case-insensitive em
-     * {@code description} ou {@code payee}.
+     * {@code responsibleName}, {@code invoiceNumber} ou
+     * {@code contractWorkNumber}.
      */
     @Query("""
             SELECT b FROM Boleto b
             WHERE (:status IS NULL OR b.status = :status)
               AND (:query IS NULL
-                OR LOWER(b.description) LIKE LOWER(CONCAT('%', :query, '%'))
-                OR LOWER(b.payee) LIKE LOWER(CONCAT('%', :query, '%')))
+                OR LOWER(b.responsibleName) LIKE LOWER(CONCAT('%', :query, '%'))
+                OR LOWER(b.invoiceNumber) LIKE LOWER(CONCAT('%', :query, '%'))
+                OR LOWER(b.contractWorkNumber) LIKE LOWER(CONCAT('%', :query, '%')))
             """)
     Page<Boleto> searchByQuery(@Param("status") RegistrationStatus status,
                                @Param("query") String query,

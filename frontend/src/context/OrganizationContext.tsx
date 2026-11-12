@@ -155,6 +155,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
   )
 }
 
+// eslint-disable-next-line react/only-export-components -- hook exportado junto ao Provider é a convenção do projeto
 export function useOrganization(): OrganizationContextValue {
   const ctx = useContext(OrganizationContext)
   if (!ctx) {

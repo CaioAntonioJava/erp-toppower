@@ -37,14 +37,16 @@ SET @sql = IF(@has_col = 0,
 -- 2) Backfill: preenche category_id a partir da join table
 --    service_template_categories (dados já mapeados manualmente).
 --    Só executa se houver registros na join table.
-UPDATE service_templates st
-JOIN (
-    SELECT service_template_id, MIN(category_id) AS cat_id
-    FROM service_template_categories
-    GROUP BY service_template_id
-) stc ON st.id = stc.service_template_id
-SET st.category_id = stc.cat_id
-WHERE st.category_id IS NULL;
+--    Guard extra: em banco recém-criado a join table legada
+--    `service_template_categories` não existe (não há mais entidade JPA
+--    para ela, logo o Hibernate não a cria). Nesse caso não há dados a
+--    migrar e o backfill é simplesmente pulado.
+SET @has_join_table = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'service_template_categories');
+SET @sql = IF(@has_join_table > 0,
+    'UPDATE service_templates st JOIN ( SELECT service_template_id, MIN(category_id) AS cat_id FROM service_template_categories GROUP BY service_template_id ) stc ON st.id = stc.service_template_id SET st.category_id = stc.cat_id WHERE st.category_id IS NULL',
+    'DO 0'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- 3) Torna category_id NOT NULL (após o backfill)
 SET @is_nullable = (SELECT IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS

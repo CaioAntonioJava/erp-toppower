@@ -14,19 +14,17 @@ public record BoletoResponse(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         Long id,
 
-        @Schema(description = "Descrição do boleto.",
-                requiredMode = Schema.RequiredMode.REQUIRED)
-        String description,
+        @Schema(description = "Nº da obra/contrato vinculado ao boleto, se houver.")
+        String contractWorkNumber,
 
-        @Schema(description = "Beneficiário do boleto.",
-                requiredMode = Schema.RequiredMode.REQUIRED)
-        String payee,
+        @Schema(description = "Nome do responsável pelo boleto, se houver.")
+        String responsibleName,
 
-        @Schema(description = "Valor do boleto.",
+        @Schema(description = "Valor da parcela do boleto.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         BigDecimal value,
 
-        @Schema(description = "Data de vencimento do boleto.",
+        @Schema(description = "Data de vencimento da parcela.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         LocalDate dueDate,
 
@@ -35,25 +33,30 @@ public record BoletoResponse(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         RegistrationStatus status,
 
-        @Schema(description = "ID do fornecedor vinculado, se aplicável.")
+        @Schema(description = "ID da empresa (fornecedor) vinculada, se aplicável.")
         Long supplierId,
 
-        @Schema(description = "Nome de exibição do fornecedor vinculado, se aplicável.")
+        @Schema(description = "Nome de exibição da empresa (fornecedor) vinculada, se aplicável.")
         String supplierName,
 
         @Schema(description = "Indica se o boleto foi liquidado (pago).",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         boolean paid,
 
-        @Schema(description = "Data de liquidação do boleto, se pago.")
+        @Schema(description = "Data de liquidação (pagamento) do boleto, se pago.")
         LocalDate paymentDate,
 
-        @Schema(description = "Nº de Contrato/Obra vinculado ao boleto, se houver.")
-        String contractWorkNumber,
+        @Schema(description = "Número da nota fiscal vinculada ao boleto, se houver.")
+        String invoiceNumber,
 
-        @Schema(description = "Data de cadastro do boleto (informável, distinta do createdAt de auditoria).",
-                requiredMode = Schema.RequiredMode.REQUIRED)
-        LocalDate registrationDate,
+        @Schema(description = "Data da nota fiscal vinculada ao boleto, se houver.")
+        LocalDate invoiceDate,
+
+        @Schema(description = "Nº parcela do boleto, se houver.")
+        Integer installmentNumber,
+
+        @Schema(description = "ID do plano de parcelamento que agrupa as parcelas, se houver.")
+        String installmentPlanId,
 
         @Schema(description = "Data de criação.",
                 requiredMode = Schema.RequiredMode.REQUIRED)

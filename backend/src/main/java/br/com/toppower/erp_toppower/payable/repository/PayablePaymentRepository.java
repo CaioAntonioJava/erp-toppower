@@ -28,6 +28,14 @@ public interface PayablePaymentRepository extends JpaRepository<PayablePayment, 
     List<PayablePayment> findByPaymentDateBetween(LocalDate from, LocalDate to);
 
     /**
+     * Lista os pagamentos com data de pagamento até a data informada
+     * (inclusive). Usado pelo fluxo de caixa consolidado, que separa em
+     * memória os movimentos anteriores ao período (saldo anterior) dos
+     * movimentos dentro do período.
+     */
+    List<PayablePayment> findByPaymentDateLessThanEqual(LocalDate date);
+
+    /**
      * Soma o valor de todos os pagamentos de uma conta a pagar.
      * Retorna zero quando a conta não possui pagamentos.
      */

@@ -1,0 +1,31 @@
+# Normalização de terminações de linha para todo o repositório.
+# O repositório armazena sempre LF; arquivos-texto também ficam com LF no
+# checkout em qualquer plataforma. Isso elimina o churn de CRLF/LF entre
+# editores/ambientes diferentes (principalmente no Windows), que gerava
+# diffs falsos de arquivos inteiros.
+* text=auto eol=lf
+
+# Scripts de shell exigem LF (CRLF quebra a execução no bash/Linux).
+*.sh text eol=lf
+mvnw text eol=lf
+
+# Scripts batch do Windows exigem CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binários: nunca converter terminações de linha.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.webp binary
+*.pdf  binary
+*.jar  binary
+*.zip  binary
+*.gz   binary
+*.woff  binary
+*.woff2 binary
+*.ttf  binary
+*.otf  binary
+*.eot  binary

@@ -22,10 +22,15 @@ import java.time.LocalDate;
  * <p>Herda {@link OrganizationScopedEntity} (Long + auditoria + isolamento
  * multi-tenant via {@code organization_id}). Os campos de negócio são:</p>
  * <ul>
- *   <li>{@code description} — descrição do boleto (obrigatório).</li>
- *   <li>{@code payee} — beneficiário (quem recebe o pagamento).</li>
- *   <li>{@code value} — valor do boleto.</li>
- *   <li>{@code dueDate} — data de vencimento.</li>
+ *   <li>{@code contractWorkNumber} — Nº da obra/contrato vinculado ao boleto.</li>
+ *   <li>{@code responsibleName} — nome do responsável pelo boleto.</li>
+ *   <li>{@code supplierId} — empresa (fornecedor) vinculada ao boleto.</li>
+ *   <li>{@code invoiceNumber} — número da nota fiscal vinculada.</li>
+ *   <li>{@code invoiceDate} — data da nota fiscal.</li>
+ *   <li>{@code installmentNumber} — número da parcela (manual ou automático).</li>
+ *   <li>{@code value} — valor da parcela do boleto.</li>
+ *   <li>{@code dueDate} — data de vencimento da parcela.</li>
+ *   <li>{@code paymentDate} — data do pagamento (quando liquidado).</li>
  *   <li>{@code status} — ATIVO/INATIVO (soft delete).</li>
  * </ul>
  */
@@ -37,29 +42,30 @@ import java.time.LocalDate;
 public class Boleto extends OrganizationScopedEntity {
 
     /**
-     * Descrição do boleto (campo obrigatório).
-     * Salvo em MAIÚSCULAS (UpperCaseFieldListener).
+     * Nº da obra/contrato vinculado ao boleto (campo livre, opcional).
+     * Permite associar o boleto a um contrato ou obra específica para
+     * relatórios e conciliação. Salvo em MAIÚSCULAS.
      */
     @UpperCase
-    @Column(name = "description", nullable = false, length = 200)
-    private String description;
+    @Column(name = "contract_work_number", length = 60)
+    private String contractWorkNumber;
 
     /**
-     * Beneficiário do boleto — quem deve receber o pagamento.
-     * Opcional; salvo em MAIÚSCULAS (UpperCaseFieldListener) quando presente.
+     * Nome do responsável pelo boleto (campo livre, opcional).
+     * Salvo em MAIÚSCULAS (UpperCaseFieldListener) quando presente.
      */
     @UpperCase
-    @Column(name = "payee", length = 200)
-    private String payee;
+    @Column(name = "responsible_name", length = 120)
+    private String responsibleName;
 
     /**
-     * Valor do boleto. Obrigatório.
+     * Valor da parcela do boleto. Obrigatório.
      */
     @Column(name = "value", nullable = false, precision = 12, scale = 2)
     private BigDecimal value;
 
     /**
-     * Data de vencimento do boleto. Obrigatória.
+     * Data de vencimento da parcela. Obrigatória.
      */
     @Column(name = "due_date", nullable = false)
     private LocalDate dueDate;
@@ -69,7 +75,7 @@ public class Boleto extends OrganizationScopedEntity {
     private RegistrationStatus status;
 
     /**
-     * Referência opcional ao {@code Supplier} (fornecedor) vinculado
+     * Referência opcional ao {@code Supplier} (empresa/fornecedor) vinculado
      * ao boleto. Quando presente, o cadastro/edição do boleto dispara
      * a geração automática de uma conta a pagar no módulo payable.
      * Nulo quando o boleto é standalone (sem vínculo com fornecedor).
@@ -84,42 +90,52 @@ public class Boleto extends OrganizationScopedEntity {
     private boolean paid;
 
     /**
-     * Data em que o boleto foi liquidado. Nula enquanto não pago.
+     * Data em que o boleto foi liquidado (pago). Nula enquanto não pago.
      */
     @Column(name = "payment_date")
     private LocalDate paymentDate;
 
     /**
-     * Nº de Contrato/Obra vinculado ao boleto (campo livre, opcional).
-     * Permite associar o boleto a um contrato ou obra específica para
-     * relatórios e conciliação. Salvo em MAIÚSCULAS.
+     * Número da nota fiscal vinculada ao boleto (campo livre, opcional).
+     * Salvo em MAIÚSCULAS (UpperCaseFieldListener) quando presente.
      */
     @UpperCase
-    @Column(name = "contract_work_number", length = 60)
-    private String contractWorkNumber;
+    @Column(name = "invoice_number", length = 60)
+    private String invoiceNumber;
 
     /**
-     * Data de cadastro do boleto. Distinta do {@code createdAt} (auditoria,
-     * preenchido automaticamente): este campo é informável pelo usuário e
-     * representa a data em que o boleto foi efetivamente registrado no
-     * sistema. Default: data atual no {@code @PrePersist}.
+     * Data da nota fiscal vinculada ao boleto. Opcional.
      */
-    @Column(name = "registration_date", nullable = false)
-    private LocalDate registrationDate;
+    @Column(name = "invoice_date")
+    private LocalDate invoiceDate;
+
+    /**
+     * Número da parcela do boleto (manual ou automático). Opcional.
+     * Quando o boleto é criado via parcelamento (installmentsCount > 1),
+     * este campo é preenchido automaticamente (1, 2, 3, ...). Para boletos
+     * avulsos, pode ser informado manualmente pelo usuário.
+     */
+    @Column(name = "installment_number")
+    private Integer installmentNumber;
+
+    /**
+     * Identificador do plano de parcelamento que agrupa todas as parcelas
+     * geradas em um mesmo cadastro (UUID string). Nulo para boletos avulsos
+     * (sem parcelamento). Permite recuperar/cancelar todas as parcelas de
+     * um mesmo plano posteriormente.
+     */
+    @Column(name = "installment_plan_id", length = 36)
+    private String installmentPlanId;
 
     /**
      * Inicialização antes de persistir: garante que o status seja
-     * {@link RegistrationStatus#ATIVO} e a data de cadastro seja a data
-     * atual quando não informados. Não sobrescreve valores já definidos
-     * pelo chamador.
+     * {@link RegistrationStatus#ATIVO} quando não informado. Não
+     * sobrescreve valores já definidos pelo chamador.
      */
     @PrePersist
     private void onPrePersist() {
         if (status == null) {
             status = RegistrationStatus.ATIVO;
-        }
-        if (registrationDate == null) {
-            registrationDate = LocalDate.now();
         }
     }
 }
