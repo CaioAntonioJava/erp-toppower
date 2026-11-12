@@ -32,6 +32,9 @@ import br.com.toppower.erp_toppower.contract.exception.ContractClientNotFoundExc
 import br.com.toppower.erp_toppower.contract.exception.ContractNotFoundException;
 import br.com.toppower.erp_toppower.contract.exception.ContractStatusTransitionException;
 import br.com.toppower.erp_toppower.contract.exception.InvalidContractClientException;
+import br.com.toppower.erp_toppower.contractfinances.exception.ContractFinanceControlNotFoundException;
+import br.com.toppower.erp_toppower.contractfinances.exception.ContractFinanceEntryNotFoundException;
+import br.com.toppower.erp_toppower.contractfinances.exception.InvalidContractFinanceContractException;
 import br.com.toppower.erp_toppower.customer.exception.CustomerNotFoundException;
 import br.com.toppower.erp_toppower.customer.exception.DuplicateCustomerCpfException;
 import br.com.toppower.erp_toppower.product.exception.DuplicateProductCodeException;
@@ -310,6 +313,35 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidContractClientException.class)
     public ResponseEntity<ApiError> handleInvalidContractClient(InvalidContractClientException ex) {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    // =====================================================================
+    // Financeiro de Contratos (ContractFinances)
+    // =====================================================================
+
+    /** Lançamento do financeiro de contrato não encontrado. */
+    @ExceptionHandler(ContractFinanceEntryNotFoundException.class)
+    public ResponseEntity<ApiError> handleContractFinanceEntryNotFound(
+            ContractFinanceEntryNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    /** Controle do financeiro de contrato não encontrado. */
+    @ExceptionHandler(ContractFinanceControlNotFoundException.class)
+    public ResponseEntity<ApiError> handleContractFinanceControlNotFound(
+            ContractFinanceControlNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    /**
+     * Regra de negócio do financeiro de contratos violada (ex.: lançar
+     * gasto/recebimento em contrato INATIVO). Usa 422
+     * UNPROCESSABLE_ENTITY, espelhando o tratamento de contrato.
+     */
+    @ExceptionHandler(InvalidContractFinanceContractException.class)
+    public ResponseEntity<ApiError> handleInvalidContractFinanceContract(
+            InvalidContractFinanceContractException ex) {
+        return build(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
     }
 
     /**

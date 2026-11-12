@@ -20,6 +20,7 @@ import br.com.toppower.erp_toppower.contract.exception.InvalidContractClientExce
 import br.com.toppower.erp_toppower.contract.mapper.ContractMapper;
 import br.com.toppower.erp_toppower.contract.repository.ContractClauseRepository;
 import br.com.toppower.erp_toppower.contract.repository.ContractRepository;
+import br.com.toppower.erp_toppower.contractfinances.service.ContractFinancesService;
 import br.com.toppower.erp_toppower.customer.entity.Customer;
 import br.com.toppower.erp_toppower.customer.repository.CustomerRepository;
 import br.com.toppower.erp_toppower.organization.entity.Organization;
@@ -74,6 +75,7 @@ public class ContractService {
     private final ServiceTemplateRepository serviceTemplateRepository;
     private final ReceivableService receivableService;
     private final ReceivableRepository receivableRepository;
+    private final ContractFinancesService contractFinancesService;
 
     public ContractService(ContractRepository repository,
                            ContractClauseRepository clauseRepository,
@@ -82,7 +84,8 @@ public class ContractService {
                            CompanyRepository companyRepository,
                            ServiceTemplateRepository serviceTemplateRepository,
                            ReceivableService receivableService,
-                           ReceivableRepository receivableRepository) {
+                           ReceivableRepository receivableRepository,
+                           ContractFinancesService contractFinancesService) {
         this.repository = repository;
         this.clauseRepository = clauseRepository;
         this.organizationRepository = organizationRepository;
@@ -91,6 +94,7 @@ public class ContractService {
         this.serviceTemplateRepository = serviceTemplateRepository;
         this.receivableService = receivableService;
         this.receivableRepository = receivableRepository;
+        this.contractFinancesService = contractFinancesService;
     }
 
     // ---------------------------------------------------------------------
@@ -112,6 +116,9 @@ public class ContractService {
         } else {
             seedDefaultClauses(saved.getId());
         }
+
+        // Cria o controle do financeiro do contrato (código, cliente, data, valor).
+        contractFinancesService.createControlForContract(saved);
 
         return toResponseWithClient(saved);
     }
@@ -197,6 +204,10 @@ public class ContractService {
                 persistClauses(request.clauses(), id);
             }
         }
+
+        // Mantém o retrato comercial no controle financeiro coerente
+        // (data de vigência, valor e cliente podem mudar no PATCH).
+        contractFinancesService.syncControlWithContract(saved);
 
         return toResponseWithClient(saved);
     }
