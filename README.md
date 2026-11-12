@@ -12,6 +12,37 @@ Sistema ERP da TopPower — backend Spring Boot (Java 17) + frontend React/Vite 
 | PDFs | Thymeleaf + OpenHTMLtoPDF |
 | Auth | JWT (JJWT 0.12) |
 
+## Módulos do sistema
+
+O acesso aos painéis é controlado por permissão de módulo (`MODULE_*`), definida
+no cadastro de usuários (admins têm tudo):
+
+- **Cadastros**: empresas (PJ), clientes (PF), fornecedores, vendedores, produtos,
+  transportadoras, catálogo de serviços (com categorias)
+- **Comercial**: propostas comerciais (cotação/PDF), propostas técnicas (PDF),
+  pedidos de venda (PDF), contratos (com cláusulas e PDF)
+- **Financeiro**: contas a receber, contas a pagar, boletos, importação de NF-e
+  (compra), fluxo de caixa (consolida pagamentos recebidos/pagos)
+- **Administração**: usuários, organizações (empresas emissoras para os PDFs)
+
+## Desenvolvimento local (sem Docker)
+
+Requisitos: Java 17, MySQL 8 local e Node 20+. Convenções detalhadas em
+[`AGENTS.md`](AGENTS.md).
+
+```bash
+# Backend (a partir de backend/, com MySQL configurado e backend/.env)
+./mvnw spring-boot:run      # http://localhost:8081 (Swagger: /swagger-ui.html)
+./mvnw test                 # testes unitários
+
+# Frontend (a partir de frontend/)
+npm ci
+npm run dev                 # http://localhost:5173 (proxy /api -> :8081)
+npm test                    # Vitest + Testing Library
+npm run lint                # oxlint
+npm run build               # tsc -b && vite build -> dist/
+```
+
 ## Rodando com Docker
 
 Pré-requisito: **Docker Desktop** instalado e em execução.
