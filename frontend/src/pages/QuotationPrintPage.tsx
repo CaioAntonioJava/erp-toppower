@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { getQuotation, getQuotationPdf } from '../api/quotation.api'
 import { PdfPreview } from '../components/ui/PdfPreview'
-import { toApiError } from '../lib/errors'
 
 /**
  * Página de preview da Proposta Comercial (Cotação) — exibe o PDF
@@ -40,9 +39,3 @@ export function QuotationPrintPage() {
 
   return <PdfPreview title={title} fetcher={fetcher} />
 }
-
-/**
- * Re-export do helper de erro para evitar tree-shake remover o import
- * caso outras páginas deste módulo precisem dele no futuro.
- */
-export { toApiError }

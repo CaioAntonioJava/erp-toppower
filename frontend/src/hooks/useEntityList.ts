@@ -9,6 +9,11 @@ import type { PagedResponse } from '../types/api'
 import type { RegistrationStatus } from '../types/registration'
 import { toApiError } from '../lib/errors'
 
+/** Array vazio estável: `data?.content ?? []` criava um array novo a cada
+ *  render enquanto os dados não chegavam, invalidando o useMemo de
+ *  `visibleIds` a cada render. `never[]` é atribuível a qualquer `T[]`. */
+const EMPTY: never[] = []
+
 /**
  * Tipo de status da entidade. Por padrão é {@link RegistrationStatus}
  * (ATIVO/INATIVO), mas entidades com ciclo de execução mais rico (ex.:
@@ -239,7 +244,7 @@ export function useEntityList<
     setBulkFeedback(null)
   }
 
-  const items = data?.content ?? []
+  const items = data?.content ?? EMPTY
   const visibleIds = useMemo(
     () => new Set(items.map((c) => c.id)),
     [items],
