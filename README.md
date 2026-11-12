@@ -22,7 +22,10 @@ no cadastro de usuários (admins têm tudo):
 - **Comercial**: propostas comerciais (cotação/PDF), propostas técnicas (PDF),
   pedidos de venda (PDF), contratos (com cláusulas e PDF)
 - **Financeiro**: contas a receber, contas a pagar, boletos, importação de NF-e
-  (compra), fluxo de caixa (consolida pagamentos recebidos/pagos)
+  (compra), fluxo de caixa (consolida pagamentos recebidos/pagos),
+  financeiro de contratos (controle de gastos/recebimentos por contrato:
+  controle criado automaticamente ao gerar o contrato, lançamentos
+  RECEBIDO/MATERIAL/COMBUSTIVEL/REFEIÇÃO/PEDÁGIO/TERCEIROS/OUTROS/SALÁRIOS)
 - **Administração**: usuários, organizações (empresas emissoras para os PDFs)
 
 ## Desenvolvimento local (sem Docker)
