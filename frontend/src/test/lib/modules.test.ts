@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { MODULES, MODULE_SECTIONS, moduleForRoute } from '../../lib/modules'
 
 describe('MODULES', () => {
-  it('contém todos os 16 módulos', () => {
-    expect(MODULES).toHaveLength(16)
+  it('contém todos os 17 módulos', () => {
+    expect(MODULES).toHaveLength(17)
   })
 
   it('cada módulo tem key, label, section e to', () => {
@@ -20,6 +20,14 @@ describe('MODULES', () => {
     expect(sections.has('Cadastros')).toBe(true)
     expect(sections.has('Comercial')).toBe(true)
     expect(sections.has('Financeiro')).toBe(true)
+  })
+
+  it('registra o financeiro de contratos na seção Financeiro', () => {
+    const found = MODULES.find((m) => m.key === 'MODULE_CONTRACT_FINANCES')
+    expect(found).toBeDefined()
+    expect(found?.label).toBe('Financeiro de Contratos')
+    expect(found?.section).toBe('Financeiro')
+    expect(found?.to).toBe('/contract-finances')
   })
 })
 
@@ -60,6 +68,14 @@ describe('moduleForRoute', () => {
 
   it('retorna MODULE_CASH_FLOW para /cash-flow', () => {
     expect(moduleForRoute('/cash-flow')).toBe('MODULE_CASH_FLOW')
+  })
+
+  it('retorna MODULE_CONTRACT_FINANCES para /contract-finances', () => {
+    expect(moduleForRoute('/contract-finances')).toBe('MODULE_CONTRACT_FINANCES')
+  })
+
+  it('retorna MODULE_CONTRACT_FINANCES para /contract-finances/controls/9', () => {
+    expect(moduleForRoute('/contract-finances/controls/9')).toBe('MODULE_CONTRACT_FINANCES')
   })
 
   it('retorna undefined para rota não coberta', () => {

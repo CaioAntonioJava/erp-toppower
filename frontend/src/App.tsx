@@ -48,6 +48,9 @@ const PayableFormPage = lazy(() => import('./pages/PayableFormPage').then((m) =>
 const BoletosListPage = lazy(() => import('./pages/BoletosListPage').then((m) => ({ default: m.BoletosListPage })))
 const PurchaseImportPage = lazy(() => import('./pages/PurchaseImportPage').then((m) => ({ default: m.PurchaseImportPage })))
 const CashFlowPage = lazy(() => import('./pages/CashFlowPage').then((m) => ({ default: m.CashFlowPage })))
+const ContractFinancesListPage = lazy(() => import('./pages/ContractFinancesListPage').then((m) => ({ default: m.ContractFinancesListPage })))
+const ContractFinancesControlDetailPage = lazy(() => import('./pages/ContractFinancesControlDetailPage').then((m) => ({ default: m.ContractFinancesControlDetailPage })))
+const ContractFinancesEntryFormPage = lazy(() => import('./pages/ContractFinancesEntryFormPage').then((m) => ({ default: m.ContractFinancesEntryFormPage })))
 const UsersListPage = lazy(() => import('./pages/UsersListPage').then((m) => ({ default: m.UsersListPage })))
 const UserFormPage = lazy(() => import('./pages/UserFormPage').then((m) => ({ default: m.UserFormPage })))
 const CarriersListPage = lazy(() => import('./pages/CarriersListPage').then((m) => ({ default: m.CarriersListPage })))
@@ -125,6 +128,12 @@ export default function App() {
           <Route path="/boletos" element={<ModuleRoute module="MODULE_BOLETOS"><BoletosListPage /></ModuleRoute>} />
           <Route path="/purchases/import" element={<ModuleRoute module="MODULE_PURCHASES_IMPORT"><PurchaseImportPage /></ModuleRoute>} />
           <Route path="/cash-flow" element={<ModuleRoute module="MODULE_CASH_FLOW"><CashFlowPage /></ModuleRoute>} />
+
+          {/* Financeiro — controle de gastos/recebimentos por contrato (MODULE_CONTRACT_FINANCES). */}
+          <Route path="/contract-finances" element={<ModuleRoute module="MODULE_CONTRACT_FINANCES"><ContractFinancesListPage /></ModuleRoute>} />
+          <Route path="/contract-finances/controls/:id" element={<ModuleRoute module="MODULE_CONTRACT_FINANCES"><ContractFinancesControlDetailPage /></ModuleRoute>} />
+          <Route path="/contract-finances/new" element={<ModuleRoute module="MODULE_CONTRACT_FINANCES"><ContractFinancesEntryFormPage /></ModuleRoute>} />
+          <Route path="/contract-finances/entries/:id" element={<ModuleRoute module="MODULE_CONTRACT_FINANCES"><ContractFinancesEntryFormPage /></ModuleRoute>} />
 
           {/* Rotas administrativas — gestão de usuários (ROLE_ADMIN). */}
           <Route path="/users" element={<AdminRoute><UsersListPage /></AdminRoute>} />
