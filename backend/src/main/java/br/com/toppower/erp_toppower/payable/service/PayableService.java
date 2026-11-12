@@ -1,6 +1,7 @@
 package br.com.toppower.erp_toppower.payable.service;
 
 import br.com.toppower.erp_toppower.boleto.entity.Boleto;
+import br.com.toppower.erp_toppower.boleto.repository.BoletoRepository;
 import br.com.toppower.erp_toppower.common.dto.PagedResponse;
 import br.com.toppower.erp_toppower.payable.dto.PayableCreateRequest;
 import br.com.toppower.erp_toppower.payable.dto.PayableInstallmentRequest;
@@ -38,6 +39,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -55,7 +57,9 @@ import java.util.Optional;
  *       quitada; conta → PAGO quando todas as parcelas quitadas);</li>
  *   <li>Baixa total de uma parcela ou de todas as parcelas abertas;</li>
  *   <li>Geração automática de conta a pagar a partir de um boleto
- *       vinculado a um fornecedor.</li>
+ *       vinculado a um fornecedor; e sincronização do flag pago do
+ *       boleto com o estado da conta (estorno de pagamento ou
+ *       pagamento direto pela conta desmarcam/marcam o boleto junto).</li>
  * </ul>
  */
 @Service
@@ -70,17 +74,20 @@ public class PayableService {
     private final PayablePaymentRepository paymentRepository;
     private final SupplierRepository supplierRepository;
     private final PayablePaymentAttachmentService paymentAttachmentService;
+    private final BoletoRepository boletoRepository;
 
     public PayableService(PayableRepository repository,
                           PayableInstallmentRepository installmentRepository,
                           PayablePaymentRepository paymentRepository,
                           SupplierRepository supplierRepository,
-                          PayablePaymentAttachmentService paymentAttachmentService) {
+                          PayablePaymentAttachmentService paymentAttachmentService,
+                          BoletoRepository boletoRepository) {
         this.repository = repository;
         this.installmentRepository = installmentRepository;
         this.paymentRepository = paymentRepository;
         this.supplierRepository = supplierRepository;
         this.paymentAttachmentService = paymentAttachmentService;
+        this.boletoRepository = boletoRepository;
     }
 
     // ---------------------------------------------------------------------
@@ -537,6 +544,37 @@ public class PayableService {
                 .max(LocalDate::compareTo)
                 .orElse(null);
         p.setPaymentDate(latest);
+        syncBoletoState(p);
+    }
+
+    /**
+     * Sincroniza o flag pago do boleto vinculado com o estado
+     * recalculado da conta a pagar: o boleto fica pago somente quando a
+     * conta está PAGO (todas as parcelas quitadas),
+     * {@code paymentDate} = data do pagamento mais recente; com saldo
+     * devedor, o boleto volta para não pago e sem data.
+     *
+     * <p>Chamado após qualquer recálculo de estado, cobrindo o estorno
+     * ({@code removePayment}), o registro de pagamento e a liquidação
+     * diretos pela conta (sem passar pelo {@code BoletoService.settle}) e
+     * a reativação. O cancelamento não sincroniza: contas PAGO não podem
+     * ser canceladas, e contas sem pagamento não marcam o boleto.</p>
+     */
+    private void syncBoletoState(Payable payable) {
+        if (payable.getSourceType() != PayableSource.BOLETO || payable.getBoletoId() == null) {
+            return;
+        }
+        boletoRepository.findById(payable.getBoletoId()).ifPresent(boleto -> {
+            boolean paid = payable.getStatus() == PayableStatus.PAGO;
+            LocalDate paymentDate = paid ? payable.getPaymentDate() : null;
+            if (boleto.isPaid() != paid || !Objects.equals(boleto.getPaymentDate(), paymentDate)) {
+                log.info("Sincronizando boleto {} com a conta a pagar {}: paid={}, paymentDate={}",
+                        boleto.getId(), payable.getId(), paid, paymentDate);
+                boleto.setPaid(paid);
+                boleto.setPaymentDate(paymentDate);
+                boletoRepository.save(boleto);
+            }
+        });
     }
 
     // ---------------------------------------------------------------------
