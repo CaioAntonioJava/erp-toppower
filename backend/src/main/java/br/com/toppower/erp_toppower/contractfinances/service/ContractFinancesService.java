@@ -7,6 +7,7 @@ import br.com.toppower.erp_toppower.contract.enums.ContractStatus;
 import br.com.toppower.erp_toppower.contract.exception.ContractNotFoundException;
 import br.com.toppower.erp_toppower.contract.repository.ContractRepository;
 import br.com.toppower.erp_toppower.contractfinances.dto.ContractFinanceControlResponse;
+import br.com.toppower.erp_toppower.contractfinances.dto.ContractFinanceEntryBatchCreateRequest;
 import br.com.toppower.erp_toppower.contractfinances.dto.ContractFinanceEntryCreateRequest;
 import br.com.toppower.erp_toppower.contractfinances.dto.ContractFinanceEntryResponse;
 import br.com.toppower.erp_toppower.contractfinances.dto.ContractFinanceEntryUpdateRequest;
@@ -186,19 +187,51 @@ public class ContractFinancesService {
      */
     @Transactional
     public ContractFinanceEntryResponse createEntry(ContractFinanceEntryCreateRequest request) {
-        Contract contract = contractRepository.findById(request.contractId())
-                .orElseThrow(() -> new ContractNotFoundException(request.contractId()));
-        if (contract.getStatus() == ContractStatus.INATIVO) {
-            throw InvalidContractFinanceContractException.contractInactive(contract.getId());
-        }
-        ContractFinanceControl control = ensureControlForContract(contract)
-                .orElseThrow(() -> new ContractFinanceControlNotFoundException(contract.getId()));
+        ContractFinanceControl control = resolveControlForActiveContract(request.contractId());
 
         ContractFinanceEntry entry = ContractFinancesMapper.toEntryEntity(request, control.getId());
         ContractFinanceEntry saved = entryRepository.save(entry);
         log.info("Lançamento {} ({}) de {} no contrato {}", saved.getId(), saved.getType(),
                 saved.getAmount(), control.getContractCode());
         return ContractFinancesMapper.toResponse(saved, control);
+    }
+
+    /**
+     * Lança vários gastos/recebimentos de um contrato de uma vez:
+     * contrato e data compartilhados, um item por natureza preenchida.
+     * A transação cobre o lote — se qualquer item for inválido, nada é
+     * persistido (all-or-nothing).
+     */
+    @Transactional
+    public List<ContractFinanceEntryResponse> createEntriesBatch(
+            ContractFinanceEntryBatchCreateRequest request) {
+        ContractFinanceControl control = resolveControlForActiveContract(request.contractId());
+        List<ContractFinanceEntry> entries =
+                request.items().stream()
+                        .map(item -> ContractFinancesMapper.toEntryEntity(
+                                item.type(), request.entryDate(), item.amount(),
+                                item.description(), null, control.getId()))
+                        .toList();
+        List<ContractFinanceEntry> saved = entryRepository.saveAll(entries);
+        log.info("Lote com {} lançamento(s) no contrato {}", saved.size(), control.getContractCode());
+        return saved.stream()
+                .map(entry -> ContractFinancesMapper.toResponse(entry, control))
+                .toList();
+    }
+
+    /**
+     * Localiza (ou cria, se faltar) o controle do contrato e valida que
+     * o contrato existe e não está INATIVO — regra compartilhada pelas
+     * criações individual e em lote.
+     */
+    private ContractFinanceControl resolveControlForActiveContract(Long contractId) {
+        Contract contract = contractRepository.findById(contractId)
+                .orElseThrow(() -> new ContractNotFoundException(contractId));
+        if (contract.getStatus() == ContractStatus.INATIVO) {
+            throw InvalidContractFinanceContractException.contractInactive(contract.getId());
+        }
+        return ensureControlForContract(contract)
+                .orElseThrow(() -> new ContractFinanceControlNotFoundException(contract.getId()));
     }
 
     /** Detalhe do lançamento, com os dados do controle resolvidos. */

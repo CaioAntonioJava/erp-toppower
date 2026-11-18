@@ -6,6 +6,7 @@ import br.com.toppower.erp_toppower.contract.entity.Contract;
 import br.com.toppower.erp_toppower.contract.enums.ContractStatus;
 import br.com.toppower.erp_toppower.contract.exception.ContractNotFoundException;
 import br.com.toppower.erp_toppower.contract.repository.ContractRepository;
+import br.com.toppower.erp_toppower.contractfinances.dto.ContractFinanceEntryBatchCreateRequest;
 import br.com.toppower.erp_toppower.contractfinances.dto.ContractFinanceEntryCreateRequest;
 import br.com.toppower.erp_toppower.contractfinances.dto.ContractFinanceEntryResponse;
 import br.com.toppower.erp_toppower.contractfinances.dto.ContractFinanceEntryUpdateRequest;
@@ -54,6 +55,8 @@ import static org.mockito.Mockito.when;
  *   <li>Resolução do cliente PJ (nome fantasia preferido);</li>
  *   <li>Criação de lançamento: validação de contrato INATIVO, criação
  *       do controle quando faltar e persistência do lançamento;</li>
+ *   <li>Criação em lote: itens com data compartilhada e bloqueio de
+ *       contrato INATIVO;</li>
  *   <li>Edição parcial (PATCH), soft delete e reativação;</li>
  *   <li>Agregações: totais por controle e resumo consolidado por tipo;</li>
  *   <li>Contrato inexistente.</li>
@@ -238,6 +241,59 @@ class ContractFinancesServiceTest {
         verify(controlRepository).save(controlCaptor.capture());
         assertEquals(42L, controlCaptor.getValue().getContractId());
         verify(entryRepository).save(any(ContractFinanceEntry.class));
+    }
+
+    // ------------------------------------------------------------------
+    // Lançamentos — criação em lote
+    // ------------------------------------------------------------------
+
+    @Test
+    void createEntriesBatch_criaLoteComDataCompartilhada() {
+        Contract c = contract(42L, 7L, ContractStatus.ATIVO);
+        ContractFinanceControl existing = control(10L, 42L, "CL-001-2026");
+        when(contractRepository.findById(42L)).thenReturn(Optional.of(c));
+        when(controlRepository.findByContractId(42L)).thenReturn(Optional.of(existing));
+        when(entryRepository.saveAll(any()))
+                .thenAnswer(inv -> inv.getArgument(0, List.class));
+
+        List<ContractFinanceEntryResponse> responses = service.createEntriesBatch(
+                new ContractFinanceEntryBatchCreateRequest(
+                        42L, LocalDate.of(2026, 5, 10),
+                        List.of(
+                                new ContractFinanceEntryBatchCreateRequest.BatchItemRequest(
+                                        ContractFinanceEntryType.MATERIAL, new BigDecimal("300.00"), "Cabo 50mm"),
+                                new ContractFinanceEntryBatchCreateRequest.BatchItemRequest(
+                                        ContractFinanceEntryType.COMBUSTIVEL, new BigDecimal("120.00"), null))));
+
+        ArgumentCaptor<List<ContractFinanceEntry>> captor = ArgumentCaptor.forClass(List.class);
+        verify(entryRepository).saveAll(captor.capture());
+        List<ContractFinanceEntry> saved = captor.getValue();
+        assertEquals(2, saved.size());
+        // Contrato compartilhado; data igual em todos os itens.
+        for (ContractFinanceEntry entry : saved) {
+            assertEquals(10L, entry.getControlId());
+            assertEquals(LocalDate.of(2026, 5, 10), entry.getEntryDate());
+            assertEquals(ContractFinanceEntryStatus.ATIVO, entry.getStatus());
+        }
+        assertEquals(ContractFinanceEntryType.MATERIAL, saved.get(0).getType());
+        assertEquals("Cabo 50mm", saved.get(0).getDescription());
+        assertEquals(ContractFinanceEntryType.COMBUSTIVEL, saved.get(1).getType());
+        assertEquals(2, responses.size());
+        assertEquals("CL-001-2026", responses.get(0).contractCode());
+    }
+
+    @Test
+    void createEntriesBatch_contratoInativo_lancaExcecaoSemSalvar() {
+        Contract c = contract(42L, 7L, ContractStatus.INATIVO);
+        when(contractRepository.findById(42L)).thenReturn(Optional.of(c));
+
+        assertThrows(InvalidContractFinanceContractException.class, () ->
+                service.createEntriesBatch(new ContractFinanceEntryBatchCreateRequest(
+                        42L, LocalDate.of(2026, 5, 10),
+                        List.of(new ContractFinanceEntryBatchCreateRequest.BatchItemRequest(
+                                ContractFinanceEntryType.MATERIAL, new BigDecimal("100.00"), null)))));
+
+        verify(entryRepository, never()).saveAll(any());
     }
 
     @Test

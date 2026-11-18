@@ -7,9 +7,11 @@ import br.com.toppower.erp_toppower.contractfinances.dto.ContractFinanceControlR
 import br.com.toppower.erp_toppower.contractfinances.entity.ContractFinanceControl;
 import br.com.toppower.erp_toppower.contractfinances.entity.ContractFinanceEntry;
 import br.com.toppower.erp_toppower.contractfinances.enums.ContractFinanceEntryStatus;
+import br.com.toppower.erp_toppower.contractfinances.enums.ContractFinanceEntryType;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 
 /**
  * Mapeadores (estáticos) do financeiro de contratos — padrão do projeto
@@ -23,14 +25,27 @@ public final class ContractFinancesMapper {
     /** Cria a entidade de lançamento a partir do request de criação (status default ATIVO). */
     public static ContractFinanceEntry toEntryEntity(ContractFinanceEntryCreateRequest request,
                                                      Long controlId) {
+        return toEntryEntity(request.type(), request.entryDate(), request.amount(),
+                request.description(), request.status(), controlId);
+    }
+
+    /**
+     * Cria a entidade de lançamento a partir dos campos (usado também
+     * pela criação em lote, que resolve o contrato/data fora do item).
+     * Status default ATIVO; valor sempre com 2 casas.
+     */
+    public static ContractFinanceEntry toEntryEntity(ContractFinanceEntryType type,
+                                                     LocalDate entryDate, BigDecimal amount,
+                                                     String description,
+                                                     ContractFinanceEntryStatus status,
+                                                     Long controlId) {
         ContractFinanceEntry e = new ContractFinanceEntry();
         e.setControlId(controlId);
-        e.setType(request.type());
-        e.setEntryDate(request.entryDate());
-        e.setAmount(request.amount().setScale(2, RoundingMode.HALF_UP));
-        e.setDescription(request.description());
-        e.setStatus((request.status() != null)
-                ? request.status() : ContractFinanceEntryStatus.ATIVO);
+        e.setType(type);
+        e.setEntryDate(entryDate);
+        e.setAmount(amount.setScale(2, RoundingMode.HALF_UP));
+        e.setDescription(description);
+        e.setStatus((status != null) ? status : ContractFinanceEntryStatus.ATIVO);
         return e;
     }
 

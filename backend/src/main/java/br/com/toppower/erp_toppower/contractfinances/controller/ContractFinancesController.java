@@ -2,6 +2,7 @@ package br.com.toppower.erp_toppower.contractfinances.controller;
 
 import br.com.toppower.erp_toppower.common.dto.PagedResponse;
 import br.com.toppower.erp_toppower.contractfinances.dto.ContractFinanceControlResponse;
+import br.com.toppower.erp_toppower.contractfinances.dto.ContractFinanceEntryBatchCreateRequest;
 import br.com.toppower.erp_toppower.contractfinances.dto.ContractFinanceEntryCreateRequest;
 import br.com.toppower.erp_toppower.contractfinances.dto.ContractFinanceEntryResponse;
 import br.com.toppower.erp_toppower.contractfinances.dto.ContractFinanceEntryUpdateRequest;
@@ -38,6 +39,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * Endpoints do financeiro de contratos: controles automáticos por
@@ -123,6 +125,29 @@ public class ContractFinancesController {
     public ResponseEntity<ContractFinanceEntryResponse> createEntry(
             @Valid @RequestBody ContractFinanceEntryCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.createEntry(request));
+    }
+
+    @PostMapping(value = "/entries/batch", consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Lança vários gastos/recebimentos de um contrato de uma vez",
+            description = "Cria um lote de lançamentos com contrato e data compartilhados — um "
+                    + "item por natureza preenchida (a UI envia apenas as linhas preenchidas). "
+                    + "Transação única: se qualquer item for inválido, nada é persistido.")
+    @PreAuthorize("hasAuthority('MODULE_CONTRACT_FINANCES')")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Lançamentos criados.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = ContractFinanceEntryResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Payload inválido.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "404", description = "Contrato não encontrado.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "422", description = "Contrato INATIVO não aceita lançamentos.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+    })
+    public ResponseEntity<List<ContractFinanceEntryResponse>> createEntriesBatch(
+            @Valid @RequestBody ContractFinanceEntryBatchCreateRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.createEntriesBatch(request));
     }
 
     @GetMapping(value = "/entries", produces = MediaType.APPLICATION_JSON_VALUE)
