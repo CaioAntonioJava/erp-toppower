@@ -75,6 +75,20 @@ export interface ContractFinanceEntryCreateRequest {
   description?: string
 }
 
+/** Um item do lote: natureza preenchida com valor/descrição. */
+export interface ContractFinanceBatchItemRequest {
+  type: ContractFinanceEntryType
+  amount: number
+  description?: string
+}
+
+/** Corpo de POST /api/v1/contract-finances/entries/batch (contrato e data compartilhados). */
+export interface ContractFinanceEntryBatchCreateRequest {
+  contractId: number
+  entryDate: string
+  items: ContractFinanceBatchItemRequest[]
+}
+
 /** Corpo de PATCH /api/v1/contract-finances/entries/{id}. Campos opcionais. */
 export interface ContractFinanceEntryUpdateRequest {
   type?: ContractFinanceEntryType

@@ -29,7 +29,7 @@ export function ContractTypeahead({
   const [loadError, setLoadError] = useState<string | null>(null)
   const wrapperRef = useRef<HTMLDivElement | null>(null)
 
-  // Busca o contrato já selecionado (modo edição) uma única vez.
+  // Busca o contrato já selecionado (modo edição/prefill) uma única vez.
   useEffect(() => {
     if (selectedContractId == null || selected?.id === selectedContractId) return
     let cancelled = false
@@ -39,6 +39,9 @@ export function ContractTypeahead({
         if (cancelled) return
         setSelected(contract)
         setText(contract.code)
+        // Notifica o pai para manter o estado do formulário sincronizado
+        // com a pré-seleção (?contractId= ou edição).
+        onSelect(contract)
       } catch {
         if (!cancelled) setLoadError('Não foi possível carregar o contrato selecionado.')
       }

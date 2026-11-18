@@ -8,6 +8,7 @@ import type {
   ContractFinanceControlsPage,
   ContractFinanceControlResponse,
   ContractFinanceEntriesPage,
+  ContractFinanceEntryBatchCreateRequest,
   ContractFinanceEntryCreateRequest,
   ContractFinanceEntryFilters,
   ContractFinanceEntryResponse,
@@ -87,6 +88,17 @@ export async function createContractFinanceEntry(
   payload: ContractFinanceEntryCreateRequest,
 ): Promise<ContractFinanceEntryResponse> {
   const { data } = await api.post<ContractFinanceEntryResponse>(`${BASE}/entries`, payload)
+  return data
+}
+
+/**
+ * POST /contract-finances/entries/batch — lança vários gastos/recebimentos
+ * de uma vez (contrato e data compartilhados; transação única no backend).
+ */
+export async function createContractFinanceEntriesBatch(
+  payload: ContractFinanceEntryBatchCreateRequest,
+): Promise<ContractFinanceEntryResponse[]> {
+  const { data } = await api.post<ContractFinanceEntryResponse[]>(`${BASE}/entries/batch`, payload)
   return data
 }
 
